@@ -5,12 +5,14 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PublicClientForm from "./pages/PublicClientForm";
 import ClientDashboard from "./pages/ClientDashboard";
-import ConsultorDashboard from "./pages/ConsultorDashboard";
-import MediadorDashboard from "./pages/MediadorDashboard";
+import StaffDashboard from "./pages/StaffDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProcessDetails from "./pages/ProcessDetails";
 import NewProcess from "./pages/NewProcess";
 import "./App.css";
+
+// Staff roles that can access the Kanban dashboard
+const STAFF_ROLES = ["consultor", "mediador", "consultor_mediador", "ceo", "admin"];
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -42,12 +44,13 @@ const DashboardRedirect = () => {
   switch (user.role) {
     case "cliente":
       return <Navigate to="/cliente" replace />;
-    case "consultor":
-      return <Navigate to="/consultor" replace />;
-    case "mediador":
-      return <Navigate to="/mediador" replace />;
     case "admin":
       return <Navigate to="/admin" replace />;
+    case "consultor":
+    case "mediador":
+    case "consultor_mediador":
+    case "ceo":
+      return <Navigate to="/staff" replace />;
     default:
       return <Navigate to="/login" replace />;
   }
@@ -68,6 +71,7 @@ function App() {
           
           <Route path="/dashboard" element={<DashboardRedirect />} />
           
+          {/* Cliente Dashboard */}
           <Route
             path="/cliente"
             element={
@@ -85,24 +89,35 @@ function App() {
             }
           />
           
+          {/* Staff Dashboard (Consultor, Mediador, Consultor/Mediador, CEO) */}
+          <Route
+            path="/staff"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <StaffDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Legacy routes - redirect to staff dashboard */}
           <Route
             path="/consultor"
             element={
-              <ProtectedRoute allowedRoles={["consultor"]}>
-                <ConsultorDashboard />
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <Navigate to="/staff" replace />
               </ProtectedRoute>
             }
           />
-          
           <Route
             path="/mediador"
             element={
-              <ProtectedRoute allowedRoles={["mediador"]}>
-                <MediadorDashboard />
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <Navigate to="/staff" replace />
               </ProtectedRoute>
             }
           />
           
+          {/* Admin Dashboard - Full access */}
           <Route
             path="/admin"
             element={
@@ -112,6 +127,7 @@ function App() {
             }
           />
           
+          {/* Process Details - Any authenticated user */}
           <Route
             path="/processo/:id"
             element={
@@ -120,8 +136,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/process/:id"
+            element={
+              <ProtectedRoute>
+                <ProcessDetails />
+              </ProtectedRoute>
+            }
+          />
           
-          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
