@@ -58,6 +58,11 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Public client registration form - no auth required */}
+          <Route path="/" element={<PublicClientForm />} />
+          <Route path="/registo" element={<PublicClientForm />} />
+          
+          {/* Staff login */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
