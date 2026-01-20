@@ -8,25 +8,23 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from server import app, startup
-from database import db
 
 
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
+_initialized = False
 
-
-@pytest_asyncio.fixture(scope="module")
-async def initialized_app():
-    """Initialize database with default data"""
-    await startup()
-    yield app
+async def ensure_initialized():
+    """Ensure the app is initialized"""
+    global _initialized
+    if not _initialized:
+        await startup()
+        _initialized = True
 
 
 @pytest_asyncio.fixture
-async def client(initialized_app):
+async def client():
     """Create async test client"""
-    transport = ASGITransport(app=initialized_app)
+    await ensure_initialized()
+    transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
@@ -62,9 +60,3 @@ async def mediador_token(client):
     })
     assert response.status_code == 200, f"Login failed: {response.text}"
     return response.json()["access_token"]
-
-
-@pytest_asyncio.fixture
-async def auth_headers(admin_token):
-    """Get authorization headers with admin token"""
-    return {"Authorization": f"Bearer {admin_token}"}
