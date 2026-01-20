@@ -119,6 +119,15 @@ class ProcessCreate(BaseModel):
     personal_data: Optional[PersonalData] = None
     financial_data: Optional[FinancialData] = None
 
+# Public Client Registration (no auth)
+class PublicClientRegistration(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+    process_type: str
+    personal_data: Optional[PersonalData] = None
+    financial_data: Optional[FinancialData] = None
+
 class ProcessUpdate(BaseModel):
     personal_data: Optional[PersonalData] = None
     financial_data: Optional[FinancialData] = None
