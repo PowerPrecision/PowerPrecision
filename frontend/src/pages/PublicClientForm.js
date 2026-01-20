@@ -12,13 +12,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Checkbox } from "../components/ui/checkbox";
-import { Building2, CreditCard, FileText, Loader2, ArrowLeft, ArrowRight, Check, User, Briefcase } from "lucide-react";
+import { Building2, Loader2, ArrowLeft, ArrowRight, Check, User, Briefcase, Home, Users, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + "/api";
+
+const ESTADOS_CIVIS = [
+  { value: "solteiro", label: "Solteiro/a" },
+  { value: "divorciado", label: "Divorciado/a" },
+  { value: "viuvo", label: "Viúvo/a" },
+  { value: "casado_adquiridos", label: "Casado/a: Comunhão de Adquiridos" },
+  { value: "casado_geral", label: "Casado/a: Comunhão Geral de Bens" },
+  { value: "casado_separacao", label: "Casado/a: Separação de Bens" },
+  { value: "outro", label: "Outro" },
+];
+
+const TIPOS_IMOVEL = [
+  { value: "apartamento", label: "Apartamento" },
+  { value: "moradia", label: "Moradia" },
+  { value: "outro", label: "Outro" },
+];
+
+const QUARTOS = [
+  { value: "T0", label: "T0" },
+  { value: "T1", label: "T1" },
+  { value: "T2", label: "T2" },
+  { value: "T3", label: "T3" },
+  { value: "T4", label: "T4" },
+  { value: "T5+", label: "T5+" },
+];
+
+const CARACTERISTICAS = [
+  { value: "elevador", label: "Elevador" },
+  { value: "2_wcs", label: "2 ou mais WCs" },
+  { value: "transportes", label: "Proximidade de transportes públicos" },
+  { value: "garagem", label: "Garagem" },
+  { value: "piscina", label: "Piscina" },
+  { value: "varanda", label: "Varanda" },
+  { value: "andar_maximo", label: "Andar máximo" },
+  { value: "outro", label: "Outro" },
+];
+
+const BANCOS = [
+  "ABANCA", "BBVA", "BEST", "BIG", "BPI", "CGD", "Crédito Agrícola",
+  "CTT", "Millennium bcp", "Novo Banco", "Popular", "Santander Totta", "Outro"
+];
 
 const PublicClientForm = () => {
   const navigate = useNavigate();
@@ -27,27 +67,57 @@ const PublicClientForm = () => {
   const [submitted, setSubmitted] = useState(false);
   
   const [formData, setFormData] = useState({
-    // Dados básicos
+    // Dados Pessoais - Titular
     name: "",
     email: "",
-    phone: "",
-    // Tipo de processo
-    process_type: "",
-    // Dados pessoais
     nif: "",
-    address: "",
+    documento_id: "",
+    naturalidade: "",
+    nacionalidade: "Portuguesa",
+    phone: "",
+    morada_fiscal: "",
     birth_date: "",
-    marital_status: "",
-    nationality: "Portuguesa",
-    // Dados financeiros
-    monthly_income: "",
-    other_income: "",
-    monthly_expenses: "",
-    employment_type: "",
-    employer_name: "",
-    employment_duration: "",
-    has_debts: false,
-    debt_amount: "",
+    estado_civil: "",
+    compra_tipo: "individual",
+    
+    // Dados do 2º Titular
+    titular2_name: "",
+    titular2_email: "",
+    titular2_nif: "",
+    titular2_documento_id: "",
+    titular2_naturalidade: "",
+    titular2_nacionalidade: "",
+    titular2_phone: "",
+    titular2_morada_fiscal: "",
+    titular2_birth_date: "",
+    titular2_estado_civil: "",
+    
+    // Imóvel Pretendido
+    tipo_imovel: "",
+    num_quartos: "",
+    localizacao: "",
+    caracteristicas: [],
+    outras_caracteristicas: "",
+    
+    // Outras Informações
+    outras_informacoes: "",
+    
+    // Situação Financeira
+    acesso_portal_financas: "",
+    chave_movel_digital: "",
+    renda_habitacao_atual: "",
+    precisa_vender_casa: "",
+    efetivo: "",
+    fiador: "",
+    salario_liquido: "",
+    
+    // Bancos com créditos ativos
+    bancos_creditos: [],
+    
+    // Capital e Financiamento
+    capital_proprio: "",
+    valor_financiado: "",
+    
     // Consentimento
     consent_data: false,
     consent_contact: false,
@@ -66,23 +136,48 @@ const PublicClientForm = () => {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        process_type: formData.process_type,
+        process_type: "ambos",
         personal_data: {
           nif: formData.nif,
-          address: formData.address,
+          documento_id: formData.documento_id,
+          naturalidade: formData.naturalidade,
+          nacionalidade: formData.nacionalidade,
+          morada_fiscal: formData.morada_fiscal,
           birth_date: formData.birth_date,
-          marital_status: formData.marital_status,
-          nationality: formData.nationality,
+          estado_civil: formData.estado_civil,
+          compra_tipo: formData.compra_tipo,
+        },
+        titular2_data: formData.compra_tipo === "outra_pessoa" ? {
+          name: formData.titular2_name,
+          email: formData.titular2_email,
+          nif: formData.titular2_nif,
+          documento_id: formData.titular2_documento_id,
+          naturalidade: formData.titular2_naturalidade,
+          nacionalidade: formData.titular2_nacionalidade,
+          phone: formData.titular2_phone,
+          morada_fiscal: formData.titular2_morada_fiscal,
+          birth_date: formData.titular2_birth_date,
+          estado_civil: formData.titular2_estado_civil,
+        } : null,
+        real_estate_data: {
+          tipo_imovel: formData.tipo_imovel,
+          num_quartos: formData.num_quartos,
+          localizacao: formData.localizacao,
+          caracteristicas: formData.caracteristicas,
+          outras_caracteristicas: formData.outras_caracteristicas,
+          outras_informacoes: formData.outras_informacoes,
         },
         financial_data: {
-          monthly_income: formData.monthly_income ? parseFloat(formData.monthly_income) : null,
-          other_income: formData.other_income ? parseFloat(formData.other_income) : null,
-          monthly_expenses: formData.monthly_expenses ? parseFloat(formData.monthly_expenses) : null,
-          employment_type: formData.employment_type,
-          employer_name: formData.employer_name,
-          employment_duration: formData.employment_duration,
-          has_debts: formData.has_debts,
-          debt_amount: formData.debt_amount ? parseFloat(formData.debt_amount) : null,
+          acesso_portal_financas: formData.acesso_portal_financas,
+          chave_movel_digital: formData.chave_movel_digital,
+          renda_habitacao_atual: formData.renda_habitacao_atual ? parseFloat(formData.renda_habitacao_atual) : null,
+          precisa_vender_casa: formData.precisa_vender_casa,
+          efetivo: formData.efetivo,
+          fiador: formData.fiador,
+          monthly_income: formData.salario_liquido ? parseFloat(formData.salario_liquido) : null,
+          bancos_creditos: formData.bancos_creditos,
+          capital_proprio: formData.capital_proprio ? parseFloat(formData.capital_proprio) : null,
+          valor_financiado: formData.valor_financiado,
         },
       });
 
@@ -96,305 +191,594 @@ const PublicClientForm = () => {
     }
   };
 
+  const updateField = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const toggleCaracteristica = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      caracteristicas: prev.caracteristicas.includes(value)
+        ? prev.caracteristicas.filter(c => c !== value)
+        : [...prev.caracteristicas, value]
+    }));
+  };
+
+  const toggleBanco = (banco) => {
+    setFormData(prev => ({
+      ...prev,
+      bancos_creditos: prev.bancos_creditos.includes(banco)
+        ? prev.bancos_creditos.filter(b => b !== banco)
+        : [...prev.bancos_creditos, banco]
+    }));
+  };
+
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
-      {[1, 2, 3, 4].map((s) => (
+    <div className="flex items-center justify-center mb-8 flex-wrap gap-2">
+      {[1, 2, 3, 4, 5, 6].map((s) => (
         <div key={s} className="flex items-center">
           <div
-            className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-              s < step
-                ? "bg-emerald-500 text-white"
-                : s === step
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            }`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+              ${step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
           >
-            {s < step ? <Check className="h-5 w-5" /> : s}
+            {step > s ? <Check className="h-4 w-4" /> : s}
           </div>
-          {s < 4 && (
-            <div className={`h-1 w-12 mx-2 transition-all ${s < step ? "bg-emerald-500" : "bg-muted"}`} />
-          )}
+          {s < 6 && <div className={`w-8 md:w-12 h-0.5 ${step > s ? "bg-primary" : "bg-muted"}`} />}
         </div>
       ))}
     </div>
   );
 
+  // Step 1: Dados Pessoais - Titular
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-semibold mb-2">Tipo de Serviço</h2>
-        <p className="text-muted-foreground">Selecione o tipo de ajuda que precisa</p>
-      </div>
-      <RadioGroup
-        value={formData.process_type}
-        onValueChange={(value) => setFormData({ ...formData, process_type: value })}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-        <div>
-          <RadioGroupItem value="credito" id="credito" className="peer sr-only" />
-          <Label
-            htmlFor="credito"
-            className="flex flex-col items-center justify-center p-6 border-2 rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-            data-testid="process-type-credito"
-          >
-            <CreditCard className="h-10 w-10 mb-3 text-primary" />
-            <span className="font-semibold">Crédito</span>
-            <span className="text-sm text-muted-foreground text-center mt-1">
-              Crédito habitação ou pessoal
-            </span>
-          </Label>
-        </div>
-        <div>
-          <RadioGroupItem value="imobiliaria" id="imobiliaria" className="peer sr-only" />
-          <Label
-            htmlFor="imobiliaria"
-            className="flex flex-col items-center justify-center p-6 border-2 rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-            data-testid="process-type-imobiliaria"
-          >
-            <Building2 className="h-10 w-10 mb-3 text-primary" />
-            <span className="font-semibold">Imobiliária</span>
-            <span className="text-sm text-muted-foreground text-center mt-1">
-              Procura de imóvel
-            </span>
-          </Label>
-        </div>
-        <div>
-          <RadioGroupItem value="ambos" id="ambos" className="peer sr-only" />
-          <Label
-            htmlFor="ambos"
-            className="flex flex-col items-center justify-center p-6 border-2 rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-            data-testid="process-type-ambos"
-          >
-            <FileText className="h-10 w-10 mb-3 text-primary" />
-            <span className="font-semibold">Ambos</span>
-            <span className="text-sm text-muted-foreground text-center mt-1">
-              Crédito + Imobiliária
-            </span>
-          </Label>
-        </div>
-      </RadioGroup>
-    </div>
-  );
-
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
         <User className="h-10 w-10 mx-auto mb-2 text-primary" />
-        <h2 className="text-xl font-semibold mb-2">Dados Pessoais</h2>
-        <p className="text-muted-foreground">Preencha os seus dados de contacto e identificação</p>
+        <h2 className="text-xl font-semibold mb-2">Dados Pessoais - Titular</h2>
+        <p className="text-muted-foreground">Informações do titular principal</p>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="name">Nome Completo *</Label>
+          <Label htmlFor="name">Nome completo *</Label>
           <Input
             id="name"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="O seu nome completo"
+            onChange={(e) => updateField("name", e.target.value)}
+            placeholder="Nome completo"
             required
             data-testid="client-name"
           />
         </div>
+        
         <div className="space-y-2">
           <Label htmlFor="email">Email *</Label>
           <Input
             id="email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="seu@email.com"
+            onChange={(e) => updateField("email", e.target.value)}
+            placeholder="email@exemplo.pt"
             required
             data-testid="client-email"
           />
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="phone">Telefone *</Label>
+          <Label htmlFor="phone">Telemóvel *</Label>
           <Input
             id="phone"
+            type="tel"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) => updateField("phone", e.target.value)}
             placeholder="+351 912 345 678"
             required
             data-testid="client-phone"
           />
         </div>
+        
         <div className="space-y-2">
           <Label htmlFor="nif">NIF *</Label>
           <Input
             id="nif"
+            type="text"
             value={formData.nif}
-            onChange={(e) => setFormData({ ...formData, nif: e.target.value })}
+            onChange={(e) => updateField("nif", e.target.value.replace(/\D/g, ""))}
             placeholder="123456789"
+            maxLength={9}
             required
             data-testid="client-nif"
           />
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="birth_date">Data de Nascimento</Label>
+          <Label htmlFor="documento_id">Cartão de Cidadão/Passaporte *</Label>
+          <Input
+            id="documento_id"
+            value={formData.documento_id}
+            onChange={(e) => updateField("documento_id", e.target.value)}
+            placeholder="Número do documento"
+            required
+            data-testid="client-documento"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="naturalidade">Naturalidade *</Label>
+          <Input
+            id="naturalidade"
+            value={formData.naturalidade}
+            onChange={(e) => updateField("naturalidade", e.target.value)}
+            placeholder="Local de nascimento"
+            required
+            data-testid="client-naturalidade"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="nacionalidade">Nacionalidade *</Label>
+          <Input
+            id="nacionalidade"
+            value={formData.nacionalidade}
+            onChange={(e) => updateField("nacionalidade", e.target.value)}
+            placeholder="Portuguesa"
+            required
+            data-testid="client-nacionalidade"
+          />
+        </div>
+        
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="morada_fiscal">Morada Fiscal *</Label>
+          <Input
+            id="morada_fiscal"
+            value={formData.morada_fiscal}
+            onChange={(e) => updateField("morada_fiscal", e.target.value)}
+            placeholder="Rua, número, código postal, localidade"
+            required
+            data-testid="client-morada"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="birth_date">Data de Nascimento *</Label>
           <Input
             id="birth_date"
             type="date"
             value={formData.birth_date}
-            onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+            onChange={(e) => updateField("birth_date", e.target.value)}
+            required
             data-testid="client-birth-date"
           />
         </div>
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="address">Morada</Label>
-          <Input
-            id="address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            placeholder="Rua, número, código postal, cidade"
-            data-testid="client-address"
-          />
-        </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="marital_status">Estado Civil</Label>
-          <Select
-            value={formData.marital_status}
-            onValueChange={(value) => setFormData({ ...formData, marital_status: value })}
-          >
-            <SelectTrigger data-testid="client-marital-status">
+          <Label htmlFor="estado_civil">Estado Civil *</Label>
+          <Select value={formData.estado_civil} onValueChange={(v) => updateField("estado_civil", v)}>
+            <SelectTrigger data-testid="client-estado-civil">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="solteiro">Solteiro(a)</SelectItem>
-              <SelectItem value="casado">Casado(a)</SelectItem>
-              <SelectItem value="divorciado">Divorciado(a)</SelectItem>
-              <SelectItem value="viuvo">Viúvo(a)</SelectItem>
-              <SelectItem value="uniao_facto">União de Facto</SelectItem>
+              {ESTADOS_CIVIS.map((ec) => (
+                <SelectItem key={ec.value} value={ec.value}>{ec.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="nationality">Nacionalidade</Label>
-          <Input
-            id="nationality"
-            value={formData.nationality}
-            onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-            placeholder="Portuguesa"
-            data-testid="client-nationality"
-          />
+        
+        <div className="space-y-2 md:col-span-2">
+          <Label>Compra individualmente ou com outra pessoa? *</Label>
+          <Select value={formData.compra_tipo} onValueChange={(v) => updateField("compra_tipo", v)}>
+            <SelectTrigger data-testid="client-compra-tipo">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="individual">Individual</SelectItem>
+              <SelectItem value="outra_pessoa">Com outra pessoa</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
   );
 
+  // Step 2: Dados do 2º Titular (se aplicável)
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <Users className="h-10 w-10 mx-auto mb-2 text-primary" />
+        <h2 className="text-xl font-semibold mb-2">Dados do 2º Titular</h2>
+        <p className="text-muted-foreground">
+          {formData.compra_tipo === "outra_pessoa" 
+            ? "Preencha os dados do segundo titular" 
+            : "Não aplicável - compra individual"}
+        </p>
+      </div>
+      
+      {formData.compra_tipo === "outra_pessoa" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="titular2_name">Nome completo</Label>
+            <Input
+              id="titular2_name"
+              value={formData.titular2_name}
+              onChange={(e) => updateField("titular2_name", e.target.value)}
+              placeholder="Nome completo"
+              data-testid="titular2-name"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_email">Email</Label>
+            <Input
+              id="titular2_email"
+              type="email"
+              value={formData.titular2_email}
+              onChange={(e) => updateField("titular2_email", e.target.value)}
+              placeholder="email@exemplo.pt"
+              data-testid="titular2-email"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_phone">Telemóvel</Label>
+            <Input
+              id="titular2_phone"
+              type="tel"
+              value={formData.titular2_phone}
+              onChange={(e) => updateField("titular2_phone", e.target.value)}
+              placeholder="+351 912 345 678"
+              data-testid="titular2-phone"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_nif">NIF</Label>
+            <Input
+              id="titular2_nif"
+              type="text"
+              value={formData.titular2_nif}
+              onChange={(e) => updateField("titular2_nif", e.target.value.replace(/\D/g, ""))}
+              placeholder="123456789"
+              maxLength={9}
+              data-testid="titular2-nif"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_documento_id">Cartão de Cidadão/Passaporte</Label>
+            <Input
+              id="titular2_documento_id"
+              value={formData.titular2_documento_id}
+              onChange={(e) => updateField("titular2_documento_id", e.target.value)}
+              placeholder="Número do documento"
+              data-testid="titular2-documento"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_naturalidade">Naturalidade</Label>
+            <Input
+              id="titular2_naturalidade"
+              value={formData.titular2_naturalidade}
+              onChange={(e) => updateField("titular2_naturalidade", e.target.value)}
+              placeholder="Local de nascimento"
+              data-testid="titular2-naturalidade"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_nacionalidade">Nacionalidade</Label>
+            <Input
+              id="titular2_nacionalidade"
+              value={formData.titular2_nacionalidade}
+              onChange={(e) => updateField("titular2_nacionalidade", e.target.value)}
+              placeholder="Portuguesa"
+              data-testid="titular2-nacionalidade"
+            />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="titular2_morada_fiscal">Morada Fiscal</Label>
+            <Input
+              id="titular2_morada_fiscal"
+              value={formData.titular2_morada_fiscal}
+              onChange={(e) => updateField("titular2_morada_fiscal", e.target.value)}
+              placeholder="Rua, número, código postal, localidade"
+              data-testid="titular2-morada"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_birth_date">Data de Nascimento</Label>
+            <Input
+              id="titular2_birth_date"
+              type="date"
+              value={formData.titular2_birth_date}
+              onChange={(e) => updateField("titular2_birth_date", e.target.value)}
+              data-testid="titular2-birth-date"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="titular2_estado_civil">Estado Civil</Label>
+            <Select value={formData.titular2_estado_civil} onValueChange={(v) => updateField("titular2_estado_civil", v)}>
+              <SelectTrigger data-testid="titular2-estado-civil">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {ESTADOS_CIVIS.map((ec) => (
+                  <SelectItem key={ec.value} value={ec.value}>{ec.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 bg-muted/50 rounded-lg">
+          <p className="text-muted-foreground">
+            Selecione "Com outra pessoa" no passo anterior para preencher os dados do 2º titular.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  // Step 3: Imóvel Pretendido
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <Briefcase className="h-10 w-10 mx-auto mb-2 text-primary" />
-        <h2 className="text-xl font-semibold mb-2">Dados Financeiros</h2>
-        <p className="text-muted-foreground">Informações sobre a sua situação financeira</p>
+        <Home className="h-10 w-10 mx-auto mb-2 text-primary" />
+        <h2 className="text-xl font-semibold mb-2">Imóvel Pretendido</h2>
+        <p className="text-muted-foreground">Características do imóvel que procura</p>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="monthly_income">Rendimento Mensal Líquido (€) *</Label>
+          <Label>O que procura? *</Label>
+          <Select value={formData.tipo_imovel} onValueChange={(v) => updateField("tipo_imovel", v)}>
+            <SelectTrigger data-testid="imovel-tipo">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIPOS_IMOVEL.map((ti) => (
+                <SelectItem key={ti.value} value={ti.value}>{ti.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Número de quartos *</Label>
+          <Select value={formData.num_quartos} onValueChange={(v) => updateField("num_quartos", v)}>
+            <SelectTrigger data-testid="imovel-quartos">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {QUARTOS.map((q) => (
+                <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="localizacao">Localização/Zona(s) preferida(s) *</Label>
           <Input
-            id="monthly_income"
-            type="number"
-            value={formData.monthly_income}
-            onChange={(e) => setFormData({ ...formData, monthly_income: e.target.value })}
-            placeholder="0.00"
+            id="localizacao"
+            value={formData.localizacao}
+            onChange={(e) => updateField("localizacao", e.target.value)}
+            placeholder="Ex: Lisboa, Cascais, Sintra"
             required
-            data-testid="client-monthly-income"
+            data-testid="imovel-localizacao"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="other_income">Outros Rendimentos (€)</Label>
-          <Input
-            id="other_income"
-            type="number"
-            value={formData.other_income}
-            onChange={(e) => setFormData({ ...formData, other_income: e.target.value })}
-            placeholder="0.00"
-            data-testid="client-other-income"
-          />
+        
+        <div className="space-y-3 md:col-span-2">
+          <Label>Características obrigatórias (selecione apenas as imprescindíveis) *</Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {CARACTERISTICAS.map((c) => (
+              <div key={c.value} className="flex items-center space-x-2">
+                <Checkbox
+                  id={c.value}
+                  checked={formData.caracteristicas.includes(c.value)}
+                  onCheckedChange={() => toggleCaracteristica(c.value)}
+                  data-testid={`caracteristica-${c.value}`}
+                />
+                <Label htmlFor={c.value} className="text-sm cursor-pointer">{c.label}</Label>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="monthly_expenses">Despesas Mensais (€)</Label>
-          <Input
-            id="monthly_expenses"
-            type="number"
-            value={formData.monthly_expenses}
-            onChange={(e) => setFormData({ ...formData, monthly_expenses: e.target.value })}
-            placeholder="0.00"
-            data-testid="client-monthly-expenses"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="employment_type">Situação Profissional *</Label>
-          <Select
-            value={formData.employment_type}
-            onValueChange={(value) => setFormData({ ...formData, employment_type: value })}
-          >
-            <SelectTrigger data-testid="client-employment-type">
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="efetivo">Contrato Efetivo</SelectItem>
-              <SelectItem value="termo">Contrato a Termo</SelectItem>
-              <SelectItem value="independente">Trabalhador Independente</SelectItem>
-              <SelectItem value="empresario">Empresário</SelectItem>
-              <SelectItem value="reformado">Reformado</SelectItem>
-              <SelectItem value="desempregado">Desempregado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="employer_name">Entidade Empregadora</Label>
-          <Input
-            id="employer_name"
-            value={formData.employer_name}
-            onChange={(e) => setFormData({ ...formData, employer_name: e.target.value })}
-            placeholder="Nome da empresa"
-            data-testid="client-employer-name"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="employment_duration">Tempo na Empresa</Label>
-          <Input
-            id="employment_duration"
-            value={formData.employment_duration}
-            onChange={(e) => setFormData({ ...formData, employment_duration: e.target.value })}
-            placeholder="Ex: 2 anos"
-            data-testid="client-employment-duration"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="has_debts">Tem encargos financeiros?</Label>
-          <Select
-            value={formData.has_debts ? "yes" : "no"}
-            onValueChange={(value) => setFormData({ ...formData, has_debts: value === "yes" })}
-          >
-            <SelectTrigger data-testid="client-has-debts">
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no">Não</SelectItem>
-              <SelectItem value="yes">Sim</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {formData.has_debts && (
-          <div className="space-y-2">
-            <Label htmlFor="debt_amount">Valor Mensal dos Encargos (€)</Label>
+        
+        {formData.caracteristicas.includes("outro") && (
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="outras_caracteristicas">Outras características</Label>
             <Input
-              id="debt_amount"
-              type="number"
-              value={formData.debt_amount}
-              onChange={(e) => setFormData({ ...formData, debt_amount: e.target.value })}
-              placeholder="0.00"
-              data-testid="client-debt-amount"
+              id="outras_caracteristicas"
+              value={formData.outras_caracteristicas}
+              onChange={(e) => updateField("outras_caracteristicas", e.target.value)}
+              placeholder="Especifique outras características"
+              data-testid="imovel-outras-caracteristicas"
             />
           </div>
         )}
+        
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="outras_informacoes">Outras informações</Label>
+          <Textarea
+            id="outras_informacoes"
+            value={formData.outras_informacoes}
+            onChange={(e) => updateField("outras_informacoes", e.target.value)}
+            placeholder="Informações adicionais sobre o que procura..."
+            rows={3}
+            data-testid="imovel-outras-info"
+          />
+        </div>
       </div>
     </div>
   );
 
+  // Step 4: Situação Financeira
   const renderStep4 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <Briefcase className="h-10 w-10 mx-auto mb-2 text-primary" />
+        <h2 className="text-xl font-semibold mb-2">Situação Financeira</h2>
+        <p className="text-muted-foreground">Informações sobre a sua situação financeira</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="acesso_portal_financas">Acesso Portal das Finanças *</Label>
+          <Input
+            id="acesso_portal_financas"
+            value={formData.acesso_portal_financas}
+            onChange={(e) => updateField("acesso_portal_financas", e.target.value)}
+            placeholder="Senha de acesso"
+            required
+            data-testid="fin-portal-financas"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Chave Móvel Digital? *</Label>
+          <Select value={formData.chave_movel_digital} onValueChange={(v) => updateField("chave_movel_digital", v)}>
+            <SelectTrigger data-testid="fin-chave-movel">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="renda_habitacao_atual">Renda da habitação atual (€)</Label>
+          <Input
+            id="renda_habitacao_atual"
+            type="number"
+            value={formData.renda_habitacao_atual}
+            onChange={(e) => updateField("renda_habitacao_atual", e.target.value)}
+            placeholder="0.00"
+            data-testid="fin-renda-atual"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Precisa vender a casa atual?</Label>
+          <Select value={formData.precisa_vender_casa} onValueChange={(v) => updateField("precisa_vender_casa", v)}>
+            <SelectTrigger data-testid="fin-vender-casa">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Efetivo?</Label>
+          <Select value={formData.efetivo} onValueChange={(v) => updateField("efetivo", v)}>
+            <SelectTrigger data-testid="fin-efetivo">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Fiador (caso seja necessário)?</Label>
+          <Select value={formData.fiador} onValueChange={(v) => updateField("fiador", v)}>
+            <SelectTrigger data-testid="fin-fiador">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="salario_liquido">Salário mensal líquido (já com descontos) * (€)</Label>
+          <Input
+            id="salario_liquido"
+            type="number"
+            value={formData.salario_liquido}
+            onChange={(e) => updateField("salario_liquido", e.target.value)}
+            placeholder="0.00"
+            required
+            data-testid="fin-salario"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Step 5: Bancos e Capital
+  const renderStep5 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <CreditCard className="h-10 w-10 mx-auto mb-2 text-primary" />
+        <h2 className="text-xl font-semibold mb-2">Créditos e Capital</h2>
+        <p className="text-muted-foreground">Informações sobre créditos e capital disponível</p>
+      </div>
+      
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <Label>Bancos onde tem créditos ativos *</Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {BANCOS.map((banco) => (
+              <div key={banco} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`banco-${banco}`}
+                  checked={formData.bancos_creditos.includes(banco)}
+                  onCheckedChange={() => toggleBanco(banco)}
+                  data-testid={`banco-${banco.toLowerCase().replace(/\s+/g, '-')}`}
+                />
+                <Label htmlFor={`banco-${banco}`} className="text-sm cursor-pointer">{banco}</Label>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="capital_proprio">Capital próprio disponível * (€)</Label>
+            <Input
+              id="capital_proprio"
+              type="number"
+              value={formData.capital_proprio}
+              onChange={(e) => updateField("capital_proprio", e.target.value)}
+              placeholder="0.00"
+              required
+              data-testid="fin-capital-proprio"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="valor_financiado">Valor a financiar * (€)</Label>
+            <Input
+              id="valor_financiado"
+              value={formData.valor_financiado}
+              onChange={(e) => updateField("valor_financiado", e.target.value)}
+              placeholder="Ex: 200.000€ ou 80% do valor"
+              required
+              data-testid="fin-valor-financiado"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Step 6: Confirmação
+  const renderStep6 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
         <Check className="h-10 w-10 mx-auto mb-2 text-primary" />
@@ -402,8 +786,7 @@ const PublicClientForm = () => {
         <p className="text-muted-foreground">Reveja os seus dados e confirme o registo</p>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Dados Pessoais</CardTitle>
@@ -411,164 +794,198 @@ const PublicClientForm = () => {
           <CardContent className="space-y-1 text-sm">
             <p><strong>Nome:</strong> {formData.name}</p>
             <p><strong>Email:</strong> {formData.email}</p>
-            <p><strong>Telefone:</strong> {formData.phone}</p>
+            <p><strong>Telemóvel:</strong> {formData.phone}</p>
             <p><strong>NIF:</strong> {formData.nif}</p>
+            <p><strong>Estado Civil:</strong> {ESTADOS_CIVIS.find(e => e.value === formData.estado_civil)?.label || "-"}</p>
           </CardContent>
         </Card>
+        
         <Card className="border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Dados Financeiros</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Imóvel Pretendido</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
-            <p><strong>Rendimento:</strong> {formData.monthly_income ? `€${formData.monthly_income}` : "-"}</p>
-            <p><strong>Situação:</strong> {formData.employment_type || "-"}</p>
-            <p><strong>Empregador:</strong> {formData.employer_name || "-"}</p>
+            <p><strong>Tipo:</strong> {TIPOS_IMOVEL.find(t => t.value === formData.tipo_imovel)?.label || "-"}</p>
+            <p><strong>Quartos:</strong> {formData.num_quartos || "-"}</p>
+            <p><strong>Localização:</strong> {formData.localizacao || "-"}</p>
+            <p><strong>Características:</strong> {formData.caracteristicas.length > 0 ? formData.caracteristicas.join(", ") : "-"}</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Situação Financeira</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <p><strong>Salário líquido:</strong> {formData.salario_liquido ? `€${formData.salario_liquido}` : "-"}</p>
+            <p><strong>Capital próprio:</strong> {formData.capital_proprio ? `€${formData.capital_proprio}` : "-"}</p>
+            <p><strong>Valor a financiar:</strong> {formData.valor_financiado || "-"}</p>
+            <p><strong>Efetivo:</strong> {formData.efetivo === "sim" ? "Sim" : formData.efetivo === "nao" ? "Não" : "-"}</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Créditos Ativos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <p>{formData.bancos_creditos.length > 0 ? formData.bancos_creditos.join(", ") : "Nenhum banco selecionado"}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Consent checkboxes */}
       <div className="space-y-4 pt-4 border-t">
         <div className="flex items-start space-x-3">
           <Checkbox
             id="consent_data"
             checked={formData.consent_data}
-            onCheckedChange={(checked) => setFormData({ ...formData, consent_data: checked })}
+            onCheckedChange={(checked) => updateField("consent_data", checked)}
             data-testid="consent-data"
           />
           <Label htmlFor="consent_data" className="text-sm leading-relaxed cursor-pointer">
-            Autorizo o tratamento dos meus dados pessoais para análise do meu pedido de crédito/imobiliário, nos termos do RGPD.
+            Autorizo o tratamento dos meus dados pessoais para análise do meu pedido de crédito/imobiliário, nos termos do RGPD. *
           </Label>
         </div>
         <div className="flex items-start space-x-3">
           <Checkbox
             id="consent_contact"
             checked={formData.consent_contact}
-            onCheckedChange={(checked) => setFormData({ ...formData, consent_contact: checked })}
+            onCheckedChange={(checked) => updateField("consent_contact", checked)}
             data-testid="consent-contact"
           />
           <Label htmlFor="consent_contact" className="text-sm leading-relaxed cursor-pointer">
-            Autorizo ser contactado por telefone, email ou SMS para dar seguimento ao meu pedido.
+            Aceito ser contactado pela equipa para dar seguimento ao meu processo. *
           </Label>
         </div>
       </div>
     </div>
   );
 
-  const renderSuccess = () => (
+  const renderSuccessMessage = () => (
     <div className="text-center py-12">
-      <div className="h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <Check className="h-10 w-10 text-emerald-600" />
+      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Check className="h-8 w-8 text-green-600" />
       </div>
-      <h2 className="text-2xl font-bold mb-2">Registo Enviado com Sucesso!</h2>
-      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-semibold mb-2">Registo Enviado com Sucesso!</h2>
+      <p className="text-muted-foreground mb-6">
         Obrigado pelo seu interesse. A nossa equipa irá analisar o seu pedido e entrará em contacto consigo brevemente.
       </p>
-      <div className="bg-muted/50 p-4 rounded-lg max-w-sm mx-auto">
-        <p className="text-sm text-muted-foreground">
-          <strong>Próximos passos:</strong><br />
-          Um consultor irá contactá-lo dentro de 24-48 horas úteis para dar seguimento ao seu processo.
-        </p>
-      </div>
+      <Button onClick={() => window.location.reload()}>Novo Registo</Button>
     </div>
   );
 
   const canProceed = () => {
     switch (step) {
       case 1:
-        return !!formData.process_type;
+        return formData.name && formData.email && formData.phone && formData.nif && 
+               formData.documento_id && formData.naturalidade && formData.nacionalidade &&
+               formData.morada_fiscal && formData.birth_date && formData.estado_civil;
       case 2:
-        return formData.name && formData.email && formData.phone && formData.nif;
+        return true; // Always can proceed (2nd titular is optional)
       case 3:
-        return formData.monthly_income && formData.employment_type;
+        return formData.tipo_imovel && formData.num_quartos && formData.localizacao;
       case 4:
+        return formData.acesso_portal_financas && formData.chave_movel_digital && formData.salario_liquido;
+      case 5:
+        return formData.capital_proprio && formData.valor_financiado;
+      case 6:
         return formData.consent_data && formData.consent_contact;
       default:
-        return false;
+        return true;
     }
   };
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl border-border">
-          <CardContent className="p-8">
-            {renderSuccess()}
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-3">
+              <Building2 className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-bold">CreditoIMO</h1>
+                <p className="text-sm text-muted-foreground">Registo de Cliente</p>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-4xl mx-auto">
+            <CardContent className="pt-6">
+              {renderSuccessMessage()}
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Building2 className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">CreditoIMO</h1>
-            <p className="text-sm text-muted-foreground">Registo de Cliente</p>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Building2 className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-bold">CreditoIMO</h1>
+                <p className="text-sm text-muted-foreground">Registo de Cliente</p>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Form */}
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <Card className="border-border">
-          <CardHeader className="text-center border-b">
+      <main className="container mx-auto px-4 py-8">
+        <Card className="max-w-4xl mx-auto">
+          <CardHeader className="text-center">
             <CardTitle>Formulário de Registo</CardTitle>
             <CardDescription>
-              Preencha os seus dados para iniciar o processo de {formData.process_type === "credito" ? "crédito" : formData.process_type === "imobiliaria" ? "procura de imóvel" : formData.process_type === "ambos" ? "crédito e imobiliária" : "análise"}
+              Preencha os seus dados para iniciar o processo de análise
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 md:p-8">
+          <CardContent>
             {renderStepIndicator()}
-
+            
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
             {step === 4 && renderStep4()}
+            {step === 5 && renderStep5()}
+            {step === 6 && renderStep6()}
 
             <div className="flex justify-between mt-8 pt-6 border-t">
               <Button
                 variant="outline"
-                onClick={() => step === 1 ? navigate("/") : setStep(step - 1)}
-                data-testid="back-btn"
+                onClick={() => setStep(Math.max(1, step - 1))}
+                disabled={step === 1}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {step === 1 ? "Voltar" : "Anterior"}
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
               </Button>
-
-              {step < 4 ? (
+              
+              {step < 6 ? (
                 <Button
-                  onClick={() => {
-                    if (!canProceed()) {
-                      toast.error("Por favor, preencha os campos obrigatórios");
-                      return;
-                    }
-                    setStep(step + 1);
-                  }}
-                  data-testid="next-btn"
+                  onClick={() => setStep(Math.min(6, step + 1))}
+                  disabled={!canProceed()}
                 >
                   Próximo
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <Button 
-                  onClick={handleSubmit} 
-                  disabled={loading || !canProceed()} 
-                  data-testid="submit-btn"
+                <Button
+                  onClick={handleSubmit}
+                  disabled={loading || !canProceed()}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       A enviar...
                     </>
                   ) : (
                     <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Enviar Registo
+                      <Check className="mr-2 h-4 w-4" />
+                      Submeter
                     </>
                   )}
                 </Button>
@@ -577,7 +994,6 @@ const PublicClientForm = () => {
           </CardContent>
         </Card>
 
-        {/* Staff login link */}
         <p className="text-center text-sm text-muted-foreground mt-6">
           É colaborador?{" "}
           <a href="/login" className="text-primary hover:underline">
