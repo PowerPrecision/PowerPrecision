@@ -770,6 +770,7 @@ const PublicClientForm = () => {
               </div>
             ))}
           </div>
+          <FieldHint>Inclui crédito habitação, automóvel, pessoal, ou cartões de crédito com saldo em dívida.</FieldHint>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -784,6 +785,7 @@ const PublicClientForm = () => {
               required
               data-testid="fin-capital-proprio"
             />
+            <FieldHint>Dinheiro que tem disponível para entrada + despesas (escritura, IMT, seguros).</FieldHint>
           </div>
           
           <div className="space-y-2">
@@ -796,6 +798,7 @@ const PublicClientForm = () => {
               required
               data-testid="fin-valor-financiado"
             />
+            <FieldHint>Pode indicar um valor fixo ou percentagem (ex: "90% do valor do imóvel").</FieldHint>
           </div>
         </div>
       </div>
