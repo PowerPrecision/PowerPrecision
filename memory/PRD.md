@@ -80,6 +80,15 @@ Sistema de registo de clientes que podem precisar de crédito e de ajuda imobili
 - ✅ Suite de testes E2E Playwright (17 testes)
 - ✅ Cobertura E2E: formulário público, login, dashboards, navegação, responsividade
 
+### Fase 5 - Novo Formulário Completo (2026-01-20)
+- ✅ Formulário baseado na ficha de cliente PDF do Microsoft Forms
+- ✅ 6 passos: Dados Pessoais > 2º Titular > Imóvel > Situação Financeira > Créditos/Capital > Confirmação
+- ✅ Campos: NIF, CC/Passaporte, Naturalidade, Estado Civil, Tipo Compra
+- ✅ Imóvel: Tipo, Quartos, Localização, Características obrigatórias
+- ✅ Financeiro: Portal Finanças, Chave Móvel, Salário, Bancos com créditos, Capital próprio
+- ✅ Suporte para 2º titular (compra conjunta)
+- ✅ Backend atualizado com novos modelos de dados
+
 ## Processos de Simulação
 | Cliente | Tipo | Estado |
 |---------|------|--------|
