@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_health_check(client):
     """Test health endpoint"""
-    response = await client.get("/api/health")
+    response = await client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
@@ -14,7 +14,7 @@ async def test_health_check(client):
 @pytest.mark.asyncio
 async def test_login_success(client):
     """Test successful login"""
-    response = await client.post("/api/auth/login", json={
+    response = await client.post("/auth/login", json={
         "email": "admin@sistema.pt",
         "password": "admin123"
     })
@@ -28,7 +28,7 @@ async def test_login_success(client):
 @pytest.mark.asyncio
 async def test_login_invalid_credentials(client):
     """Test login with wrong password"""
-    response = await client.post("/api/auth/login", json={
+    response = await client.post("/auth/login", json={
         "email": "admin@sistema.pt",
         "password": "wrongpassword"
     })
@@ -39,7 +39,7 @@ async def test_login_invalid_credentials(client):
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(client):
     """Test login with non-existent email"""
-    response = await client.post("/api/auth/login", json={
+    response = await client.post("/auth/login", json={
         "email": "notexists@sistema.pt",
         "password": "password123"
     })
@@ -50,7 +50,7 @@ async def test_login_nonexistent_user(client):
 async def test_get_me_authenticated(client, admin_token):
     """Test get current user info"""
     response = await client.get(
-        "/api/auth/me",
+        "/auth/me",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
@@ -62,7 +62,7 @@ async def test_get_me_authenticated(client, admin_token):
 @pytest.mark.asyncio
 async def test_get_me_unauthorized(client):
     """Test get current user without token"""
-    response = await client.get("/api/auth/me")
+    response = await client.get("/auth/me")
     assert response.status_code == 403
 
 
@@ -70,7 +70,7 @@ async def test_get_me_unauthorized(client):
 async def test_get_me_invalid_token(client):
     """Test get current user with invalid token"""
     response = await client.get(
-        "/api/auth/me",
+        "/auth/me",
         headers={"Authorization": "Bearer invalid_token_here"}
     )
     assert response.status_code == 401
@@ -79,7 +79,7 @@ async def test_get_me_invalid_token(client):
 @pytest.mark.asyncio
 async def test_consultor_login(client):
     """Test consultor can login"""
-    response = await client.post("/api/auth/login", json={
+    response = await client.post("/auth/login", json={
         "email": "consultor@sistema.pt",
         "password": "consultor123"
     })
@@ -90,7 +90,7 @@ async def test_consultor_login(client):
 @pytest.mark.asyncio
 async def test_mediador_login(client):
     """Test mediador can login"""
-    response = await client.post("/api/auth/login", json={
+    response = await client.post("/auth/login", json={
         "email": "mediador@sistema.pt",
         "password": "mediador123"
     })

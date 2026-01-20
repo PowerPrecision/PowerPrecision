@@ -5,7 +5,7 @@ import pytest
 async def test_get_processes_as_admin(client, admin_token):
     """Test admin can get all processes"""
     response = await client.get(
-        "/api/processes",
+        "/processes",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
@@ -16,16 +16,15 @@ async def test_get_processes_as_admin(client, admin_token):
 @pytest.mark.asyncio
 async def test_get_processes_unauthorized(client):
     """Test cannot get processes without auth"""
-    response = await client.get("/api/processes")
+    response = await client.get("/processes")
     assert response.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_get_single_process(client, admin_token):
     """Test get single process by ID"""
-    # First get list of processes
     list_response = await client.get(
-        "/api/processes",
+        "/processes",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     processes = list_response.json()
@@ -33,7 +32,7 @@ async def test_get_single_process(client, admin_token):
     if processes:
         process_id = processes[0]["id"]
         response = await client.get(
-            f"/api/processes/{process_id}",
+            f"/processes/{process_id}",
             headers={"Authorization": f"Bearer {admin_token}"}
         )
         assert response.status_code == 200
@@ -44,7 +43,7 @@ async def test_get_single_process(client, admin_token):
 async def test_get_nonexistent_process(client, admin_token):
     """Test get process that doesn't exist"""
     response = await client.get(
-        "/api/processes/nonexistent-id-12345",
+        "/processes/nonexistent-id-12345",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 404
@@ -53,9 +52,8 @@ async def test_get_nonexistent_process(client, admin_token):
 @pytest.mark.asyncio
 async def test_update_process_status_as_admin(client, admin_token):
     """Test admin can update process status"""
-    # Get a process first
     list_response = await client.get(
-        "/api/processes",
+        "/processes",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     processes = list_response.json()
@@ -64,9 +62,8 @@ async def test_update_process_status_as_admin(client, admin_token):
         process_id = processes[0]["id"]
         original_status = processes[0]["status"]
         
-        # Update status
         response = await client.put(
-            f"/api/processes/{process_id}",
+            f"/processes/{process_id}",
             headers={"Authorization": f"Bearer {admin_token}"},
             json={"status": "em_analise"}
         )
@@ -74,7 +71,7 @@ async def test_update_process_status_as_admin(client, admin_token):
         
         # Restore original status
         await client.put(
-            f"/api/processes/{process_id}",
+            f"/processes/{process_id}",
             headers={"Authorization": f"Bearer {admin_token}"},
             json={"status": original_status}
         )
@@ -83,9 +80,8 @@ async def test_update_process_status_as_admin(client, admin_token):
 @pytest.mark.asyncio
 async def test_consultor_can_update_real_estate_data(client, consultor_token):
     """Test consultor can update real estate data"""
-    # Get processes
     list_response = await client.get(
-        "/api/processes",
+        "/processes",
         headers={"Authorization": f"Bearer {consultor_token}"}
     )
     processes = list_response.json()
@@ -93,7 +89,7 @@ async def test_consultor_can_update_real_estate_data(client, consultor_token):
     if processes:
         process_id = processes[0]["id"]
         response = await client.put(
-            f"/api/processes/{process_id}",
+            f"/processes/{process_id}",
             headers={"Authorization": f"Bearer {consultor_token}"},
             json={
                 "real_estate_data": {
@@ -109,14 +105,12 @@ async def test_consultor_can_update_real_estate_data(client, consultor_token):
 @pytest.mark.asyncio
 async def test_mediador_cannot_update_credit_data_before_authorization(client, mediador_token):
     """Test mediador cannot add credit data before bank authorization"""
-    # Get processes
     list_response = await client.get(
-        "/api/processes",
+        "/processes",
         headers={"Authorization": f"Bearer {mediador_token}"}
     )
     processes = list_response.json()
     
-    # Find a process NOT in authorization stage
     early_process = next(
         (p for p in processes if p["status"] == "pedido_inicial"),
         None
@@ -124,7 +118,7 @@ async def test_mediador_cannot_update_credit_data_before_authorization(client, m
     
     if early_process:
         response = await client.put(
-            f"/api/processes/{early_process['id']}",
+            f"/processes/{early_process['id']}",
             headers={"Authorization": f"Bearer {mediador_token}"},
             json={
                 "credit_data": {

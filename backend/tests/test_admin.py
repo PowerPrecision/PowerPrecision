@@ -5,7 +5,7 @@ import pytest
 async def test_get_workflow_statuses(client, admin_token):
     """Test get all workflow statuses"""
     response = await client.get(
-        "/api/workflow-statuses",
+        "/workflow-statuses",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
@@ -18,7 +18,7 @@ async def test_get_workflow_statuses(client, admin_token):
 async def test_workflow_statuses_have_required_fields(client, admin_token):
     """Test workflow statuses have all required fields"""
     response = await client.get(
-        "/api/workflow-statuses",
+        "/workflow-statuses",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     statuses = response.json()
@@ -35,7 +35,7 @@ async def test_workflow_statuses_have_required_fields(client, admin_token):
 async def test_get_users_as_admin(client, admin_token):
     """Test admin can get all users"""
     response = await client.get(
-        "/api/users",
+        "/users",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
@@ -48,7 +48,7 @@ async def test_get_users_as_admin(client, admin_token):
 async def test_get_users_as_consultor_forbidden(client, consultor_token):
     """Test consultor cannot get users list"""
     response = await client.get(
-        "/api/users",
+        "/users",
         headers={"Authorization": f"Bearer {consultor_token}"}
     )
     assert response.status_code == 403
@@ -58,7 +58,7 @@ async def test_get_users_as_consultor_forbidden(client, consultor_token):
 async def test_filter_users_by_role(client, admin_token):
     """Test filtering users by role"""
     response = await client.get(
-        "/api/users?role=consultor",
+        "/users?role=consultor",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
@@ -70,11 +70,14 @@ async def test_filter_users_by_role(client, admin_token):
 @pytest.mark.asyncio
 async def test_create_workflow_status_as_admin(client, admin_token):
     """Test admin can create workflow status"""
+    import uuid
+    unique_name = f"test_status_{uuid.uuid4().hex[:8]}"
+    
     response = await client.post(
-        "/api/workflow-statuses",
+        "/workflow-statuses",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
-            "name": "test_status_pytest",
+            "name": unique_name,
             "label": "Test Status",
             "order": 99,
             "color": "purple",
@@ -83,11 +86,11 @@ async def test_create_workflow_status_as_admin(client, admin_token):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "test_status_pytest"
+    assert data["name"] == unique_name
     
     # Cleanup - delete the created status
     await client.delete(
-        f"/api/workflow-statuses/{data['id']}",
+        f"/workflow-statuses/{data['id']}",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
 
@@ -95,9 +98,8 @@ async def test_create_workflow_status_as_admin(client, admin_token):
 @pytest.mark.asyncio
 async def test_create_duplicate_workflow_status_fails(client, admin_token):
     """Test cannot create duplicate workflow status"""
-    # Try to create a status with existing name
     response = await client.post(
-        "/api/workflow-statuses",
+        "/workflow-statuses",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "name": "pedido_inicial",  # Already exists
@@ -113,19 +115,17 @@ async def test_create_duplicate_workflow_status_fails(client, admin_token):
 @pytest.mark.asyncio
 async def test_cannot_delete_default_workflow_status(client, admin_token):
     """Test cannot delete default workflow statuses"""
-    # Get statuses
     response = await client.get(
-        "/api/workflow-statuses",
+        "/workflow-statuses",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     statuses = response.json()
     
-    # Find a default status
     default_status = next((s for s in statuses if s.get("is_default")), None)
     
     if default_status:
         delete_response = await client.delete(
-            f"/api/workflow-statuses/{default_status['id']}",
+            f"/workflow-statuses/{default_status['id']}",
             headers={"Authorization": f"Bearer {admin_token}"}
         )
         assert delete_response.status_code == 400
@@ -135,7 +135,7 @@ async def test_cannot_delete_default_workflow_status(client, admin_token):
 async def test_get_stats_as_admin(client, admin_token):
     """Test admin can get stats"""
     response = await client.get(
-        "/api/stats",
+        "/stats",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200

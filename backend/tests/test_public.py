@@ -4,9 +4,12 @@ import pytest
 @pytest.mark.asyncio
 async def test_public_client_registration(client):
     """Test public client registration creates user and process"""
-    response = await client.post("/api/public/client-registration", json={
-        "name": "test_cliente_pytest",
-        "email": "test_pytest@email.pt",
+    import uuid
+    unique_email = f"test_{uuid.uuid4().hex[:8]}@email.pt"
+    
+    response = await client.post("/public/client-registration", json={
+        "name": "Test Cliente Pytest",
+        "email": unique_email,
         "phone": "+351 999 000 111",
         "process_type": "credito"
     })
@@ -20,17 +23,16 @@ async def test_public_client_registration(client):
 @pytest.mark.asyncio
 async def test_public_registration_missing_fields(client):
     """Test public registration with missing required fields"""
-    response = await client.post("/api/public/client-registration", json={
+    response = await client.post("/public/client-registration", json={
         "name": "Test User"
-        # Missing email, phone, process_type
     })
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_public_registration_invalid_email(client):
     """Test public registration with invalid email format"""
-    response = await client.post("/api/public/client-registration", json={
+    response = await client.post("/public/client-registration", json={
         "name": "Test User",
         "email": "not-an-email",
         "phone": "+351 999 000 111",
@@ -42,9 +44,12 @@ async def test_public_registration_invalid_email(client):
 @pytest.mark.asyncio
 async def test_public_registration_with_personal_data(client):
     """Test public registration with optional personal data"""
-    response = await client.post("/api/public/client-registration", json={
-        "name": "test_cliente_full",
-        "email": "test_full@email.pt",
+    import uuid
+    unique_email = f"test_full_{uuid.uuid4().hex[:8]}@email.pt"
+    
+    response = await client.post("/public/client-registration", json={
+        "name": "Test Cliente Full",
+        "email": unique_email,
         "phone": "+351 888 777 666",
         "process_type": "ambos",
         "personal_data": {
@@ -64,10 +69,13 @@ async def test_public_registration_with_personal_data(client):
 @pytest.mark.asyncio
 async def test_public_registration_all_process_types(client):
     """Test all process types are accepted"""
+    import uuid
+    
     for process_type in ["credito", "imobiliaria", "ambos"]:
-        response = await client.post("/api/public/client-registration", json={
-            "name": f"test_tipo_{process_type}",
-            "email": f"test_{process_type}@email.pt",
+        unique_email = f"test_tipo_{process_type}_{uuid.uuid4().hex[:8]}@email.pt"
+        response = await client.post("/public/client-registration", json={
+            "name": f"Test Tipo {process_type}",
+            "email": unique_email,
             "phone": "+351 111 222 333",
             "process_type": process_type
         })
