@@ -28,3 +28,28 @@ export const deleteUser = (id) => axios.delete(`${API_URL}/users/${id}`);
 
 // Stats
 export const getStats = () => axios.get(`${API_URL}/stats`);
+
+// Activities/Comments
+export const getActivities = (processId) => 
+  axios.get(`${API_URL}/activities`, { params: { process_id: processId } });
+export const createActivity = (data) => axios.post(`${API_URL}/activities`, data);
+export const deleteActivity = (id) => axios.delete(`${API_URL}/activities/${id}`);
+
+// History
+export const getHistory = (processId) => 
+  axios.get(`${API_URL}/history`, { params: { process_id: processId } });
+
+// Workflow Statuses
+export const getWorkflowStatuses = () => axios.get(`${API_URL}/workflow-statuses`);
+export const createWorkflowStatus = (data) => axios.post(`${API_URL}/workflow-statuses`, data);
+export const updateWorkflowStatus = (id, data) => axios.put(`${API_URL}/workflow-statuses/${id}`, data);
+export const deleteWorkflowStatus = (id) => axios.delete(`${API_URL}/workflow-statuses/${id}`);
+
+// OneDrive
+export const getOneDriveFiles = (folder) => 
+  axios.get(`${API_URL}/onedrive/files`, { params: { folder } });
+export const getClientOneDriveFiles = (clientName, subfolder) => 
+  axios.get(`${API_URL}/onedrive/files/${encodeURIComponent(clientName)}`, { params: { subfolder } });
+export const getOneDriveDownloadUrl = (itemId) => 
+  axios.get(`${API_URL}/onedrive/download/${itemId}`);
+export const getOneDriveStatus = () => axios.get(`${API_URL}/onedrive/status`);
