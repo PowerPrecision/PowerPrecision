@@ -88,6 +88,16 @@ Sistema de registo de clientes que podem precisar de crédito e de ajuda imobili
 - ✅ Financeiro: Portal Finanças, Chave Móvel, Salário, Bancos com créditos, Capital próprio
 - ✅ Suporte para 2º titular (compra conjunta)
 - ✅ Backend atualizado com novos modelos de dados
+- ✅ Mensagens de ajuda em todos os campos (ícone info com descrição)
+
+### Fase 6 - Dashboard Admin Avançado (2026-01-20)
+- ✅ Nova tab "Visão Geral" com filtros por consultor/mediador
+- ✅ Nova tab "Calendário" com calendário visual e filtros
+- ✅ Visualização de prazos por data com informação de cliente/consultor/mediador
+- ✅ API /api/deadlines/calendar para obter todos os prazos com filtros
+- ✅ Estatísticas: Total Processos, Utilizadores, Prazos Pendentes, Estados
+- ✅ Tabs: Visão Geral, Calendário, Utilizadores, Fluxo, Configurações
+- ✅ Branding atualizado: Power Real Estate & Precision
 
 ## Processos de Simulação
 | Cliente | Tipo | Estado |
