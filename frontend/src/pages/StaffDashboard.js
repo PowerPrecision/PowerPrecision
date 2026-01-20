@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import DashboardLayout from "../layouts/DashboardLayout";
 import KanbanBoard from "../components/KanbanBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -19,7 +19,7 @@ const roleLabels = {
 };
 
 const StaffDashboard = () => {
-  const { user, token } = useContext(AuthContext);
+  const { user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
