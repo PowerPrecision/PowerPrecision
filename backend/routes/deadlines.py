@@ -65,6 +65,45 @@ async def get_deadlines(process_id: Optional[str] = None, user: dict = Depends(g
     return [DeadlineResponse(**d) for d in deadlines]
 
 
+@router.get("/calendar")
+async def get_calendar_deadlines(
+    consultor_id: Optional[str] = None,
+    mediador_id: Optional[str] = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Get all deadlines with process info for calendar view - Admin only"""
+    # Build process filter
+    process_query = {}
+    if consultor_id:
+        process_query["assigned_consultor_id"] = consultor_id
+    if mediador_id:
+        process_query["assigned_mediador_id"] = mediador_id
+    
+    # Get processes matching filter
+    processes = await db.processes.find(process_query, {"_id": 0}).to_list(1000)
+    process_map = {p["id"]: p for p in processes}
+    process_ids = list(process_map.keys())
+    
+    # Get deadlines for these processes
+    deadline_query = {"process_id": {"$in": process_ids}} if process_ids else {}
+    deadlines = await db.deadlines.find(deadline_query, {"_id": 0}).to_list(1000)
+    
+    # Enrich deadlines with process info
+    result = []
+    for d in deadlines:
+        process = process_map.get(d["process_id"], {})
+        result.append({
+            **d,
+            "client_name": process.get("client_name", ""),
+            "client_email": process.get("client_email", ""),
+            "process_status": process.get("status", ""),
+            "assigned_consultor_id": process.get("assigned_consultor_id"),
+            "assigned_mediador_id": process.get("assigned_mediador_id"),
+        })
+    
+    return result
+
+
 @router.put("/{deadline_id}", response_model=DeadlineResponse)
 async def update_deadline(deadline_id: str, data: DeadlineUpdate, user: dict = Depends(get_current_user)):
     if user["role"] == UserRole.CLIENTE:
