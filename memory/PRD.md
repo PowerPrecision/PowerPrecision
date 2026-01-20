@@ -75,6 +75,8 @@ Sistema de registo de clientes que podem precisar de crédito e de ajuda imobili
 - ✅ Separação em models/, routes/, services/
 - ✅ server.py simplificado (~130 linhas)
 - ✅ Código mais manutenível e escalável
+- ✅ Suite de testes pytest criada (37 testes)
+- ✅ Cobertura: auth, processos, admin, activities, public
 
 ## Processos de Simulação
 | Cliente | Tipo | Estado |
