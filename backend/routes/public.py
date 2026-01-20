@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from database import db
 from models.auth import UserRole
 from models.process import PublicClientRegistration
-from services.email import send_email_notification
+from services.email import send_new_client_notification
 
 
 router = APIRouter(prefix="/public", tags=["Public"])
