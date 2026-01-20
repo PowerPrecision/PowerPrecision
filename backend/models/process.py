@@ -114,10 +114,12 @@ class ProcessUpdate(BaseModel):
 
 class ProcessResponse(BaseModel):
     id: str
-    client_id: str
+    client_id: Optional[str] = None
     client_name: str
-    client_email: str
-    process_type: str
+    client_email: Optional[str] = None
+    client_phone: Optional[str] = None
+    process_type: Optional[str] = None
+    type: Optional[str] = None  # Alias for process_type (from Trello import)
     status: str
     personal_data: Optional[dict] = None
     titular2_data: Optional[dict] = None
@@ -126,5 +128,11 @@ class ProcessResponse(BaseModel):
     credit_data: Optional[dict] = None
     assigned_consultor_id: Optional[str] = None
     assigned_mediador_id: Optional[str] = None
-    created_at: str
-    updated_at: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    notes: Optional[str] = None
+    valor_financiado: Optional[str] = None
+    idade_menos_35: Optional[bool] = None
+    prioridade: Optional[bool] = None
+    labels: Optional[List[str]] = None
+    onedrive_links: Optional[List[dict]] = None
