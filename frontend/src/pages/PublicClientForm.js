@@ -270,6 +270,7 @@ const PublicClientForm = () => {
             required
             data-testid="client-email"
           />
+          <FieldHint>Utilizaremos este email para comunicar consigo sobre o seu processo.</FieldHint>
         </div>
         
         <div className="space-y-2">
@@ -283,6 +284,7 @@ const PublicClientForm = () => {
             required
             data-testid="client-phone"
           />
+          <FieldHint>Número de contacto direto para agendar visitas e reuniões.</FieldHint>
         </div>
         
         <div className="space-y-2">
@@ -297,6 +299,7 @@ const PublicClientForm = () => {
             required
             data-testid="client-nif"
           />
+          <FieldHint>Número de Identificação Fiscal - 9 dígitos, encontra-se no Cartão de Cidadão.</FieldHint>
         </div>
         
         <div className="space-y-2">
@@ -309,6 +312,7 @@ const PublicClientForm = () => {
             required
             data-testid="client-documento"
           />
+          <FieldHint>Número do documento de identificação válido.</FieldHint>
         </div>
         
         <div className="space-y-2">
