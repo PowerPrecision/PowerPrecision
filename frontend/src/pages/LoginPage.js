@@ -125,9 +125,15 @@ const LoginPage = () => {
                 Registar-se
               </Link>
             </div>
-            <div className="mt-4 p-3 bg-muted rounded-md">
+            <div className="mt-4 p-3 bg-muted rounded-md space-y-1">
               <p className="text-xs text-muted-foreground text-center">
-                <strong>Admin:</strong> admin@sistema.pt / admin123
+                <strong>CEO:</strong> pedro@powerealestate.pt / power2026
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                <strong>Consultor:</strong> flavio@powerealestate.pt / power2026
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                <strong>Mediador:</strong> estacio@precisioncredito.pt / power2026
               </p>
             </div>
           </CardContent>
