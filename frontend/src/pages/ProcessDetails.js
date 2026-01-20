@@ -929,57 +929,9 @@ const ProcessDetails = () => {
                     </ScrollArea>
                   </TabsContent>
 
-                  {/* Files Tab (OneDrive) */}
+                  {/* Files Tab (OneDrive Links) */}
                   <TabsContent value="files" className="p-4 pt-2">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-medium">Documentos</h3>
-                      {currentFolder && (
-                        <Button variant="ghost" size="sm" onClick={() => loadOneDriveFolder("")}>
-                          <ArrowLeft className="h-4 w-4 mr-1" />
-                          Voltar
-                        </Button>
-                      )}
-                    </div>
-
-                    {currentFolder && (
-                      <p className="text-xs text-muted-foreground mb-2 font-mono">{currentFolder}</p>
-                    )}
-
-                    <ScrollArea className="h-[350px]">
-                      {oneDriveFiles.length === 0 ? (
-                        <div className="text-center text-muted-foreground text-sm py-8">
-                          <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p>Sem ficheiros</p>
-                          <p className="text-xs mt-1">Configure o OneDrive para ver documentos</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          {oneDriveFiles.map((file) => (
-                            <div
-                              key={file.id}
-                              className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-md cursor-pointer"
-                              onClick={() => file.is_folder ? loadOneDriveFolder(currentFolder ? `${currentFolder}/${file.name}` : file.name) : handleDownloadFile(file.id)}
-                            >
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                {file.is_folder ? (
-                                  <FolderOpen className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                                ) : (
-                                  <File className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                )}
-                                <span className="text-sm truncate">{file.name}</span>
-                              </div>
-                              {file.is_folder ? (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </ScrollArea>
+                    <OneDriveLinks processId={id} clientName={process?.client_name} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
