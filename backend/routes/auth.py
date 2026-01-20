@@ -58,7 +58,12 @@ async def login(data: UserLogin):
     from fastapi import HTTPException
     
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
-    if not user or not verify_password(data.password, user["password"]):
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
+    # Check password - support both "password" and "hashed_password" field names
+    password_field = user.get("password") or user.get("hashed_password", "")
+    if not verify_password(data.password, password_field):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
     
     if not user.get("is_active", True):
