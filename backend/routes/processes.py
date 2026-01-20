@@ -1,19 +1,40 @@
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from database import db
 from models.auth import UserRole
 from models.process import (
     ProcessType, ProcessCreate, ProcessUpdate, ProcessResponse
 )
-from services.auth import get_current_user, require_roles
+from services.auth import get_current_user, require_roles, require_staff
 from services.email import send_email_notification
 from services.history import log_history, log_data_changes
 
 
 router = APIRouter(prefix="/processes", tags=["Processes"])
+
+
+def can_view_process(user: dict, process: dict) -> bool:
+    """Check if user can view a specific process"""
+    role = user["role"]
+    user_id = user["id"]
+    
+    if role == UserRole.ADMIN:
+        return True
+    if role == UserRole.CEO:
+        return True
+    if role == UserRole.CLIENTE:
+        return process.get("client_id") == user_id
+    if role == UserRole.CONSULTOR:
+        return process.get("assigned_consultor_id") == user_id
+    if role == UserRole.MEDIADOR:
+        return process.get("assigned_mediador_id") == user_id
+    if role == UserRole.CONSULTOR_MEDIADOR:
+        return (process.get("assigned_consultor_id") == user_id or 
+                process.get("assigned_mediador_id") == user_id)
+    return False
 
 
 @router.post("", response_model=ProcessResponse)
@@ -22,7 +43,7 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
         raise HTTPException(status_code=403, detail="Apenas clientes podem criar processos")
     
     first_status = await db.workflow_statuses.find_one({}, {"_id": 0}, sort=[("order", 1)])
-    initial_status = first_status["name"] if first_status else "pedido_inicial"
+    initial_status = first_status["name"] if first_status else "clientes_espera"
     
     process_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -47,10 +68,14 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
     await db.processes.insert_one(process_doc)
     await log_history(process_id, user, "Criou processo")
     
-    admins = await db.users.find({"role": UserRole.ADMIN}, {"_id": 0}).to_list(100)
-    for admin in admins:
+    # Notify admin and CEO
+    staff = await db.users.find(
+        {"role": {"$in": [UserRole.ADMIN, UserRole.CEO]}}, 
+        {"_id": 0}
+    ).to_list(100)
+    for s in staff:
         await send_email_notification(
-            admin["email"],
+            s["email"],
             "Novo Processo Criado",
             f"O cliente {user['name']} criou um novo processo de {data.process_type}."
         )
@@ -60,23 +85,135 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
 
 @router.get("", response_model=List[ProcessResponse])
 async def get_processes(user: dict = Depends(get_current_user)):
+    """Get processes based on user role"""
+    role = user["role"]
     query = {}
     
-    if user["role"] == UserRole.CLIENTE:
+    if role == UserRole.CLIENTE:
         query["client_id"] = user["id"]
-    elif user["role"] == UserRole.CONSULTOR:
+    elif role in [UserRole.ADMIN, UserRole.CEO]:
+        # Admin and CEO see all processes
+        pass
+    elif role == UserRole.CONSULTOR:
+        query["assigned_consultor_id"] = user["id"]
+    elif role == UserRole.MEDIADOR:
+        query["assigned_mediador_id"] = user["id"]
+    elif role == UserRole.CONSULTOR_MEDIADOR:
         query["$or"] = [
             {"assigned_consultor_id": user["id"]},
-            {"assigned_consultor_id": None, "process_type": {"$in": [ProcessType.IMOBILIARIA, ProcessType.AMBOS]}}
-        ]
-    elif user["role"] == UserRole.MEDIADOR:
-        query["$or"] = [
-            {"assigned_mediador_id": user["id"]},
-            {"assigned_mediador_id": None, "process_type": {"$in": [ProcessType.CREDITO, ProcessType.AMBOS]}}
+            {"assigned_mediador_id": user["id"]}
         ]
     
     processes = await db.processes.find(query, {"_id": 0}).to_list(1000)
     return [ProcessResponse(**p) for p in processes]
+
+
+@router.get("/kanban")
+async def get_kanban_board(user: dict = Depends(require_staff())):
+    """
+    Get processes organized by status for Kanban board.
+    Admin/CEO see all, others see only their assigned processes.
+    """
+    role = user["role"]
+    query = {}
+    
+    # Filter by role
+    if role == UserRole.CONSULTOR:
+        query["assigned_consultor_id"] = user["id"]
+    elif role == UserRole.MEDIADOR:
+        query["assigned_mediador_id"] = user["id"]
+    elif role == UserRole.CONSULTOR_MEDIADOR:
+        query["$or"] = [
+            {"assigned_consultor_id": user["id"]},
+            {"assigned_mediador_id": user["id"]}
+        ]
+    # Admin and CEO see all (no filter)
+    
+    # Get all workflow statuses ordered
+    statuses = await db.workflow_statuses.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+    
+    # Get processes
+    processes = await db.processes.find(query, {"_id": 0}).to_list(1000)
+    
+    # Get all users for name lookup
+    users = await db.users.find({}, {"_id": 0, "id": 1, "name": 1, "role": 1}).to_list(1000)
+    user_map = {u["id"]: u for u in users}
+    
+    # Organize by status
+    kanban = []
+    for status in statuses:
+        status_processes = [p for p in processes if p.get("status") == status["name"]]
+        
+        # Enrich with user names
+        enriched_processes = []
+        for p in status_processes:
+            consultor = user_map.get(p.get("assigned_consultor_id"), {})
+            mediador = user_map.get(p.get("assigned_mediador_id"), {})
+            enriched_processes.append({
+                **p,
+                "consultor_name": consultor.get("name", ""),
+                "mediador_name": mediador.get("name", ""),
+            })
+        
+        kanban.append({
+            "id": status["id"],
+            "name": status["name"],
+            "label": status["label"],
+            "color": status["color"],
+            "order": status["order"],
+            "processes": enriched_processes,
+            "count": len(enriched_processes)
+        })
+    
+    return {
+        "columns": kanban,
+        "total_processes": len(processes),
+        "user_role": role
+    }
+
+
+@router.put("/kanban/{process_id}/move")
+async def move_process_kanban(
+    process_id: str,
+    new_status: str = Query(..., description="New status name"),
+    user: dict = Depends(require_staff())
+):
+    """Move a process to a different status column in Kanban"""
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Check permission
+    if not can_view_process(user, process):
+        raise HTTPException(status_code=403, detail="Sem permissão para mover este processo")
+    
+    # Validate new status
+    status_exists = await db.workflow_statuses.find_one({"name": new_status})
+    if not status_exists:
+        raise HTTPException(status_code=400, detail="Estado inválido")
+    
+    old_status = process.get("status", "")
+    
+    # Update process
+    await db.processes.update_one(
+        {"id": process_id},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Log history
+    await log_history(process_id, user, "Moveu processo", "status", old_status, new_status)
+    
+    # Send email notification if client has email
+    if process.get("client_email"):
+        status_doc = await db.workflow_statuses.find_one({"name": new_status}, {"_id": 0})
+        status_label = status_doc.get("label", new_status) if status_doc else new_status
+        await send_email_notification(
+            process["client_email"],
+            f"Atualização do seu processo",
+            f"O estado do seu processo foi atualizado para: {status_label}"
+        )
+    
+    return {"message": "Processo movido com sucesso", "new_status": new_status}
 
 
 @router.get("/{process_id}", response_model=ProcessResponse)
@@ -85,7 +222,7 @@ async def get_process(process_id: str, user: dict = Depends(get_current_user)):
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
-    if user["role"] == UserRole.CLIENTE and process["client_id"] != user["id"]:
+    if not can_view_process(user, process):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     return ProcessResponse(**process)
@@ -97,12 +234,20 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
+    role = user["role"]
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
     valid_statuses = [s["name"] for s in await db.workflow_statuses.find({}, {"name": 1, "_id": 0}).to_list(100)]
     
-    if user["role"] == UserRole.CLIENTE:
-        if process["client_id"] != user["id"]:
+    # Check role-based permissions
+    can_update_personal = role in [UserRole.ADMIN, UserRole.CEO, UserRole.CONSULTOR, UserRole.CONSULTOR_MEDIADOR]
+    can_update_financial = role in [UserRole.ADMIN, UserRole.CEO, UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.CONSULTOR_MEDIADOR]
+    can_update_real_estate = UserRole.can_act_as_consultor(role)
+    can_update_credit = UserRole.can_act_as_mediador(role)
+    can_update_status = role in [UserRole.ADMIN, UserRole.CEO, UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.CONSULTOR_MEDIADOR]
+    
+    if role == UserRole.CLIENTE:
+        if process.get("client_id") != user["id"]:
             raise HTTPException(status_code=403, detail="Acesso negado")
         if data.personal_data:
             await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
@@ -110,64 +255,35 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
         if data.financial_data:
             await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
             update_data["financial_data"] = data.financial_data.model_dump()
-    
-    elif user["role"] == UserRole.CONSULTOR:
-        if data.personal_data:
+    else:
+        # Staff updates
+        if data.personal_data and can_update_personal:
             await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
             update_data["personal_data"] = data.personal_data.model_dump()
-        if data.financial_data:
+        
+        if data.financial_data and can_update_financial:
             await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
             update_data["financial_data"] = data.financial_data.model_dump()
-        if data.real_estate_data:
+        
+        if data.real_estate_data and can_update_real_estate:
             await log_data_changes(process_id, user, process.get("real_estate_data"), data.real_estate_data.model_dump(), "dados imobiliários")
             update_data["real_estate_data"] = data.real_estate_data.model_dump()
-        if data.status and (data.status in valid_statuses or not valid_statuses):
-            await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
-            update_data["status"] = data.status
-        if not process.get("assigned_consultor_id"):
-            update_data["assigned_consultor_id"] = user["id"]
-    
-    elif user["role"] == UserRole.MEDIADOR:
-        if data.personal_data:
-            await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
-            update_data["personal_data"] = data.personal_data.model_dump()
-        if data.financial_data:
-            await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
-            update_data["financial_data"] = data.financial_data.model_dump()
-        if data.credit_data:
-            credit_statuses = await db.workflow_statuses.find({"order": {"$gte": 3}}, {"name": 1, "_id": 0}).to_list(100)
-            allowed_statuses = [s["name"] for s in credit_statuses] if credit_statuses else ["autorizacao_bancaria", "aprovado"]
-            if process["status"] not in allowed_statuses:
-                raise HTTPException(status_code=400, detail="Dados de crédito só podem ser adicionados após autorização bancária")
+        
+        if data.credit_data and can_update_credit:
             await log_data_changes(process_id, user, process.get("credit_data"), data.credit_data.model_dump(), "dados de crédito")
             update_data["credit_data"] = data.credit_data.model_dump()
-        if data.status and (data.status in valid_statuses or not valid_statuses):
+        
+        if data.status and can_update_status and (data.status in valid_statuses or not valid_statuses):
             await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
             update_data["status"] = data.status
-            await send_email_notification(
-                process["client_email"],
-                f"Estado do Processo Atualizado",
-                f"O estado do seu processo foi atualizado para: {data.status}"
-            )
-        if not process.get("assigned_mediador_id"):
-            update_data["assigned_mediador_id"] = user["id"]
-    
-    elif user["role"] == UserRole.ADMIN:
-        if data.personal_data:
-            await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
-            update_data["personal_data"] = data.personal_data.model_dump()
-        if data.financial_data:
-            await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
-            update_data["financial_data"] = data.financial_data.model_dump()
-        if data.real_estate_data:
-            await log_data_changes(process_id, user, process.get("real_estate_data"), data.real_estate_data.model_dump(), "dados imobiliários")
-            update_data["real_estate_data"] = data.real_estate_data.model_dump()
-        if data.credit_data:
-            await log_data_changes(process_id, user, process.get("credit_data"), data.credit_data.model_dump(), "dados de crédito")
-            update_data["credit_data"] = data.credit_data.model_dump()
-        if data.status:
-            await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
-            update_data["status"] = data.status
+            
+            # Send email notification
+            if process.get("client_email"):
+                await send_email_notification(
+                    process["client_email"],
+                    f"Estado do Processo Atualizado",
+                    f"O estado do seu processo foi atualizado para: {data.status}"
+                )
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
     updated = await db.processes.find_one({"id": process_id}, {"_id": 0})
@@ -180,8 +296,9 @@ async def assign_process(
     process_id: str, 
     consultor_id: Optional[str] = None,
     mediador_id: Optional[str] = None,
-    user: dict = Depends(require_roles([UserRole.ADMIN]))
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
 ):
+    """Assign consultor and/or mediador to a process"""
     process = await db.processes.find_one({"id": process_id})
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
@@ -189,16 +306,18 @@ async def assign_process(
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
     if consultor_id:
-        consultor = await db.users.find_one({"id": consultor_id, "role": UserRole.CONSULTOR})
-        if not consultor:
-            raise HTTPException(status_code=404, detail="Consultor não encontrado")
+        # Check if user can act as consultor
+        consultor = await db.users.find_one({"id": consultor_id})
+        if not consultor or not UserRole.can_act_as_consultor(consultor.get("role", "")):
+            raise HTTPException(status_code=404, detail="Consultor não encontrado ou inválido")
         update_data["assigned_consultor_id"] = consultor_id
         await log_history(process_id, user, "Atribuiu consultor", "assigned_consultor_id", None, consultor["name"])
     
     if mediador_id:
-        mediador = await db.users.find_one({"id": mediador_id, "role": UserRole.MEDIADOR})
-        if not mediador:
-            raise HTTPException(status_code=404, detail="Mediador não encontrado")
+        # Check if user can act as mediador
+        mediador = await db.users.find_one({"id": mediador_id})
+        if not mediador or not UserRole.can_act_as_mediador(mediador.get("role", "")):
+            raise HTTPException(status_code=404, detail="Mediador não encontrado ou inválido")
         update_data["assigned_mediador_id"] = mediador_id
         await log_history(process_id, user, "Atribuiu mediador", "assigned_mediador_id", None, mediador["name"])
     
