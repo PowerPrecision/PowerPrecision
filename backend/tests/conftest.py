@@ -11,32 +11,28 @@ from server import app, startup
 from database import db
 
 
-@pytest_asyncio.fixture(scope="session")
-def event_loop():
-    """Create event loop for the test session"""
-    import asyncio
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+@pytest.fixture(scope="session")
+def anyio_backend():
+    return "asyncio"
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def initialize_db():
-    """Initialize database with default data before all tests"""
+@pytest_asyncio.fixture(scope="module")
+async def initialized_app():
+    """Initialize database with default data"""
     await startup()
-    yield
+    yield app
 
 
 @pytest_asyncio.fixture
-async def client():
+async def client(initialized_app):
     """Create async test client"""
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=initialized_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
 @pytest_asyncio.fixture
-async def admin_token(client, initialize_db):
+async def admin_token(client):
     """Get admin authentication token"""
     response = await client.post("/api/auth/login", json={
         "email": "admin@sistema.pt",
@@ -47,7 +43,7 @@ async def admin_token(client, initialize_db):
 
 
 @pytest_asyncio.fixture
-async def consultor_token(client, initialize_db):
+async def consultor_token(client):
     """Get consultor authentication token"""
     response = await client.post("/api/auth/login", json={
         "email": "consultor@sistema.pt",
@@ -58,7 +54,7 @@ async def consultor_token(client, initialize_db):
 
 
 @pytest_asyncio.fixture
-async def mediador_token(client, initialize_db):
+async def mediador_token(client):
     """Get mediador authentication token"""
     response = await client.post("/api/auth/login", json={
         "email": "mediador@sistema.pt",
