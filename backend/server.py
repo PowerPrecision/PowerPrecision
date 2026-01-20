@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,11 +7,12 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,6 +26,12 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', 'super-secret-key-change-in-production')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
+
+# OneDrive Config
+ONEDRIVE_TENANT_ID = os.environ.get('ONEDRIVE_TENANT_ID', '')
+ONEDRIVE_CLIENT_ID = os.environ.get('ONEDRIVE_CLIENT_ID', '')
+ONEDRIVE_CLIENT_SECRET = os.environ.get('ONEDRIVE_CLIENT_SECRET', '')
+ONEDRIVE_BASE_PATH = os.environ.get('ONEDRIVE_BASE_PATH', 'Documentação Clientes')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -41,13 +48,6 @@ class UserRole:
     CONSULTOR = "consultor"
     MEDIADOR = "mediador"
     ADMIN = "admin"
-
-class ProcessStatus:
-    PEDIDO_INICIAL = "pedido_inicial"
-    EM_ANALISE = "em_analise"
-    AUTORIZACAO_BANCARIA = "autorizacao_bancaria"
-    APROVADO = "aprovado"
-    REJEITADO = "rejeitado"
 
 class ProcessType:
     CREDITO = "credito"
@@ -72,6 +72,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     role: str
     created_at: str
+    onedrive_folder: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -174,12 +175,73 @@ class UserCreate(BaseModel):
     name: str
     phone: Optional[str] = None
     role: str
+    onedrive_folder: Optional[str] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    onedrive_folder: Optional[str] = None
+
+# Activity/Comments Models
+class ActivityCreate(BaseModel):
+    process_id: str
+    comment: str
+
+class ActivityResponse(BaseModel):
+    id: str
+    process_id: str
+    user_id: str
+    user_name: str
+    user_role: str
+    comment: str
+    created_at: str
+
+# History Models
+class HistoryResponse(BaseModel):
+    id: str
+    process_id: str
+    user_id: str
+    user_name: str
+    action: str
+    field: Optional[str] = None
+    old_value: Optional[Any] = None
+    new_value: Optional[Any] = None
+    created_at: str
+
+# Workflow/Status Models
+class WorkflowStatusCreate(BaseModel):
+    name: str
+    label: str
+    order: int
+    color: str = "blue"
+    description: Optional[str] = None
+
+class WorkflowStatusUpdate(BaseModel):
+    label: Optional[str] = None
+    order: Optional[int] = None
+    color: Optional[str] = None
+    description: Optional[str] = None
+
+class WorkflowStatusResponse(BaseModel):
+    id: str
+    name: str
+    label: str
+    order: int
+    color: str
+    description: Optional[str] = None
+    is_default: bool = False
+
+# OneDrive Models
+class OneDriveFile(BaseModel):
+    id: str
+    name: str
+    size: Optional[int] = None
+    is_folder: bool
+    modified_at: Optional[str] = None
+    web_url: Optional[str] = None
+    download_url: Optional[str] = None
 
 # ============== AUTH HELPERS ==============
 
@@ -219,6 +281,39 @@ def require_roles(allowed_roles: List[str]):
         return user
     return role_checker
 
+# ============== HISTORY HELPER ==============
+
+async def log_history(process_id: str, user: dict, action: str, field: str = None, old_value: Any = None, new_value: Any = None):
+    """Log a change to process history"""
+    history_doc = {
+        "id": str(uuid.uuid4()),
+        "process_id": process_id,
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "action": action,
+        "field": field,
+        "old_value": str(old_value) if old_value is not None else None,
+        "new_value": str(new_value) if new_value is not None else None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.history.insert_one(history_doc)
+
+async def log_data_changes(process_id: str, user: dict, old_data: dict, new_data: dict, section: str):
+    """Compare and log changes between old and new data"""
+    if old_data is None:
+        old_data = {}
+    if new_data is None:
+        return
+    
+    for key, new_val in new_data.items():
+        old_val = old_data.get(key)
+        if old_val != new_val and new_val is not None:
+            await log_history(
+                process_id, user, 
+                f"Alterou {section}", 
+                key, old_val, new_val
+            )
+
 # ============== EMAIL SERVICE (MOCK) ==============
 
 async def send_email_notification(to_email: str, subject: str, body: str):
@@ -227,7 +322,6 @@ async def send_email_notification(to_email: str, subject: str, body: str):
     logger.info(f"   To: {to_email}")
     logger.info(f"   Subject: {subject}")
     logger.info(f"   Body: {body[:100]}...")
-    # Save to database for tracking
     await db.email_logs.insert_one({
         "id": str(uuid.uuid4()),
         "to": to_email,
@@ -237,6 +331,91 @@ async def send_email_notification(to_email: str, subject: str, body: str):
         "status": "simulated"
     })
     return True
+
+# ============== ONEDRIVE SERVICE ==============
+
+class OneDriveService:
+    def __init__(self):
+        self.token = None
+        self.token_expires = None
+    
+    async def get_access_token(self) -> str:
+        """Get Microsoft Graph access token using client credentials"""
+        if not all([ONEDRIVE_TENANT_ID, ONEDRIVE_CLIENT_ID, ONEDRIVE_CLIENT_SECRET]):
+            raise HTTPException(status_code=503, detail="OneDrive não configurado. Configure as variáveis ONEDRIVE_TENANT_ID, ONEDRIVE_CLIENT_ID e ONEDRIVE_CLIENT_SECRET.")
+        
+        if self.token and self.token_expires and datetime.now(timezone.utc) < self.token_expires:
+            return self.token
+        
+        token_url = f"https://login.microsoftonline.com/{ONEDRIVE_TENANT_ID}/oauth2/v2.0/token"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(token_url, data={
+                "client_id": ONEDRIVE_CLIENT_ID,
+                "client_secret": ONEDRIVE_CLIENT_SECRET,
+                "scope": "https://graph.microsoft.com/.default",
+                "grant_type": "client_credentials"
+            })
+            
+            if response.status_code != 200:
+                logger.error(f"OneDrive auth failed: {response.text}")
+                raise HTTPException(status_code=503, detail="Erro de autenticação OneDrive")
+            
+            data = response.json()
+            self.token = data["access_token"]
+            self.token_expires = datetime.now(timezone.utc) + timedelta(seconds=data["expires_in"] - 60)
+            return self.token
+    
+    async def list_files(self, folder_path: str) -> List[OneDriveFile]:
+        """List files in a OneDrive folder"""
+        token = await self.get_access_token()
+        
+        # Encode path for URL
+        encoded_path = folder_path.replace(" ", "%20")
+        url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{encoded_path}:/children"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+            
+            if response.status_code == 404:
+                return []
+            
+            if response.status_code != 200:
+                logger.error(f"OneDrive list failed: {response.text}")
+                raise HTTPException(status_code=503, detail="Erro ao listar ficheiros do OneDrive")
+            
+            data = response.json()
+            files = []
+            
+            for item in data.get("value", []):
+                files.append(OneDriveFile(
+                    id=item["id"],
+                    name=item["name"],
+                    size=item.get("size"),
+                    is_folder="folder" in item,
+                    modified_at=item.get("lastModifiedDateTime"),
+                    web_url=item.get("webUrl"),
+                    download_url=item.get("@microsoft.graph.downloadUrl")
+                ))
+            
+            return files
+    
+    async def get_download_url(self, item_id: str) -> str:
+        """Get download URL for a file"""
+        token = await self.get_access_token()
+        
+        url = f"https://graph.microsoft.com/v1.0/me/drive/items/{item_id}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=404, detail="Ficheiro não encontrado")
+            
+            data = response.json()
+            return data.get("@microsoft.graph.downloadUrl", data.get("webUrl"))
+
+onedrive_service = OneDriveService()
 
 # ============== AUTH ROUTES ==============
 
@@ -257,6 +436,7 @@ async def register(data: UserRegister):
         "phone": data.phone,
         "role": UserRole.CLIENTE,
         "is_active": True,
+        "onedrive_folder": data.name,  # Default folder name = user name
         "created_at": now
     }
     
@@ -271,7 +451,8 @@ async def register(data: UserRegister):
             name=data.name,
             phone=data.phone,
             role=UserRole.CLIENTE,
-            created_at=now
+            created_at=now,
+            onedrive_folder=data.name
         )
     )
 
@@ -294,7 +475,8 @@ async def login(data: UserLogin):
             name=user["name"],
             phone=user.get("phone"),
             role=user["role"],
-            created_at=user["created_at"]
+            created_at=user["created_at"],
+            onedrive_folder=user.get("onedrive_folder")
         )
     )
 
@@ -306,8 +488,78 @@ async def get_me(user: dict = Depends(get_current_user)):
         name=user["name"],
         phone=user.get("phone"),
         role=user["role"],
-        created_at=user["created_at"]
+        created_at=user["created_at"],
+        onedrive_folder=user.get("onedrive_folder")
     )
+
+# ============== WORKFLOW STATUS ROUTES (ADMIN) ==============
+
+@api_router.get("/workflow-statuses", response_model=List[WorkflowStatusResponse])
+async def get_workflow_statuses(user: dict = Depends(get_current_user)):
+    """Get all workflow statuses ordered by order field"""
+    statuses = await db.workflow_statuses.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+    return [WorkflowStatusResponse(**s) for s in statuses]
+
+@api_router.post("/workflow-statuses", response_model=WorkflowStatusResponse)
+async def create_workflow_status(data: WorkflowStatusCreate, user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Create a new workflow status"""
+    existing = await db.workflow_statuses.find_one({"name": data.name})
+    if existing:
+        raise HTTPException(status_code=400, detail="Estado já existe")
+    
+    status_doc = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "label": data.label,
+        "order": data.order,
+        "color": data.color,
+        "description": data.description,
+        "is_default": False
+    }
+    
+    await db.workflow_statuses.insert_one(status_doc)
+    return WorkflowStatusResponse(**{k: v for k, v in status_doc.items() if k != "_id"})
+
+@api_router.put("/workflow-statuses/{status_id}", response_model=WorkflowStatusResponse)
+async def update_workflow_status(status_id: str, data: WorkflowStatusUpdate, user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Update a workflow status"""
+    status = await db.workflow_statuses.find_one({"id": status_id}, {"_id": 0})
+    if not status:
+        raise HTTPException(status_code=404, detail="Estado não encontrado")
+    
+    update_data = {}
+    if data.label is not None:
+        update_data["label"] = data.label
+    if data.order is not None:
+        update_data["order"] = data.order
+    if data.color is not None:
+        update_data["color"] = data.color
+    if data.description is not None:
+        update_data["description"] = data.description
+    
+    if update_data:
+        await db.workflow_statuses.update_one({"id": status_id}, {"$set": update_data})
+    
+    updated = await db.workflow_statuses.find_one({"id": status_id}, {"_id": 0})
+    return WorkflowStatusResponse(**updated)
+
+@api_router.delete("/workflow-statuses/{status_id}")
+async def delete_workflow_status(status_id: str, user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Delete a workflow status"""
+    status = await db.workflow_statuses.find_one({"id": status_id})
+    if not status:
+        raise HTTPException(status_code=404, detail="Estado não encontrado")
+    
+    if status.get("is_default"):
+        raise HTTPException(status_code=400, detail="Não pode eliminar estados padrão")
+    
+    # Check if any process uses this status
+    process_count = await db.processes.count_documents({"status": status["name"]})
+    if process_count > 0:
+        raise HTTPException(status_code=400, detail=f"Existem {process_count} processos com este estado")
+    
+    await db.workflow_statuses.delete_one({"id": status_id})
+    return {"message": "Estado eliminado"}
 
 # ============== PROCESS ROUTES ==============
 
@@ -315,6 +567,10 @@ async def get_me(user: dict = Depends(get_current_user)):
 async def create_process(data: ProcessCreate, user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.CLIENTE:
         raise HTTPException(status_code=403, detail="Apenas clientes podem criar processos")
+    
+    # Get first workflow status
+    first_status = await db.workflow_statuses.find_one({}, {"_id": 0}, sort=[("order", 1)])
+    initial_status = first_status["name"] if first_status else "pedido_inicial"
     
     process_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -325,7 +581,7 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
         "client_name": user["name"],
         "client_email": user["email"],
         "process_type": data.process_type,
-        "status": ProcessStatus.PEDIDO_INICIAL,
+        "status": initial_status,
         "personal_data": data.personal_data.model_dump() if data.personal_data else None,
         "financial_data": data.financial_data.model_dump() if data.financial_data else None,
         "real_estate_data": None,
@@ -337,6 +593,9 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
     }
     
     await db.processes.insert_one(process_doc)
+    
+    # Log history
+    await log_history(process_id, user, "Criou processo")
     
     # Notify admins
     admins = await db.users.find({"role": UserRole.ADMIN}, {"_id": 0}).to_list(100)
@@ -365,7 +624,6 @@ async def get_processes(user: dict = Depends(get_current_user)):
             {"assigned_mediador_id": user["id"]},
             {"assigned_mediador_id": None, "process_type": {"$in": [ProcessType.CREDITO, ProcessType.AMBOS]}}
         ]
-    # Admin sees all
     
     processes = await db.processes.find(query, {"_id": 0}).to_list(1000)
     return [ProcessResponse(**p) for p in processes]
@@ -376,7 +634,6 @@ async def get_process(process_id: str, user: dict = Depends(get_current_user)):
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
-    # Check access
     if user["role"] == UserRole.CLIENTE and process["client_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
@@ -390,60 +647,76 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
-    # Role-based field access
+    # Get valid statuses
+    valid_statuses = [s["name"] for s in await db.workflow_statuses.find({}, {"name": 1, "_id": 0}).to_list(100)]
+    
     if user["role"] == UserRole.CLIENTE:
         if process["client_id"] != user["id"]:
             raise HTTPException(status_code=403, detail="Acesso negado")
         if data.personal_data:
+            await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
             update_data["personal_data"] = data.personal_data.model_dump()
         if data.financial_data:
+            await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
             update_data["financial_data"] = data.financial_data.model_dump()
     
     elif user["role"] == UserRole.CONSULTOR:
         if data.personal_data:
+            await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
             update_data["personal_data"] = data.personal_data.model_dump()
         if data.financial_data:
+            await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
             update_data["financial_data"] = data.financial_data.model_dump()
         if data.real_estate_data:
+            await log_data_changes(process_id, user, process.get("real_estate_data"), data.real_estate_data.model_dump(), "dados imobiliários")
             update_data["real_estate_data"] = data.real_estate_data.model_dump()
-        if data.status and data.status in [ProcessStatus.EM_ANALISE]:
+        if data.status and (data.status in valid_statuses or not valid_statuses):
+            await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
             update_data["status"] = data.status
-        # Auto-assign consultor
         if not process.get("assigned_consultor_id"):
             update_data["assigned_consultor_id"] = user["id"]
     
     elif user["role"] == UserRole.MEDIADOR:
         if data.personal_data:
+            await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
             update_data["personal_data"] = data.personal_data.model_dump()
         if data.financial_data:
+            await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
             update_data["financial_data"] = data.financial_data.model_dump()
-        # Credit data only after bank authorization
         if data.credit_data:
-            if process["status"] not in [ProcessStatus.AUTORIZACAO_BANCARIA, ProcessStatus.APROVADO]:
+            # Check if status allows credit data
+            credit_statuses = await db.workflow_statuses.find({"order": {"$gte": 3}}, {"name": 1, "_id": 0}).to_list(100)
+            allowed_statuses = [s["name"] for s in credit_statuses] if credit_statuses else ["autorizacao_bancaria", "aprovado"]
+            if process["status"] not in allowed_statuses:
                 raise HTTPException(status_code=400, detail="Dados de crédito só podem ser adicionados após autorização bancária")
+            await log_data_changes(process_id, user, process.get("credit_data"), data.credit_data.model_dump(), "dados de crédito")
             update_data["credit_data"] = data.credit_data.model_dump()
-        if data.status and data.status in [ProcessStatus.EM_ANALISE, ProcessStatus.AUTORIZACAO_BANCARIA, ProcessStatus.APROVADO, ProcessStatus.REJEITADO]:
+        if data.status and (data.status in valid_statuses or not valid_statuses):
+            await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
             update_data["status"] = data.status
-            # Notify client on status change
             await send_email_notification(
                 process["client_email"],
                 f"Estado do Processo Atualizado",
                 f"O estado do seu processo foi atualizado para: {data.status}"
             )
-        # Auto-assign mediador
         if not process.get("assigned_mediador_id"):
             update_data["assigned_mediador_id"] = user["id"]
     
     elif user["role"] == UserRole.ADMIN:
         if data.personal_data:
+            await log_data_changes(process_id, user, process.get("personal_data"), data.personal_data.model_dump(), "dados pessoais")
             update_data["personal_data"] = data.personal_data.model_dump()
         if data.financial_data:
+            await log_data_changes(process_id, user, process.get("financial_data"), data.financial_data.model_dump(), "dados financeiros")
             update_data["financial_data"] = data.financial_data.model_dump()
         if data.real_estate_data:
+            await log_data_changes(process_id, user, process.get("real_estate_data"), data.real_estate_data.model_dump(), "dados imobiliários")
             update_data["real_estate_data"] = data.real_estate_data.model_dump()
         if data.credit_data:
+            await log_data_changes(process_id, user, process.get("credit_data"), data.credit_data.model_dump(), "dados de crédito")
             update_data["credit_data"] = data.credit_data.model_dump()
         if data.status:
+            await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
             update_data["status"] = data.status
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
@@ -469,15 +742,93 @@ async def assign_process(
         if not consultor:
             raise HTTPException(status_code=404, detail="Consultor não encontrado")
         update_data["assigned_consultor_id"] = consultor_id
+        await log_history(process_id, user, "Atribuiu consultor", "assigned_consultor_id", None, consultor["name"])
     
     if mediador_id:
         mediador = await db.users.find_one({"id": mediador_id, "role": UserRole.MEDIADOR})
         if not mediador:
             raise HTTPException(status_code=404, detail="Mediador não encontrado")
         update_data["assigned_mediador_id"] = mediador_id
+        await log_history(process_id, user, "Atribuiu mediador", "assigned_mediador_id", None, mediador["name"])
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
     return {"message": "Processo atribuído com sucesso"}
+
+# ============== ACTIVITY/COMMENTS ROUTES ==============
+
+@api_router.post("/activities", response_model=ActivityResponse)
+async def create_activity(data: ActivityCreate, user: dict = Depends(get_current_user)):
+    """Create a new activity/comment on a process"""
+    process = await db.processes.find_one({"id": data.process_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Check access
+    if user["role"] == UserRole.CLIENTE and process["client_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    activity_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    activity_doc = {
+        "id": activity_id,
+        "process_id": data.process_id,
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "user_role": user["role"],
+        "comment": data.comment,
+        "created_at": now
+    }
+    
+    await db.activities.insert_one(activity_doc)
+    
+    # Log to history
+    await log_history(data.process_id, user, "Adicionou comentário")
+    
+    return ActivityResponse(**{k: v for k, v in activity_doc.items() if k != "_id"})
+
+@api_router.get("/activities", response_model=List[ActivityResponse])
+async def get_activities(process_id: str, user: dict = Depends(get_current_user)):
+    """Get all activities for a process"""
+    process = await db.processes.find_one({"id": process_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Check access
+    if user["role"] == UserRole.CLIENTE and process["client_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    activities = await db.activities.find({"process_id": process_id}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [ActivityResponse(**a) for a in activities]
+
+@api_router.delete("/activities/{activity_id}")
+async def delete_activity(activity_id: str, user: dict = Depends(get_current_user)):
+    """Delete an activity (only owner or admin)"""
+    activity = await db.activities.find_one({"id": activity_id})
+    if not activity:
+        raise HTTPException(status_code=404, detail="Comentário não encontrado")
+    
+    if activity["user_id"] != user["id"] and user["role"] != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Só pode eliminar os seus próprios comentários")
+    
+    await db.activities.delete_one({"id": activity_id})
+    return {"message": "Comentário eliminado"}
+
+# ============== HISTORY ROUTES ==============
+
+@api_router.get("/history", response_model=List[HistoryResponse])
+async def get_history(process_id: str, user: dict = Depends(get_current_user)):
+    """Get history for a process"""
+    process = await db.processes.find_one({"id": process_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Check access
+    if user["role"] == UserRole.CLIENTE and process["client_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    history = await db.history.find({"process_id": process_id}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [HistoryResponse(**h) for h in history]
 
 # ============== DEADLINE ROUTES ==============
 
@@ -486,7 +837,6 @@ async def create_deadline(data: DeadlineCreate, user: dict = Depends(get_current
     if user["role"] == UserRole.CLIENTE:
         raise HTTPException(status_code=403, detail="Clientes não podem criar prazos")
     
-    # Verify process exists
     process = await db.processes.find_one({"id": data.process_id}, {"_id": 0})
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
@@ -507,8 +857,8 @@ async def create_deadline(data: DeadlineCreate, user: dict = Depends(get_current
     }
     
     await db.deadlines.insert_one(deadline_doc)
+    await log_history(data.process_id, user, "Criou prazo", "deadline", None, data.title)
     
-    # Notify client
     await send_email_notification(
         process["client_email"],
         f"Novo Prazo: {data.title}",
@@ -524,7 +874,6 @@ async def get_deadlines(process_id: Optional[str] = None, user: dict = Depends(g
     if process_id:
         query["process_id"] = process_id
     elif user["role"] == UserRole.CLIENTE:
-        # Get client's processes
         processes = await db.processes.find({"client_id": user["id"]}, {"id": 1, "_id": 0}).to_list(1000)
         process_ids = [p["id"] for p in processes]
         query["process_id"] = {"$in": process_ids}
@@ -552,6 +901,8 @@ async def update_deadline(deadline_id: str, data: DeadlineUpdate, user: dict = D
         update_data["priority"] = data.priority
     if data.completed is not None:
         update_data["completed"] = data.completed
+        if data.completed:
+            await log_history(deadline["process_id"], user, "Concluiu prazo", "deadline", deadline["title"], "concluído")
     
     if update_data:
         await db.deadlines.update_one({"id": deadline_id}, {"$set": update_data})
@@ -597,6 +948,7 @@ async def create_user(data: UserCreate, user: dict = Depends(require_roles([User
         "phone": data.phone,
         "role": data.role,
         "is_active": True,
+        "onedrive_folder": data.onedrive_folder or data.name,
         "created_at": now
     }
     
@@ -608,7 +960,8 @@ async def create_user(data: UserCreate, user: dict = Depends(require_roles([User
         name=data.name,
         phone=data.phone,
         role=data.role,
-        created_at=now
+        created_at=now,
+        onedrive_folder=data.onedrive_folder or data.name
     )
 
 @api_router.put("/users/{user_id}", response_model=UserResponse)
@@ -628,6 +981,8 @@ async def update_user(user_id: str, data: UserUpdate, user: dict = Depends(requi
         update_data["role"] = data.role
     if data.is_active is not None:
         update_data["is_active"] = data.is_active
+    if data.onedrive_folder is not None:
+        update_data["onedrive_folder"] = data.onedrive_folder
     
     if update_data:
         await db.users.update_one({"id": user_id}, {"$set": update_data})
@@ -645,11 +1000,94 @@ async def delete_user(user_id: str, user: dict = Depends(require_roles([UserRole
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
     return {"message": "Utilizador eliminado"}
 
+# ============== ONEDRIVE ROUTES ==============
+
+@api_router.get("/onedrive/files", response_model=List[OneDriveFile])
+async def list_onedrive_files(
+    folder: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """List files from OneDrive for the current user"""
+    # Determine folder path based on user role
+    if user["role"] == UserRole.CLIENTE:
+        # Clients can only see their own folder
+        user_folder = user.get("onedrive_folder", user["name"])
+        folder_path = f"{ONEDRIVE_BASE_PATH}/{user_folder}"
+        if folder:
+            folder_path = f"{folder_path}/{folder}"
+    else:
+        # Consultors, mediadors and admins can see all client folders
+        if folder:
+            folder_path = f"{ONEDRIVE_BASE_PATH}/{folder}"
+        else:
+            folder_path = ONEDRIVE_BASE_PATH
+    
+    try:
+        files = await onedrive_service.list_files(folder_path)
+        return files
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OneDrive error: {e}")
+        raise HTTPException(status_code=503, detail="Erro ao aceder ao OneDrive")
+
+@api_router.get("/onedrive/files/{client_name}", response_model=List[OneDriveFile])
+async def list_client_onedrive_files(
+    client_name: str,
+    subfolder: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """List files from a specific client's OneDrive folder"""
+    # Clients can only see their own folder
+    if user["role"] == UserRole.CLIENTE:
+        user_folder = user.get("onedrive_folder", user["name"])
+        if client_name != user_folder:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    folder_path = f"{ONEDRIVE_BASE_PATH}/{client_name}"
+    if subfolder:
+        folder_path = f"{folder_path}/{subfolder}"
+    
+    try:
+        files = await onedrive_service.list_files(folder_path)
+        return files
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OneDrive error: {e}")
+        raise HTTPException(status_code=503, detail="Erro ao aceder ao OneDrive")
+
+@api_router.get("/onedrive/download/{item_id}")
+async def get_onedrive_download_url(item_id: str, user: dict = Depends(get_current_user)):
+    """Get download URL for a OneDrive file"""
+    try:
+        download_url = await onedrive_service.get_download_url(item_id)
+        return {"download_url": download_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OneDrive download error: {e}")
+        raise HTTPException(status_code=503, detail="Erro ao obter link de download")
+
+@api_router.get("/onedrive/status")
+async def get_onedrive_status(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Check OneDrive integration status"""
+    configured = all([ONEDRIVE_TENANT_ID, ONEDRIVE_CLIENT_ID, ONEDRIVE_CLIENT_SECRET])
+    return {
+        "configured": configured,
+        "tenant_id": ONEDRIVE_TENANT_ID[:8] + "..." if ONEDRIVE_TENANT_ID else None,
+        "client_id": ONEDRIVE_CLIENT_ID[:8] + "..." if ONEDRIVE_CLIENT_ID else None,
+        "base_path": ONEDRIVE_BASE_PATH
+    }
+
 # ============== STATS ==============
 
 @api_router.get("/stats")
 async def get_stats(user: dict = Depends(get_current_user)):
     stats = {}
+    
+    # Get workflow statuses for dynamic stats
+    statuses = await db.workflow_statuses.find({}, {"_id": 0}).to_list(100)
     
     if user["role"] == UserRole.CLIENTE:
         stats["total_processes"] = await db.processes.count_documents({"client_id": user["id"]})
@@ -659,11 +1097,19 @@ async def get_stats(user: dict = Depends(get_current_user)):
         })
     elif user["role"] in [UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.ADMIN]:
         stats["total_processes"] = await db.processes.count_documents({})
-        stats["pending_processes"] = await db.processes.count_documents({"status": ProcessStatus.PEDIDO_INICIAL})
-        stats["in_analysis"] = await db.processes.count_documents({"status": ProcessStatus.EM_ANALISE})
-        stats["bank_authorization"] = await db.processes.count_documents({"status": ProcessStatus.AUTORIZACAO_BANCARIA})
-        stats["approved"] = await db.processes.count_documents({"status": ProcessStatus.APROVADO})
-        stats["rejected"] = await db.processes.count_documents({"status": ProcessStatus.REJEITADO})
+        
+        # Count by each status
+        for status in statuses:
+            stats[f"status_{status['name']}"] = await db.processes.count_documents({"status": status["name"]})
+        
+        # Fallback for default statuses if no custom ones
+        if not statuses:
+            stats["pending_processes"] = await db.processes.count_documents({"status": "pedido_inicial"})
+            stats["in_analysis"] = await db.processes.count_documents({"status": "em_analise"})
+            stats["bank_authorization"] = await db.processes.count_documents({"status": "autorizacao_bancaria"})
+            stats["approved"] = await db.processes.count_documents({"status": "aprovado"})
+            stats["rejected"] = await db.processes.count_documents({"status": "rejeitado"})
+        
         stats["total_deadlines"] = await db.deadlines.count_documents({})
         stats["pending_deadlines"] = await db.deadlines.count_documents({"completed": False})
     
@@ -701,6 +1147,22 @@ async def startup():
     await db.processes.create_index("client_id")
     await db.deadlines.create_index("id", unique=True)
     await db.deadlines.create_index("process_id")
+    await db.activities.create_index("process_id")
+    await db.history.create_index("process_id")
+    await db.workflow_statuses.create_index("name", unique=True)
+    
+    # Create default workflow statuses if none exist
+    status_count = await db.workflow_statuses.count_documents({})
+    if status_count == 0:
+        default_statuses = [
+            {"id": str(uuid.uuid4()), "name": "pedido_inicial", "label": "Pedido Inicial", "order": 1, "color": "yellow", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "em_analise", "label": "Em Análise", "order": 2, "color": "blue", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "autorizacao_bancaria", "label": "Autorização Bancária", "order": 3, "color": "orange", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "aprovado", "label": "Aprovado", "order": 4, "color": "green", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "rejeitado", "label": "Rejeitado", "order": 5, "color": "red", "is_default": True},
+        ]
+        await db.workflow_statuses.insert_many(default_statuses)
+        logger.info("Default workflow statuses created")
     
     # Create default admin if not exists
     admin_exists = await db.users.find_one({"role": UserRole.ADMIN})
@@ -713,10 +1175,67 @@ async def startup():
             "phone": None,
             "role": UserRole.ADMIN,
             "is_active": True,
+            "onedrive_folder": None,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(admin_doc)
         logger.info("Admin user created: admin@sistema.pt / admin123")
+    
+    # Create test clients if none exist
+    client_count = await db.users.count_documents({"role": UserRole.CLIENTE})
+    if client_count == 0:
+        test_clients = [
+            {"name": "João Silva", "email": "joao.silva@email.pt", "phone": "+351 912 345 678", "onedrive_folder": "João Silva"},
+            {"name": "Maria Santos", "email": "maria.santos@email.pt", "phone": "+351 923 456 789", "onedrive_folder": "Maria Santos"},
+            {"name": "Pedro Costa", "email": "pedro.costa@email.pt", "phone": "+351 934 567 890", "onedrive_folder": "Pedro Costa"},
+        ]
+        for client in test_clients:
+            client_doc = {
+                "id": str(uuid.uuid4()),
+                "email": client["email"],
+                "password": hash_password("cliente123"),
+                "name": client["name"],
+                "phone": client["phone"],
+                "role": UserRole.CLIENTE,
+                "is_active": True,
+                "onedrive_folder": client["onedrive_folder"],
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(client_doc)
+        logger.info("Test clients created (password: cliente123)")
+    
+    # Create test consultor and mediador if none exist
+    consultor_exists = await db.users.find_one({"role": UserRole.CONSULTOR})
+    if not consultor_exists:
+        consultor_doc = {
+            "id": str(uuid.uuid4()),
+            "email": "consultor@sistema.pt",
+            "password": hash_password("consultor123"),
+            "name": "Carlos Consultor",
+            "phone": "+351 961 234 567",
+            "role": UserRole.CONSULTOR,
+            "is_active": True,
+            "onedrive_folder": None,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(consultor_doc)
+        logger.info("Test consultor created: consultor@sistema.pt / consultor123")
+    
+    mediador_exists = await db.users.find_one({"role": UserRole.MEDIADOR})
+    if not mediador_exists:
+        mediador_doc = {
+            "id": str(uuid.uuid4()),
+            "email": "mediador@sistema.pt",
+            "password": hash_password("mediador123"),
+            "name": "Ana Mediadora",
+            "phone": "+351 962 345 678",
+            "role": UserRole.MEDIADOR,
+            "is_active": True,
+            "onedrive_folder": None,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(mediador_doc)
+        logger.info("Test mediador created: mediador@sistema.pt / mediador123")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
