@@ -11,15 +11,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Calendar } from "../components/ui/calendar";
+import { Textarea } from "../components/ui/textarea";
 import { 
   Users, Settings, Plus, Edit, Trash2, Search, UserPlus, GitBranch, FolderOpen, 
-  Loader2, CheckCircle, XCircle, FileText, Calendar as CalendarIcon, Filter, Eye
+  Loader2, CheckCircle, XCircle, FileText, Calendar as CalendarIcon, Filter, Eye, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getStats, getUsers, createUser, updateUser, deleteUser,
   getWorkflowStatuses, createWorkflowStatus, updateWorkflowStatus, deleteWorkflowStatus,
-  getOneDriveStatus, getProcesses, getCalendarDeadlines
+  getOneDriveStatus, getProcesses, getCalendarDeadlines, createDeadline, deleteDeadline,
+  getUpcomingExpiries, analyzeDocument
 } from "../services/api";
 
 const roleLabels = { admin: "Administrador", consultor: "Consultor", mediador: "Mediador", cliente: "Cliente" };
@@ -48,6 +50,7 @@ const AdminDashboard = () => {
   const [workflowStatuses, setWorkflowStatuses] = useState([]);
   const [oneDriveStatus, setOneDriveStatus] = useState(null);
   const [calendarDeadlines, setCalendarDeadlines] = useState([]);
+  const [upcomingExpiries, setUpcomingExpiries] = useState([]);
   
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,11 +64,21 @@ const AdminDashboard = () => {
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isCreateStatusDialogOpen, setIsCreateStatusDialogOpen] = useState(false);
   const [isEditStatusDialogOpen, setIsEditStatusDialogOpen] = useState(false);
+  const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   
   // Form data
   const [userFormData, setUserFormData] = useState({ name: "", email: "", password: "", phone: "", role: "cliente", onedrive_folder: "" });
   const [statusFormData, setStatusFormData] = useState({ name: "", label: "", order: 1, color: "blue", description: "" });
+  const [eventFormData, setEventFormData] = useState({ 
+    title: "", 
+    description: "", 
+    due_date: "", 
+    priority: "medium",
+    process_id: "",
+    assigned_consultor_id: "",
+    assigned_mediador_id: ""
+  });
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingStatusId, setEditingStatusId] = useState(null);
 
@@ -84,18 +97,20 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes, processesRes, statusesRes, oneDriveRes] = await Promise.all([
+      const [statsRes, usersRes, processesRes, statusesRes, oneDriveRes, expiriesRes] = await Promise.all([
         getStats(),
         getUsers(),
         getProcesses(),
         getWorkflowStatuses(),
         getOneDriveStatus().catch(() => ({ data: { configured: false } })),
+        getUpcomingExpiries(60).catch(() => ({ data: [] })),
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setProcesses(processesRes.data);
       setWorkflowStatuses(statusesRes.data);
       setOneDriveStatus(oneDriveRes.data);
+      setUpcomingExpiries(expiriesRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Erro ao carregar dados");
@@ -106,10 +121,6 @@ const AdminDashboard = () => {
 
   const fetchCalendarData = async () => {
     try {
-      const params = {};
-      if (consultorFilter !== "all") params.consultor_id = consultorFilter;
-      if (mediadorFilter !== "all") params.mediador_id = mediadorFilter;
-      
       const res = await getCalendarDeadlines(
         consultorFilter !== "all" ? consultorFilter : null,
         mediadorFilter !== "all" ? mediadorFilter : null
@@ -251,6 +262,55 @@ const AdminDashboard = () => {
     }
   };
 
+  // Event/Deadline handlers
+  const openCreateEventDialog = (date) => {
+    setEventFormData({
+      title: "",
+      description: "",
+      due_date: date ? date.toISOString().split('T')[0] : selectedDate.toISOString().split('T')[0],
+      priority: "medium",
+      process_id: "",
+      assigned_consultor_id: "",
+      assigned_mediador_id: ""
+    });
+    setIsCreateEventDialogOpen(true);
+  };
+
+  const handleCreateEvent = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    try {
+      const data = {
+        title: eventFormData.title,
+        description: eventFormData.description || null,
+        due_date: eventFormData.due_date,
+        priority: eventFormData.priority,
+        process_id: eventFormData.process_id || null,
+        assigned_consultor_id: eventFormData.assigned_consultor_id || null,
+        assigned_mediador_id: eventFormData.assigned_mediador_id || null
+      };
+      await createDeadline(data);
+      toast.success("Evento criado com sucesso");
+      setIsCreateEventDialogOpen(false);
+      fetchCalendarData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao criar evento");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm("Tem a certeza que deseja eliminar este evento?")) return;
+    try {
+      await deleteDeadline(eventId);
+      toast.success("Evento eliminado");
+      fetchCalendarData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao eliminar evento");
+    }
+  };
+
   const getUserName = (userId) => {
     const user = users.find(u => u.id === userId);
     return user ? user.name : "-";
@@ -341,6 +401,14 @@ const AdminDashboard = () => {
               <CalendarIcon className="h-4 w-4" />
               Calendário
             </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Documentos
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Análise IA
+            </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Utilizadores
@@ -355,44 +423,34 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab - Clients by Consultant/Mediator */}
+          {/* Overview Tab */}
           <TabsContent value="overview" className="mt-6 space-y-6">
-            {/* Filters */}
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Filter className="h-5 w-5" />
                   Filtros de Visualização
                 </CardTitle>
-                <CardDescription>Filtre os processos por consultor ou mediador</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Consultor</Label>
                     <Select value={consultorFilter} onValueChange={setConsultorFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos os consultores" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Todos os consultores" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos os consultores</SelectItem>
-                        {consultors.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
+                        {consultors.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Mediador</Label>
                     <Select value={mediadorFilter} onValueChange={setMediadorFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos os mediadores" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Todos os mediadores" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos os mediadores</SelectItem>
-                        {mediadors.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
+                        {mediadors.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -400,16 +458,9 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Processes Table */}
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Processos ({filteredProcesses.length})</CardTitle>
-                <CardDescription>
-                  {consultorFilter !== "all" && `Consultor: ${getUserName(consultorFilter)}`}
-                  {consultorFilter !== "all" && mediadorFilter !== "all" && " • "}
-                  {mediadorFilter !== "all" && `Mediador: ${getUserName(mediadorFilter)}`}
-                  {consultorFilter === "all" && mediadorFilter === "all" && "Todos os processos"}
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
@@ -426,11 +477,7 @@ const AdminDashboard = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredProcesses.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            Nenhum processo encontrado com os filtros selecionados
-                          </TableCell>
-                        </TableRow>
+                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum processo encontrado</TableCell></TableRow>
                       ) : (
                         filteredProcesses.map((process) => (
                           <TableRow key={process.id}>
@@ -444,9 +491,7 @@ const AdminDashboard = () => {
                             <TableCell>{getUserName(process.assigned_consultor_id)}</TableCell>
                             <TableCell>{getUserName(process.assigned_mediador_id)}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => navigate(`/process/${process.id}`)}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => navigate(`/process/${process.id}`)}><Eye className="h-4 w-4" /></Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -461,59 +506,49 @@ const AdminDashboard = () => {
           {/* Calendar Tab */}
           <TabsContent value="calendar" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Calendar Filters */}
               <Card className="border-border lg:col-span-1">
                 <CardHeader>
-                  <CardTitle className="text-lg">Filtros</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Filtros & Calendário</CardTitle>
+                    <Button size="sm" onClick={() => openCreateEventDialog()}>
+                      <Plus className="h-4 w-4 mr-1" />Evento
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Consultor</Label>
                     <Select value={consultorFilter} onValueChange={setConsultorFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todos os consultores</SelectItem>
-                        {consultors.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
+                        <SelectItem value="all">Todos</SelectItem>
+                        {consultors.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Mediador</Label>
                     <Select value={mediadorFilter} onValueChange={setMediadorFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todos os mediadores</SelectItem>
-                        {mediadors.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
+                        <SelectItem value="all">Todos</SelectItem>
+                        {mediadors.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
                   </div>
-                  
                   <div className="pt-4 border-t">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
                       onSelect={(date) => date && setSelectedDate(date)}
                       className="rounded-md border"
-                      modifiers={{
-                        hasDeadline: datesWithDeadlines
-                      }}
-                      modifiersStyles={{
-                        hasDeadline: { backgroundColor: "rgb(254 202 202)", fontWeight: "bold" }
-                      }}
+                      modifiers={{ hasDeadline: datesWithDeadlines }}
+                      modifiersStyles={{ hasDeadline: { backgroundColor: "rgb(254 202 202)", fontWeight: "bold" } }}
                     />
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Deadlines for Selected Date */}
               <Card className="border-border lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-lg">
@@ -524,7 +559,10 @@ const AdminDashboard = () => {
                 <CardContent>
                   {deadlinesForDate.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      Nenhum prazo para esta data
+                      <p>Nenhum prazo para esta data</p>
+                      <Button variant="outline" className="mt-4" onClick={() => openCreateEventDialog(selectedDate)}>
+                        <Plus className="h-4 w-4 mr-2" />Criar Evento
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -533,23 +571,28 @@ const AdminDashboard = () => {
                           <div className="space-y-1">
                             <p className="font-medium">{deadline.title}</p>
                             <p className="text-sm text-muted-foreground">
-                              Cliente: {deadline.client_name} • {deadline.client_email}
+                              {deadline.client_name !== "Evento Geral" ? `Cliente: ${deadline.client_name}` : "Evento Geral"}
                             </p>
-                            <div className="flex gap-2 mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                {getUserName(deadline.assigned_consultor_id) !== "-" ? `Consultor: ${getUserName(deadline.assigned_consultor_id)}` : "Sem consultor"}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                {getUserName(deadline.assigned_mediador_id) !== "-" ? `Mediador: ${getUserName(deadline.assigned_mediador_id)}` : "Sem mediador"}
-                              </Badge>
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {deadline.assigned_consultor_id && (
+                                <Badge variant="outline" className="text-xs bg-blue-50">Consultor: {getUserName(deadline.assigned_consultor_id)}</Badge>
+                              )}
+                              {deadline.assigned_mediador_id && (
+                                <Badge variant="outline" className="text-xs bg-emerald-50">Mediador: {getUserName(deadline.assigned_mediador_id)}</Badge>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge className={deadline.priority === "high" ? "bg-red-100 text-red-800" : deadline.priority === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
                               {deadline.priority === "high" ? "Alta" : deadline.priority === "medium" ? "Média" : "Baixa"}
                             </Badge>
-                            <Button variant="ghost" size="icon" onClick={() => navigate(`/process/${deadline.process_id}`)}>
-                              <Eye className="h-4 w-4" />
+                            {deadline.process_id && (
+                              <Button variant="ghost" size="icon" onClick={() => navigate(`/process/${deadline.process_id}`)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteEvent(deadline.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </div>
@@ -559,6 +602,77 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Documents Tab - Admin can see all document expiries */}
+          <TabsContent value="documents" className="mt-6">
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg">Documentos a Expirar (Próximos 60 dias)</CardTitle>
+                <CardDescription>Documentos de todos os clientes próximos da data de validade</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {upcomingExpiries.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum documento a expirar</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Documento</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Data Expiração</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {upcomingExpiries.map((doc) => (
+                          <TableRow key={doc.id}>
+                            <TableCell className="font-medium">{doc.document_name}</TableCell>
+                            <TableCell>{doc.client_name}</TableCell>
+                            <TableCell><Badge variant="outline">{doc.document_type}</Badge></TableCell>
+                            <TableCell>{new Date(doc.expiry_date).toLocaleDateString('pt-PT')}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => navigate(`/process/${doc.process_id}`)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* AI Tab - Admin can use AI analysis */}
+          <TabsContent value="ai" className="mt-6">
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                  Análise de Documentos com IA
+                </CardTitle>
+                <CardDescription>
+                  Use a IA para extrair dados de documentos automaticamente
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  A funcionalidade de análise IA está disponível nos dashboards de Consultor e Mediador.
+                  Como admin, pode aceder a todas as funcionalidades através da visualização de processos individuais.
+                </p>
+                <Button className="mt-4" onClick={() => setActiveTab("overview")}>
+                  Ver Processos
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Users Tab */}
@@ -572,32 +686,15 @@ const AdminDashboard = () => {
                   </div>
                   <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button data-testid="create-user-btn">
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Novo Utilizador
-                      </Button>
+                      <Button data-testid="create-user-btn"><UserPlus className="h-4 w-4 mr-2" />Novo Utilizador</Button>
                     </DialogTrigger>
                     <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Criar Novo Utilizador</DialogTitle>
-                      </DialogHeader>
+                      <DialogHeader><DialogTitle>Criar Novo Utilizador</DialogTitle></DialogHeader>
                       <form onSubmit={handleCreateUser} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Nome</Label>
-                          <Input value={userFormData.name} onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })} required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Email</Label>
-                          <Input type="email" value={userFormData.email} onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })} required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Password</Label>
-                          <Input type="password" value={userFormData.password} onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })} required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Telefone</Label>
-                          <Input value={userFormData.phone} onChange={(e) => setUserFormData({ ...userFormData, phone: e.target.value })} />
-                        </div>
+                        <div className="space-y-2"><Label>Nome</Label><Input value={userFormData.name} onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })} required /></div>
+                        <div className="space-y-2"><Label>Email</Label><Input type="email" value={userFormData.email} onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })} required /></div>
+                        <div className="space-y-2"><Label>Password</Label><Input type="password" value={userFormData.password} onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })} required /></div>
+                        <div className="space-y-2"><Label>Telefone</Label><Input value={userFormData.phone} onChange={(e) => setUserFormData({ ...userFormData, phone: e.target.value })} /></div>
                         <div className="space-y-2">
                           <Label>Perfil</Label>
                           <Select value={userFormData.role} onValueChange={(value) => setUserFormData({ ...userFormData, role: value })}>
@@ -610,15 +707,8 @@ const AdminDashboard = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Pasta OneDrive</Label>
-                          <Input value={userFormData.onedrive_folder} onChange={(e) => setUserFormData({ ...userFormData, onedrive_folder: e.target.value })} placeholder="Nome da pasta no OneDrive" />
-                        </div>
-                        <DialogFooter>
-                          <Button type="submit" disabled={formLoading}>
-                            {formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}
-                          </Button>
-                        </DialogFooter>
+                        <div className="space-y-2"><Label>Pasta OneDrive</Label><Input value={userFormData.onedrive_folder} onChange={(e) => setUserFormData({ ...userFormData, onedrive_folder: e.target.value })} placeholder="Nome da pasta no OneDrive" /></div>
+                        <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}</Button></DialogFooter>
                       </form>
                     </DialogContent>
                   </Dialog>
@@ -655,9 +745,7 @@ const AdminDashboard = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum utilizador encontrado</TableCell>
-                        </TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum utilizador encontrado</TableCell></TableRow>
                       ) : (
                         filteredUsers.map((user) => (
                           <TableRow key={user.id}>
@@ -695,18 +783,9 @@ const AdminDashboard = () => {
                     <DialogContent>
                       <DialogHeader><DialogTitle>Criar Novo Estado</DialogTitle></DialogHeader>
                       <form onSubmit={handleCreateStatus} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Nome (identificador)</Label>
-                          <Input value={statusFormData.name} onChange={(e) => setStatusFormData({ ...statusFormData, name: e.target.value.toLowerCase().replace(/\s+/g, "_") })} placeholder="ex: documentos_pendentes" required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Label (exibição)</Label>
-                          <Input value={statusFormData.label} onChange={(e) => setStatusFormData({ ...statusFormData, label: e.target.value })} placeholder="ex: Documentos Pendentes" required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Ordem</Label>
-                          <Input type="number" value={statusFormData.order} onChange={(e) => setStatusFormData({ ...statusFormData, order: parseInt(e.target.value) || 1 })} min={1} required />
-                        </div>
+                        <div className="space-y-2"><Label>Nome (identificador)</Label><Input value={statusFormData.name} onChange={(e) => setStatusFormData({ ...statusFormData, name: e.target.value.toLowerCase().replace(/\s+/g, "_") })} placeholder="ex: documentos_pendentes" required /></div>
+                        <div className="space-y-2"><Label>Label (exibição)</Label><Input value={statusFormData.label} onChange={(e) => setStatusFormData({ ...statusFormData, label: e.target.value })} placeholder="ex: Documentos Pendentes" required /></div>
+                        <div className="space-y-2"><Label>Ordem</Label><Input type="number" value={statusFormData.order} onChange={(e) => setStatusFormData({ ...statusFormData, order: parseInt(e.target.value) || 1 })} min={1} required /></div>
                         <div className="space-y-2">
                           <Label>Cor</Label>
                           <Select value={statusFormData.color} onValueChange={(value) => setStatusFormData({ ...statusFormData, color: value })}>
@@ -714,22 +793,14 @@ const AdminDashboard = () => {
                             <SelectContent>
                               {statusColorOptions.map((color) => (
                                 <SelectItem key={color.value} value={color.value}>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`w-3 h-3 rounded-full ${color.class.split(" ")[0]}`} />
-                                    {color.label}
-                                  </div>
+                                  <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${color.class.split(" ")[0]}`} />{color.label}</div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Descrição</Label>
-                          <Input value={statusFormData.description} onChange={(e) => setStatusFormData({ ...statusFormData, description: e.target.value })} />
-                        </div>
-                        <DialogFooter>
-                          <Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}</Button>
-                        </DialogFooter>
+                        <div className="space-y-2"><Label>Descrição</Label><Input value={statusFormData.description} onChange={(e) => setStatusFormData({ ...statusFormData, description: e.target.value })} /></div>
+                        <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}</Button></DialogFooter>
                       </form>
                     </DialogContent>
                   </Dialog>
@@ -747,7 +818,6 @@ const AdminDashboard = () => {
                             {status.is_default && <Badge variant="outline" className="text-xs">Padrão</Badge>}
                           </div>
                           <p className="text-xs text-muted-foreground font-mono mt-1">{status.name}</p>
-                          {status.description && <p className="text-sm text-muted-foreground">{status.description}</p>}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -775,25 +845,89 @@ const AdminDashboard = () => {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div><p className="text-muted-foreground">Tenant ID</p><p className="font-mono">{oneDriveStatus.tenant_id}</p></div>
                       <div><p className="text-muted-foreground">Client ID</p><p className="font-mono">{oneDriveStatus.client_id}</p></div>
-                      <div className="col-span-2"><p className="text-muted-foreground">Pasta Base</p><p className="font-mono">{oneDriveStatus.base_path}</p></div>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-red-600"><XCircle className="h-5 w-5" /><span className="font-medium">OneDrive não configurado</span></div>
-                    <p className="text-sm text-muted-foreground">Para configurar o OneDrive, adicione as seguintes variáveis de ambiente:</p>
-                    <div className="bg-muted p-4 rounded-md font-mono text-sm space-y-1">
-                      <p>ONEDRIVE_TENANT_ID=seu_tenant_id</p>
-                      <p>ONEDRIVE_CLIENT_ID=seu_client_id</p>
-                      <p>ONEDRIVE_CLIENT_SECRET=seu_client_secret</p>
-                      <p>ONEDRIVE_BASE_PATH=Documentação Clientes</p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">Para configurar o OneDrive, adicione as variáveis de ambiente no backend.</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Create Event Dialog */}
+        <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Criar Novo Evento/Prazo</DialogTitle></DialogHeader>
+            <form onSubmit={handleCreateEvent} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Título *</Label>
+                <Input value={eventFormData.title} onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })} placeholder="Ex: Reunião com cliente" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea value={eventFormData.description} onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })} placeholder="Detalhes do evento..." rows={2} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input type="date" value={eventFormData.due_date} onChange={(e) => setEventFormData({ ...eventFormData, due_date: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Prioridade</Label>
+                  <Select value={eventFormData.priority} onValueChange={(v) => setEventFormData({ ...eventFormData, priority: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="medium">Média</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Processo (opcional)</Label>
+                <Select value={eventFormData.process_id} onValueChange={(v) => setEventFormData({ ...eventFormData, process_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum (evento geral)</SelectItem>
+                    {processes.map((p) => (<SelectItem key={p.id} value={p.id}>{p.client_name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Atribuir Consultor</Label>
+                  <Select value={eventFormData.assigned_consultor_id} onValueChange={(v) => setEventFormData({ ...eventFormData, assigned_consultor_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {consultors.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Atribuir Mediador</Label>
+                  <Select value={eventFormData.assigned_mediador_id} onValueChange={(v) => setEventFormData({ ...eventFormData, assigned_mediador_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {mediadors.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={formLoading}>
+                  {formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar Evento"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit User Dialog */}
         <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
@@ -815,7 +949,7 @@ const AdminDashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Pasta OneDrive</Label><Input value={userFormData.onedrive_folder} onChange={(e) => setUserFormData({ ...userFormData, onedrive_folder: e.target.value })} placeholder="Nome da pasta no OneDrive" /></div>
+              <div className="space-y-2"><Label>Pasta OneDrive</Label><Input value={userFormData.onedrive_folder} onChange={(e) => setUserFormData({ ...userFormData, onedrive_folder: e.target.value })} /></div>
               <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</Button></DialogFooter>
             </form>
           </DialogContent>
