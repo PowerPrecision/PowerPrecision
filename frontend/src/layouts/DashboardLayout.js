@@ -104,11 +104,6 @@ const DashboardLayout = ({ children, title }) => {
         ...baseItems,
         statsItem,
         {
-          label: "Quadro Geral",
-          icon: LayoutGrid,
-          href: "/staff",
-        },
-        {
           label: "Todos os Processos",
           icon: FileText,
           href: "/processos",
