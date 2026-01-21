@@ -80,9 +80,6 @@ const ProcessesPage = () => {
                   Total de {processes.length} processos no sistema
                 </CardDescription>
               </div>
-              <Button onClick={() => navigate('/new-process')}>
-                Novo Processo
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
