@@ -92,6 +92,19 @@ const DashboardLayout = ({ children, title }) => {
       ];
     }
 
+    // For staff roles (consultor, mediador, ceo, etc.)
+    if (["consultor", "mediador", "ceo"].includes(user?.role)) {
+      return [
+        ...baseItems,
+        statsItem,
+        {
+          label: "Processos",
+          icon: FileText,
+          href: "/staff",
+        },
+      ];
+    }
+
     return baseItems;
   };
 
