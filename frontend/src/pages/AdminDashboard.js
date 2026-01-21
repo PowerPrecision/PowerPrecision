@@ -835,15 +835,28 @@ const AdminDashboard = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum utilizador encontrado</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum utilizador encontrado</TableCell></TableRow>
                       ) : (
                         filteredUsers.map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.name}</TableCell>
                             <TableCell>{user.email}</TableCell>
                             <TableCell><Badge className={`${roleColors[user.role]} border`}>{roleLabels[user.role]}</Badge></TableCell>
+                            <TableCell>
+                              <Badge variant={user.is_active ? "success" : "destructive"} className={user.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                                {user.is_active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="font-mono text-sm">{user.onedrive_folder || "-"}</TableCell>
                             <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleToggleUserStatus(user.id, user.is_active)}
+                                title={user.is_active ? "Desativar utilizador" : "Ativar utilizador"}
+                              >
+                                {user.is_active ? <UserX className="h-4 w-4 text-orange-600" /> : <UserCheck className="h-4 w-4 text-green-600" />}
+                              </Button>
                               <Button variant="ghost" size="icon" onClick={() => openEditUserDialog(user)}><Edit className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </TableCell>
