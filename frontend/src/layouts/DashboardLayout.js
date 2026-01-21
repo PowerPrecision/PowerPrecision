@@ -87,21 +87,30 @@ const DashboardLayout = ({ children, title }) => {
         {
           label: "Utilizadores",
           icon: Users,
-          href: "/admin",
-          section: "users",
+          href: "/utilizadores",
+        },
+        {
+          label: "Todos os Processos",
+          icon: FileText,
+          href: "/processos",
         },
       ];
     }
 
-    // For staff roles (consultor, mediador, ceo, etc.)
-    if (["consultor", "mediador", "ceo"].includes(user?.role)) {
+    // For staff roles (consultor, mediador, intermediario, ceo, etc.)
+    if (["consultor", "mediador", "intermediario", "consultor_intermediario", "ceo"].includes(user?.role)) {
       return [
         ...baseItems,
         statsItem,
         {
-          label: "Processos",
-          icon: FileText,
+          label: "Quadro Geral",
+          icon: LayoutGrid,
           href: "/staff",
+        },
+        {
+          label: "Todos os Processos",
+          icon: FileText,
+          href: "/processos",
         },
       ];
     }
