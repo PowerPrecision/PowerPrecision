@@ -51,7 +51,8 @@ class UserResponse(BaseModel):
     name: str
     phone: Optional[str] = None
     role: str
-    created_at: str
+    is_active: Optional[bool] = True
+    created_at: Optional[str] = None
     onedrive_folder: Optional[str] = None
 
 
