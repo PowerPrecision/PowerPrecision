@@ -72,11 +72,6 @@ const DashboardLayout = ({ children, title }) => {
       return [
         ...baseItems,
         statsItem,
-        {
-          label: "Novo Processo",
-          icon: PlusCircle,
-          href: "/cliente/novo-processo",
-        },
       ];
     }
 
