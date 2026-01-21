@@ -59,18 +59,27 @@ async def startup():
     await db.history.create_index("process_id")
     await db.workflow_statuses.create_index("name", unique=True)
     
-    # Create default workflow statuses if none exist
+    # Create default workflow statuses if none exist - 14 fases do Trello
     status_count = await db.workflow_statuses.count_documents({})
     if status_count == 0:
         default_statuses = [
-            {"id": str(uuid.uuid4()), "name": "pedido_inicial", "label": "Pedido Inicial", "order": 1, "color": "yellow", "is_default": True},
-            {"id": str(uuid.uuid4()), "name": "em_analise", "label": "Em Análise", "order": 2, "color": "blue", "is_default": True},
-            {"id": str(uuid.uuid4()), "name": "autorizacao_bancaria", "label": "Autorização Bancária", "order": 3, "color": "orange", "is_default": True},
-            {"id": str(uuid.uuid4()), "name": "aprovado", "label": "Aprovado", "order": 4, "color": "green", "is_default": True},
-            {"id": str(uuid.uuid4()), "name": "rejeitado", "label": "Rejeitado", "order": 5, "color": "red", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "clientes_espera", "label": "Clientes em Espera", "order": 1, "color": "yellow", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "fase_documental", "label": "Fase Documental", "order": 2, "color": "blue", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "fase_documental_ii", "label": "Fase Documental II", "order": 3, "color": "blue", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "enviado_bruno", "label": "Enviado ao Bruno", "order": 4, "color": "purple", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "enviado_luis", "label": "Enviado ao Luís", "order": 5, "color": "purple", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "enviado_bcp_rui", "label": "Enviado BCP Rui", "order": 6, "color": "purple", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "entradas_precision", "label": "Entradas Precision", "order": 7, "color": "orange", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "fase_bancaria", "label": "Fase Bancária - Pré Aprovação", "order": 8, "color": "orange", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "fase_visitas", "label": "Fase de Visitas", "order": 9, "color": "blue", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "ch_aprovado", "label": "CH Aprovado - Avaliação", "order": 10, "color": "green", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "fase_escritura", "label": "Fase de Escritura", "order": 11, "color": "green", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "escritura_agendada", "label": "Escritura Agendada", "order": 12, "color": "green", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "concluidos", "label": "Concluídos", "order": 13, "color": "green", "is_default": True},
+            {"id": str(uuid.uuid4()), "name": "desistencias", "label": "Desistências", "order": 14, "color": "red", "is_default": True},
         ]
         await db.workflow_statuses.insert_many(default_statuses)
-        logger.info("Default workflow statuses created")
+        logger.info("14 workflow statuses created (conforme Trello)")
     
     # Create default admin if not exists
     admin_exists = await db.users.find_one({"role": UserRole.ADMIN})
