@@ -10,6 +10,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ProcessDetails from "./pages/ProcessDetails";
 import NewProcess from "./pages/NewProcess";
 import StatisticsPage from "./pages/StatisticsPage";
+import UsersManagementPage from "./pages/UsersManagementPage";
+import ProcessesPage from "./pages/ProcessesPage";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
