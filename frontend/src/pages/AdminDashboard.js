@@ -82,9 +82,9 @@ const AdminDashboard = () => {
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingStatusId, setEditingStatusId] = useState(null);
 
-  // Get consultors and mediadors for filters
-  const consultors = useMemo(() => users.filter(u => u.role === "consultor"), [users]);
-  const mediadors = useMemo(() => users.filter(u => u.role === "mediador"), [users]);
+  // Get consultors and intermediários for filters
+  const consultors = useMemo(() => users.filter(u => u.role === "consultor" || u.role === "consultor_mediador" || u.role === "consultor_intermediario" || u.role === "ceo"), [users]);
+  const intermediarios = useMemo(() => users.filter(u => u.role === "mediador" || u.role === "intermediario" || u.role === "consultor_mediador" || u.role === "consultor_intermediario"), [users]);
 
   useEffect(() => {
     fetchData();
