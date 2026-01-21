@@ -962,7 +962,7 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <Input type="date" value={eventFormData.due_date} onChange={(e) => setEventFormData({ ...eventFormData, due_date: e.target.value })} required />
+                  <Input type="date" value={eventFormData.due_date} onChange={(e) => setEventFormData({ ...eventFormData, due_date: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Prioridade</Label>
