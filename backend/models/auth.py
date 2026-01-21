@@ -15,12 +15,17 @@ class UserRole:
     @classmethod
     def can_act_as_consultor(cls, role: str) -> bool:
         """Check if role can perform consultor tasks"""
-        return role in [cls.CONSULTOR, cls.CONSULTOR_MEDIADOR, cls.CEO, cls.ADMIN]
+        return role in [cls.CONSULTOR, cls.CONSULTOR_INTERMEDIARIO, cls.CONSULTOR_MEDIADOR, cls.CEO, cls.ADMIN]
+    
+    @classmethod
+    def can_act_as_intermediario(cls, role: str) -> bool:
+        """Check if role can perform intermediário de crédito tasks"""
+        return role in [cls.INTERMEDIARIO, cls.MEDIADOR, cls.CONSULTOR_INTERMEDIARIO, cls.CONSULTOR_MEDIADOR, cls.CEO, cls.ADMIN]
     
     @classmethod
     def can_act_as_mediador(cls, role: str) -> bool:
-        """Check if role can perform mediador tasks"""
-        return role in [cls.MEDIADOR, cls.CONSULTOR_MEDIADOR, cls.CEO, cls.ADMIN]
+        """Legacy alias for can_act_as_intermediario"""
+        return cls.can_act_as_intermediario(role)
     
     @classmethod
     def is_staff(cls, role: str) -> bool:
