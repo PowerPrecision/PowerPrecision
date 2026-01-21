@@ -765,8 +765,325 @@ const AdminDashboard = () => {
           </TabsContent>
 
           {/* Users Tab */}
+          <TabsContent value="users" className="mt-6">
+            <Card className="border-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Gestão de Utilizadores</CardTitle>
+                    <CardDescription>Criar, editar e eliminar utilizadores</CardDescription>
+                  </div>
+                  <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="create-user-btn"><UserPlus className="h-4 w-4 mr-2" />Novo Utilizador</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Criar Novo Utilizador</DialogTitle></DialogHeader>
+                      <form onSubmit={handleCreateUser} className="space-y-4">
+                        <div className="space-y-2"><Label>Nome</Label><Input value={userFormData.name} onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })} required /></div>
+                        <div className="space-y-2"><Label>Email</Label><Input type="email" value={userFormData.email} onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })} required /></div>
+                        <div className="space-y-2"><Label>Password</Label><Input type="password" value={userFormData.password} onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })} required /></div>
+                        <div className="space-y-2"><Label>Telefone</Label><Input value={userFormData.phone} onChange={(e) => setUserFormData({ ...userFormData, phone: e.target.value })} /></div>
+                        <div className="space-y-2">
+                          <Label>Perfil</Label>
+                          <Select value={userFormData.role} onValueChange={(value) => setUserFormData({ ...userFormData, role: value })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cliente">Cliente</SelectItem>
+                              <SelectItem value="consultor">Consultor</SelectItem>
+                              <SelectItem value="mediador">Mediador</SelectItem>
+                              <SelectItem value="admin">Administrador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2"><Label>Pasta OneDrive</Label><Input value={userFormData.onedrive_folder} onChange={(e) => setUserFormData({ ...userFormData, onedrive_folder: e.target.value })} placeholder="Nome da pasta no OneDrive" /></div>
+                        <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}</Button></DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Pesquisar utilizador..." className="pl-10" value={userSearchTerm} onChange={(e) => setUserSearchTerm(e.target.value)} />
+                  </div>
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Filtrar por perfil" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os perfis</SelectItem>
+                      <SelectItem value="cliente">Cliente</SelectItem>
+                      <SelectItem value="consultor">Consultor</SelectItem>
+                      <SelectItem value="mediador">Mediador</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Pasta OneDrive</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum utilizador encontrado</TableCell></TableRow>
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.name}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell><Badge className={`${roleColors[user.role]} border`}>{roleLabels[user.role]}</Badge></TableCell>
+                            <TableCell>
+                              <Badge variant={user.is_active ? "success" : "destructive"} className={user.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                                {user.is_active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">{user.onedrive_folder || "-"}</TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleToggleUserStatus(user.id, user.is_active)}
+                                title={user.is_active ? "Desativar utilizador" : "Ativar utilizador"}
+                              >
+                                {user.is_active ? <UserX className="h-4 w-4 text-orange-600" /> : <UserCheck className="h-4 w-4 text-green-600" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => openEditUserDialog(user)}><Edit className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Workflow Tab */}
+          <TabsContent value="workflow" className="mt-6">
+            <Card className="border-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Estados do Fluxo de Processos</CardTitle>
+                    <CardDescription>Configurar as fases dos processos</CardDescription>
+                  </div>
+                  <Dialog open={isCreateStatusDialogOpen} onOpenChange={setIsCreateStatusDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="create-status-btn"><Plus className="h-4 w-4 mr-2" />Novo Estado</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Criar Novo Estado</DialogTitle></DialogHeader>
+                      <form onSubmit={handleCreateStatus} className="space-y-4">
+                        <div className="space-y-2"><Label>Nome (identificador)</Label><Input value={statusFormData.name} onChange={(e) => setStatusFormData({ ...statusFormData, name: e.target.value.toLowerCase().replace(/\s+/g, "_") })} placeholder="ex: documentos_pendentes" required /></div>
+                        <div className="space-y-2"><Label>Label (exibição)</Label><Input value={statusFormData.label} onChange={(e) => setStatusFormData({ ...statusFormData, label: e.target.value })} placeholder="ex: Documentos Pendentes" required /></div>
+                        <div className="space-y-2"><Label>Ordem</Label><Input type="number" value={statusFormData.order} onChange={(e) => setStatusFormData({ ...statusFormData, order: parseInt(e.target.value) || 1 })} min={1} required /></div>
+                        <div className="space-y-2">
+                          <Label>Cor</Label>
+                          <Select value={statusFormData.color} onValueChange={(value) => setStatusFormData({ ...statusFormData, color: value })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {statusColorOptions.map((color) => (
+                                <SelectItem key={color.value} value={color.value}>
+                                  <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${color.class.split(" ")[0]}`} />{color.label}</div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2"><Label>Descrição</Label><Input value={statusFormData.description} onChange={(e) => setStatusFormData({ ...statusFormData, description: e.target.value })} /></div>
+                        <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar"}</Button></DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {workflowStatuses.map((status) => (
+                    <div key={status.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-md">
+                      <div className="flex items-center gap-4">
+                        <span className="text-2xl font-bold text-muted-foreground font-mono w-8">{status.order}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={`${getColorClass(status.color)} border`}>{status.label}</Badge>
+                            {status.is_default && <Badge variant="outline" className="text-xs">Padrão</Badge>}
+                          </div>
+                          <p className="text-xs text-muted-foreground font-mono mt-1">{status.name}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEditStatusDialog(status)}><Edit className="h-4 w-4" /></Button>
+                        {!status.is_default && <Button variant="ghost" size="icon" onClick={() => handleDeleteStatus(status.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="mt-6">
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2"><FolderOpen className="h-5 w-5" />Integração OneDrive</CardTitle>
+                <CardDescription>Configuração de acesso aos documentos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {oneDriveStatus?.configured ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-emerald-600"><CheckCircle className="h-5 w-5" /><span className="font-medium">OneDrive configurado</span></div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><p className="text-muted-foreground">Tenant ID</p><p className="font-mono">{oneDriveStatus.tenant_id}</p></div>
+                      <div><p className="text-muted-foreground">Client ID</p><p className="font-mono">{oneDriveStatus.client_id}</p></div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-red-600"><XCircle className="h-5 w-5" /><span className="font-medium">OneDrive não configurado</span></div>
+                    <p className="text-sm text-muted-foreground">Para configurar o OneDrive, adicione as variáveis de ambiente no backend.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* Create Event Dialog */}
+        <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Criar Novo Evento/Prazo</DialogTitle></DialogHeader>
+            <form onSubmit={handleCreateEvent} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Título *</Label>
+                <Input value={eventFormData.title} onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })} placeholder="Ex: Reunião com cliente" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea value={eventFormData.description} onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })} placeholder="Detalhes do evento..." rows={2} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input type="date" value={eventFormData.due_date} onChange={(e) => setEventFormData({ ...eventFormData, due_date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Prioridade</Label>
+                  <Select value={eventFormData.priority} onValueChange={(v) => setEventFormData({ ...eventFormData, priority: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="medium">Média</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Processo (opcional)</Label>
+                <Select value={eventFormData.process_id || "none"} onValueChange={(v) => setEventFormData({ ...eventFormData, process_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (evento geral)</SelectItem>
+                    {processes.map((p) => (<SelectItem key={p.id} value={p.id}>{p.client_name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Atribuir Consultor</Label>
+                  <Select value={eventFormData.assigned_consultor_id || "none"} onValueChange={(v) => setEventFormData({ ...eventFormData, assigned_consultor_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {consultors.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Atribuir Intermediário</Label>
+                  <Select value={eventFormData.assigned_mediador_id || "none"} onValueChange={(v) => setEventFormData({ ...eventFormData, assigned_mediador_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {intermediarios.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={formLoading}>
+                  {formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar Evento"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar Utilizador</DialogTitle></DialogHeader>
+            <form onSubmit={handleEditUser} className="space-y-4">
+              <div className="space-y-2"><Label>Nome</Label><Input value={userFormData.name} onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Email</Label><Input type="email" value={userFormData.email} disabled className="bg-muted" /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input value={userFormData.phone} onChange={(e) => setUserFormData({ ...userFormData, phone: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Perfil</Label>
+                <Select value={userFormData.role} onValueChange={(value) => setUserFormData({ ...userFormData, role: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cliente">Cliente</SelectItem>
+                    <SelectItem value="consultor">Consultor</SelectItem>
+                    <SelectItem value="mediador">Mediador</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Pasta OneDrive</Label><Input value={userFormData.onedrive_folder} onChange={(e) => setUserFormData({ ...userFormData, onedrive_folder: e.target.value })} /></div>
+              <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Status Dialog */}
+        <Dialog open={isEditStatusDialogOpen} onOpenChange={setIsEditStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar Estado</DialogTitle></DialogHeader>
+            <form onSubmit={handleEditStatus} className="space-y-4">
+              <div className="space-y-2"><Label>Nome (identificador)</Label><Input value={statusFormData.name} disabled className="bg-muted font-mono" /></div>
+              <div className="space-y-2"><Label>Label (exibição)</Label><Input value={statusFormData.label} onChange={(e) => setStatusFormData({ ...statusFormData, label: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Ordem</Label><Input type="number" value={statusFormData.order} onChange={(e) => setStatusFormData({ ...statusFormData, order: parseInt(e.target.value) || 1 })} min={1} required /></div>
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <Select value={statusFormData.color} onValueChange={(value) => setStatusFormData({ ...statusFormData, color: value })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {statusColorOptions.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${color.class.split(" ")[0]}`} />{color.label}</div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Descrição</Label><Input value={statusFormData.description} onChange={(e) => setStatusFormData({ ...statusFormData, description: e.target.value })} /></div>
+              <DialogFooter><Button type="submit" disabled={formLoading}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
