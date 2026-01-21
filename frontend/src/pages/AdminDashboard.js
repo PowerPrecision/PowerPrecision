@@ -24,6 +24,7 @@ import {
   getOneDriveStatus, getProcesses, getCalendarDeadlines, createDeadline, deleteDeadline,
   getUpcomingExpiries, analyzeDocument
 } from "../services/api";
+import KanbanBoard from "../components/KanbanBoard";
 
 const roleLabels = { admin: "Administrador", ceo: "CEO", consultor: "Consultor", mediador: "Intermediário de Crédito", intermediario: "Intermediário de Crédito", consultor_mediador: "Consultor/Intermediário", consultor_intermediario: "Consultor/Intermediário", cliente: "Cliente" };
 const roleColors = {
