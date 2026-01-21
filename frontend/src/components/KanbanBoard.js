@@ -37,6 +37,8 @@ const KanbanBoard = ({ token }) => {
   const [draggingCard, setDraggingCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [selectedProcess, setSelectedProcess] = useState(null);
+  const [showProcessDialog, setShowProcessDialog] = useState(false);
 
   const fetchKanbanData = useCallback(async () => {
     try {
