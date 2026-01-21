@@ -5,9 +5,11 @@ from typing import Optional
 class UserRole:
     CLIENTE = "cliente"
     CONSULTOR = "consultor"
-    MEDIADOR = "mediador"
-    CONSULTOR_MEDIADOR = "consultor_mediador"  # Can do both consultor and mediador tasks
-    CEO = "ceo"  # Between admin and staff - can manage basic things + consultor/mediador tasks
+    INTERMEDIARIO = "intermediario"  # Intermediário de Crédito (antes: mediador)
+    MEDIADOR = "mediador"  # Legacy alias
+    CONSULTOR_INTERMEDIARIO = "consultor_intermediario"  # Can do both consultor and intermediário tasks
+    CONSULTOR_MEDIADOR = "consultor_mediador"  # Legacy alias
+    CEO = "ceo"  # Between admin and staff - can manage basic things + consultor/intermediário tasks
     ADMIN = "admin"
     
     @classmethod
