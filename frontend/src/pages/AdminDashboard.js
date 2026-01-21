@@ -24,7 +24,7 @@ import {
   getUpcomingExpiries, analyzeDocument
 } from "../services/api";
 
-const roleLabels = { admin: "Administrador", consultor: "Consultor", mediador: "Mediador", cliente: "Cliente" };
+const roleLabels = { admin: "Administrador", ceo: "CEO", consultor: "Consultor", mediador: "Intermediário de Crédito", intermediario: "Intermediário de Crédito", consultor_mediador: "Consultor/Intermediário", consultor_intermediario: "Consultor/Intermediário", cliente: "Cliente" };
 const roleColors = {
   admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   consultor: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
