@@ -128,6 +128,16 @@ function App() {
             }
           />
           
+          {/* Statistics Page - All authenticated users */}
+          <Route
+            path="/estatisticas"
+            element={
+              <ProtectedRoute>
+                <StatisticsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Process Details - Any authenticated user */}
           <Route
             path="/processo/:id"
