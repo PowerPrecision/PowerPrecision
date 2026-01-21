@@ -49,7 +49,9 @@ const DashboardRedirect = () => {
       return <Navigate to="/admin" replace />;
     case "consultor":
     case "mediador":
+    case "intermediario":
     case "consultor_mediador":
+    case "consultor_intermediario":
     case "ceo":
       return <Navigate to="/staff" replace />;
     default:
