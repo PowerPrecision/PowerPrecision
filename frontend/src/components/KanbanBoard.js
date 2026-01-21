@@ -250,7 +250,8 @@ const KanbanBoard = ({ token }) => {
                             onClick={(e) => {
                               // Não navegar se estiver arrastando
                               if (!draggingCard) {
-                                navigate(`/process/${process.id}`);
+                                setSelectedProcess(process);
+                                setShowProcessDialog(true);
                               }
                             }}
                           >
