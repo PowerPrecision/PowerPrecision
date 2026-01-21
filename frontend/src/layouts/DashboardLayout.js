@@ -24,6 +24,7 @@ import {
   PlusCircle,
   BarChart3,
   Home,
+  LayoutGrid,
 } from "lucide-react";
 import { useState } from "react";
 
