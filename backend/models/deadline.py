@@ -29,8 +29,12 @@ class DeadlineResponse(BaseModel):
     description: Optional[str] = None
     due_date: str
     priority: str
-    completed: bool
-    created_by: str
+    completed: Optional[bool] = None  # Made optional to handle legacy data
+    created_by: Optional[str] = None  # Made optional to handle legacy data
     created_at: str
     assigned_consultor_id: Optional[str] = None
     assigned_mediador_id: Optional[str] = None
+    # Legacy fields from database
+    status: Optional[str] = None
+    assigned_user_id: Optional[str] = None
+    assigned_user_name: Optional[str] = None
