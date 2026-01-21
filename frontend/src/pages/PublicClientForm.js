@@ -1029,13 +1029,6 @@ const PublicClientForm = () => {
             </div>
           </CardContent>
         </Card>
-
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          É colaborador?{" "}
-          <a href="/login" className="text-primary hover:underline">
-            Aceder ao sistema
-          </a>
-        </p>
       </main>
     </div>
   );
