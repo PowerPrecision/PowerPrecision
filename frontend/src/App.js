@@ -142,6 +142,26 @@ function App() {
             }
           />
           
+          {/* Users Management Page - Admin only */}
+          <Route
+            path="/utilizadores"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <UsersManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Processes Page - Staff and Admin */}
+          <Route
+            path="/processos"
+            element={
+              <ProtectedRoute allowedRoles={[...STAFF_ROLES, "admin"]}>
+                <ProcessesPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Process Details - Any authenticated user */}
           <Route
             path="/processo/:id"
