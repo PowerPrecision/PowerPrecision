@@ -445,7 +445,7 @@ const AdminDashboard = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Mediador</Label>
+                    <Label>Intermediário</Label>
                     <Select value={mediadorFilter} onValueChange={setMediadorFilter}>
                       <SelectTrigger><SelectValue placeholder="Todos os intermediários" /></SelectTrigger>
                       <SelectContent>
@@ -527,7 +527,7 @@ const AdminDashboard = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Mediador</Label>
+                    <Label>Intermediário</Label>
                     <Select value={mediadorFilter} onValueChange={setMediadorFilter}>
                       <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                       <SelectContent>
