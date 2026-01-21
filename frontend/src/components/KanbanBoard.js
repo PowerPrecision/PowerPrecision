@@ -239,11 +239,17 @@ const KanbanBoard = ({ token }) => {
                         column.processes.map((process) => (
                           <Card
                             key={process.id}
-                            className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${
+                            className={`cursor-pointer hover:shadow-md transition-shadow ${
                               draggingCard?.process.id === process.id ? "opacity-50" : ""
                             }`}
                             draggable
                             onDragStart={(e) => handleDragStart(e, process, column.name)}
+                            onClick={(e) => {
+                              // Não navegar se estiver arrastando
+                              if (!draggingCard) {
+                                navigate(`/process/${process.id}`);
+                              }
+                            }}
                           >
                             <CardContent className="p-3">
                               <div className="flex items-start justify-between gap-2">
