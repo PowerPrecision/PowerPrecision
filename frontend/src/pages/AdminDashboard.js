@@ -828,6 +828,7 @@ const AdminDashboard = () => {
                         <TableHead>Nome</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Perfil</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Pasta OneDrive</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
