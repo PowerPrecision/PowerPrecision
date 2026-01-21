@@ -332,6 +332,189 @@ const KanbanBoard = ({ token }) => {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+
+      {/* Process Details Dialog */}
+      <Dialog open={showProcessDialog} onOpenChange={setShowProcessDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Detalhes do Processo</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setShowProcessDialog(false);
+                  navigate(`/process/${selectedProcess?.id}`);
+                }}
+              >
+                Abrir Página Completa
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedProcess && (
+            <div className="space-y-6 mt-4">
+              {/* Cliente Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Informações do Cliente
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Nome</p>
+                    <p className="font-medium">{selectedProcess.client_name}</p>
+                  </div>
+                  {selectedProcess.client_email && (
+                    <div>
+                      <p className="text-muted-foreground">Email</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {selectedProcess.client_email}
+                      </p>
+                    </div>
+                  )}
+                  {selectedProcess.client_phone && (
+                    <div>
+                      <p className="text-muted-foreground">Telefone</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedProcess.client_phone}
+                      </p>
+                    </div>
+                  )}
+                  {selectedProcess.client_nif && (
+                    <div>
+                      <p className="text-muted-foreground">NIF</p>
+                      <p className="font-medium">{selectedProcess.client_nif}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Imóvel Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Home className="h-5 w-5 text-primary" />
+                  Informações do Imóvel
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {selectedProcess.property_type && (
+                    <div>
+                      <p className="text-muted-foreground">Tipo</p>
+                      <p className="font-medium capitalize">{selectedProcess.property_type}</p>
+                    </div>
+                  )}
+                  {selectedProcess.property_location && (
+                    <div>
+                      <p className="text-muted-foreground">Localização</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {selectedProcess.property_location}
+                      </p>
+                    </div>
+                  )}
+                  {selectedProcess.property_value && (
+                    <div>
+                      <p className="text-muted-foreground">Valor do Imóvel</p>
+                      <p className="font-medium text-emerald-600 flex items-center gap-1">
+                        <Euro className="h-3 w-3" />
+                        {selectedProcess.property_value.toLocaleString('pt-PT')}€
+                      </p>
+                    </div>
+                  )}
+                  {selectedProcess.loan_amount && (
+                    <div>
+                      <p className="text-muted-foreground">Valor Financiado</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <Euro className="h-3 w-3" />
+                        {selectedProcess.loan_amount.toLocaleString('pt-PT')}€
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status e Prioridade */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Estado e Prioridade</h3>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="outline" className="capitalize">
+                    {selectedProcess.status?.replace(/_/g, ' ')}
+                  </Badge>
+                  {selectedProcess.priority && (
+                    <Badge 
+                      variant={selectedProcess.priority === 'high' ? 'destructive' : 'secondary'}
+                      className="capitalize"
+                    >
+                      {selectedProcess.priority === 'high' ? 'Alta' : selectedProcess.priority === 'medium' ? 'Média' : 'Baixa'}
+                    </Badge>
+                  )}
+                  {selectedProcess.service_type && (
+                    <Badge variant="outline" className="capitalize">
+                      {selectedProcess.service_type.replace(/_/g, ' ')}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Atribuições */}
+              {(selectedProcess.assigned_consultor_name || selectedProcess.assigned_intermediario_name) && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    Atribuições
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {selectedProcess.assigned_consultor_name && (
+                      <div>
+                        <p className="text-muted-foreground">Consultor</p>
+                        <p className="font-medium">{selectedProcess.assigned_consultor_name}</p>
+                      </div>
+                    )}
+                    {selectedProcess.assigned_intermediario_name && (
+                      <div>
+                        <p className="text-muted-foreground">Intermediário</p>
+                        <p className="font-medium">{selectedProcess.assigned_intermediario_name}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Notas */}
+              {selectedProcess.notes && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Notas</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedProcess.notes}</p>
+                </div>
+              )}
+
+              {/* Datas */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Datas
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {selectedProcess.created_at && (
+                    <div>
+                      <p className="text-muted-foreground">Criado em</p>
+                      <p className="font-medium">{new Date(selectedProcess.created_at).toLocaleDateString('pt-PT')}</p>
+                    </div>
+                  )}
+                  {selectedProcess.updated_at && (
+                    <div>
+                      <p className="text-muted-foreground">Última atualização</p>
+                      <p className="font-medium">{new Date(selectedProcess.updated_at).toLocaleDateString('pt-PT')}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
