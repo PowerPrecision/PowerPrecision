@@ -960,6 +960,14 @@ const PublicClientForm = () => {
                 <p className="text-sm text-muted-foreground">Registo de Cliente</p>
               </div>
             </div>
+            <a 
+              href="/login" 
+              className="flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+            >
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Acesso Colaborador</span>
+              <span className="sm:hidden">Login</span>
+            </a>
           </div>
         </div>
       </header>
