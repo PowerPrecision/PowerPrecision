@@ -134,12 +134,12 @@ const AdminDashboard = () => {
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                           user.email.toLowerCase().includes(userSearchTerm.toLowerCase());
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
       return matchesSearch && matchesRole;
     });
-  }, [users, searchTerm, roleFilter]);
+  }, [users, userSearchTerm, roleFilter]);
 
   const filteredProcesses = useMemo(() => {
     return processes.filter(process => {
