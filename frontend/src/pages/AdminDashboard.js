@@ -96,6 +96,7 @@ const AdminDashboard = () => {
     assigned_user_ids: []  // Lista de utilizadores atribuídos
   });
   const [editingUserId, setEditingUserId] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [editingStatusId, setEditingStatusId] = useState(null);
 
   // Get all staff users for assignment
