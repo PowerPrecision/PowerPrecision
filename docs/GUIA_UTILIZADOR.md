@@ -94,11 +94,22 @@ ADMINISTRADOR (admin)
     └── Acesso total ao sistema
     └── Gestão de utilizadores
     └── Configurações do sistema
+    └── Editor de Workflow
 
 CEO (ceo)
     └── Visão global de todos os processos
     └── Estatísticas gerais
     └── Relatórios executivos
+
+DIRETOR(A) (diretor)
+    └── Acesso a ambas as funções (consultor + intermediário)
+    └── Processos atribuídos em ambos os papéis
+    └── Calendário e documentos
+
+ADMINISTRATIVO(A) (administrativo)
+    └── Vê todos os processos (função de apoio)
+    └── Gestão documental
+    └── Calendário e prazos
 
 CONSULTOR (consultor)
     └── Processos imobiliários atribuídos
@@ -109,10 +120,6 @@ INTERMEDIÁRIO (intermediario)
     └── Processos de crédito atribuídos
     └── Contacto com bancos
     └── Gestão documental
-
-CONSULTOR/INTERMEDIÁRIO (consultor_intermediario)
-    └── Ambas as funções
-    └── Processos mistos
 
 CLIENTE (cliente)
     └── Visualização do próprio processo
