@@ -38,6 +38,8 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - **Alerta de Escritura**: Lembrete automático no calendário 15 dias antes
 - **UI de Notificações**: Ícone de sino no header com badge de contagem não lidas
 - **Componente ProcessAlerts**: Painel colapsível com alertas na página de detalhes
+- **Notificações em Tempo Real**: Polling a cada 10 segundos com toast e som quando chega nova notificação
+- **Controlo de Som**: Botão para ativar/desativar som das notificações
 
 ### ✅ Dados Importados do Trello (2026-01-20)
 - **155 processos** no sistema com dados de teste
