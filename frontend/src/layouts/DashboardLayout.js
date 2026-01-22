@@ -135,21 +135,24 @@ const DashboardLayout = ({ children, title }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-blue-950 text-white border-r border-blue-900 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="h-16 flex items-center justify-between px-6 border-b border-border">
+          {/* Logo - Power Real Estate & Precision Crédito */}
+          <div className="h-16 flex items-center justify-between px-6 border-b border-blue-800 bg-blue-900">
             <div className="flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg tracking-tight">Power Real Estate & Precision</span>
+              <Building2 className="h-6 w-6 text-amber-400" />
+              <div className="flex flex-col">
+                <span className="font-bold text-sm tracking-tight text-white">Power Real Estate</span>
+                <span className="text-xs text-amber-400">&amp; Precision Crédito</span>
+              </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="lg:hidden text-white hover:bg-blue-800"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -167,8 +170,8 @@ const DashboardLayout = ({ children, title }) => {
                     to={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-amber-500 text-white"
+                        : "text-blue-100 hover:bg-blue-800 hover:text-white"
                     }`}
                     onClick={() => setSidebarOpen(false)}
                   >
@@ -181,13 +184,13 @@ const DashboardLayout = ({ children, title }) => {
           </ScrollArea>
 
           {/* User section */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-blue-800">
             <div className="flex items-center gap-3 px-2">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-5 w-5 text-primary" />
+              <div className="h-9 w-9 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <User className="h-5 w-5 text-amber-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-sm font-medium truncate text-white">{user?.name}</p>
                 <span
                   className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
                     roleColors[user?.role]
