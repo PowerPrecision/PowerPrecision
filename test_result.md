@@ -267,15 +267,18 @@ frontend:
 
   - task: "User Management Page"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/UsersManagementPage.js"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "testing"
           comment: "User management page for admin role with filters and user activation controls."
+        - working: true
+          agent: "testing"
+          comment: "✅ USER MANAGEMENT: Page loads correctly showing all 8 users with proper role badges (Admin, CEO, Consultor, Intermediário, Consultor/Intermediário). All users show 'Ativo' status. Search functionality and 'Novo Utilizador' button present. Action buttons (edit, delete) available for each user."
 
   - task: "All Processes Page"
     implemented: true
