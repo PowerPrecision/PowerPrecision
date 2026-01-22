@@ -32,11 +32,13 @@ O **CreditoIMO** é um sistema integrado de gestão de processos para empresas d
 ### Funcionalidades Principais
 
 ✅ Gestão visual de processos com quadro Kanban  
-✅ Controlo de 14 fases de workflow  
+✅ Controlo de 14 fases de workflow (editáveis)  
 ✅ Calendário com prazos e alertas  
 ✅ Rastreamento de validade de documentos (60 dias)  
 ✅ **Sistema de Alertas Inteligentes (Idade <35, Countdown 90 dias, Docs a expirar)**  
 ✅ **Notificações em Tempo Real com Som**  
+✅ **Editor de Fluxos de Workflow** (Definições > Sistema)  
+✅ **Gestão Completa de Utilizadores** (criar, editar, eliminar)  
 ✅ Estatísticas e relatórios  
 ✅ Formulário público de registo de clientes  
 ✅ Controlo de acesso por papel  
