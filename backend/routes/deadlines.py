@@ -80,6 +80,12 @@ async def create_deadline(data: DeadlineCreate, user: dict = Depends(get_current
 
 @router.get("", response_model=List[DeadlineResponse])
 async def get_deadlines(process_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+    """
+    Obter prazos/eventos do utilizador.
+    
+    - Cada utilizador vê apenas os eventos onde está atribuído
+    - Admin e CEO vêem todos os eventos
+    """
     query = {}
     
     if process_id:
@@ -88,21 +94,16 @@ async def get_deadlines(process_id: Optional[str] = None, user: dict = Depends(g
         processes = await db.processes.find({"client_id": user["id"]}, {"id": 1, "_id": 0}).to_list(1000)
         process_ids = [p["id"] for p in processes]
         query["process_id"] = {"$in": process_ids}
-    elif user["role"] == UserRole.CONSULTOR:
-        # Get deadlines assigned to this consultor or from their processes
-        processes = await db.processes.find({"assigned_consultor_id": user["id"]}, {"id": 1, "_id": 0}).to_list(1000)
-        process_ids = [p["id"] for p in processes]
+    elif user["role"] in [UserRole.ADMIN, UserRole.CEO]:
+        # Admin e CEO vêem todos
+        pass
+    else:
+        # Outros utilizadores vêem eventos onde estão atribuídos
         query["$or"] = [
+            {"assigned_user_ids": user["id"]},
+            {"created_by": user["id"]},
             {"assigned_consultor_id": user["id"]},
-            {"process_id": {"$in": process_ids}}
-        ]
-    elif user["role"] == UserRole.MEDIADOR:
-        # Get deadlines assigned to this mediador or from their processes
-        processes = await db.processes.find({"assigned_mediador_id": user["id"]}, {"id": 1, "_id": 0}).to_list(1000)
-        process_ids = [p["id"] for p in processes]
-        query["$or"] = [
-            {"assigned_mediador_id": user["id"]},
-            {"process_id": {"$in": process_ids}}
+            {"assigned_mediador_id": user["id"]}
         ]
     
     deadlines = await db.deadlines.find(query, {"_id": 0}).to_list(1000)
@@ -113,21 +114,44 @@ async def get_deadlines(process_id: Optional[str] = None, user: dict = Depends(g
 async def get_calendar_deadlines(
     consultor_id: Optional[str] = None,
     mediador_id: Optional[str] = None,
-    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CONSULTOR, UserRole.MEDIADOR]))
+    user: dict = Depends(get_current_user)
 ):
-    """Get all deadlines with process info for calendar view"""
-    # Build process filter
-    process_query = {}
+    """
+    Obter eventos para o calendário.
     
-    if consultor_id:
-        process_query["assigned_consultor_id"] = consultor_id
-    if mediador_id:
-        process_query["assigned_mediador_id"] = mediador_id
+    - Cada utilizador vê os seus próprios eventos
+    - Admin pode filtrar por consultor/mediador
+    """
+    # Build deadline filter based on user role
+    deadline_query = {}
     
-    # Get processes matching filter
-    processes = await db.processes.find(process_query, {"_id": 0}).to_list(1000)
+    if user["role"] in [UserRole.ADMIN, UserRole.CEO]:
+        # Admin/CEO podem filtrar ou ver todos
+        if consultor_id:
+            deadline_query["$or"] = [
+                {"assigned_user_ids": consultor_id},
+                {"assigned_consultor_id": consultor_id}
+            ]
+        elif mediador_id:
+            deadline_query["$or"] = [
+                {"assigned_user_ids": mediador_id},
+                {"assigned_mediador_id": mediador_id}
+            ]
+    else:
+        # Outros utilizadores vêem apenas os seus eventos
+        deadline_query["$or"] = [
+            {"assigned_user_ids": user["id"]},
+            {"created_by": user["id"]},
+            {"assigned_consultor_id": user["id"]},
+            {"assigned_mediador_id": user["id"]}
+        ]
+    
+    # Get deadlines
+    deadlines = await db.deadlines.find(deadline_query, {"_id": 0}).to_list(1000)
+    
+    # Get all processes for reference
+    processes = await db.processes.find({}, {"_id": 0}).to_list(1000)
     process_map = {p["id"]: p for p in processes}
-    process_ids = list(process_map.keys())
     
     # Build deadline query
     # When no filters, get ALL deadlines
