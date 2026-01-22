@@ -208,24 +208,80 @@ const StaffDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Documentos a Expirar</CardTitle>
-                <CardDescription>Documentos próximos da data de validade (60 dias)</CardDescription>
+                <CardDescription>Documentos dos seus clientes próximos da data de validade (60 dias), ordenados por data</CardDescription>
               </CardHeader>
               <CardContent>
                 {expiries.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nenhum documento a expirar</p>
+                  <p className="text-muted-foreground text-center py-8">Nenhum documento a expirar nos próximos 60 dias</p>
                 ) : (
-                  <div className="space-y-3">
-                    {expiries.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div>
-                          <p className="font-medium">{doc.document_name}</p>
-                          <p className="text-sm text-muted-foreground">{doc.client_name} • {doc.document_type}</p>
-                        </div>
-                        <Badge variant="destructive">
-                          {new Date(doc.expiry_date).toLocaleDateString('pt-PT')}
-                        </Badge>
-                      </div>
-                    ))}
+                  <div className="space-y-4">
+                    {/* Ordenar documentos por data de expiração e agrupar por cliente */}
+                    {(() => {
+                      // Ordenar todos os documentos por data de expiração (crescente)
+                      const sortedDocs = [...expiries].sort((a, b) => 
+                        new Date(a.expiry_date) - new Date(b.expiry_date)
+                      );
+                      
+                      // Agrupar por cliente mantendo a ordem
+                      const grouped = sortedDocs.reduce((acc, doc) => {
+                        const clientKey = doc.client_name || 'Sem Cliente';
+                        if (!acc[clientKey]) {
+                          acc[clientKey] = {
+                            client_name: doc.client_name,
+                            process_id: doc.process_id,
+                            documents: [],
+                            earliestExpiry: doc.expiry_date
+                          };
+                        }
+                        acc[clientKey].documents.push(doc);
+                        return acc;
+                      }, {});
+                      
+                      // Ordenar grupos pelo documento mais próximo a expirar
+                      const sortedGroups = Object.entries(grouped).sort((a, b) => 
+                        new Date(a[1].earliestExpiry) - new Date(b[1].earliestExpiry)
+                      );
+                      
+                      return sortedGroups.map(([clientName, clientData]) => {
+                        const earliestDays = Math.ceil((new Date(clientData.earliestExpiry) - new Date()) / (1000 * 60 * 60 * 24));
+                        const borderColor = earliestDays <= 7 ? 'border-l-red-500' : earliestDays <= 30 ? 'border-l-amber-500' : 'border-l-blue-500';
+                        
+                        return (
+                          <div key={clientName} className={`border-l-4 ${borderColor} rounded-lg bg-muted/20 overflow-hidden`}>
+                            <div className="py-2 px-4 bg-muted/40 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-blue-900" />
+                                <span className="font-semibold">{clientName}</span>
+                                <Badge variant="outline">{clientData.documents.length} doc(s)</Badge>
+                              </div>
+                            </div>
+                            <div className="p-3 space-y-2">
+                              {clientData.documents.map((doc) => {
+                                const daysUntil = Math.ceil((new Date(doc.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
+                                const urgencyClass = daysUntil <= 7 ? 'bg-red-50 border-red-200 text-red-800' : 
+                                                     daysUntil <= 30 ? 'bg-amber-50 border-amber-200 text-amber-800' : 
+                                                     'bg-blue-50 border-blue-200 text-blue-800';
+                                return (
+                                  <div key={doc.id} className={`flex items-center justify-between p-2 rounded border ${urgencyClass}`}>
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4" />
+                                      <span className="font-medium text-sm">{doc.document_name}</span>
+                                      <Badge variant="outline" className="text-xs">{doc.document_type}</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs">{new Date(doc.expiry_date).toLocaleDateString('pt-PT')}</span>
+                                      <Badge className={daysUntil <= 7 ? 'bg-red-500' : daysUntil <= 30 ? 'bg-amber-500' : 'bg-blue-500'}>
+                                        {daysUntil}d
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </CardContent>
