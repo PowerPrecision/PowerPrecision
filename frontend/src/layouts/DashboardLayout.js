@@ -76,10 +76,18 @@ const DashboardLayout = ({ children, title }) => {
       href: "/estatisticas",
     };
 
+    // Definições para todos os utilizadores
+    const settingsItem = {
+      label: "Definições",
+      icon: Settings,
+      href: "/definicoes",
+    };
+
     if (user?.role === "cliente") {
       return [
         ...baseItems,
         statsItem,
+        settingsItem,
       ];
     }
 
@@ -102,6 +110,7 @@ const DashboardLayout = ({ children, title }) => {
           icon: FileText,
           href: "/processos",
         },
+        settingsItem,
       ];
     }
 
@@ -115,10 +124,11 @@ const DashboardLayout = ({ children, title }) => {
           icon: FileText,
           href: "/processos",
         },
+        settingsItem,
       ];
     }
 
-    return baseItems;
+    return [...baseItems, settingsItem];
   };
 
   const navItems = getNavItems();
