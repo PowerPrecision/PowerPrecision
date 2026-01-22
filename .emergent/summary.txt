@@ -1,172 +1,322 @@
 <analysis>**original_problem_statement:**
-The user requested a customer registration system for clients who might need credit, real estate assistance, or both.
+O utilizador iniciou a sessão com um sistema CreditoIMO totalmente funcional, mas com uma base de dados vazia. As solicitações iniciais e subsequentes incluíram:
+1.  **Correção de Dados:** Corrigir a falta de clientes associados aos utilizadores Flávio e Estácio.
+2.  **Branding e UI:**
+    *   Ajustar as cores e logotipos da aplicação para corresponder à identidade visual de  (imobiliária) e  (crédito).
+    *   Aplicar as novas cores à página de login e ao formulário público.
+3.  **Funcionalidades:**
+    *   Alterar a validade dos documentos para que os que expiram em 60 dias apareçam numa secção de alerta.
+    *   Adicionar uma página de Definições ao menu lateral.
+    *   Remover a opção de auto-registo de utilizadores, centralizando a criação de contas no administrador.
+    *   Permitir que todos os utilizadores criem eventos no calendário, mas apenas para si próprios ou para outros utilizadores envolvidos nos seus processos. Os eventos devem suportar múltiplos utilizadores atribuídos.
+    *   Agrupar os documentos a expirar por cliente e ordená-los por data de validade crescente.
+    *   Adicionar o campo empresa ao modelo de utilizador.
+4.  **Sistema de Alertas e Notificações (PRODUCT REQUIREMENTS):**
+    *   **Alerta de Idade:** Criar um alerta (apoio ao estado) para clientes com menos de 35 anos.
+    *   **Alerta de Janela:** Iniciar uma contagem decrescente de 90 dias com notificações após a pré-aprovação de um processo.
+    *   **Alerta de Validade:** Notificar os envolvidos 15 dias antes da expiração de documentos de identificação ou IRS.
+    *   **Notificação de Novo Cliente:** Enviar uma notificação ao administrativo quando um novo cliente preenche o formulário. Se o campo Já tem imóvel estiver preenchido, a notificação deve ser direcionada para intermediários.
+    *   **Validação de Documentos:** Ao passar um processo para avaliação, confirmar se todos os documentos do imóvel estão presentes.
+    *   **Alerta de Escritura:** Ao agendar uma escritura, gerar um alerta no calendário 15 dias antes da data.
+5.  **Documentação:**
+    *   Comentar o código fonte.
+    *   Criar um guia de utilizador () com screenshots e exemplos.
+    *   Criar uma apresentação do sistema ().
+    *   Sugerir novas funcionalidades e integrações.
 
-**PRODUCT REQUIREMENTS:**
--   **User Roles:** The system needs to support four user roles: ,  (consultant),  (mediator), and  (client). The  has full control.
--   **Client Registration:** Clients should not have login capabilities. Instead, they fill out a public form with their initial data.
--   **Data Management:**
-    -   Consultants and mediators manage the client's process after the initial registration.
-    -   Consultants fill in real estate data.
-    -   Mediators fill in credit-related data.
-    -   Some fields should only be editable after reaching a specific process stage (e.g., bank authorization).
--   **Process Workflow:**
-    -   The process must have an associated calendar to track deadlines.
-    -   The process has multiple stages (e.g., , , ).
-    -   The  must be able to add, edit, and delete these workflow stages.
--   **Features:**
-    -   An activity log for each process to add comments.
-    -   A history of all changes made to a process.
--   **Integrations:**
-    -   **OneDrive:** Integrate with a single company OneDrive account to view client documents stored in the path . Clients can only see their own documents, while consultants and mediators can see documents for all clients they manage. This integration is currently blocked waiting for the user to provide API credentials.
-    -   **HCPRO/CRMCREDITO:** Integration was requested but subsequently postponed by the user.
-
-**User's preferred language**: Portuguese
+**User's preferred language**: Portuguese (Portugal). O próximo agente DEVE comunicar exclusivamente em português de Portugal.
 
 **what currently exists?**
-A full-stack application with a FastAPI backend and a React frontend has been built. The application supports user registration and role-based access for , , and . A public form allows clients to submit their initial information without needing to log in. The core functionality, including process management, customizable workflows, activity logs, and change history, is implemented and functional. The system is populated with simulation data for demonstration purposes. The OneDrive integration is coded on the backend but is not active as it awaits credentials.
+Um sistema full-stack de gestão de crédito e imobiliário (CreditoIMO) com frontend em React e backend em FastAPI, utilizando MongoDB. O sistema possui autenticação por papéis, um quadro Kanban para gestão de processos, calendário, e dashboards. A identidade visual foi atualizada com as cores e logotipos das empresas. A base de dados foi populada com 155 processos, 8 utilizadores e centenas de documentos através de um script de seed. Várias correções de bugs e melhorias de funcionalidades foram implementadas, incluindo a adição de uma página de Definições e melhorias na visualização de documentos e eventos.
 
 **Last working item**:
-    - Last item agent was working: The agent was verifying the application's readiness for deployment after a request from the user. It addressed a report from a deployment agent by manually verifying the health of the services and adding a  to the  file for security best practices.
-    - Status: BLOCKED
-    - Agent Testing Done: Y
-    - Which testing method agent to use? NA
+    - Last item agent was working: O agente estava a meio da implementação de um novo e complexo sistema de alertas e notificações. Já criou a estrutura base no backend (serviço  e rota ), adicionou o campo  ao modelo  e modificou a rota de submissão do formulário público para gerar uma notificação. O trabalho foi interrompido antes de implementar a lógica para a maioria dos alertas solicitados.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? backend testing agent
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: OneDrive Integration is not functional (P0)
+  - Issue 1: Lógica de atribuição de eventos no calendário pode estar incorreta (PRIORITY: P1)
 
   Issues Detail:
   - Issue 1:
-     - Attempted fixes: The backend code for OneDrive integration has been added based on the integration playbook. The agent has provided the user with a step-by-step guide to register an application in Azure AD and retrieve the necessary credentials (, , ).
-     - Next debug checklist:
-         1. Check if the user has provided the credentials.
-         2. If so, add the credentials to the  file.
-         3. Restart the backend service using backend: stopped
-backend: started.
-         4. Test the file-viewing functionality from the frontend.
-     - Why fix this issue and what will be achieved with the fix? This is a core feature requested by the user to link client processes with their documents stored in OneDrive, eliminating the need for a separate document upload system.
-     - Status: BLOCKED
+     - Attempted fixes: A lógica de criação de eventos foi alterada para permitir a seleção de múltiplos utilizadores através de checkboxes () e o backend foi atualizado para guardar uma lista de IDs de utilizadores ().
+     - Next debug checklist: 
+       - Clarificar com o utilizador a regra: todos podem criar eventos no calendario mas só podem atribuir ao seu proprio calendario.
+       - Se a intenção for que um utilizador (não-admin) só possa criar eventos para si mesmo, a UI no  (no diálogo de criação de evento) deve ser alterada para desativar a seleção de outros utilizadores para papéis não-admin.
+       - A rota backend  deve validar se o utilizador que está a criar o evento tem permissão para atribuí-lo aos  fornecidos.
+     - Why fix this issue and what will be achieved with the fix? Para garantir que as regras de negócio sobre a criação e partilha de eventos no calendário são corretamente implementadas, mantendo a privacidade e a lógica de atribuição pretendida.
+     - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on other issue: User action is required to provide credentials.
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on other issue: Não
 
 **In progress Task List**:
-- There are no tasks currently in progress. The main task is blocked.
+  - Task 1: Concluir o sistema de alertas e notificações (PRIORITY: P0)
+
+ Task Detail:
+  - Task 1: 
+     - Where to resume: O trabalho deve ser retomado em . É necessário implementar a lógica para gerar os alertas especificados (Idade < 35, Janela de 90 dias, Validade de documentos, etc.). Depois, integrar a chamada a estas funções de alerta nos locais apropriados, principalmente em  quando o estado de um processo é atualizado.
+     - What will be achieved with this? Um sistema proativo que notifica os utilizadores sobre eventos críticos e tarefas pendentes, automatizando o acompanhamento dos processos.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on something: Não
 
 **Upcoming and Future Tasks**
-Upcoming Tasks:
-  - Task 1: Complete OneDrive Integration (P0)
-    - Once the user provides the credentials, implement the final steps to activate the integration.
-    - Files to update: , potentially  and frontend components if further logic is needed.
-
-Future Tasks:
-  - Task 1: Integration with HCPRO and CRMCREDITO (P2)
-    - The user has postponed this task. It would involve fetching real estate and credit data from these external systems. This will require API documentation from the user.
-  - Task 2: Clean up duplicate test users (P2)
-    - The  created several test users. The user was asked if they should be cleaned up, but no confirmation was given. The system currently has a mix of manually created clean users and agent-created users.
+    Upcoming Tasks:
+    - **UI para Notificações (P1):** Implementar no frontend os componentes para exibir os alertas gerados pelo backend. Isto pode incluir um ícone de sino no cabeçalho e um painel de notificações ().
+    - **Lógica de Alerta de Escritura (P1):** Implementar a lógica em  para que, ao passar para escritura agendada, seja criado um evento no calendário 15 dias antes, e não apenas uma notificação.
+    - **UI para Alertas Específicos (P1):**
+        - Implementar a chamada de atenção visual para clientes com menos de 35 anos na vista do processo.
+        - Implementar a contagem decrescente visual de 90 dias na vista do processo.
+    
+    Future Tasks:
+    - **Preencher Documentação (P2):** Completar os ficheiros  e  com conteúdo detalhado, screenshots e exemplos, como solicitado.
+    - **Comentar Código (P2):** Continuar a tarefa de adicionar comentários descritivos ao resto do código fonte no backend e frontend.
+    - **Apresentar Sugestões (P3):** Apresentar ao utilizador as sugestões de novas funcionalidades listadas em  para obter feedback e definir prioridades.
 
 **Completed work in this session**
-- Full-stack application (FastAPI + React) for credit and real estate process management.
-- Role-based access control for Admin, Consultant, and Mediator roles.
-- Public-facing form for client data submission, removing the need for client logins.
-- Dynamic process workflow management for Admins (CRUD on statuses).
-- Feature implementation: change history and activity/comment log for each process.
-- Created extensive simulation data to demonstrate the application's features.
-- Provided a detailed guide for the user to set up OneDrive API credentials.
+- **Fix de Dados e Seed:** Corrigido o problema dos utilizadores sem clientes e populada a base de dados com 155 processos distribuídos por todas as fases do Kanban, resolvendo um problema de ligação a uma base de dados incorreta.
+- **Branding e UI:** Atualizadas as cores e logotipos em toda a aplicação (login, formulário público, dashboard) para alinhamento com a identidade visual das empresas.
+- **Gestão de Documentos:**
+  - Implementada a vista de documentos a expirar em 60 dias.
+  - Corrigido o bug que impedia a visualização destes documentos por utilizadores não-admin.
+  - Implementado o agrupamento de documentos por cliente e ordenação por data de validade.
+- **Gestão de Eventos:**
+  - Corrigido o bug que impedia a criação de eventos no calendário.
+  - Modificada a criação de eventos para permitir atribuição a múltiplos utilizadores.
+  - Corrigida a lógica de visibilidade para que cada utilizador veja apenas os eventos a si atribuídos ou relacionados com os seus processos.
+- **Gestão de Utilizadores:**
+  - Removida a funcionalidade de auto-registo.
+  - Adicionada uma página de Definições ao menu lateral.
+  - Adicionado o campo  ao modelo de utilizador ().
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: Duplicate test users exist in the database.
-     - Debug checklist:
-        - List all users from the database.
-        - Identify users created by the testing agent vs. manually created ones.
-        - Ask the user for confirmation before deleting the test agent users.
-     - Why to solve this issue and what will be achieved with this? To clean up the database and avoid confusion when the user starts using the system with real data.
-     - Should Test frontend/backend/both after fix: Backend
-     - Is recurring issue? N
+   - Não foram identificados problemas anteriores que não tenham sido abordados.
 
 **Known issue recurrence from previous fork**
-- None.
+  - **Recurrence:** A base de dados estava vazia no início da sessão, apesar do resumo anterior indicar um sistema funcional com dados. O agente teve de executar novamente o script de seed.
+  - **Recurrence count:** 1
+  - **Status:** RESOLVED (por re-execução do script)
+  Note: O próximo agente deve estar ciente de que o estado da base de dados pode não persistir entre sessões. A primeira ação deve ser verificar a presença de dados e, se necessário, executar ======================================================================
+  CREDITOIMO - SCRIPT DE SEED DA BASE DE DADOS
+======================================================================
+
+📡 Conectado a: mongodb://localhost:27017
+📁 Base de dados: test_database
+
+🗑️  A limpar dados existentes...
+   ✅ Dados limpos com sucesso
+
+👥 A criar utilizadores...
+   ✅ Administrador (admin) - admin@sistema.pt
+   ✅ Pedro Borges (ceo) - pedro@powerealestate.pt
+   ✅ Tiago Borges (consultor) - tiago@powerealestate.pt
+   ✅ Flávio da Silva (consultor) - flavio@powerealestate.pt
+   ✅ Estácio Miranda (intermediario) - estacio@precisioncredito.pt
+   ✅ Fernando Andrade (intermediario) - fernando@precisioncredito.pt
+   ✅ Carina Amuedo (consultor_intermediario) - carina@powerealestate.pt
+   ✅ Marisa Rodrigues (consultor_intermediario) - marisa@powerealestate.pt
+   📊 Total: 8 utilizadores criados
+
+📋 A criar estados de workflow...
+   ✅ 14 estados de workflow criados
+
+📁 A criar processos...
+   ✅ 155 processos criados
+   📊 Flávio da Silva: 58 processos como consultor
+   📊 Estácio Miranda: 60 processos como intermediário
+
+📄 A criar documentos com validades...
+   ✅ 810 documentos criados
+   ⚠️  130 documentos a expirar nos próximos 60 dias
+
+📅 A criar eventos no calendário...
+   ✅ 43 eventos criados no calendário
+
+🔧 A criar índices...
+   ✅ Índices criados
+
+======================================================================
+  SEED COMPLETO!
+======================================================================
+
+  📊 RESUMO DOS DADOS CRIADOS:
+     • Utilizadores: 8
+     • Processos: 155
+     • Documentos: 810
+     • Eventos/Prazos: 43
+     • Estados de Workflow: 14
+
+  👥 ATRIBUIÇÕES:
+     • Flávio da Silva (Consultor): 58 processos
+     • Estácio Miranda (Intermediário): 60 processos
+
+  🔐 CREDENCIAIS DE ACESSO:
+     • admin@sistema.pt / admin2026 (admin)
+     • pedro@powerealestate.pt / power2026 (ceo)
+     • tiago@powerealestate.pt / power2026 (consultor)
+     • flavio@powerealestate.pt / power2026 (consultor)
+     • estacio@precisioncredito.pt / power2026 (intermediario)
+     • fernando@precisioncredito.pt / power2026 (intermediario)
+     • carina@powerealestate.pt / power2026 (consultor_intermediario)
+     • marisa@powerealestate.pt / power2026 (consultor_intermediario)
+
+======================================================================.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, MongoDB (via motor), JWT for authentication.
--   **Frontend:** React, React Router, Axios for API calls.
--   **UI:** Shadcn/UI components, Tailwind CSS.
--   **Architecture:** Single-page application (SPA) with a RESTful API backend.
+-   **Frontend:** React, Tailwind CSS, Shadcn UI, Recharts, React Router.
+-   **Backend:** FastAPI, Pydantic, Motor (MongoDB Async Driver), JWT.
+-   **Base de Dados:** MongoDB.
+-   **Arquitetura:** Full-stack com API REST.
 
 **key DB schema**
--   **users:** 
--   **processes:** 
--   **workflow_statuses:** 
--   **deadlines:** 
+  - **users**: 
+  - **processes**: 
+  - **documents**: 
+  - **deadlines**: 
+  - **alerts**: (Novo, a ser implementado) 
 
 **changes in tech stack**
-- None.
+  - Nenhuma.
 
 **All files of reference**
--   : Contains the entire backend logic, including API endpoints, database models (Pydantic), and business logic for all features.
--   : Defines the application's routes, including the new public form route.
--   : The new public form for client registration.
--   : Displays process details, including the new history and activity tabs.
--   : Includes the UI for managing workflow statuses.
--   : Contains environment variables, including database connection strings and the placeholder for OneDrive credentials.
+-   **Criados:**
+    -   : Popula a base de dados com dados de teste.
+    -   : Página de configurações do utilizador.
+    -   : Lógica para o novo sistema de notificações.
+    -   : Rotas de API para o sistema de notificações.
+    -   : Ficheiros de documentação (, , ).
+-   **Modificados com relevância:**
+    -   , : Para implementar a nova visualização de documentos e a criação de eventos.
+    -   : Para corrigir a filtragem de documentos por papel de utilizador.
+    -   : Para suportar múltiplos utilizadores em eventos.
+    -   : Atualizado para .
+    -   : Adicionado o campo .
+    -   : Para registar o novo router de alertas.
+    -   : Para iniciar a implementação de notificações na criação de clientes.
 
 **Areas that need refactoring**:
-- The  file has grown to over 700 lines. It would be beneficial to refactor it by splitting the API endpoints into multiple router files (e.g., , , ) to improve maintainability.
+- Os componentes  e  partilham lógica semelhante para apresentar estatísticas e listas de processos. Parte dessa lógica poderia ser extraída para componentes reutilizáveis para evitar duplicação de código.
 
 **key api endpoints**
--   : Public endpoint for new client submissions.
--   : User login for admin, consultant, and mediator.
--   : Get all processes (role-dependent).
--   : Get details of a single process.
--   : Add a comment to a process.
--   : Get all workflow statuses.
--   : Create a new workflow status.
+-    (Login)
+-    (Obter processos)
+-    (Obter documentos a expirar)
+-    (Gerir eventos do calendário)
+-    (Criar novo cliente)
+-    (Nova rota para obter notificações)
 
 **Critical Info for New Agent**
--   The highest priority is to complete the OneDrive integration. This is currently **blocked** and waiting for the user to provide the , , and . The agent has already provided a step-by-step guide to the user. Do not proceed with other tasks until this is resolved or the user gives new instructions.
--   The client workflow has been changed significantly: clients **do not log in**. They submit their data via a public form available at the root URL (). Consultants and mediators then manage the process internally.
+-   **A base de dados pode ser reiniciada.** Se a aplicação parecer vazia, execute ======================================================================
+  CREDITOIMO - SCRIPT DE SEED DA BASE DE DADOS
+======================================================================
+
+📡 Conectado a: mongodb://localhost:27017
+📁 Base de dados: test_database
+
+🗑️  A limpar dados existentes...
+   ✅ Dados limpos com sucesso
+
+👥 A criar utilizadores...
+   ✅ Administrador (admin) - admin@sistema.pt
+   ✅ Pedro Borges (ceo) - pedro@powerealestate.pt
+   ✅ Tiago Borges (consultor) - tiago@powerealestate.pt
+   ✅ Flávio da Silva (consultor) - flavio@powerealestate.pt
+   ✅ Estácio Miranda (intermediario) - estacio@precisioncredito.pt
+   ✅ Fernando Andrade (intermediario) - fernando@precisioncredito.pt
+   ✅ Carina Amuedo (consultor_intermediario) - carina@powerealestate.pt
+   ✅ Marisa Rodrigues (consultor_intermediario) - marisa@powerealestate.pt
+   📊 Total: 8 utilizadores criados
+
+📋 A criar estados de workflow...
+   ✅ 14 estados de workflow criados
+
+📁 A criar processos...
+   ✅ 155 processos criados
+   📊 Flávio da Silva: 57 processos como consultor
+   📊 Estácio Miranda: 49 processos como intermediário
+
+📄 A criar documentos com validades...
+   ✅ 848 documentos criados
+   ⚠️  127 documentos a expirar nos próximos 60 dias
+
+📅 A criar eventos no calendário...
+   ✅ 43 eventos criados no calendário
+
+🔧 A criar índices...
+   ✅ Índices criados
+
+======================================================================
+  SEED COMPLETO!
+======================================================================
+
+  📊 RESUMO DOS DADOS CRIADOS:
+     • Utilizadores: 8
+     • Processos: 155
+     • Documentos: 848
+     • Eventos/Prazos: 43
+     • Estados de Workflow: 14
+
+  👥 ATRIBUIÇÕES:
+     • Flávio da Silva (Consultor): 57 processos
+     • Estácio Miranda (Intermediário): 49 processos
+
+  🔐 CREDENCIAIS DE ACESSO:
+     • admin@sistema.pt / admin2026 (admin)
+     • pedro@powerealestate.pt / power2026 (ceo)
+     • tiago@powerealestate.pt / power2026 (consultor)
+     • flavio@powerealestate.pt / power2026 (consultor)
+     • estacio@precisioncredito.pt / power2026 (intermediario)
+     • fernando@precisioncredito.pt / power2026 (intermediario)
+     • carina@powerealestate.pt / power2026 (consultor_intermediario)
+     • marisa@powerealestate.pt / power2026 (consultor_intermediario)
+
+====================================================================== para repovoar os dados.
+-   O backend está configurado para usar a base de dados  definida no ficheiro  do backend. Todos os scripts devem apontar para esta base de dados.
+-   A lógica da aplicação e da API é fortemente baseada nos papéis dos utilizadores (admin, consultor, etc.). Teste sempre as funcionalidades com diferentes papéis para garantir que as permissões estão a ser aplicadas corretamente.
 
 **documents and test reports created in this job**
--   
--   
--   
+  - /app/docs/GUIA_UTILIZADOR.md
+  - /app/docs/APRESENTACAO.md
+  - /app/docs/SUGESTOES_FUNCIONALIDADES.md
+  - /app/test_result.md
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requests help to configure OneDrive.
-2.  **Agent:** Provides a detailed step-by-step guide for Azure AD app registration and asks for the credentials.
-3.  **User:** Asks to run a deployment health check.
-4.  **Agent:** Runs a deployment analysis, finds some non-critical issues, and reports them.
-5.  **User:** Wants the list of created users.
-6.  **Agent:** Provides a formatted table of main users and credentials and asks if duplicate test users should be cleaned.
-7.  **User:** Changes requirements: clients should not log in, but use a public form. Asks to simulate processes. Asks about integrating with HCPRO/CRMCREDITO.
-8.  **Agent:** Asks for clarification on the new integrations.
-9.  **User:** Postpones the HCPRO/CRMCREDITO integration.
-10. **Agent:** Confirms understanding and proceeds to implement the public client form and data simulation.
+**Last 10 User Messages and any pending HUMAN messages** 
+1.  **Request:** Criar um sistema de regras e notificações (idade, pré-aprovação, validade de docs), adicionar campo empresa aos utilizadores. **Status:** IN PROGRESS.
+2.  **Request:** Corrigir documentos a expirar que não aparecem e impossibilidade de criar eventos. **Status:** COMPLETED.
+3.  **Request:** Remover registo, agrupar documentos por cliente, refinar criação de eventos. **Status:** COMPLETED.
+4.  **Request:** Adicionar Definições ao menu. **Status:** COMPLETED.
+5.  **Request:** Popular o Kanban com processos em todas as fases. **Status:** COMPLETED.
+6.  **Request:** Atualizar cores do formulário principal e login. **Status:** COMPLETED.
+7.  **Request:** Corrigir associação de clientes a Flávio e Estácio e outras tarefas iniciais. **Status:** COMPLETED.
+8.  **Request:** O agrupamento de documentos por cliente não funciona; eventos devem ser visíveis apenas para os atribuídos ou donos do processo. **Status:** COMPLETED.
+9.  **Request:** A vista de documentos funciona para admin mas não para outros utilizadores. **Status:** COMPLETED.
+10. **Pending:** continua - O utilizador pediu para continuar a tarefa anterior (remover a rota de registo). **Status:** COMPLETED.
 
 **Project Health Check:**
--   **Running:** The frontend and backend services are running and healthy.
--   **Mocked:** The OneDrive integration is mocked/inactive pending credentials. All email notifications are simulated as server logs.
+- **Broken:** O sistema de notificações está por implementar.
+- **Mocked:** N/A.
 
 **3rd Party Integrations**
--   **Microsoft OneDrive:** Backend code is present but integration is inactive. Requires User API Keys (, , ).
+- Nenhuma integração foi implementada. Foram sugeridas integrações com OneDrive e email em , mas não foram discutidas ou aprovadas.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (used twice)
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created:
-    - 
-    - 
-  - Known regressions: None.
+  - Test files created: []
+  - Known regressions: []
 
 **Credentials to test flow:**
-| Perfil    | Email                | Password     |
-|-----------|----------------------|--------------|
-| Admin     | admin@sistema.pt     | admin123     |
-| Consultor | consultor@sistema.pt | consultor123 |
-| Mediador  | mediador@sistema.pt  | mediador123  |
+-   **Admin:**  / 
+-   **Consultor:**  / 
+-   **Intermediário:**  / 
 
 **What agent forgot to execute**
-- The agent asked the user if they wanted to clean up duplicate test users but did not receive a clear confirmation and moved on. This is a minor pending cleanup task.</analysis>
+-   **Preenchimento da Documentação:** O agente criou os ficheiros  e , mas deixou-os vazios, não cumprindo o pedido de criar a documentação com conteúdo.
+-   **Comentários de Código:** A tarefa de comentar o código foi apenas parcialmente executada, com um único ficheiro comentado.
+-   **Apresentação de Sugestões:** O agente criou o ficheiro , mas não apresentou proativamente estas sugestões ao utilizador para obter feedback, perdendo uma oportunidade de alinhar os próximos passos.</analysis>
