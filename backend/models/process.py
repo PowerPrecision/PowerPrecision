@@ -83,7 +83,20 @@ class RealEstateData(BaseModel):
 
 
 class FinancialData(BaseModel):
-    # Novos campos do formulário
+    """
+    Dados financeiros.
+    
+    Campos activos:
+    - acesso_portal_financas, chave_movel_digital, renda_habitacao_atual
+    - precisa_vender_casa, efetivo, fiador, bancos_creditos
+    - capital_proprio, valor_financiado
+    
+    Campos DEPRECATED (manter para compatibilidade):
+    - monthly_income, other_income, monthly_expenses
+    - employment_type, employer_name, employment_duration
+    - has_debts, debt_amount
+    """
+    # Campos activos (do novo formulário)
     acesso_portal_financas: Optional[str] = None
     chave_movel_digital: Optional[str] = None
     renda_habitacao_atual: Optional[float] = None
@@ -93,15 +106,16 @@ class FinancialData(BaseModel):
     bancos_creditos: Optional[List[str]] = None
     capital_proprio: Optional[float] = None
     valor_financiado: Optional[str] = None
-    # Legacy fields
-    monthly_income: Optional[float] = None
-    other_income: Optional[float] = None
-    monthly_expenses: Optional[float] = None
-    employment_type: Optional[str] = None
-    employer_name: Optional[str] = None
-    employment_duration: Optional[str] = None
-    has_debts: Optional[bool] = None
-    debt_amount: Optional[float] = None
+    
+    # DEPRECATED - mantidos para compatibilidade
+    monthly_income: Optional[float] = Field(default=None, deprecated=True)
+    other_income: Optional[float] = Field(default=None, deprecated=True)
+    monthly_expenses: Optional[float] = Field(default=None, deprecated=True)
+    employment_type: Optional[str] = Field(default=None, deprecated=True)
+    employer_name: Optional[str] = Field(default=None, deprecated=True)
+    employment_duration: Optional[str] = Field(default=None, deprecated=True)
+    has_debts: Optional[bool] = Field(default=None, deprecated=True)
+    debt_amount: Optional[float] = Field(default=None, deprecated=True)
 
 
 class CreditData(BaseModel):
