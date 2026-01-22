@@ -15,6 +15,7 @@ from routes import (
     public_router, stats_router, ai_router, documents_router
 )
 from routes.alerts import router as alerts_router
+from routes.websocket import router as websocket_router
 
 
 # Configure logging
