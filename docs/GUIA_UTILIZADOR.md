@@ -35,6 +35,8 @@ O **CreditoIMO** é um sistema integrado de gestão de processos para empresas d
 ✅ Controlo de 14 fases de workflow  
 ✅ Calendário com prazos e alertas  
 ✅ Rastreamento de validade de documentos (60 dias)  
+✅ **Sistema de Alertas Inteligentes (Idade <35, Countdown 90 dias, Docs a expirar)**  
+✅ **Notificações em Tempo Real com Som**  
 ✅ Estatísticas e relatórios  
 ✅ Formulário público de registo de clientes  
 ✅ Controlo de acesso por papel  
