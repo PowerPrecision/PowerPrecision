@@ -83,34 +83,11 @@ async def startup():
         await db.workflow_statuses.insert_many(default_statuses)
         logger.info("14 workflow statuses created (conforme Trello)")
     
-    # Create default users if they don't exist (conforme PRD)
-    default_users = [
-        {"email": "admin@sistema.pt", "password": "admin2026", "name": "Admin", "role": UserRole.ADMIN, "phone": None},
-        {"email": "pedro@powerealestate.pt", "password": "power2026", "name": "Pedro Borges", "role": UserRole.CEO, "phone": "+351 912 000 001"},
-        {"email": "tiago@powerealestate.pt", "password": "power2026", "name": "Tiago Borges", "role": UserRole.CONSULTOR, "phone": "+351 912 000 002"},
-        {"email": "flavio@powerealestate.pt", "password": "power2026", "name": "Flávio da Silva", "role": UserRole.CONSULTOR, "phone": "+351 912 000 003"},
-        {"email": "estacio@precisioncredito.pt", "password": "power2026", "name": "Estácio Miranda", "role": UserRole.INTERMEDIARIO, "phone": "+351 912 000 004"},
-        {"email": "fernando@precisioncredito.pt", "password": "power2026", "name": "Fernando Andrade", "role": UserRole.INTERMEDIARIO, "phone": "+351 912 000 005"},
-        {"email": "carina@powerealestate.pt", "password": "power2026", "name": "Carina Amuedo", "role": UserRole.DIRETOR, "phone": "+351 912 000 006"},
-        {"email": "marisa@powerealestate.pt", "password": "power2026", "name": "Marisa Rodrigues", "role": UserRole.ADMINISTRATIVO, "phone": "+351 912 000 007"},
-    ]
-    
-    for user_data in default_users:
-        user_exists = await db.users.find_one({"email": user_data["email"]})
-        if not user_exists:
-            user_doc = {
-                "id": str(uuid.uuid4()),
-                "email": user_data["email"],
-                "password": hash_password(user_data["password"]),
-                "name": user_data["name"],
-                "phone": user_data.get("phone"),
-                "role": user_data["role"],
-                "is_active": True,
-                "onedrive_folder": None,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            await db.users.insert_one(user_doc)
-            logger.info(f"User created: {user_data['name']} ({user_data['role']}) - {user_data['email']}")
+    # NOTA: Utilizadores iniciais são criados via script seed.py
+    # Para criar utilizadores: cd /app/backend && python seed.py
+    user_count = await db.users.count_documents({})
+    if user_count == 0:
+        logger.warning("Nenhum utilizador encontrado! Execute 'python seed.py' para criar utilizadores iniciais.")
 
 
 @app.on_event("shutdown")
