@@ -242,3 +242,67 @@ async def notify_deadline_reminder(deadline: dict, minutes_before: int = 30):
                 ),
                 user_id
             )
+
+
+async def notify_process_status_change(
+    process: dict,
+    old_status: str,
+    new_status: str,
+    new_status_label: str,
+    changed_by: dict
+):
+    """
+    Notificar utilizadores relevantes sobre mudança de fase de um processo.
+    Cria notificação na colecção 'notifications' do MongoDB.
+    
+    Args:
+        process: Dados do processo
+        old_status: Estado anterior
+        new_status: Novo estado
+        new_status_label: Label legível do novo estado
+        changed_by: Utilizador que fez a mudança
+    """
+    client_name = process.get("client_name", "Cliente")
+    process_id = process.get("id")
+    
+    # Construir mensagem
+    message = f"O processo de {client_name} avançou para {new_status_label}"
+    
+    # Determinar quem notificar
+    users_to_notify = set()
+    
+    # Consultor e Mediador atribuídos
+    if process.get("consultor_id"):
+        users_to_notify.add(process["consultor_id"])
+    if process.get("assigned_consultor_id"):
+        users_to_notify.add(process["assigned_consultor_id"])
+    if process.get("mediador_id"):
+        users_to_notify.add(process["mediador_id"])
+    if process.get("assigned_mediador_id"):
+        users_to_notify.add(process["assigned_mediador_id"])
+    
+    # Também notificar admins, CEOs e diretores
+    admins = await db.users.find(
+        {"role": {"$in": ["admin", "ceo", "diretor"]}, "is_active": {"$ne": False}},
+        {"id": 1, "_id": 0}
+    ).to_list(100)
+    
+    for admin in admins:
+        users_to_notify.add(admin["id"])
+    
+    # Remover quem fez a mudança (não precisa de notificação)
+    users_to_notify.discard(changed_by.get("id"))
+    
+    # Enviar notificações
+    for user_id in users_to_notify:
+        await send_realtime_notification(
+            user_id=user_id,
+            title="📋 Processo Atualizado",
+            message=message,
+            notification_type="process_status_change",
+            link=f"/process/{process_id}",
+            process_id=process_id,
+            save_to_db=True
+        )
+    
+    logger.info(f"Notificação de mudança de estado enviada para {len(users_to_notify)} utilizadores")
