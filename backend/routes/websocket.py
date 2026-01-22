@@ -10,7 +10,7 @@ import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from jose import JWTError, jwt
 
-from config import SECRET_KEY, JWT_ALGORITHM
+from config import JWT_SECRET, JWT_ALGORITHM
 from database import db
 from services.websocket_manager import manager, WSEventType, create_ws_message
 
