@@ -125,7 +125,7 @@ const LoginPage = () => {
               </div>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-blue-900 hover:bg-blue-800 text-white"
                 disabled={loading}
                 data-testid="login-submit-btn"
               >
@@ -143,20 +143,21 @@ const LoginPage = () => {
               <span className="text-muted-foreground">Não tem conta? </span>
               <Link
                 to="/register"
-                className="text-primary hover:underline font-medium"
+                className="text-blue-900 hover:underline font-medium"
                 data-testid="register-link"
               >
                 Registar-se
               </Link>
             </div>
-            <div className="mt-4 p-3 bg-muted rounded-md space-y-1">
-              <p className="text-xs text-muted-foreground text-center">
+            <div className="mt-4 p-3 bg-blue-50 rounded-md space-y-1 border border-blue-100">
+              <p className="text-xs text-blue-800 text-center font-medium mb-2">Credenciais de Teste</p>
+              <p className="text-xs text-blue-700 text-center">
                 <strong>CEO:</strong> pedro@powerealestate.pt / power2026
               </p>
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-xs text-blue-700 text-center">
                 <strong>Consultor:</strong> flavio@powerealestate.pt / power2026
               </p>
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-xs text-amber-700 text-center">
                 <strong>Int. Crédito:</strong> estacio@precisioncredito.pt / power2026
               </p>
             </div>
