@@ -184,8 +184,8 @@ async def get_upcoming_expiries(
             query["process_id"] = {"$in": process_ids}
         else:
             return []
-    elif user_role == UserRole.CONSULTOR_MEDIADOR:
-        # Papel misto vê documentos de ambos os tipos de processos
+    elif user_role == UserRole.DIRETOR:
+        # Diretor vê documentos de ambos os tipos de processos
         processes = await db.processes.find(
             {"$or": [
                 {"assigned_consultor_id": user["id"]},
