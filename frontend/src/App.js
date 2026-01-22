@@ -205,6 +205,16 @@ function App() {
             }
           />
           
+          {/* Settings Page - All authenticated users */}
+          <Route
+            path="/definicoes"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
