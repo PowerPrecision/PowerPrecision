@@ -925,20 +925,21 @@ const PublicClientForm = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-amber-50">
+        {/* Header com cores da marca */}
+        <header className="border-b bg-blue-950 text-white">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-primary" />
+              <Building2 className="h-8 w-8 text-amber-400" />
               <div>
-                <h1 className="text-xl font-bold">Power Real Estate & Precision</h1>
-                <p className="text-sm text-muted-foreground">Registo de Cliente</p>
+                <h1 className="text-xl font-bold">Power Real Estate</h1>
+                <p className="text-sm text-amber-400">& Precision Crédito</p>
               </div>
             </div>
           </div>
         </header>
         <main className="container mx-auto px-4 py-8">
-          <Card className="max-w-4xl mx-auto">
+          <Card className="max-w-4xl mx-auto border-blue-200 shadow-lg">
             <CardContent className="pt-6">
               {renderSuccessMessage()}
             </CardContent>
@@ -949,20 +950,21 @@ const PublicClientForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-amber-50">
+      {/* Header com cores da marca - Azul Power Real Estate + Dourado Precision */}
+      <header className="border-b bg-blue-950 text-white shadow-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-primary" />
+              <Building2 className="h-8 w-8 text-amber-400" />
               <div>
-                <h1 className="text-xl font-bold">Power Real Estate & Precision</h1>
-                <p className="text-sm text-muted-foreground">Registo de Cliente</p>
+                <h1 className="text-xl font-bold text-white">Power Real Estate</h1>
+                <p className="text-sm text-amber-400">& Precision Crédito</p>
               </div>
             </div>
             <a 
               href="/login" 
-              className="flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+              className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors"
             >
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Acesso Colaborador</span>
@@ -973,14 +975,14 @@ const PublicClientForm = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle>Formulário de Registo</CardTitle>
-            <CardDescription>
-              Preencha os seus dados para iniciar o processo de análise
+        <Card className="max-w-4xl mx-auto border-blue-200 shadow-lg">
+          <CardHeader className="text-center bg-gradient-to-r from-blue-900 to-blue-800 text-white rounded-t-lg">
+            <CardTitle className="text-white text-2xl">Formulário de Registo</CardTitle>
+            <CardDescription className="text-blue-100">
+              Preencha os seus dados para iniciar o processo de análise de crédito habitação
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {renderStepIndicator()}
             
             {step === 1 && renderStep1()}
@@ -990,11 +992,12 @@ const PublicClientForm = () => {
             {step === 5 && renderStep5()}
             {step === 6 && renderStep6()}
 
-            <div className="flex justify-between mt-8 pt-6 border-t">
+            <div className="flex justify-between mt-8 pt-6 border-t border-blue-100">
               <Button
                 variant="outline"
                 onClick={() => setStep(Math.max(1, step - 1))}
                 disabled={step === 1}
+                className="border-blue-300 text-blue-900 hover:bg-blue-50"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
@@ -1004,6 +1007,7 @@ const PublicClientForm = () => {
                 <Button
                   onClick={() => setStep(Math.min(6, step + 1))}
                   disabled={!canProceed()}
+                  className="bg-blue-900 hover:bg-blue-800 text-white"
                 >
                   Próximo
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -1012,6 +1016,7 @@ const PublicClientForm = () => {
                 <Button
                   onClick={handleSubmit}
                   disabled={loading || !canProceed()}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
                 >
                   {loading ? (
                     <>
@@ -1029,6 +1034,14 @@ const PublicClientForm = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Footer com informação das empresas */}
+        <div className="max-w-4xl mx-auto mt-8 text-center text-sm text-gray-600">
+          <p>
+            <span className="font-semibold text-blue-900">Power Real Estate</span> - Consultoria Imobiliária | 
+            <span className="font-semibold text-amber-600 ml-1">Precision Crédito</span> - Intermediação de Crédito
+          </p>
+        </div>
       </main>
     </div>
   );
