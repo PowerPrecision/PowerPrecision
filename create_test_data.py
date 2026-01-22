@@ -49,6 +49,9 @@ def create_sample_processes():
     # Create sample processes via public endpoint (simulating client registration)
     sample_processes = [
         {
+            "name": "João Silva Santos",
+            "email": "joao.santos@email.com",
+            "phone": "+351 912 345 678",
             "process_type": "credito_habitacao",
             "personal_data": {
                 "full_name": "João Silva Santos",
@@ -73,6 +76,9 @@ def create_sample_processes():
             }
         },
         {
+            "name": "Maria Fernanda Costa",
+            "email": "maria.costa@email.com",
+            "phone": "+351 913 456 789",
             "process_type": "credito_habitacao",
             "personal_data": {
                 "full_name": "Maria Fernanda Costa",
@@ -97,6 +103,9 @@ def create_sample_processes():
             }
         },
         {
+            "name": "Carlos Manuel Pereira",
+            "email": "carlos.pereira@email.com",
+            "phone": "+351 914 567 890",
             "process_type": "transacao_imobiliaria",
             "personal_data": {
                 "full_name": "Carlos Manuel Pereira",
@@ -126,13 +135,22 @@ def create_sample_processes():
     
     # Create processes via public endpoint
     for i, process_data in enumerate(sample_processes):
-        response = requests.post(f"{BASE_URL}/api/public/register", json=process_data)
-        if response.status_code == 201:
-            process = response.json()
-            created_processes.append(process)
-            print(f"✅ Created process {i+1}: {process['client_name']}")
+        response = requests.post(f"{BASE_URL}/api/public/client-registration", json=process_data)
+        if response.status_code == 200:
+            result = response.json()
+            # Get the created process
+            process_id = result.get("process_id")
+            if process_id:
+                # Fetch the process details
+                process_response = requests.get(f"{BASE_URL}/api/processes/{process_id}", headers=headers)
+                if process_response.status_code == 200:
+                    process = process_response.json()
+                    created_processes.append(process)
+                    print(f"✅ Created process {i+1}: {process['client_name']}")
+                else:
+                    print(f"⚠️ Process created but couldn't fetch details: {process_id}")
         else:
-            print(f"❌ Failed to create process {i+1}: {response.status_code}")
+            print(f"❌ Failed to create process {i+1}: {response.status_code} - {response.text}")
     
     # Assign processes to Flávio and Estácio
     if created_processes:
