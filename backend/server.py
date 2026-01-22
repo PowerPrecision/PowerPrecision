@@ -38,6 +38,7 @@ app.include_router(stats_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(alerts_router, prefix="/api")
+app.include_router(websocket_router, prefix="/api")
 
 
 app.add_middleware(
