@@ -141,7 +141,11 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 ## Próximas Tarefas
 - [x] Sistema de Alertas e Notificações (Completo)
 - [x] Notificações em Tempo Real com Som (Completo)
+- [x] Editor de Fluxos de Workflow (Completo)
+- [x] Indicador Visual Trello (Completo)
+- [x] Refatorização Admin Dashboard (Completo)
 - [x] Documentação completa (GUIA_UTILIZADOR.md, APRESENTACAO.md)
+- [ ] Integração bidirecional com Trello (em standby por testes)
 - [ ] CI/CD Pipeline para testes automatizados
 - [ ] Testar análise AI com documentos reais
 - [ ] Integração WebSocket para notificações (melhoria futura)
