@@ -193,11 +193,13 @@ const AdminDashboard = () => {
     });
   }, [processes, consultorFilter, mediadorFilter]);
 
-  // Get deadlines for selected date
+  // Get deadlines for selected date (filtrado e ordenado por prioridade)
   const deadlinesForDate = useMemo(() => {
     const dateStr = selectedDate.toISOString().split('T')[0];
-    return calendarDeadlines.filter(d => d.due_date === dateStr);
-  }, [calendarDeadlines, selectedDate]);
+    return sortedCalendarDeadlines
+      .filter(d => d.due_date === dateStr)
+      .sort((a, b) => (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3));
+  }, [sortedCalendarDeadlines, selectedDate]);
 
   // Get dates with deadlines for calendar highlighting
   const datesWithDeadlines = useMemo(() => {
