@@ -145,7 +145,7 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - [x] Indicador Visual Trello (Completo)
 - [x] Refatorização Admin Dashboard (Completo)
 - [x] Documentação completa (GUIA_UTILIZADOR.md, APRESENTACAO.md) (Completo)
+- [x] CI/CD Pipeline para testes automatizados (Completo)
+- [x] WebSocket para notificações em tempo real (Completo)
 - [ ] Integração bidirecional com Trello (em standby por testes)
-- [ ] CI/CD Pipeline para testes automatizados
 - [ ] Testar análise AI com documentos reais (em standby)
-- [ ] Integração WebSocket para notificações (melhoria futura)
