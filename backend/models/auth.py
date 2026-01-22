@@ -51,6 +51,7 @@ class UserResponse(BaseModel):
     name: str
     phone: Optional[str] = None
     role: str
+    company: Optional[str] = None  # Empresa do utilizador
     is_active: Optional[bool] = True
     created_at: Optional[str] = None
     onedrive_folder: Optional[str] = None
@@ -68,6 +69,7 @@ class UserCreate(BaseModel):
     name: str
     phone: Optional[str] = None
     role: str
+    company: Optional[str] = None  # Empresa do utilizador
     onedrive_folder: Optional[str] = None
 
 
@@ -75,5 +77,6 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     role: Optional[str] = None
+    company: Optional[str] = None  # Empresa do utilizador
     is_active: Optional[bool] = None
     onedrive_folder: Optional[str] = None
