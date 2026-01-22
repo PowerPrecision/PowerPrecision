@@ -377,8 +377,9 @@ const UsersManagementPage = () => {
                 <SelectContent>
                   <SelectItem value="cliente">Cliente</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
-                  <SelectItem value="intermediario">Intermediário</SelectItem>
-                  <SelectItem value="consultor_intermediario">Consultor/Intermediário</SelectItem>
+                  <SelectItem value="intermediario">Intermediário de Crédito</SelectItem>
+                  <SelectItem value="diretor">Diretor(a)</SelectItem>
+                  <SelectItem value="administrativo">Administrativo(a)</SelectItem>
                   <SelectItem value="ceo">CEO</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
