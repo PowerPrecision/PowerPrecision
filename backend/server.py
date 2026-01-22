@@ -91,8 +91,8 @@ async def startup():
         {"email": "flavio@powerealestate.pt", "password": "power2026", "name": "Flávio da Silva", "role": UserRole.CONSULTOR, "phone": "+351 912 000 003"},
         {"email": "estacio@precisioncredito.pt", "password": "power2026", "name": "Estácio Miranda", "role": UserRole.INTERMEDIARIO, "phone": "+351 912 000 004"},
         {"email": "fernando@precisioncredito.pt", "password": "power2026", "name": "Fernando Andrade", "role": UserRole.INTERMEDIARIO, "phone": "+351 912 000 005"},
-        {"email": "carina@powerealestate.pt", "password": "power2026", "name": "Carina Amuedo", "role": UserRole.CONSULTOR_INTERMEDIARIO, "phone": "+351 912 000 006"},
-        {"email": "marisa@powerealestate.pt", "password": "power2026", "name": "Marisa Rodrigues", "role": UserRole.CONSULTOR_INTERMEDIARIO, "phone": "+351 912 000 007"},
+        {"email": "carina@powerealestate.pt", "password": "power2026", "name": "Carina Amuedo", "role": UserRole.DIRETOR, "phone": "+351 912 000 006"},
+        {"email": "marisa@powerealestate.pt", "password": "power2026", "name": "Marisa Rodrigues", "role": UserRole.ADMINISTRATIVO, "phone": "+351 912 000 007"},
     ]
     
     for user_data in default_users:
