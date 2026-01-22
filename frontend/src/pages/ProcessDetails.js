@@ -427,18 +427,18 @@ const ProcessDetails = () => {
                         />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label>Morada</Label>
+                        <Label>Morada Fiscal</Label>
                         <Input
-                          value={personalData.address || ""}
-                          onChange={(e) => setPersonalData({ ...personalData, address: e.target.value })}
+                          value={personalData.morada_fiscal || personalData.address || ""}
+                          onChange={(e) => setPersonalData({ ...personalData, morada_fiscal: e.target.value })}
                           disabled={!canEditPersonal}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>Estado Civil</Label>
                         <Select
-                          value={personalData.marital_status || ""}
-                          onValueChange={(value) => setPersonalData({ ...personalData, marital_status: value })}
+                          value={personalData.estado_civil || personalData.marital_status || ""}
+                          onValueChange={(value) => setPersonalData({ ...personalData, estado_civil: value })}
                           disabled={!canEditPersonal}
                         >
                           <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
