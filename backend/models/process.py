@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Any
+from warnings import warn
 
 
 class ProcessType:
@@ -9,7 +10,19 @@ class ProcessType:
 
 
 class PersonalData(BaseModel):
-    # Dados básicos
+    """
+    Dados pessoais do titular.
+    
+    Campos activos:
+    - nif, documento_id, naturalidade, nacionalidade, morada_fiscal
+    - birth_date, estado_civil, compra_tipo, menor_35_anos
+    
+    Campos DEPRECATED (manter para compatibilidade com dados antigos):
+    - address -> usar morada_fiscal
+    - marital_status -> usar estado_civil
+    - nationality -> usar nacionalidade
+    """
+    # Dados básicos (activos)
     nif: Optional[str] = None
     documento_id: Optional[str] = None
     naturalidade: Optional[str] = None
@@ -18,10 +31,12 @@ class PersonalData(BaseModel):
     birth_date: Optional[str] = None
     estado_civil: Optional[str] = None
     compra_tipo: Optional[str] = None
-    # Legacy fields (backwards compatibility)
-    address: Optional[str] = None
-    marital_status: Optional[str] = None
-    nationality: Optional[str] = None
+    menor_35_anos: Optional[bool] = None  # Checkbox apoio ao estado
+    
+    # DEPRECATED - mantidos apenas para compatibilidade com dados importados
+    address: Optional[str] = Field(default=None, deprecated=True)  # Usar morada_fiscal
+    marital_status: Optional[str] = Field(default=None, deprecated=True)  # Usar estado_civil
+    nationality: Optional[str] = Field(default=None, deprecated=True)  # Usar nacionalidade
 
 
 class Titular2Data(BaseModel):
