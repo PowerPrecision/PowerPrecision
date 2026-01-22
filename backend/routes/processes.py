@@ -44,6 +44,12 @@ from models.process import (
 from services.auth import get_current_user, require_roles, require_staff
 from services.email import send_email_notification
 from services.history import log_history, log_data_changes
+from services.alerts import (
+    get_process_alerts,
+    check_property_documents,
+    create_deed_reminder,
+    notify_pre_approval_countdown
+)
 
 
 # ====================================================================
@@ -289,9 +295,16 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
 async def move_process_kanban(
     process_id: str,
     new_status: str = Query(..., description="New status name"),
+    deed_date: Optional[str] = Query(None, description="Data da escritura (YYYY-MM-DD)"),
     user: dict = Depends(require_staff())
 ):
-    """Move a process to a different status column in Kanban"""
+    """
+    Move a process to a different status column in Kanban.
+    
+    ALERTAS AUTOMÁTICOS:
+    - Ao mover para "ch_aprovado": Inicia countdown de 90 dias, verifica docs do imóvel
+    - Ao mover para "escritura_agendada": Cria lembrete 15 dias antes
+    """
     process = await db.processes.find_one({"id": process_id}, {"_id": 0})
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
@@ -306,6 +319,7 @@ async def move_process_kanban(
         raise HTTPException(status_code=400, detail="Estado inválido")
     
     old_status = process.get("status", "")
+    alerts_generated = []
     
     # Update process
     await db.processes.update_one(
@@ -315,6 +329,49 @@ async def move_process_kanban(
     
     # Log history
     await log_history(process_id, user, "Moveu processo", "status", old_status, new_status)
+    
+    # === ALERTAS AUTOMÁTICOS BASEADOS NA MUDANÇA DE ESTADO ===
+    
+    # 1. Ao mover para CH Aprovado - Verificar documentos do imóvel
+    if new_status in ["ch_aprovado", "fase_escritura"]:
+        property_check = await check_property_documents(process)
+        if property_check.get("active"):
+            alerts_generated.append({
+                "type": "property_docs",
+                "message": property_check.get("message"),
+                "details": property_check.get("details")
+            })
+    
+    # 2. Ao mover para pré-aprovação - Iniciar countdown de 90 dias
+    if new_status == "fase_bancaria" and old_status != "fase_bancaria":
+        # Guardar data de aprovação se ainda não existir
+        if not process.get("credit_data", {}).get("bank_approval_date"):
+            await db.processes.update_one(
+                {"id": process_id},
+                {"$set": {"credit_data.bank_approval_date": datetime.now().strftime("%Y-%m-%d")}}
+            )
+        # Notificar sobre o countdown
+        updated_process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+        await notify_pre_approval_countdown(updated_process)
+        alerts_generated.append({
+            "type": "countdown_started",
+            "message": "Countdown de 90 dias iniciado para pré-aprovação"
+        })
+    
+    # 3. Ao mover para escritura agendada - Criar lembrete 15 dias antes
+    if new_status == "escritura_agendada":
+        if deed_date:
+            deadline_id = await create_deed_reminder(process, deed_date, user)
+            if deadline_id:
+                alerts_generated.append({
+                    "type": "deed_reminder",
+                    "message": f"Lembrete de escritura criado para 15 dias antes de {deed_date}"
+                })
+        else:
+            alerts_generated.append({
+                "type": "deed_date_needed",
+                "message": "Escritura agendada sem data. Defina a data para criar lembrete automático."
+            })
     
     # Send email notification if client has email
     if process.get("client_email"):
@@ -326,7 +383,11 @@ async def move_process_kanban(
             f"O estado do seu processo foi atualizado para: {status_label}"
         )
     
-    return {"message": "Processo movido com sucesso", "new_status": new_status}
+    return {
+        "message": "Processo movido com sucesso", 
+        "new_status": new_status,
+        "alerts": alerts_generated
+    }
 
 
 @router.get("/{process_id}", response_model=ProcessResponse)
@@ -339,6 +400,36 @@ async def get_process(process_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     return ProcessResponse(**process)
+
+
+@router.get("/{process_id}/alerts")
+async def get_process_alerts_endpoint(process_id: str, user: dict = Depends(get_current_user)):
+    """
+    Obter todos os alertas ativos para um processo.
+    
+    Retorna alertas de:
+    - Idade < 35 anos (Apoio ao Estado)
+    - Countdown de 90 dias (pré-aprovação)
+    - Documentos a expirar em 15 dias
+    - Documentos do imóvel em falta
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    if not can_view_process(user, process):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    alerts = await get_process_alerts(process)
+    
+    return {
+        "process_id": process_id,
+        "client_name": process.get("client_name"),
+        "alerts": alerts,
+        "total": len(alerts),
+        "has_critical": any(a.get("priority") == "critical" for a in alerts),
+        "has_high": any(a.get("priority") == "high" for a in alerts)
+    }
 
 
 @router.put("/{process_id}", response_model=ProcessResponse)
