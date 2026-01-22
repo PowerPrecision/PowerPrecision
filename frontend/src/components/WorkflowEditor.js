@@ -312,7 +312,7 @@ const WorkflowEditor = () => {
               <div className="text-center py-8 text-muted-foreground">
                 <Workflow className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhum estado configurado</p>
-                <p className="text-sm">Clique em "Novo Estado" para começar</p>
+                <p className="text-sm">Clique em &ldquo;Novo Estado&rdquo; para começar</p>
               </div>
             )}
           </div>
