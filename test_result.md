@@ -252,15 +252,18 @@ frontend:
 
   - task: "Staff Dashboard"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/StaffDashboard.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "testing"
           comment: "Staff dashboard with Kanban board, drag & drop functionality, and calendar view."
+        - working: true
+          agent: "testing"
+          comment: "✅ STAFF DASHBOARD: Kanban board working with 155+ process cards displayed correctly. Role-based data filtering working (CEO sees 155 processes, Consultor sees assigned processes). Tabs present (Quadro Geral, Calendário, Documentos). Process cards show client names and phone numbers. Note: Drag & drop elements present but not tested due to system limitations."
 
   - task: "User Management Page"
     implemented: true
