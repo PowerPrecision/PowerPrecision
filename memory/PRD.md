@@ -30,8 +30,17 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ Sistema de Alertas e Notificações (2026-01-22)
+- **Alerta de Idade (<35 anos)**: Clientes elegíveis para Apoio ao Estado identificados automaticamente
+- **Countdown de 90 dias**: Após pré-aprovação, contador regressivo visível na página do processo
+- **Alerta de Documentos**: Notificação 15 dias antes da expiração de CC, Passaporte ou IRS
+- **Verificação de Documentos do Imóvel**: Ao mover para avaliação, verifica docs em falta
+- **Alerta de Escritura**: Lembrete automático no calendário 15 dias antes
+- **UI de Notificações**: Ícone de sino no header com badge de contagem não lidas
+- **Componente ProcessAlerts**: Painel colapsível com alertas na página de detalhes
+
 ### ✅ Dados Importados do Trello (2026-01-20)
-- **153 clientes** importados com todas as informações
+- **155 processos** no sistema com dados de teste
 - **14 fases** do workflow conforme Trello
 
 ### ✅ Quadro Kanban Visual (Estilo Trello)
@@ -39,6 +48,7 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - Drag & drop para mover clientes entre fases
 - Filtro automático por role (Admin/CEO vêem tudo, staff vê apenas os seus)
 - Cards com nome, telefone, valor, prioridade, badges de atribuição
+- Badge "<35 anos" para clientes elegíveis ao Apoio ao Estado
 
 ### ✅ Email SMTP Funcional
 - Servidor: mail.precisioncredito.pt:465 (SSL)
@@ -50,6 +60,17 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - Interface simples para adicionar/remover links
 - Instruções integradas de como criar links de partilha
 - Não requer subscrição Microsoft 365 Business
+
+### ✅ Gestão de Eventos/Calendário
+- Criação de eventos por todos os utilizadores (exceto clientes)
+- Utilizador sempre adicionado ao próprio evento
+- Pode convidar outros utilizadores para eventos
+- Filtro por consultor/intermediário
+
+### ✅ Documentos a Expirar
+- Vista agrupada por cliente
+- Ordenação por data de validade (mais urgentes primeiro)
+- Código de cores por urgência (vermelho ≤7 dias, âmbar ≤30 dias, azul >30 dias)
 
 ## 14 Fases do Workflow
 1. Clientes em Espera (Amarelo)
@@ -72,6 +93,8 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - **Login Staff**: /login
 - **Dashboard Staff**: /staff (Kanban)
 - **Dashboard Admin**: /admin
+- **Detalhes Processo**: /process/{id}
+- **Definições**: /definicoes
 
 ## Integrações
 | Integração | Estado | Config |
@@ -80,6 +103,16 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 | OneDrive (Links) | ✅ FUNCIONAL | Links de partilha manuais |
 | GPT-4o (AI) | ⏳ Preparado | EMERGENT_LLM_KEY |
 
+## APIs de Alertas
+- `GET /api/processes/{id}/alerts` - Todos os alertas do processo
+- `GET /api/alerts/notifications` - Notificações do utilizador
+- `PUT /api/alerts/notifications/{id}/read` - Marcar como lida
+- `GET /api/alerts/age-check/{id}` - Verificar elegibilidade idade
+- `GET /api/alerts/pre-approval/{id}` - Countdown pré-aprovação
+- `GET /api/alerts/documents/{id}` - Documentos a expirar
+
 ## Próximas Tarefas
+- [ ] Preencher documentação (GUIA_UTILIZADOR.md, APRESENTACAO.md)
+- [ ] Comentar código fonte
 - [ ] CI/CD Pipeline para testes automatizados
 - [ ] Testar análise AI com documentos reais
