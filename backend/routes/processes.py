@@ -101,10 +101,14 @@ def can_view_process(user: dict, process: dict) -> bool:
     if role == UserRole.MEDIADOR:
         return process.get("assigned_mediador_id") == user_id
     
-    # Papel misto: acesso a ambos os tipos de atribuição
-    if role == UserRole.CONSULTOR_MEDIADOR:
+    # Diretor: acesso a ambos os tipos de atribuição (consultor e intermediário)
+    if role == UserRole.DIRETOR:
         return (process.get("assigned_consultor_id") == user_id or 
                 process.get("assigned_mediador_id") == user_id)
+    
+    # Administrativo: vê todos os processos (função de apoio)
+    if role == UserRole.ADMINISTRATIVO:
+        return True
     
     return False
 
