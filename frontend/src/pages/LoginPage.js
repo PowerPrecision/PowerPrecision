@@ -43,7 +43,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Image */}
+      {/* Left side - Image/Brand - Power Real Estate Blue */}
       <div
         className="hidden lg:flex lg:w-1/2 bg-cover bg-center relative"
         style={{
@@ -51,13 +51,27 @@ const LoginPage = () => {
             "url('https://images.pexels.com/photos/18435276/pexels-photo-18435276.jpeg')",
         }}
       >
-        <div className="absolute inset-0 bg-indigo-900/80" />
+        <div className="absolute inset-0 bg-blue-950/90" />
         <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-          <Building2 className="h-12 w-12 mb-6" />
-          <h1 className="text-4xl font-bold mb-4 tracking-tight">Power Real Estate & Precision</h1>
-          <p className="text-lg text-white/80 max-w-md">
-            Sistema de gestão de processos de crédito e imobiliária. Acompanhe os seus processos em tempo real.
+          <div className="flex items-center gap-3 mb-6">
+            <Building2 className="h-12 w-12 text-amber-400" />
+          </div>
+          <h1 className="text-4xl font-bold mb-2 tracking-tight">Power Real Estate</h1>
+          <h2 className="text-2xl font-semibold mb-4 text-amber-400">&amp; Precision Crédito</h2>
+          <p className="text-lg text-blue-100 max-w-md">
+            Sistema de gestão de processos de crédito habitação e transações imobiliárias. 
+            Acompanhe os seus processos em tempo real.
           </p>
+          <div className="mt-8 flex gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-amber-400"></div>
+              <span className="text-sm text-blue-200">Crédito Habitação</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-blue-400"></div>
+              <span className="text-sm text-blue-200">Imobiliária</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -66,9 +80,9 @@ const LoginPage = () => {
         <Card className="w-full max-w-md border-border shadow-sm">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4 lg:hidden">
-              <Building2 className="h-10 w-10 text-primary" />
+              <Building2 className="h-10 w-10 text-blue-900" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">
+            <CardTitle className="text-2xl font-bold tracking-tight text-blue-950">
               Bem-vindo de volta
             </CardTitle>
             <CardDescription>
