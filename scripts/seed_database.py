@@ -537,6 +537,11 @@ async def seed_database():
             documents.append(doc)
     
     await db.documents.insert_many(documents)
+    
+    # Copiar também para document_expiries (usado pela API)
+    await db.document_expiries.delete_many({})
+    await db.document_expiries.insert_many(documents)
+    
     print(f"   ✅ {len(documents)} documentos criados")
     print(f"   ⚠️  {docs_expiring_soon} documentos a expirar nos próximos 60 dias")
     print()
