@@ -505,6 +505,7 @@ const AdminDashboard = () => {
                       <SelectTrigger><SelectValue placeholder="Todos os consultores" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos os consultores</SelectItem>
+                        <SelectItem value="none">Nenhum (sem consultor atribuído)</SelectItem>
                         {consultors.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
@@ -515,6 +516,7 @@ const AdminDashboard = () => {
                       <SelectTrigger><SelectValue placeholder="Todos os intermediários" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos os intermediários</SelectItem>
+                        <SelectItem value="none">Nenhum (sem intermediário atribuído)</SelectItem>
                         {intermediarios.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
                       </SelectContent>
                     </Select>
