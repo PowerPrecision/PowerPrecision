@@ -187,8 +187,18 @@ const AdminDashboard = () => {
 
   const filteredProcesses = useMemo(() => {
     return processes.filter(process => {
-      const matchesConsultor = consultorFilter === "all" || process.assigned_consultor_id === consultorFilter;
-      const matchesMediador = mediadorFilter === "all" || process.assigned_mediador_id === mediadorFilter;
+      // Filtro de consultor: "all" = todos, "none" = sem consultor, ID = consultor específico
+      const matchesConsultor = 
+        consultorFilter === "all" || 
+        (consultorFilter === "none" && !process.assigned_consultor_id) ||
+        process.assigned_consultor_id === consultorFilter;
+      
+      // Filtro de intermediário: "all" = todos, "none" = sem intermediário, ID = intermediário específico
+      const matchesMediador = 
+        mediadorFilter === "all" || 
+        (mediadorFilter === "none" && !process.assigned_mediador_id) ||
+        process.assigned_mediador_id === mediadorFilter;
+      
       return matchesConsultor && matchesMediador;
     });
   }, [processes, consultorFilter, mediadorFilter]);
