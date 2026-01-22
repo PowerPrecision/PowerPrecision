@@ -104,13 +104,23 @@ const UsersManagementPage = () => {
 
   const handleEditUser = async (e) => {
     e.preventDefault();
+    if (!selectedUser?.id) {
+      toast.error("Nenhum utilizador selecionado");
+      return;
+    }
     setFormLoading(true);
     try {
-      await updateUser(selectedUser.id, formData);
+      const updateData = { ...formData };
+      // Remove password if empty
+      if (!updateData.password) {
+        delete updateData.password;
+      }
+      await updateUser(selectedUser.id, updateData);
       toast.success("Utilizador atualizado com sucesso");
       setIsEditDialogOpen(false);
       fetchUsers();
     } catch (error) {
+      console.error("Erro ao atualizar:", error);
       toast.error(error.response?.data?.detail || "Erro ao atualizar utilizador");
     } finally {
       setFormLoading(false);
