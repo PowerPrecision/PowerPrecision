@@ -53,20 +53,33 @@ class Titular2Data(BaseModel):
 
 
 class RealEstateData(BaseModel):
-    # Novos campos do formulário
+    """
+    Dados imobiliários.
+    
+    Campos activos:
+    - tipo_imovel, num_quartos, localizacao, caracteristicas
+    - outras_caracteristicas, outras_informacoes
+    
+    Campos DEPRECATED (manter para compatibilidade):
+    - property_type -> usar tipo_imovel
+    - property_zone -> usar localizacao
+    - desired_area, max_budget, property_purpose, notes
+    """
+    # Campos activos (do novo formulário)
     tipo_imovel: Optional[str] = None
     num_quartos: Optional[str] = None
     localizacao: Optional[str] = None
     caracteristicas: Optional[List[str]] = None
     outras_caracteristicas: Optional[str] = None
     outras_informacoes: Optional[str] = None
-    # Legacy fields
-    property_type: Optional[str] = None
-    property_zone: Optional[str] = None
-    desired_area: Optional[float] = None
-    max_budget: Optional[float] = None
-    property_purpose: Optional[str] = None
-    notes: Optional[str] = None
+    
+    # DEPRECATED - mantidos para compatibilidade
+    property_type: Optional[str] = Field(default=None, deprecated=True)
+    property_zone: Optional[str] = Field(default=None, deprecated=True)
+    desired_area: Optional[float] = Field(default=None, deprecated=True)
+    max_budget: Optional[float] = Field(default=None, deprecated=True)
+    property_purpose: Optional[str] = Field(default=None, deprecated=True)
+    notes: Optional[str] = Field(default=None, deprecated=True)
 
 
 class FinancialData(BaseModel):
