@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Any
-from warnings import warn
+import re
 
 
 class ProcessType:
@@ -9,18 +9,33 @@ class ProcessType:
     AMBOS = "ambos"
 
 
+def validate_nif(nif: str) -> str:
+    """
+    Validar NIF português (9 dígitos numéricos).
+    Retorna o NIF se válido, ou levanta ValueError se inválido.
+    """
+    if not nif:
+        return nif
+    
+    # Remover espaços e caracteres especiais
+    nif_clean = re.sub(r'[^\d]', '', nif)
+    
+    if len(nif_clean) != 9:
+        raise ValueError(f"NIF deve ter 9 dígitos (recebido: {len(nif_clean)})")
+    
+    if not nif_clean.isdigit():
+        raise ValueError("NIF deve conter apenas dígitos")
+    
+    return nif_clean
+
+
 class PersonalData(BaseModel):
     """
     Dados pessoais do titular.
     
     Campos activos:
-    - nif, documento_id, naturalidade, nacionalidade, morada_fiscal
+    - nif (validado: 9 dígitos), documento_id, naturalidade, nacionalidade, morada_fiscal
     - birth_date, estado_civil, compra_tipo, menor_35_anos
-    
-    Campos DEPRECATED (manter para compatibilidade com dados antigos):
-    - address -> usar morada_fiscal
-    - marital_status -> usar estado_civil
-    - nationality -> usar nacionalidade
     """
     # Dados básicos (activos)
     nif: Optional[str] = None
@@ -33,13 +48,16 @@ class PersonalData(BaseModel):
     compra_tipo: Optional[str] = None
     menor_35_anos: Optional[bool] = None  # Checkbox apoio ao estado
     
-    # DEPRECATED - mantidos apenas para compatibilidade com dados importados
-    address: Optional[str] = Field(default=None, deprecated=True)  # Usar morada_fiscal
-    marital_status: Optional[str] = Field(default=None, deprecated=True)  # Usar estado_civil
-    nationality: Optional[str] = Field(default=None, deprecated=True)  # Usar nacionalidade
+    @field_validator('nif', mode='before')
+    @classmethod
+    def validate_nif_field(cls, v):
+        if v is None or v == '':
+            return None
+        return validate_nif(v)
 
 
 class Titular2Data(BaseModel):
+    """Dados do segundo titular."""
     name: Optional[str] = None
     email: Optional[str] = None
     nif: Optional[str] = None
@@ -50,6 +68,13 @@ class Titular2Data(BaseModel):
     morada_fiscal: Optional[str] = None
     birth_date: Optional[str] = None
     estado_civil: Optional[str] = None
+    
+    @field_validator('nif', mode='before')
+    @classmethod
+    def validate_nif_field(cls, v):
+        if v is None or v == '':
+            return None
+        return validate_nif(v)
 
 
 class RealEstateData(BaseModel):
@@ -59,27 +84,13 @@ class RealEstateData(BaseModel):
     Campos activos:
     - tipo_imovel, num_quartos, localizacao, caracteristicas
     - outras_caracteristicas, outras_informacoes
-    
-    Campos DEPRECATED (manter para compatibilidade):
-    - property_type -> usar tipo_imovel
-    - property_zone -> usar localizacao
-    - desired_area, max_budget, property_purpose, notes
     """
-    # Campos activos (do novo formulário)
     tipo_imovel: Optional[str] = None
     num_quartos: Optional[str] = None
     localizacao: Optional[str] = None
     caracteristicas: Optional[List[str]] = None
     outras_caracteristicas: Optional[str] = None
     outras_informacoes: Optional[str] = None
-    
-    # DEPRECATED - mantidos para compatibilidade
-    property_type: Optional[str] = Field(default=None, deprecated=True)
-    property_zone: Optional[str] = Field(default=None, deprecated=True)
-    desired_area: Optional[float] = Field(default=None, deprecated=True)
-    max_budget: Optional[float] = Field(default=None, deprecated=True)
-    property_purpose: Optional[str] = Field(default=None, deprecated=True)
-    notes: Optional[str] = Field(default=None, deprecated=True)
 
 
 class FinancialData(BaseModel):
@@ -90,13 +101,7 @@ class FinancialData(BaseModel):
     - acesso_portal_financas, chave_movel_digital, renda_habitacao_atual
     - precisa_vender_casa, efetivo, fiador, bancos_creditos
     - capital_proprio, valor_financiado
-    
-    Campos DEPRECATED (manter para compatibilidade):
-    - monthly_income, other_income, monthly_expenses
-    - employment_type, employer_name, employment_duration
-    - has_debts, debt_amount
     """
-    # Campos activos (do novo formulário)
     acesso_portal_financas: Optional[str] = None
     chave_movel_digital: Optional[str] = None
     renda_habitacao_atual: Optional[float] = None
@@ -106,16 +111,6 @@ class FinancialData(BaseModel):
     bancos_creditos: Optional[List[str]] = None
     capital_proprio: Optional[float] = None
     valor_financiado: Optional[str] = None
-    
-    # DEPRECATED - mantidos para compatibilidade
-    monthly_income: Optional[float] = Field(default=None, deprecated=True)
-    other_income: Optional[float] = Field(default=None, deprecated=True)
-    monthly_expenses: Optional[float] = Field(default=None, deprecated=True)
-    employment_type: Optional[str] = Field(default=None, deprecated=True)
-    employer_name: Optional[str] = Field(default=None, deprecated=True)
-    employment_duration: Optional[str] = Field(default=None, deprecated=True)
-    has_debts: Optional[bool] = Field(default=None, deprecated=True)
-    debt_amount: Optional[float] = Field(default=None, deprecated=True)
 
 
 class CreditData(BaseModel):
