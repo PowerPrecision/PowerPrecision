@@ -31,6 +31,21 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ CI/CD Pipeline (2026-01)
+- GitHub Actions workflow completo (`.github/workflows/ci-cd.yml`)
+- Testes backend (pytest com MongoDB)
+- Testes frontend (Jest)
+- Testes de integração
+- Scan de segurança (Trivy)
+- Deploy automático para main
+
+### ✅ WebSocket para Notificações em Tempo Real (2026-01)
+- `services/websocket_manager.py` - Gestor de conexões
+- `services/realtime_notifications.py` - Serviço de notificações
+- `routes/websocket.py` - Endpoints WebSocket
+- `hooks/useWebSocket.js` - Hook React para frontend
+- Suporte a heartbeat e reconexão automática
+
 ### ✅ Editor de Fluxos de Workflow (2026-01)
 - **Nova UI completa** na página de Definições para gerir estados do workflow
 - Criar, editar, eliminar e reordenar estados
