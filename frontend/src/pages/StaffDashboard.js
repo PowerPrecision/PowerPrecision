@@ -185,7 +185,10 @@ const StaffDashboard = () => {
                   <p className="text-muted-foreground text-center py-8">Nenhum prazo agendado</p>
                 ) : (
                   <div className="space-y-3">
-                    {deadlines.slice(0, 10).map((deadline) => (
+                    {[...deadlines]
+                      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+                      .slice(0, 10)
+                      .map((deadline) => (
                       <div key={deadline.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                         <div>
                           <p className="font-medium">{deadline.title}</p>
