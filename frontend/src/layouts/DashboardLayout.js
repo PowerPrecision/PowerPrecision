@@ -27,6 +27,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { useState } from "react";
+import NotificationsDropdown from "../components/NotificationsDropdown";
 
 const roleLabels = {
   cliente: "Cliente",
@@ -241,6 +242,11 @@ const DashboardLayout = ({ children, title }) => {
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Página Inicial</span>
               </Button>
+              
+              {/* Notificações - só para utilizadores autenticados (não clientes) */}
+              {user?.role !== "cliente" && (
+                <NotificationsDropdown />
+              )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
