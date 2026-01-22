@@ -86,3 +86,15 @@ export const createDocumentExpiry = (data) => axios.post(`${API_URL}/documents/e
 export const updateDocumentExpiry = (id, data) => axios.put(`${API_URL}/documents/expiry/${id}`, data);
 export const deleteDocumentExpiry = (id) => axios.delete(`${API_URL}/documents/expiry/${id}`);
 export const getDocumentTypes = () => axios.get(`${API_URL}/documents/types`);
+
+// Alerts & Notifications
+export const getNotifications = (unreadOnly = false) => 
+  axios.get(`${API_URL}/alerts/notifications`, { params: { unread_only: unreadOnly } });
+export const markNotificationRead = (id) => 
+  axios.put(`${API_URL}/alerts/notifications/${id}/read`);
+export const getProcessAlerts = (processId) => 
+  axios.get(`${API_URL}/processes/${processId}/alerts`);
+export const getAlertsByProcess = (processId) => 
+  axios.get(`${API_URL}/alerts/process/${processId}`);
+export const createDeedReminder = (processId, deedDate) => 
+  axios.post(`${API_URL}/alerts/deed-reminder/${processId}`, null, { params: { deed_date: deedDate } });
