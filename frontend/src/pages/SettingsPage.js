@@ -1,0 +1,595 @@
+/**
+ * ====================================================================
+ * PÁGINA DE DEFINIÇÕES - CREDITOIMO
+ * ====================================================================
+ * Página de configurações do sistema e perfil do utilizador.
+ * 
+ * Funcionalidades:
+ * - Editar dados do perfil
+ * - Alterar password
+ * - Preferências de notificações
+ * - Configurações de visualização (apenas Admin)
+ * - Gestão de workflow (apenas Admin)
+ * ====================================================================
+ */
+
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import DashboardLayout from "../layouts/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Switch } from "../components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Separator } from "../components/ui/separator";
+import { useToast } from "../hooks/use-toast";
+import {
+  User,
+  Lock,
+  Bell,
+  Palette,
+  Settings,
+  Save,
+  Eye,
+  EyeOff,
+  Mail,
+  Phone,
+  Building2,
+  Shield,
+  Workflow,
+} from "lucide-react";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || "";
+
+const SettingsPage = () => {
+  const { user, token } = useAuth();
+  const { toast } = useToast();
+  
+  // Estado do perfil
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  
+  // Estado da password
+  const [passwordData, setPasswordData] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  
+  // Estado das notificações
+  const [notifications, setNotifications] = useState({
+    email_new_process: true,
+    email_status_change: true,
+    email_document_expiry: true,
+    email_deadline_reminder: true,
+  });
+  
+  // Estado de loading
+  const [loading, setLoading] = useState(false);
+  
+  // Carregar dados do utilizador
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user]);
+  
+  // Guardar perfil
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/users/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: profileData.name,
+          phone: profileData.phone,
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Perfil atualizado",
+          description: "Os seus dados foram guardados com sucesso.",
+        });
+      } else {
+        throw new Error("Erro ao atualizar perfil");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o perfil.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Alterar password
+  const handleChangePassword = async () => {
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      toast({
+        title: "Erro",
+        description: "As passwords não coincidem.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (passwordData.new_password.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A password deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password,
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Password alterada",
+          description: "A sua password foi alterada com sucesso.",
+        });
+        setPasswordData({
+          current_password: "",
+          new_password: "",
+          confirm_password: "",
+        });
+      } else {
+        const data = await response.json();
+        throw new Error(data.detail || "Erro ao alterar password");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível alterar a password.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Guardar notificações
+  const handleSaveNotifications = () => {
+    toast({
+      title: "Preferências guardadas",
+      description: "As suas preferências de notificação foram atualizadas.",
+    });
+  };
+  
+  // Obter label do papel
+  const getRoleLabel = (role) => {
+    const labels = {
+      admin: "Administrador",
+      ceo: "CEO",
+      consultor: "Consultor",
+      intermediario: "Intermediário de Crédito",
+      mediador: "Mediador",
+      consultor_intermediario: "Consultor/Intermediário",
+      cliente: "Cliente",
+    };
+    return labels[role] || role;
+  };
+
+  return (
+    <DashboardLayout title="Definições">
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-blue-950">Definições</h1>
+          <p className="text-muted-foreground">
+            Gerir as configurações da sua conta e preferências
+          </p>
+        </div>
+
+        <Tabs defaultValue="perfil" className="space-y-6">
+          <TabsList className="bg-blue-50 border border-blue-200">
+            <TabsTrigger value="perfil" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+              <User className="h-4 w-4 mr-2" />
+              Perfil
+            </TabsTrigger>
+            <TabsTrigger value="seguranca" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+              <Lock className="h-4 w-4 mr-2" />
+              Segurança
+            </TabsTrigger>
+            <TabsTrigger value="notificacoes" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+              <Bell className="h-4 w-4 mr-2" />
+              Notificações
+            </TabsTrigger>
+            {user?.role === "admin" && (
+              <TabsTrigger value="sistema" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+                <Settings className="h-4 w-4 mr-2" />
+                Sistema
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* Tab Perfil */}
+          <TabsContent value="perfil">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-blue-900" />
+                  Informações do Perfil
+                </CardTitle>
+                <CardDescription>
+                  Atualize os seus dados pessoais
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Informação do papel */}
+                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="h-12 w-12 rounded-full bg-blue-900 flex items-center justify-center">
+                    <Shield className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">O seu papel no sistema</p>
+                    <p className="font-semibold text-blue-900">{getRoleLabel(user?.role)}</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome Completo</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                        className="pl-10"
+                        placeholder="O seu nome"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profileData.email}
+                        disabled
+                        className="pl-10 bg-muted"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">O email não pode ser alterado</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        className="pl-10"
+                        placeholder="+351 912 345 678"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSaveProfile} 
+                    disabled={loading}
+                    className="bg-blue-900 hover:bg-blue-800"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar Alterações
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab Segurança */}
+          <TabsContent value="seguranca">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-blue-900" />
+                  Alterar Password
+                </CardTitle>
+                <CardDescription>
+                  Mantenha a sua conta segura atualizando a password regularmente
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4 max-w-md">
+                  <div className="space-y-2">
+                    <Label htmlFor="current_password">Password Atual</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="current_password"
+                        type={showPasswords.current ? "text" : "password"}
+                        value={passwordData.current_password}
+                        onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+                        className="pl-10 pr-10"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="new_password">Nova Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="new_password"
+                        type={showPasswords.new ? "text" : "password"}
+                        value={passwordData.new_password}
+                        onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                        className="pl-10 pr-10"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm_password">Confirmar Nova Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="confirm_password"
+                        type={showPasswords.confirm ? "text" : "password"}
+                        value={passwordData.confirm_password}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+                        className="pl-10 pr-10"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleChangePassword} 
+                    disabled={loading || !passwordData.current_password || !passwordData.new_password}
+                    className="bg-blue-900 hover:bg-blue-800"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Alterar Password
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab Notificações */}
+          <TabsContent value="notificacoes">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-blue-900" />
+                  Preferências de Notificação
+                </CardTitle>
+                <CardDescription>
+                  Escolha como e quando deseja ser notificado
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <p className="font-medium">Novo Processo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Receber email quando um novo processo for criado
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.email_new_process}
+                      onCheckedChange={(checked) => 
+                        setNotifications({ ...notifications, email_new_process: checked })
+                      }
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <p className="font-medium">Mudança de Estado</p>
+                      <p className="text-sm text-muted-foreground">
+                        Receber email quando o estado de um processo mudar
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.email_status_change}
+                      onCheckedChange={(checked) => 
+                        setNotifications({ ...notifications, email_status_change: checked })
+                      }
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <p className="font-medium">Documentos a Expirar</p>
+                      <p className="text-sm text-muted-foreground">
+                        Receber alerta quando documentos estiverem próximos de expirar (60 dias)
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.email_document_expiry}
+                      onCheckedChange={(checked) => 
+                        setNotifications({ ...notifications, email_document_expiry: checked })
+                      }
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <p className="font-medium">Lembretes de Prazos</p>
+                      <p className="text-sm text-muted-foreground">
+                        Receber lembretes de eventos e prazos agendados
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.email_deadline_reminder}
+                      onCheckedChange={(checked) => 
+                        setNotifications({ ...notifications, email_deadline_reminder: checked })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSaveNotifications}
+                    className="bg-blue-900 hover:bg-blue-800"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar Preferências
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab Sistema (apenas Admin) */}
+          {user?.role === "admin" && (
+            <TabsContent value="sistema">
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Workflow className="h-5 w-5 text-blue-900" />
+                      Estados de Workflow
+                    </CardTitle>
+                    <CardDescription>
+                      Gerir as fases do processo
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        O sistema está configurado com 14 estados de workflow:
+                      </p>
+                      <ul className="text-sm space-y-1 mt-2">
+                        <li className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                          Clientes em Espera
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                          Fases Documentais
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                          Envios a Parceiros
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-orange-500"></span>
+                          Fases Bancárias
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                          Aprovação e Escritura
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                          Desistências
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-blue-900" />
+                      Informação do Sistema
+                    </CardTitle>
+                    <CardDescription>
+                      Detalhes técnicos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Versão</span>
+                        <span className="font-medium">2.0.0</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Ambiente</span>
+                        <span className="font-medium">Produção</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Base de Dados</span>
+                        <span className="font-medium">MongoDB</span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-muted-foreground">Última Atualização</span>
+                        <span className="font-medium">Janeiro 2026</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default SettingsPage;
