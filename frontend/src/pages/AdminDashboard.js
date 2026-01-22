@@ -742,7 +742,16 @@ const AdminDashboard = () => {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4 text-blue-900" />
-                                <CardTitle className="text-base font-semibold">{clientName}</CardTitle>
+                                {clientData.process_id ? (
+                                  <CardTitle 
+                                    className="text-base font-semibold text-blue-900 hover:text-blue-700 cursor-pointer hover:underline"
+                                    onClick={() => navigate(`/process/${clientData.process_id}`)}
+                                  >
+                                    {clientName}
+                                  </CardTitle>
+                                ) : (
+                                  <CardTitle className="text-base font-semibold">{clientName}</CardTitle>
+                                )}
                                 <Badge variant="outline" className="ml-2">
                                   {clientData.documents.length} documento(s)
                                 </Badge>
