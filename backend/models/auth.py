@@ -7,20 +7,20 @@ class UserRole:
     CONSULTOR = "consultor"
     INTERMEDIARIO = "intermediario"  # Intermediário de Crédito (antes: mediador)
     MEDIADOR = "mediador"  # Legacy alias
-    CONSULTOR_INTERMEDIARIO = "consultor_intermediario"  # Can do both consultor and intermediário tasks
-    CONSULTOR_MEDIADOR = "consultor_mediador"  # Legacy alias
+    ADMINISTRATIVO = "administrativo"  # Administrativo(a) - gestão administrativa
+    DIRETOR = "diretor"  # Diretor(a) - gestão de direção
     CEO = "ceo"  # Between admin and staff - can manage basic things + consultor/intermediário tasks
     ADMIN = "admin"
     
     @classmethod
     def can_act_as_consultor(cls, role: str) -> bool:
         """Check if role can perform consultor tasks"""
-        return role in [cls.CONSULTOR, cls.CONSULTOR_INTERMEDIARIO, cls.CONSULTOR_MEDIADOR, cls.CEO, cls.ADMIN]
+        return role in [cls.CONSULTOR, cls.DIRETOR, cls.CEO, cls.ADMIN]
     
     @classmethod
     def can_act_as_intermediario(cls, role: str) -> bool:
         """Check if role can perform intermediário de crédito tasks"""
-        return role in [cls.INTERMEDIARIO, cls.MEDIADOR, cls.CONSULTOR_INTERMEDIARIO, cls.CONSULTOR_MEDIADOR, cls.CEO, cls.ADMIN]
+        return role in [cls.INTERMEDIARIO, cls.MEDIADOR, cls.DIRETOR, cls.CEO, cls.ADMIN]
     
     @classmethod
     def can_act_as_mediador(cls, role: str) -> bool:
@@ -31,6 +31,11 @@ class UserRole:
     def is_staff(cls, role: str) -> bool:
         """Check if role is staff (not cliente)"""
         return role != cls.CLIENTE
+    
+    @classmethod
+    def can_view_all_notifications(cls, role: str) -> bool:
+        """Check if role can view all notifications (admin, CEO, diretor)"""
+        return role in [cls.ADMIN, cls.CEO, cls.DIRETOR]
 
 
 class UserRegister(BaseModel):

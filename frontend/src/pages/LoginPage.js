@@ -139,18 +139,6 @@ const LoginPage = () => {
                 )}
               </Button>
             </form>
-            <div className="mt-4 p-3 bg-blue-50 rounded-md space-y-1 border border-blue-100">
-              <p className="text-xs text-blue-800 text-center font-medium mb-2">Credenciais de Teste</p>
-              <p className="text-xs text-blue-700 text-center">
-                <strong>CEO:</strong> pedro@powerealestate.pt / power2026
-              </p>
-              <p className="text-xs text-blue-700 text-center">
-                <strong>Consultor:</strong> flavio@powerealestate.pt / power2026
-              </p>
-              <p className="text-xs text-amber-700 text-center">
-                <strong>Int. Crédito:</strong> estacio@precisioncredito.pt / power2026
-              </p>
-            </div>
             <p className="mt-4 text-xs text-center text-muted-foreground">
               Para criar uma conta, contacte o administrador do sistema.
             </p>
