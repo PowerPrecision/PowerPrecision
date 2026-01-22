@@ -454,8 +454,8 @@ const ProcessDetails = () => {
                       <div className="space-y-2">
                         <Label>Nacionalidade</Label>
                         <Input
-                          value={personalData.nationality || ""}
-                          onChange={(e) => setPersonalData({ ...personalData, nationality: e.target.value })}
+                          value={personalData.nacionalidade || personalData.nationality || ""}
+                          onChange={(e) => setPersonalData({ ...personalData, nacionalidade: e.target.value })}
                           disabled={!canEditPersonal}
                         />
                       </div>
