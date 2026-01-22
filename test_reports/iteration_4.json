@@ -1,0 +1,139 @@
+{
+  "summary": "Completed comprehensive testing of CreditoIMO Alerts & Notifications System (Iteration 4). All requested features verified: GET /api/processes/{id}/alerts, GET /api/alerts/notifications, NotificationsDropdown component, ProcessAlerts component, and user role-based filtering.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "API health check",
+    "Admin login (admin@sistema.pt / admin2026)",
+    "Consultor login (flavio@powerealestate.pt / power2026)",
+    "Intermediario login (estacio@precisioncredito.pt / power2026)",
+    "GET /api/alerts/notifications - returns notifications with unread count",
+    "GET /api/alerts/notifications?unread_only=true - filters unread only",
+    "GET /api/processes/{id}/alerts - returns process alerts",
+    "Age alert (age_under_35) - shows for clients < 35 years",
+    "Pre-approval countdown alert (pre_approval_countdown) - shows for ch_aprovado processes",
+    "Document expiry alert (document_expiry) - shows for documents expiring in 15 days",
+    "Property docs check alert (property_docs_check) - shows missing property documents",
+    "PUT /api/alerts/notifications/{id}/read - marks notification as read",
+    "GET /api/alerts/process/{id} - alternative alerts endpoint",
+    "GET /api/alerts/age-check/{id} - age eligibility check",
+    "GET /api/alerts/pre-approval/{id} - pre-approval countdown",
+    "GET /api/alerts/documents/{id} - document expiry alerts",
+    "NotificationsDropdown component - bell icon with badge in header",
+    "NotificationsDropdown - shows unread count badge",
+    "NotificationsDropdown - dropdown opens with notification list",
+    "NotificationsDropdown - 'Marcar todas como lidas' button",
+    "ProcessAlerts component - shows on process details page",
+    "ProcessAlerts - displays age alert with star icon",
+    "ProcessAlerts - displays document expiry alert with critical priority",
+    "ProcessAlerts - collapsible with alert count",
+    "Kanban board - shows '<35 anos' badge on process cards",
+    "Role-based notification filtering - consultor sees only assigned process notifications"
+  ],
+  
+  "test_report_links": [
+    "/app/tests/test_alerts_notifications.py",
+    "/app/test_reports/pytest/pytest_results_iteration4.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/tests/test_alerts_notifications.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "admin": "admin@sistema.pt / admin2026",
+    "consultor": "flavio@powerealestate.pt / power2026",
+    "intermediario": "estacio@precisioncredito.pt / power2026"
+  },
+  
+  "seed_data_creation": "No new seed data created. Existing test data verified: 155 processes, 8 users, 3 notifications.",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  
+  "context_for_next_testing_agent": "Alerts & Notifications system fully functional. NotificationsDropdown integrated in DashboardLayout header (visible for non-cliente roles). ProcessAlerts component integrated in ProcessDetails page. Database has 155 processes, 8 users, 848 documents, and 3 test notifications. Alert types working: age_under_35, pre_approval_countdown, document_expiry, property_docs_check. MOCKED: Email sending via SMTP (configured but may not be active), OneDrive integration inactive.",
+  
+  "verified_features": {
+    "notifications_api": {
+      "status": "WORKING",
+      "endpoints": [
+        "GET /api/alerts/notifications",
+        "GET /api/alerts/notifications?unread_only=true",
+        "PUT /api/alerts/notifications/{id}/read"
+      ],
+      "response_structure": {
+        "notifications": "array of notification objects",
+        "total": "total count",
+        "unread": "unread count"
+      }
+    },
+    "process_alerts_api": {
+      "status": "WORKING",
+      "endpoints": [
+        "GET /api/processes/{id}/alerts",
+        "GET /api/alerts/process/{id}",
+        "GET /api/alerts/age-check/{id}",
+        "GET /api/alerts/pre-approval/{id}",
+        "GET /api/alerts/documents/{id}"
+      ],
+      "alert_types": [
+        "age_under_35 - Cliente < 35 anos (Apoio ao Estado)",
+        "pre_approval_countdown - 90 dias após pré-aprovação",
+        "document_expiry - 15 dias antes de expirar",
+        "property_docs_check - Documentos do imóvel em falta"
+      ]
+    },
+    "notifications_dropdown_ui": {
+      "status": "WORKING",
+      "location": "Header (DashboardLayout)",
+      "features": [
+        "Bell icon with unread count badge",
+        "Dropdown with notification list",
+        "Click to navigate to process",
+        "Mark all as read button",
+        "Role-based filtering (non-cliente only)"
+      ],
+      "data_testid": "notifications-trigger, notifications-dropdown"
+    },
+    "process_alerts_ui": {
+      "status": "WORKING",
+      "location": "ProcessDetails page",
+      "features": [
+        "Collapsible card with alert count",
+        "Critical/High priority badges",
+        "Individual alert items with icons",
+        "Days remaining countdown",
+        "Priority labels (Crítico, Alta, Média, Baixa, Info)"
+      ],
+      "data_testid": "process-alerts, alert-{type}"
+    },
+    "kanban_age_badges": {
+      "status": "WORKING",
+      "description": "Process cards show '<35 anos' badge for eligible clients"
+    }
+  },
+  
+  "mocked_integrations": {
+    "email_smtp": "Configured (SMTP_SERVER=mail.precisioncredito.pt) but may not be active",
+    "onedrive": "MOCKED - OneDrive integration inactive"
+  }
+}
