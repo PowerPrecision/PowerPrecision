@@ -57,8 +57,8 @@ O **CreditoIMO** é um sistema integrado de gestão de processos para empresas d
 | Flávio da Silva | flavio@powerealestate.pt | power2026 | Consultor |
 | Estácio Miranda | estacio@precisioncredito.pt | power2026 | Intermediário |
 | Fernando Andrade | fernando@precisioncredito.pt | power2026 | Intermediário |
-| Carina Amuedo | carina@powerealestate.pt | power2026 | Consultor/Intermediário |
-| Marisa Rodrigues | marisa@powerealestate.pt | power2026 | Consultor/Intermediário |
+| Carina Amuedo | carina@powerealestate.pt | power2026 | Diretor(a) |
+| Marisa Rodrigues | marisa@powerealestate.pt | power2026 | Administrativo(a) |
 
 ### Processo de Login
 
