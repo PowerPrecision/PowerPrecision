@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 class AdditionalTester:
-    def __init__(self, base_url="https://github-reveal.preview.emergentagent.com"):
+    def __init__(self, base_url="https://property-credit.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
 
