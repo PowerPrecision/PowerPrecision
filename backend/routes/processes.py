@@ -214,14 +214,14 @@ async def get_processes(user: dict = Depends(get_current_user)):
     # Construir query baseada no papel
     if role == UserRole.CLIENTE:
         query["client_id"] = user["id"]
-    elif role in [UserRole.ADMIN, UserRole.CEO]:
-        # Admin e CEO vêem todos os processos
+    elif role in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
+        # Admin, CEO e Administrativo vêem todos os processos
         pass
     elif role == UserRole.CONSULTOR:
         query["assigned_consultor_id"] = user["id"]
     elif role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
         query["assigned_mediador_id"] = user["id"]
-    elif role in [UserRole.CONSULTOR_MEDIADOR, UserRole.CONSULTOR_INTERMEDIARIO]:
+    elif role == UserRole.DIRETOR:
         query["$or"] = [
             {"assigned_consultor_id": user["id"]},
             {"assigned_mediador_id": user["id"]}
@@ -245,12 +245,12 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
         query["assigned_consultor_id"] = user["id"]
     elif role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
         query["assigned_mediador_id"] = user["id"]
-    elif role in [UserRole.CONSULTOR_MEDIADOR, UserRole.CONSULTOR_INTERMEDIARIO]:
+    elif role == UserRole.DIRETOR:
         query["$or"] = [
             {"assigned_consultor_id": user["id"]},
             {"assigned_mediador_id": user["id"]}
         ]
-    # Admin and CEO see all (no filter)
+    # Admin, CEO e Administrativo see all (no filter)
     
     # Get all workflow statuses ordered
     statuses = await db.workflow_statuses.find({}, {"_id": 0}).sort("order", 1).to_list(100)
