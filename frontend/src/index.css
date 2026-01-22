@@ -1,9 +1,26 @@
+/**
+ * ====================================================================
+ * CREDITOIMO - ESTILOS GLOBAIS
+ * ====================================================================
+ * Sistema de Gestão de Processos Imobiliários e Crédito
+ * Power Real Estate & Precision Crédito
+ * 
+ * PALETA DE CORES:
+ * - Power Real Estate: Azul (#1E3A8A) - Profissional, Confiança
+ * - Precision Crédito: Dourado (#D4AF37) - Premium, Financeiro
+ * - Sucesso: Verde (#22C55E)
+ * - Alerta: Âmbar (#F59E0B)
+ * - Erro: Vermelho (#EF4444)
+ * ====================================================================
+ */
+
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Estilos base do corpo */
 body {
     margin: 0;
     font-family: 'Inter', sans-serif;
@@ -11,11 +28,13 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Tipografia - Cabeçalhos */
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Manrope', sans-serif;
     letter-spacing: -0.02em;
 }
 
+/* Fonte monoespaçada */
 .font-mono {
     font-family: 'JetBrains Mono', monospace;
 }
@@ -24,36 +43,69 @@ code {
     font-family: 'JetBrains Mono', monospace;
 }
 
+/**
+ * VARIÁVEIS CSS - TEMA CLARO
+ * Cores baseadas em:
+ * - Power Real Estate (www.powerealestate.pt): Azul escuro profissional
+ * - Precision Crédito (precision-credito.pt): Azul com acentos dourados
+ */
 @layer base {
     :root {
-        --background: 210 40% 98%;
-        --foreground: 222 47% 11%;
+        /* Fundos */
+        --background: 210 40% 98%;           /* Fundo geral claro */
+        --foreground: 222 47% 11%;           /* Texto principal escuro */
+        
+        /* Cartões e Popovers */
         --card: 0 0% 100%;
         --card-foreground: 222 47% 11%;
         --popover: 0 0% 100%;
         --popover-foreground: 222 47% 11%;
-        --primary: 243 75% 34%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 215 20% 40%;
-        --secondary-foreground: 0 0% 98%;
+        
+        /* Cor Primária - Azul Power Real Estate (#1E3A8A) */
+        --primary: 224 76% 33%;              /* Azul escuro profissional */
+        --primary-foreground: 0 0% 100%;
+        
+        /* Cor Secundária - Azul Precision */
+        --secondary: 217 91% 60%;            /* Azul médio */
+        --secondary-foreground: 0 0% 100%;
+        
+        /* Tons neutros */
         --muted: 210 40% 96%;
         --muted-foreground: 215 20% 40%;
-        --accent: 24 95% 40%;
-        --accent-foreground: 0 0% 98%;
+        
+        /* Cor de Destaque - Dourado Precision (#D4AF37) */
+        --accent: 43 74% 52%;                /* Dourado financeiro */
+        --accent-foreground: 222 47% 11%;
+        
+        /* Cor de erro */
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 98%;
+        
+        /* Bordas e inputs */
         --border: 214 32% 91%;
         --input: 214 32% 91%;
-        --ring: 243 75% 34%;
-        --chart-1: 160 60% 45%;
-        --chart-2: 243 75% 34%;
-        --chart-3: 24 95% 40%;
-        --chart-4: 215 20% 40%;
-        --chart-5: 0 84% 60%;
-        --radius: 0.375rem;
-        --success: 160 84% 39%;
-        --warning: 38 92% 50%;
+        --ring: 224 76% 33%;
+        
+        /* Cores para gráficos */
+        --chart-1: 224 76% 33%;              /* Azul Power */
+        --chart-2: 43 74% 52%;               /* Dourado Precision */
+        --chart-3: 160 84% 39%;              /* Verde sucesso */
+        --chart-4: 217 91% 60%;              /* Azul claro */
+        --chart-5: 0 84% 60%;                /* Vermelho */
+        
+        /* Raio de borda padrão */
+        --radius: 0.5rem;
+        
+        /* Cores semânticas */
+        --success: 160 84% 39%;              /* Verde */
+        --warning: 38 92% 50%;               /* Âmbar */
+        
+        /* Cores das empresas */
+        --power-blue: 224 76% 33%;           /* Power Real Estate */
+        --precision-gold: 43 74% 52%;        /* Precision Crédito */
     }
+    
+    /* TEMA ESCURO */
     .dark {
         --background: 222 47% 6%;
         --foreground: 210 40% 98%;
@@ -61,19 +113,19 @@ code {
         --card-foreground: 210 40% 98%;
         --popover: 222 47% 11%;
         --popover-foreground: 210 40% 98%;
-        --primary: 243 75% 50%;
+        --primary: 217 91% 60%;
         --primary-foreground: 0 0% 98%;
-        --secondary: 215 20% 50%;
+        --secondary: 224 76% 45%;
         --secondary-foreground: 0 0% 98%;
         --muted: 222 47% 15%;
         --muted-foreground: 215 20% 65%;
-        --accent: 24 95% 50%;
+        --accent: 43 74% 60%;
         --accent-foreground: 0 0% 98%;
         --destructive: 0 62% 30%;
         --destructive-foreground: 0 0% 98%;
         --border: 222 47% 20%;
         --input: 222 47% 20%;
-        --ring: 243 75% 50%;
+        --ring: 217 91% 60%;
     }
 }
 
