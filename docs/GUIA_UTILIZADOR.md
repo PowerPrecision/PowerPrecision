@@ -614,7 +614,110 @@ const PublicClientForm = () => {
 
 ---
 
-## 11. Referência Técnica
+## 11. Gestão de Utilizadores (Admin)
+
+### Acesso à Gestão de Utilizadores
+
+A gestão de utilizadores está disponível apenas para **Administradores** através de duas formas:
+
+1. **Menu lateral** → Utilizadores
+2. **Dashboard Admin** → Tab "Utilizadores" → Botão "Gerir Todos os Utilizadores"
+
+### Criar Novo Utilizador
+
+1. Aceder à página de Utilizadores
+2. Clicar em **"Novo Utilizador"**
+3. Preencher os campos obrigatórios:
+   - Nome completo
+   - Email (único no sistema)
+   - Password (mínimo 6 caracteres)
+   - Papel/Função
+4. Campos opcionais:
+   - Telefone
+   - Empresa
+5. Clicar em **"Criar Utilizador"**
+
+### Editar Utilizador
+
+1. Na lista de utilizadores, clicar no ícone de **edição** (lápis)
+2. Alterar os campos desejados
+3. Deixar password em branco para manter a atual
+4. Clicar em **"Guardar"**
+
+### Desativar/Ativar Utilizador
+
+- Clicar no ícone de **utilizador** para alternar o estado
+- Utilizadores desativados não conseguem fazer login
+- Dados e histórico são preservados
+
+### Eliminar Utilizador
+
+1. Clicar no ícone de **lixo** (vermelho)
+2. Confirmar a eliminação
+3. **Atenção:** Esta ação é irreversível
+
+---
+
+## 12. Editor de Fluxos de Workflow (Admin)
+
+### Acesso ao Editor
+
+1. Ir a **Definições** (menu lateral)
+2. Clicar na tab **"Sistema"**
+3. Ver o **Editor de Estados do Workflow**
+
+### Estados Disponíveis
+
+O sistema vem configurado com 14 estados de workflow:
+
+| Ordem | Estado | Cor |
+|-------|--------|-----|
+| 1 | Clientes em Espera | Amarelo |
+| 2 | Documentos Solicitados | Azul |
+| 3 | Documentos em Análise | Azul |
+| 4 | Enviado ao Bruno | Laranja |
+| 5 | Enviado ao Luís | Laranja |
+| 6 | Enviado à Carina | Laranja |
+| 7 | Aguarda Docs Banco | Azul |
+| 8 | Docs Entregues Banco | Azul |
+| 9 | Avaliação Pendente | Laranja |
+| 10 | Avaliação Realizada | Laranja |
+| 11 | Carta de Aprovação | Verde |
+| 12 | Escritura Agendada | Verde |
+| 13 | Concluído | Verde |
+| 14 | Desistência | Vermelho |
+
+### Criar Novo Estado
+
+1. Clicar em **"Novo Estado"**
+2. Preencher:
+   - **Etiqueta:** Nome visível no Kanban
+   - **Nome Interno:** Identificador único (automático)
+   - **Ordem:** Posição no fluxo
+   - **Cor:** Amarelo, Azul, Laranja, Verde, Vermelho ou Roxo
+   - **Descrição:** Opcional
+3. Clicar em **"Criar Estado"**
+
+### Editar Estado
+
+1. Clicar no ícone de **edição** (lápis) ao lado do estado
+2. Alterar etiqueta, ordem, cor ou descrição
+3. **Nota:** O nome interno não pode ser alterado
+4. Clicar em **"Guardar"**
+
+### Reordenar Estados
+
+Usar as **setas ↑ ↓** ao lado de cada estado para alterar a ordem no fluxo.
+
+### Eliminar Estado
+
+1. Clicar no ícone de **lixo** ao lado do estado
+2. Confirmar a eliminação
+3. **Atenção:** Certifique-se de que não há processos neste estado
+
+---
+
+## 13. Referência Técnica
 
 ### Arquitetura do Sistema
 
