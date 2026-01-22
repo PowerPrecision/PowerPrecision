@@ -63,6 +63,13 @@ async def startup():
     await db.history.create_index("process_id")
     await db.workflow_statuses.create_index("name", unique=True)
     
+    # Indexes para a colecção de notificações
+    await db.notifications.create_index("id", unique=True)
+    await db.notifications.create_index("user_id")
+    await db.notifications.create_index("process_id")
+    await db.notifications.create_index("created_at")
+    await db.notifications.create_index([("user_id", 1), ("read", 1)])  # Index composto para queries
+    
     # Create default workflow statuses if none exist - 14 fases do Trello
     status_count = await db.workflow_statuses.count_documents({})
     if status_count == 0:
