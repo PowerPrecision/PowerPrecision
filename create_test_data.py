@@ -161,7 +161,7 @@ def create_sample_processes():
             if response.status_code == 200:
                 print(f"✅ Assigned process 1 to Flávio as consultor")
             else:
-                print(f"❌ Failed to assign process 1 to Flávio: {response.status_code}")
+                print(f"❌ Failed to assign process 1 to Flávio: {response.status_code} - {response.text}")
         
         # Assign second process to Estácio as intermediário
         if len(created_processes) >= 2:
