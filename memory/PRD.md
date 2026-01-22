@@ -114,7 +114,9 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - `GET /api/alerts/documents/{id}` - Documentos a expirar
 
 ## Próximas Tarefas
-- [ ] Preencher documentação (GUIA_UTILIZADOR.md, APRESENTACAO.md)
-- [ ] Comentar código fonte
+- [x] Sistema de Alertas e Notificações (Completo)
+- [x] Notificações em Tempo Real com Som (Completo)
+- [x] Documentação completa (GUIA_UTILIZADOR.md, APRESENTACAO.md)
 - [ ] CI/CD Pipeline para testes automatizados
 - [ ] Testar análise AI com documentos reais
+- [ ] Integração WebSocket para notificações (melhoria futura)
