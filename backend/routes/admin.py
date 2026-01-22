@@ -145,7 +145,7 @@ async def update_user(user_id: str, data: UserUpdate, user: dict = Depends(requi
     if data.phone is not None:
         update_data["phone"] = data.phone
     if data.role is not None:
-        if data.role not in [UserRole.CLIENTE, UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.ADMIN]:
+        if data.role not in [UserRole.CLIENTE, UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.INTERMEDIARIO, UserRole.DIRETOR, UserRole.ADMINISTRATIVO, UserRole.CEO, UserRole.ADMIN]:
             raise HTTPException(status_code=400, detail="Role inválido")
         update_data["role"] = data.role
     if data.is_active is not None:
