@@ -205,17 +205,89 @@ backend:
           comment: "GET /api/processes/kanban returns 14 columns with proper process distribution. Total 154 processes correctly organized by workflow status."
 
 frontend:
-  - task: "Frontend Testing"
-    implemented: false
+  - task: "Public Client Registration Form"
+    implemented: true
     working: "NA"
-    file: "N/A"
+    file: "/app/frontend/src/pages/PublicClientForm.js"
     stuck_count: 0
-    priority: "low"
-    needs_retesting: false
+    priority: "high"
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "testing"
-          comment: "Frontend testing not performed as per system limitations and instructions."
+          comment: "Starting comprehensive frontend testing. Public form with 6-step wizard for client registration."
+
+  - task: "Authentication System - Login Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/LoginPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Login page with role-based redirection. Need to test with admin, CEO, and consultor users."
+
+  - task: "Admin Dashboard"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/AdminDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Admin dashboard with Kanban view, filters, and multiple tabs to test."
+
+  - task: "Staff Dashboard"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/StaffDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Staff dashboard with Kanban board, drag & drop functionality, and calendar view."
+
+  - task: "User Management Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/UsersManagementPage.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "User management page for admin role with filters and user activation controls."
+
+  - task: "All Processes Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/ProcessesPage.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Processes listing page showing all 154 processes with search and details view."
+
+  - task: "Statistics Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/StatisticsPage.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Statistics page with charts and filters for data visualization."
 
 metadata:
   created_by: "testing_agent"
