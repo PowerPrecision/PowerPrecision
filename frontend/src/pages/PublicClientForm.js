@@ -641,8 +641,8 @@ const PublicClientForm = () => {
   const renderStep4 = () => (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <Briefcase className="h-10 w-10 mx-auto mb-2 text-primary" />
-        <h2 className="text-xl font-semibold mb-2">Situação Financeira</h2>
+        <Briefcase className="h-10 w-10 mx-auto mb-2 text-amber-500" />
+        <h2 className="text-xl font-semibold mb-2 text-blue-950">Situação Financeira</h2>
         <p className="text-muted-foreground">Informações sobre a sua situação financeira</p>
       </div>
       
