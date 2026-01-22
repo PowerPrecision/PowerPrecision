@@ -31,6 +31,15 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ Múltiplas Melhorias de UI e Funcionalidades (2026-01-22)
+- **Credenciais de teste removidas** da página de login
+- **Novos perfis de utilizador**: Diretor(a) e Administrativo(a) substituem Consultor/Mediador
+- **Checkbox "Menor de 35 anos"** no formulário público para Apoio ao Estado
+- **Layout ProcessDetails reorganizado**: Atividade movida para sidebar direita
+- **Criação de eventos corrigida**: assigned_user_ids inicializado corretamente
+- **Notificações filtradas por papel**: Admin/CEO/Diretor vêem todas as notificações
+- **Botão de edição de workflow** adicionado nas Definições (admin)
+
 ### ✅ Sistema de Alertas e Notificações (2026-01-22)
 - **Alerta de Idade (<35 anos)**: Clientes elegíveis para Apoio ao Estado identificados automaticamente
 - **Countdown de 90 dias**: Após pré-aprovação, contador regressivo visível na página do processo
