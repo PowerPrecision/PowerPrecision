@@ -233,9 +233,9 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
     # Filter by role
     if role == UserRole.CONSULTOR:
         query["assigned_consultor_id"] = user["id"]
-    elif role == UserRole.MEDIADOR:
+    elif role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
         query["assigned_mediador_id"] = user["id"]
-    elif role == UserRole.CONSULTOR_MEDIADOR:
+    elif role in [UserRole.CONSULTOR_MEDIADOR, UserRole.CONSULTOR_INTERMEDIARIO]:
         query["$or"] = [
             {"assigned_consultor_id": user["id"]},
             {"assigned_mediador_id": user["id"]}
