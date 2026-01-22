@@ -10,7 +10,11 @@ Uso:
     cd /app/backend
     python seed.py
 
-ATENÇÃO: Não executar em produção se os utilizadores já existirem!
+As passwords são lidas das variáveis de ambiente:
+    SEED_ADMIN_PASSWORD - Password do admin (default: admin2026)
+    SEED_DEFAULT_PASSWORD - Password padrão para outros utilizadores (default: power2026)
+
+Em produção, defina estas variáveis antes de executar o script!
 ==============================================
 """
 
@@ -18,8 +22,14 @@ import asyncio
 import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
+from dotenv import load_dotenv
+
+# Load environment variables
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -39,6 +49,19 @@ class UserRole:
     ADMIN = "admin"
 
 
+def get_seed_passwords():
+    """Obter passwords do ambiente ou usar defaults (apenas para desenvolvimento)."""
+    admin_password = os.environ.get('SEED_ADMIN_PASSWORD', 'admin2026')
+    default_password = os.environ.get('SEED_DEFAULT_PASSWORD', 'power2026')
+    
+    # Avisar se estiver a usar passwords default
+    if admin_password == 'admin2026' or default_password == 'power2026':
+        print("\n⚠️  AVISO: A usar passwords padrão de desenvolvimento!")
+        print("   Para produção, defina SEED_ADMIN_PASSWORD e SEED_DEFAULT_PASSWORD\n")
+    
+    return admin_password, default_password
+
+
 async def seed_users():
     """Criar utilizadores iniciais no sistema."""
     
@@ -48,6 +71,8 @@ async def seed_users():
     client = AsyncIOMotorClient(mongo_url)
     db = client[db_name]
     
+    admin_password, default_password = get_seed_passwords()
+    
     print("=" * 50)
     print("CreditoIMO - Seed de Utilizadores")
     print("=" * 50)
@@ -56,11 +81,10 @@ async def seed_users():
     print()
     
     # Lista de utilizadores a criar
-    # NOTA: Altere as passwords antes de usar em produção!
     default_users = [
         {
             "email": "admin@sistema.pt",
-            "password": "admin2026",  # ALTERAR EM PRODUÇÃO
+            "password": admin_password,
             "name": "Admin",
             "role": UserRole.ADMIN,
             "phone": None,
@@ -68,7 +92,7 @@ async def seed_users():
         },
         {
             "email": "pedro@powerealestate.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Pedro Borges",
             "role": UserRole.CEO,
             "phone": "+351 912 000 001",
@@ -76,7 +100,7 @@ async def seed_users():
         },
         {
             "email": "tiago@powerealestate.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Tiago Borges",
             "role": UserRole.CONSULTOR,
             "phone": "+351 912 000 002",
@@ -84,7 +108,7 @@ async def seed_users():
         },
         {
             "email": "flavio@powerealestate.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Flávio da Silva",
             "role": UserRole.CONSULTOR,
             "phone": "+351 912 000 003",
@@ -92,7 +116,7 @@ async def seed_users():
         },
         {
             "email": "estacio@precisioncredito.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Estácio Miranda",
             "role": UserRole.INTERMEDIARIO,
             "phone": "+351 912 000 004",
@@ -100,7 +124,7 @@ async def seed_users():
         },
         {
             "email": "fernando@precisioncredito.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Fernando Andrade",
             "role": UserRole.INTERMEDIARIO,
             "phone": "+351 912 000 005",
@@ -108,7 +132,7 @@ async def seed_users():
         },
         {
             "email": "carina@powerealestate.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Carina Amuedo",
             "role": UserRole.DIRETOR,
             "phone": "+351 912 000 006",
@@ -116,7 +140,7 @@ async def seed_users():
         },
         {
             "email": "marisa@powerealestate.pt",
-            "password": "power2026",  # ALTERAR EM PRODUÇÃO
+            "password": default_password,
             "name": "Marisa Rodrigues",
             "role": UserRole.ADMINISTRATIVO,
             "phone": "+351 912 000 007",
