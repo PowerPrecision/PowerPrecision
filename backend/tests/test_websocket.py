@@ -161,8 +161,8 @@ class TestWebSocketIntegration:
         import requests
         try:
             response = requests.post(f"{BASE_URL}/api/auth/login", json={
-                "email": "admin@sistema.pt",
-                "password": "admin2026"
+                "email": TEST_ADMIN_EMAIL,
+                "password": TEST_ADMIN_PASSWORD
             }, timeout=5)
             if response.status_code == 200:
                 return response.json()["access_token"]
