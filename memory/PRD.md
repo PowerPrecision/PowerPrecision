@@ -31,6 +31,13 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ Optimização Análise de Documentos AI (2026-01)
+- Modelo alterado para `gpt-4o-mini` (mais económico)
+- Extracção de texto de PDF com `pypdf` primeiro
+- Se texto suficiente (>100 chars), usa apenas texto (sem visão)
+- Redimensionamento de imagens para max 1024px antes de enviar
+- Compressão JPEG com qualidade 85%
+
 ### ✅ Segurança e Configuração (2026-01)
 - Variáveis de ambiente obrigatórias (JWT_SECRET, MONGO_URL, DB_NAME)
 - Falha rápida se variáveis críticas não definidas
