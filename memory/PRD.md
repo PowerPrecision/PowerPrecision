@@ -31,6 +31,31 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ Impersonate - Admin Ver Como Outro Utilizador (2026-01)
+- Endpoint POST `/api/admin/impersonate/{user_id}`
+- Endpoint POST `/api/admin/stop-impersonate`
+- Banner amarelo no frontend quando em modo impersonate
+- Botão "Ver como" na página de gestão de utilizadores
+- Auditoria registada na colecção history
+
+### ✅ Email Templates HTML Profissionais (2026-01)
+- Template base com estilos consistentes
+- Confirmação de registo (enviado ao cliente automaticamente)
+- Lista de documentos necessários
+- Aprovação de crédito
+- Notificação de novo cliente (para staff)
+- Actualização de estado
+
+### ✅ Botão Email Rápido no Kanban (2026-01)
+- Ícone de email em cada cartão de cliente
+- Abre mailto: com email e nome do cliente preenchidos
+
+### ✅ Cliente NÃO é Utilizador (2026-01)
+- Registo público cria apenas documento em Processes
+- Dados do cliente guardados directamente no processo
+- Removida criação de utilizador no registo público
+- Email de confirmação enviado automaticamente ao cliente
+
 ### ✅ Optimização Análise de Documentos AI (2026-01)
 - Modelo alterado para `gpt-4o-mini` (mais económico)
 - Extracção de texto de PDF com `pypdf` primeiro
