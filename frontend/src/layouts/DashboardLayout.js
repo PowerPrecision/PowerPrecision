@@ -62,11 +62,14 @@ const DashboardLayout = ({ children, title }) => {
   };
 
   const getNavItems = () => {
+    // Determinar o href correcto para o dashboard
+    const dashboardHref = user?.role === "admin" ? "/admin" : "/staff";
+    
     const baseItems = [
       {
         label: "Dashboard",
         icon: LayoutDashboard,
-        href: `/${user?.role}`,
+        href: dashboardHref,
       },
     ];
 
