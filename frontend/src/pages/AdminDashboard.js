@@ -15,9 +15,9 @@ import { Textarea } from "../components/ui/textarea";
 import { Checkbox } from "../components/ui/checkbox";
 import { useAuth } from "../contexts/AuthContext";
 import { 
-  Users, Settings, Plus, Edit, Trash2, Search, UserPlus, GitBranch, FolderOpen, 
+  Users, Plus, Edit, Trash2, Search, UserPlus, GitBranch, FolderOpen, 
   Loader2, CheckCircle, XCircle, FileText, Calendar as CalendarIcon, Filter, Eye, Sparkles,
-  UserX, UserCheck, LayoutGrid, Clock as ClockIcon
+  UserX, UserCheck, LayoutGrid, Clock as ClockIcon, Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
