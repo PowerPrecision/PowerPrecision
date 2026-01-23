@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { 
-  Users, Search, UserPlus, Edit, Trash2, Loader2, UserX, UserCheck
+  Users, Search, UserPlus, Edit, Trash2, Loader2, UserX, UserCheck, Eye
 } from "lucide-react";
 import { toast } from "sonner";
 import { getUsers, createUser, updateUser, deleteUser } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const roleLabels = {
   cliente: "Cliente",
