@@ -9,7 +9,7 @@ from models.workflow import WorkflowStatusCreate, WorkflowStatusUpdate, Workflow
 from services.auth import hash_password, require_roles
 
 
-router = APIRouter(tags=["Admin"])
+router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 # ============== WORKFLOW STATUS ROUTES ==============
