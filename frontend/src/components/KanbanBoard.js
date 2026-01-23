@@ -11,6 +11,19 @@ import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Função para abrir cliente de email com dados preenchidos
+const openEmailClient = (email, clientName) => {
+  if (!email) {
+    toast.error("Cliente não tem email registado");
+    return;
+  }
+  
+  const subject = encodeURIComponent(`Processo de Crédito - ${clientName}`);
+  const body = encodeURIComponent(`Olá ${clientName},\n\nEsperamos que esteja tudo bem.\n\n`);
+  
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+};
+
 const statusColors = {
   yellow: "bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30",
   blue: "bg-blue-100 border-blue-300 dark:bg-blue-900/30",
