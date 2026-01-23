@@ -329,14 +329,33 @@ const KanbanBoard = ({ token }) => {
                                   </div>
                                 </div>
                                 
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 flex-shrink-0"
-                                  onClick={() => navigate(`/process/${process.id}`)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 flex-shrink-0 hover:bg-blue-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEmailClient(process.client_email, process.client_name);
+                                    }}
+                                    title="Enviar Email"
+                                    data-testid={`email-btn-${process.id}`}
+                                  >
+                                    <Mail className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/process/${process.id}`);
+                                    }}
+                                    title="Ver Detalhes"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
