@@ -50,10 +50,10 @@ export const getHistory = (processId) =>
   axios.get(`${API_URL}/history`, { params: { process_id: processId } });
 
 // Workflow Statuses
-export const getWorkflowStatuses = () => axios.get(`${API_URL}/workflow-statuses`);
-export const createWorkflowStatus = (data) => axios.post(`${API_URL}/workflow-statuses`, data);
-export const updateWorkflowStatus = (id, data) => axios.put(`${API_URL}/workflow-statuses/${id}`, data);
-export const deleteWorkflowStatus = (id) => axios.delete(`${API_URL}/workflow-statuses/${id}`);
+export const getWorkflowStatuses = () => axios.get(`${API_URL}/admin/workflow-statuses`);
+export const createWorkflowStatus = (data) => axios.post(`${API_URL}/admin/workflow-statuses`, data);
+export const updateWorkflowStatus = (id, data) => axios.put(`${API_URL}/admin/workflow-statuses/${id}`, data);
+export const deleteWorkflowStatus = (id) => axios.delete(`${API_URL}/admin/workflow-statuses/${id}`);
 
 // OneDrive Links (Manual)
 export const getProcessOneDriveLinks = (processId) => 
