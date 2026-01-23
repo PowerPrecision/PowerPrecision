@@ -10,7 +10,7 @@ from database import db, client
 from models.auth import UserRole
 from services.auth import hash_password
 from routes import (
-    auth_router, processes_router, admin_router, 
+    auth_router, processes_router, admin_router, users_router,
     deadlines_router, activities_router, onedrive_router,
     public_router, stats_router, ai_router, documents_router
 )
