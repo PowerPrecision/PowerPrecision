@@ -18,6 +18,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001')
 
+# Credenciais de teste - usar variáveis de ambiente
+TEST_ADMIN_EMAIL = os.environ.get('TEST_ADMIN_EMAIL', 'admin@sistema.pt')
+TEST_ADMIN_PASSWORD = os.environ.get('TEST_ADMIN_PASSWORD', 'admin2026')
+
 
 class TestWebSocketStatus:
     """Testes para o endpoint de status WebSocket."""
@@ -27,8 +31,8 @@ class TestWebSocketStatus:
         """Get admin auth token."""
         import requests
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "admin@sistema.pt",
-            "password": "admin2026"
+            "email": TEST_ADMIN_EMAIL,
+            "password": TEST_ADMIN_PASSWORD
         })
         if response.status_code == 200:
             return response.json()["access_token"]
