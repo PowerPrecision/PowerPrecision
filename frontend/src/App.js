@@ -4,11 +4,9 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ImpersonateBanner from "./components/ImpersonateBanner";
 import LoginPage from "./pages/LoginPage";
 import PublicClientForm from "./pages/PublicClientForm";
-import ClientDashboard from "./pages/ClientDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProcessDetails from "./pages/ProcessDetails";
-import NewProcess from "./pages/NewProcess";
 import StatisticsPage from "./pages/StatisticsPage";
 import UsersManagementPage from "./pages/UsersManagementPage";
 import ProcessesPage from "./pages/ProcessesPage";
@@ -16,7 +14,7 @@ import SettingsPage from "./pages/SettingsPage";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
-const STAFF_ROLES = ["consultor", "mediador", "intermediario", "consultor_mediador", "consultor_intermediario", "ceo", "admin"];
+const STAFF_ROLES = ["consultor", "mediador", "intermediario", "diretor", "administrativo", "ceo", "admin"];
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -34,7 +32,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/staff" replace />;
   }
 
   return children;
@@ -45,21 +43,11 @@ const DashboardRedirect = () => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  switch (user.role) {
-    case "cliente":
-      return <Navigate to="/cliente" replace />;
-    case "admin":
-      return <Navigate to="/admin" replace />;
-    case "consultor":
-    case "mediador":
-    case "intermediario":
-    case "consultor_mediador":
-    case "consultor_intermediario":
-    case "ceo":
-      return <Navigate to="/staff" replace />;
-    default:
-      return <Navigate to="/login" replace />;
+  // Admin vai para /admin, todos os outros staff vão para /staff
+  if (user.role === "admin") {
+    return <Navigate to="/admin" replace />;
   }
+  return <Navigate to="/staff" replace />;
 };
 
 function App() {
