@@ -31,12 +31,13 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
-### ✅ Impersonate - Admin Ver Como Outro Utilizador (2026-01)
+### ✅ Impersonate - Admin Ver Como Outro Utilizador (2026-01-23)
 - Endpoint POST `/api/admin/impersonate/{user_id}`
 - Endpoint POST `/api/admin/stop-impersonate`
 - Banner amarelo no frontend quando em modo impersonate
-- Botão "Ver como" na página de gestão de utilizadores
+- Botão "Ver como" (ícone de olho) na página de gestão de utilizadores
 - Auditoria registada na colecção history
+- **BUG FIX (2026-01-23)**: Corrigido endpoint `/api/auth/me` para retornar campos `is_impersonated`, `impersonated_by`, `impersonated_by_name`
 
 ### ✅ Email Templates HTML Profissionais (2026-01)
 - Template base com estilos consistentes
@@ -113,6 +114,11 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - Tab de Utilizadores simplificada com estatísticas rápidas
 - Redireccionamento para página dedicada de gestão
 - Remoção de código duplicado
+
+### ✅ Correções de Bugs Críticos (2026-01-23)
+- **BUG FIX**: Endpoint `/api/workflow-statuses` não existia - frontend agora usa `/api/admin/workflow-statuses`
+- **BUG FIX**: `ProcessDetails.js` tinha imports em falta (`getClientOneDriveFiles`, `getOneDriveDownloadUrl`)
+- **Ficheiros corrigidos**: `/app/frontend/src/services/api.js`, `/app/frontend/src/pages/ProcessDetails.js`, `/app/backend/routes/auth.py`
 
 ### ✅ Múltiplas Melhorias de UI e Funcionalidades (2026-01-22)
 - **Credenciais de teste removidas** da página de login
