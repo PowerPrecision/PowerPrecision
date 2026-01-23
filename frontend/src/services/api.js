@@ -98,3 +98,13 @@ export const getAlertsByProcess = (processId) =>
   axios.get(`${API_URL}/alerts/process/${processId}`);
 export const createDeedReminder = (processId, deedDate) => 
   axios.post(`${API_URL}/alerts/deed-reminder/${processId}`, null, { params: { deed_date: deedDate } });
+
+// Admin - Impersonate
+export const impersonateUser = (userId) => axios.post(`${API_URL}/admin/impersonate/${userId}`);
+export const stopImpersonate = () => axios.post(`${API_URL}/admin/stop-impersonate`);
+
+// Admin Users (CRUD completo)
+export const getAdminUsers = (role) => axios.get(`${API_URL}/admin/users`, { params: { role } });
+export const createAdminUser = (data) => axios.post(`${API_URL}/admin/users`, data);
+export const updateAdminUser = (id, data) => axios.put(`${API_URL}/admin/users/${id}`, data);
+export const deleteAdminUser = (id) => axios.delete(`${API_URL}/admin/users/${id}`);
