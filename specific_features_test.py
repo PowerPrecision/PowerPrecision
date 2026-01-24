@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 
 class SpecificFeaturesTester:
-    def __init__(self, base_url="https://mortgageflow-4.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://loanpro-10.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.client_token = None
