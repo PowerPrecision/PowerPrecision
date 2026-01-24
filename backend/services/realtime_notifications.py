@@ -13,6 +13,7 @@ import uuid
 
 from database import db
 from services.websocket_manager import manager, WSEventType, create_ws_message
+from services.push_notifications import send_push_notification
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,14 @@ async def send_realtime_notification(
         logger.info(f"Notificação enviada via WebSocket para {user_id}")
     else:
         logger.info(f"Utilizador {user_id} não conectado. Notificação guardada na DB.")
+        # Enviar push notification quando o utilizador não está conectado via WebSocket
+        await send_push_notification(
+            user_id=user_id,
+            title=title,
+            body=message,
+            url=link or "/",
+            data={"process_id": process_id} if process_id else None
+        )
     
     return notification
 
