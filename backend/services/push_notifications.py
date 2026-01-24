@@ -2,26 +2,31 @@
 ====================================================================
 SERVIÇO DE PUSH NOTIFICATIONS - CREDITOIMO
 ====================================================================
-Serviço para enviar notificações push via Web Push API.
+Serviço para enviar notificações push via Web Push API com VAPID.
 ====================================================================
 """
 
 import logging
 import json
+import os
 from typing import Optional, List
 from datetime import datetime, timezone
+
+from pywebpush import webpush, WebPushException
 
 from database import db
 
 logger = logging.getLogger(__name__)
 
-# Nota: Para enviar notificações push reais, seria necessário:
-# 1. Gerar VAPID keys (chaves públicas/privadas)
-# 2. Instalar biblioteca pywebpush
-# 3. Configurar as chaves no ambiente
-#
-# Por agora, este serviço prepara os dados e guarda na fila.
-# As notificações locais funcionam via service worker.
+# Configuração VAPID
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_MAILTO = os.environ.get("VAPID_MAILTO", "mailto:admin@creditoimo.pt")
+
+
+def is_vapid_configured() -> bool:
+    """Verificar se as chaves VAPID estão configuradas."""
+    return bool(VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY)
 
 
 async def get_user_push_subscriptions(user_id: str) -> List[dict]:
@@ -46,7 +51,7 @@ async def send_push_notification(
     data: Optional[dict] = None
 ) -> dict:
     """
-    Enviar notificação push para um utilizador.
+    Enviar notificação push para um utilizador via Web Push API.
     
     Args:
         user_id: ID do utilizador
@@ -67,7 +72,11 @@ async def send_push_notification(
         logger.info(f"Utilizador {user_id} não tem subscrições push activas")
         return {"success": False, "reason": "no_subscriptions"}
     
-    payload = {
+    if not is_vapid_configured():
+        logger.warning("VAPID keys não configuradas - notificação push não enviada")
+        return {"success": False, "reason": "vapid_not_configured"}
+    
+    payload = json.dumps({
         "title": title,
         "body": body,
         "icon": icon,
@@ -77,42 +86,49 @@ async def send_push_notification(
             "url": url,
             **(data or {})
         }
-    }
+    })
     
-    # Guardar na fila de notificações push (para processamento futuro com pywebpush)
-    push_queue_item = {
-        "user_id": user_id,
-        "payload": payload,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "status": "pending",
-        "subscription_count": len(subscriptions)
-    }
+    sent_count = 0
+    failed_subscriptions = []
     
-    await db.push_notification_queue.insert_one(push_queue_item)
+    for sub in subscriptions:
+        try:
+            subscription_info = {
+                "endpoint": sub["endpoint"],
+                "keys": sub["keys"]
+            }
+            
+            webpush(
+                subscription_info=subscription_info,
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_MAILTO}
+            )
+            
+            sent_count += 1
+            logger.info(f"Push notification enviada para {user_id}")
+            
+        except WebPushException as e:
+            logger.error(f"Erro ao enviar push para {user_id}: {e}")
+            
+            # Se a subscrição expirou ou é inválida, marcar como inativa
+            if e.response and e.response.status_code in [404, 410]:
+                failed_subscriptions.append(sub["endpoint"])
+                logger.info(f"Subscrição expirada marcada para remoção: {sub['endpoint'][:50]}...")
     
-    logger.info(f"Notificação push enfileirada para {user_id} ({len(subscriptions)} subscrições)")
-    
-    # NOTA: Implementação completa com pywebpush:
-    # from pywebpush import webpush, WebPushException
-    # 
-    # for sub in subscriptions:
-    #     try:
-    #         webpush(
-    #             subscription_info={
-    #                 "endpoint": sub["endpoint"],
-    #                 "keys": sub["keys"]
-    #             },
-    #             data=json.dumps(payload),
-    #             vapid_private_key=VAPID_PRIVATE_KEY,
-    #             vapid_claims={"sub": "mailto:admin@creditoimo.pt"}
-    #         )
-    #     except WebPushException as e:
-    #         logger.error(f"Erro ao enviar push: {e}")
+    # Desativar subscrições inválidas
+    if failed_subscriptions:
+        await db.push_subscriptions.update_many(
+            {"endpoint": {"$in": failed_subscriptions}},
+            {"$set": {"is_active": False, "deactivated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        logger.info(f"Desativadas {len(failed_subscriptions)} subscrições inválidas")
     
     return {
-        "success": True,
-        "queued": True,
-        "subscription_count": len(subscriptions)
+        "success": sent_count > 0,
+        "sent_count": sent_count,
+        "total_subscriptions": len(subscriptions),
+        "failed_count": len(failed_subscriptions)
     }
 
 
@@ -128,17 +144,49 @@ async def send_push_to_multiple_users(
     results = {
         "total": len(user_ids),
         "sent": 0,
-        "no_subscriptions": 0
+        "no_subscriptions": 0,
+        "failed": 0
     }
     
     for user_id in user_ids:
         result = await send_push_notification(user_id, title, body, **kwargs)
         if result.get("success"):
             results["sent"] += 1
-        else:
+        elif result.get("reason") == "no_subscriptions":
             results["no_subscriptions"] += 1
+        else:
+            results["failed"] += 1
     
     return results
+
+
+async def broadcast_push_notification(
+    title: str,
+    body: str,
+    roles: Optional[List[str]] = None,
+    exclude_users: Optional[List[str]] = None,
+    **kwargs
+) -> dict:
+    """
+    Enviar notificação push para múltiplos utilizadores baseado em roles.
+    
+    Args:
+        title: Título da notificação
+        body: Corpo da notificação
+        roles: Lista de roles a notificar (None = todos)
+        exclude_users: Lista de user_ids a excluir
+    """
+    exclude_users = exclude_users or []
+    
+    # Obter utilizadores alvo
+    query = {"is_active": {"$ne": False}}
+    if roles:
+        query["role"] = {"$in": roles}
+    
+    users = await db.users.find(query, {"id": 1, "_id": 0}).to_list(1000)
+    user_ids = [u["id"] for u in users if u["id"] not in exclude_users]
+    
+    return await send_push_to_multiple_users(user_ids, title, body, **kwargs)
 
 
 async def cleanup_expired_subscriptions():
