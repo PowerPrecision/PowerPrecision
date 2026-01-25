@@ -378,9 +378,31 @@ const TasksPanel = ({
             
             <div className="space-y-2">
               <Label>Atribuir a *</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Selecione um ou mais utilizadores
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground">
+                  Selecione um ou mais utilizadores
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={selectAllUsers}
+                    className="text-xs h-7"
+                  >
+                    Todos
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={clearAllUsers}
+                    className="text-xs h-7"
+                  >
+                    Nenhum
+                  </Button>
+                </div>
+              </div>
               <ScrollArea className="h-[200px] border rounded-md p-2">
                 <div className="space-y-2">
                   {users.map((user) => (
