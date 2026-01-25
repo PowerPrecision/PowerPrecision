@@ -154,10 +154,18 @@ const KanbanBoard = ({ token }) => {
     processes: column.processes.filter((process) =>
       process.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       process.client_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      process.client_phone?.includes(searchTerm) ||
       process.consultor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       process.mediador_name?.toLowerCase().includes(searchTerm.toLowerCase())
     ),
   }));
+
+  // Obter todos os processos filtrados para vista de lista
+  const allFilteredProcesses = searchTerm.length >= 2 
+    ? filteredColumns.flatMap(col => col.processes.map(p => ({ ...p, columnLabel: col.label, columnColor: col.color })))
+    : [];
+
+  const [viewMode, setViewMode] = useState("kanban"); // kanban ou list
 
   const scrollContainer = (direction) => {
     const container = document.getElementById("kanban-scroll-container");
