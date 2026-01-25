@@ -28,12 +28,12 @@ import {
 } from "./ui/select";
 import { 
   Mail, Send, Inbox, Plus, Loader2, Clock, User, 
-  Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp
+  Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
-import { getProcessEmails, getEmailStats, createEmail, deleteEmail } from "../services/api";
+import { getProcessEmails, getEmailStats, createEmail, deleteEmail, syncProcessEmails } from "../services/api";
 
 const EmailHistoryPanel = ({ 
   processId, 
@@ -45,6 +45,7 @@ const EmailHistoryPanel = ({
   const [emails, setEmails] = useState([]);
   const [stats, setStats] = useState({ total: 0, sent: 0, received: 0 });
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("all"); // all, sent, received
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
