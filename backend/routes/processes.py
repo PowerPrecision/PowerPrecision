@@ -260,11 +260,6 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
     # Get processes
     processes = await db.processes.find(query, {"_id": 0}).to_list(1000)
     
-    # Debug: verificar se has_property está presente
-    for p in processes:
-        if p.get("has_property"):
-            print(f"DEBUG KANBAN: {p.get('client_name')} has has_property={p.get('has_property')}")
-    
     # Get all users for name lookup
     users = await db.users.find({}, {"_id": 0, "id": 1, "name": 1, "role": 1}).to_list(1000)
     user_map = {u["id"]: u for u in users}
