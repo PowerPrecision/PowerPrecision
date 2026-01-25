@@ -4,6 +4,36 @@ Registo de alterações do sistema CreditoIMO.
 
 ---
 
+## [2026-01-25] - Separador "Minhas Tarefas" e Melhorias Mobile
+
+### Adicionado
+- **Separador "Minhas Tarefas" no StaffDashboard**
+  - Novo separador visível para todos os utilizadores
+  - Cada utilizador vê apenas as tarefas que lhe foram atribuídas
+  - Endpoint `GET /api/tasks/my-tasks` filtra por utilizador
+
+- **Card "Pendentes" Melhorado**
+  - Agora mostra total de prazos + tarefas pendentes
+  - Detalhe: "X tarefas • Y prazos"
+  - Ao clicar, abre separador de tarefas
+
+- **Botões "Todos" e "Nenhum" nas Tarefas**
+  - Adicionados ao dialog de criação de tarefa
+  - "Todos" selecciona todos os utilizadores
+  - "Nenhum" limpa a selecção
+
+- **Responsividade Mobile Melhorada**
+  - Dashboard adaptado com grid 2x2 para cards de estatísticas
+  - Separadores compactos (Quadro, Tarefas, Cal., Docs)
+  - Kanban com navegação por setas entre colunas
+  - Formulário público e ficha do cliente optimizados
+
+### Alterado
+- Contagem de "Pendentes" inclui agora tarefas + prazos (não apenas prazos)
+- Endpoint `/api/stats` retorna `total_pending`, `pending_tasks`, `pending_deadlines`
+
+---
+
 ## [2026-01-25] - Bloqueio de Duplicados e Alertas de Documentos
 
 ### Adicionado
