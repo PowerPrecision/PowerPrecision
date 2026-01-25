@@ -50,6 +50,39 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
   - `CreateEventDialog.js` - Dialog para criar eventos
 - Melhor manutenção e testabilidade do código
 
+### ✅ Sistema de Tarefas (2026-01-25)
+- **Backend CRUD completo** em `/routes/tasks.py`:
+  - `POST /api/tasks` - Criar tarefa
+  - `GET /api/tasks` - Listar tarefas (filtros: process_id, assigned_to_me, include_completed)
+  - `GET /api/tasks/my-tasks` - Tarefas atribuídas a mim
+  - `PUT /api/tasks/{id}/complete` - Marcar como concluída
+  - `PUT /api/tasks/{id}/reopen` - Reabrir tarefa
+  - `DELETE /api/tasks/{id}` - Eliminar tarefa
+- **Frontend** - Componente `TasksPanel.js`:
+  - Criar tarefas com título, descrição, utilizadores
+  - Atribuir a múltiplos utilizadores
+  - Marcar como concluída/reabrir
+  - Filtrar por concluídas
+- **Integração**:
+  - Separador "Tarefas" no Admin Dashboard
+  - Painel de tarefas na ficha do cliente (ProcessDetails)
+  - Prefixo automático `[Nome do Cliente]` quando criada da ficha
+- **Notificações**: Enviadas quando tarefa é atribuída
+
+### ✅ Melhorias no Calendário (2026-01-25)
+- **Novo layout**: Calendário mensal à esquerda, "Próximos Eventos" à direita
+- **Renomeado** "Próximos Prazos" → "Próximos Eventos"
+- Filtros de prioridade e consultor abaixo do calendário
+- Mostra até 10 próximos eventos com detalhes
+
+### ✅ Alertas Automáticos (2026-01-25)
+- **Clientes em espera 15+ dias**: Alerta para CEO/Diretor/Admin
+- **Lembrete mensal (1º dia)**: 
+  - Notificação para consultor/intermediário
+  - Email automático ao cliente para pedir recibo e extrato
+- Implementado em `services/scheduled_tasks.py`
+- Executar via: `python -m services.scheduled_tasks` ou modo daemon
+
 ### ✅ Push Notifications - Completo com VAPID (2026-01-24)
 - **Backend endpoints** implementados em `/routes/push_notifications.py`:
   - `POST /api/notifications/push/subscribe` - Registar subscrição
