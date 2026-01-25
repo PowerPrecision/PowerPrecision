@@ -137,6 +137,26 @@ const CalendarTab = ({
           <div className="space-y-3 pt-4 border-t">
             <h4 className="font-medium text-sm">Filtros</h4>
             <div className="grid grid-cols-1 gap-2">
+              {/* Filtro por Utilizador - Apenas para CEO/Admin */}
+              {canViewAllCalendars && (
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    Utilizador
+                  </Label>
+                  <Select value={userFilter} onValueChange={setUserFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Todos" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">👥 Todos os utilizadores</SelectItem>
+                      {staffUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label className="text-xs">Prioridade</Label>
                 <Select value={priorityFilter} onValueChange={setPriorityFilter}>
