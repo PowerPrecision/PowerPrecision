@@ -346,7 +346,7 @@ const KanbanBoard = ({ token }) => {
         <ScrollArea className="w-full whitespace-nowrap rounded-md">
           <div
             id="kanban-scroll-container"
-            className="flex gap-4 pb-4 min-h-[70vh]"
+            className="flex gap-4 pb-4 min-h-[70vh] overflow-x-auto"
             onScroll={(e) => setScrollPosition(e.currentTarget.scrollLeft)}
           >
             {filteredColumns.map((column) => (
