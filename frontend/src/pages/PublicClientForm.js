@@ -985,7 +985,7 @@ const PublicClientForm = () => {
     }
   };
 
-  if (submitted) {
+  if (submitted || blockedMessage) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-amber-50">
         {/* Header com cores da marca */}
@@ -1003,7 +1003,7 @@ const PublicClientForm = () => {
         <main className="container mx-auto px-4 py-8">
           <Card className="max-w-4xl mx-auto border-blue-200 shadow-lg">
             <CardContent className="pt-6">
-              {renderSuccessMessage()}
+              {blockedMessage ? renderBlockedMessage() : renderSuccessMessage()}
             </CardContent>
           </Card>
         </main>
