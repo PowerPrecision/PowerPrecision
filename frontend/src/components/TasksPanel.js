@@ -492,6 +492,21 @@ const TasksPanel = ({
                 </p>
               )}
             </div>
+
+            {/* Data de vencimento (opcional) */}
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Data de Vencimento (opcional)</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={newTask.due_date}
+                onChange={(e) => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se definida, será enviado um alerta quando o prazo se aproximar.
+              </p>
+            </div>
           </div>
           
           <DialogFooter>
