@@ -282,14 +282,45 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - `GET /api/alerts/pre-approval/{id}` - Countdown pré-aprovação
 - `GET /api/alerts/documents/{id}` - Documentos a expirar
 
-## Próximas Tarefas
-- [x] Sistema de Alertas e Notificações (Completo)
-- [x] Notificações em Tempo Real com Som (Completo)
-- [x] Editor de Fluxos de Workflow (Completo)
-- [x] Indicador Visual Trello (Completo)
-- [x] Refatorização Admin Dashboard (Completo)
-- [x] Documentação completa (GUIA_UTILIZADOR.md, APRESENTACAO.md) (Completo)
-- [x] CI/CD Pipeline para testes automatizados (Completo)
-- [x] WebSocket para notificações em tempo real (Completo)
-- [ ] Integração bidirecional com Trello (em standby por testes)
-- [ ] Testar análise AI com documentos reais (em standby)
+## APIs de Tarefas
+- `POST /api/tasks` - Criar tarefa
+- `GET /api/tasks` - Listar tarefas (filtros: process_id, assigned_to_me, created_by_me, include_completed)
+- `GET /api/tasks/my-tasks` - Tarefas atribuídas ao utilizador atual
+- `GET /api/tasks/{id}` - Detalhes de uma tarefa
+- `PUT /api/tasks/{id}` - Atualizar tarefa
+- `PUT /api/tasks/{id}/complete` - Marcar como concluída
+- `PUT /api/tasks/{id}/reopen` - Reabrir tarefa concluída
+- `DELETE /api/tasks/{id}` - Eliminar tarefa
+
+## APIs de Push Notifications
+- `POST /api/notifications/push/subscribe` - Registar subscrição
+- `POST /api/notifications/push/unsubscribe` - Cancelar subscrição
+- `GET /api/notifications/push/status` - Estado das subscrições do utilizador
+
+## Tarefas Agendadas (Cron)
+Executar: `cd /app/backend && python -m services.scheduled_tasks`
+Ou modo daemon: `python -m services.scheduled_tasks --daemon`
+
+| Tarefa | Descrição | Frequência |
+|--------|-----------|------------|
+| check_expiring_documents | Documentos a expirar nos próximos 7 dias | Diária |
+| check_upcoming_deadlines | Prazos nas próximas 24 horas | Diária |
+| check_pre_approval_countdown | Pré-aprovações a expirar (90 dias) | Diária |
+| check_clients_waiting_too_long | Clientes em espera 15+ dias | Diária |
+| send_monthly_document_reminder | Lembrete para recibo/extrato | 1º dia do mês |
+| cleanup_old_notifications | Limpar notificações lidas >30 dias | Diária |
+
+## Próximas Tarefas (Backlog)
+
+### 🟡 Prioridade Média - Melhorias UI
+- [ ] Pesquisa com resultados em lista no Quadro Geral
+- [ ] Resumo do processo no topo da ficha do cliente
+- [ ] CEO ver calendário de todos os utilizadores
+- [ ] Links clicáveis no dashboard para filtrar processos
+
+### ⏸️ Em Stand-by
+- [ ] Sistema de Documentos CPCV/Escritura (aguarda lista de documentos)
+- [ ] Integração bidirecional com Trello
+- [ ] Testar análise AI com documentos reais
+- [ ] Histórico de emails na ficha do cliente
+- [ ] Faturação
