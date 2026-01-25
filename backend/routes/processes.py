@@ -48,7 +48,8 @@ from services.alerts import (
     get_process_alerts,
     check_property_documents,
     create_deed_reminder,
-    notify_pre_approval_countdown
+    notify_pre_approval_countdown,
+    notify_cpcv_or_deed_document_check
 )
 from services.realtime_notifications import notify_process_status_change
 
