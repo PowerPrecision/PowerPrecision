@@ -16,10 +16,12 @@ import {
 import { toast } from "sonner";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
-import { getMyTasks, completeTask, getDeadlines } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import { getMyTasks, completeTask, getMyDeadlines } from "../services/api";
 
 const PendingItemsList = () => {
   const navigate = useNavigate();
+  const { isImpersonating } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
