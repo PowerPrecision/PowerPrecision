@@ -55,9 +55,18 @@ async def get_stats(user: dict = Depends(get_current_user)):
     else:
         deadline_query = {}
     
-    # Deadlines
+    # Deadlines pendentes
     stats["total_deadlines"] = await db.deadlines.count_documents(deadline_query)
-    stats["pending_deadlines"] = await db.deadlines.count_documents({**deadline_query, "completed": False})
+    pending_deadlines_count = await db.deadlines.count_documents({**deadline_query, "completed": False})
+    
+    # Tarefas pendentes atribuídas ao utilizador
+    task_query = {"completed": False, "assigned_to": user_id}
+    pending_tasks_count = await db.tasks.count_documents(task_query)
+    
+    # Total de pendentes = prazos + tarefas
+    stats["pending_deadlines"] = pending_deadlines_count
+    stats["pending_tasks"] = pending_tasks_count
+    stats["total_pending"] = pending_deadlines_count + pending_tasks_count
     
     # User stats (Admin and CEO only)
     if role in [UserRole.ADMIN, UserRole.CEO]:
