@@ -334,6 +334,26 @@ const ProcessDetails = () => {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <DashboardLayout title="Acesso Negado">
+        <Card className="border-border">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-xl font-semibold mb-2">Acesso Negado</h2>
+            <p className="text-muted-foreground mb-4">
+              Não tem permissão para aceder a este processo.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Este processo não lhe está atribuído. Se acha que deveria ter acesso, contacte o administrador.
+            </p>
+            <Button onClick={() => navigate(-1)}>Voltar</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   if (!process) {
     return (
       <DashboardLayout title="Processo não encontrado">
