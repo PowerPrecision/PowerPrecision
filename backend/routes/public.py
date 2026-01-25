@@ -29,16 +29,46 @@ async def public_client_registration(data: PublicClientRegistration):
     Endpoint público para registo de clientes - sem autenticação.
     
     FLUXO:
-    1. Cria documento na colecção Processes (NÃO cria utilizador)
-    2. Envia email de confirmação ao cliente
-    3. Notifica administradores/staff
-    4. Gera alertas no sistema
+    1. Verifica se email ou NIF já existem (bloqueia duplicados)
+    2. Cria documento na colecção Processes (NÃO cria utilizador)
+    3. Envia email de confirmação ao cliente
+    4. Notifica administradores/staff
+    5. Gera alertas no sistema
     
     O cliente é apenas um "conjunto de dados" dentro do Processo,
     não um utilizador com credenciais de login.
     """
     
+    # =========================================
+    # VERIFICAR DUPLICADOS (EMAIL E NIF)
+    # =========================================
+    
     # Verificar se já existe processo com o mesmo email
+    existing_by_email = await db.processes.find_one({"client_email": data.email})
+    if existing_by_email:
+        return {
+            "success": False,
+            "blocked": True,
+            "reason": "email",
+            "message": "Já existe um processo com este email. A nossa equipa entrará em contacto consigo em breve."
+        }
+    
+    # Verificar se já existe processo com o mesmo NIF
+    nif = None
+    if data.personal_data:
+        nif = data.personal_data.nif
+    
+    if nif:
+        existing_by_nif = await db.processes.find_one({"personal_data.nif": nif})
+        if existing_by_nif:
+            return {
+                "success": False,
+                "blocked": True,
+                "reason": "nif",
+                "message": "Já existe um processo com este NIF. A nossa equipa entrará em contacto consigo em breve."
+            }
+    
+    # Verificação legacy (para processos antigos com estrutura diferente)
     existing_process = await db.processes.find_one({"client_email": data.email})
     
     first_status = await db.workflow_statuses.find_one({}, {"_id": 0}, sort=[("order", 1)])

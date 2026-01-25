@@ -410,8 +410,14 @@ const KanbanBoard = ({ token }) => {
                                   </div>
                                   
                                   {/* Labels */}
+                                  {process.has_property && (
+                                    <Badge variant="outline" className="mt-1 text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
+                                      <Home className="h-3 w-3 mr-1" />
+                                      Tem Imóvel
+                                    </Badge>
+                                  )}
                                   {process.prioridade && (
-                                    <Badge variant="destructive" className="mt-1 text-xs">
+                                    <Badge variant="destructive" className="mt-1 ml-1 text-xs">
                                       <AlertCircle className="h-3 w-3 mr-1" />
                                       Prioridade
                                     </Badge>
