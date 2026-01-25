@@ -178,7 +178,7 @@ const TasksPanel = ({
         assigned_to: []
       });
     } else {
-      setNewTask({ title: "", description: "", assigned_to: [] });
+      setNewTask({ title: "", description: "", assigned_to: [], due_date: "" });
     }
     setIsCreateDialogOpen(true);
   };
@@ -204,6 +204,51 @@ const TasksPanel = ({
       ...prev,
       assigned_to: []
     }));
+  };
+
+  // Helper para mostrar badge de prazo
+  const getDueDateBadge = (task) => {
+    if (!task.due_date || task.completed) return null;
+    
+    const daysUntil = task.days_until_due;
+    const isOverdue = task.is_overdue;
+    
+    if (isOverdue) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Atrasada ({Math.abs(daysUntil)}d)
+        </Badge>
+      );
+    } else if (daysUntil === 0) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          <Clock className="h-3 w-3 mr-1" />
+          Vence hoje
+        </Badge>
+      );
+    } else if (daysUntil === 1) {
+      return (
+        <Badge variant="warning" className="text-xs bg-orange-100 text-orange-800">
+          <Clock className="h-3 w-3 mr-1" />
+          Vence amanhã
+        </Badge>
+      );
+    } else if (daysUntil <= 3) {
+      return (
+        <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+          <Clock className="h-3 w-3 mr-1" />
+          {daysUntil} dias
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3 mr-1" />
+          {format(parseISO(task.due_date), "dd/MM", { locale: pt })}
+        </Badge>
+      );
+    }
   };
 
   if (loading) {
