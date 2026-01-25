@@ -149,12 +149,17 @@ const StaffDashboard = () => {
           </Card>
           <Card 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => goToFilteredList('pending_deadlines')}
+            onClick={() => setActiveTab('tasks')}
           >
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-3xl font-bold text-orange-500">{stats.pending_deadlines || 0}</p>
-                <p className="text-sm text-muted-foreground">Prazos Pendentes</p>
+                <p className="text-3xl font-bold text-orange-500">{stats.total_pending || stats.pending_deadlines || 0}</p>
+                <p className="text-sm text-muted-foreground">Pendentes</p>
+                {(stats.pending_tasks > 0 || stats.pending_deadlines > 0) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.pending_tasks || 0} tarefas • {stats.pending_deadlines || 0} prazos
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
