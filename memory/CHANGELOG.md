@@ -4,6 +4,24 @@ Registo de alterações do sistema CreditoIMO.
 
 ---
 
+## [2026-01-25] - Página "Itens Pendentes" Dedicada
+
+### Adicionado
+- **Nova página `/pendentes`** - Lista unificada de todos os itens pendentes
+  - Combina tarefas e prazos numa única lista
+  - Ordenada por urgência (mais urgente primeiro)
+  - Cards de filtro: Total, Tarefas, Prazos (clicáveis)
+  - Badges visuais: tipo (Tarefa/Prazo) + urgência
+  - Checkbox para marcar tarefas como concluídas
+  - Link para ver processo associado
+  - Responsivo para mobile
+
+- **Card "Pendentes" no Dashboard**
+  - Agora navega para `/pendentes` em vez do separador de tarefas
+  - Mostra total combinado (tarefas + prazos)
+
+---
+
 ## [2026-01-25] - Data de Vencimento nas Tarefas e Alertas Automáticos
 
 ### Adicionado
