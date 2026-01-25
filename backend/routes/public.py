@@ -68,9 +68,6 @@ async def public_client_registration(data: PublicClientRegistration):
                 "message": "Já existe um processo com este NIF. A nossa equipa entrará em contacto consigo em breve."
             }
     
-    # Verificação legacy (para processos antigos com estrutura diferente)
-    existing_process = await db.processes.find_one({"client_email": data.email})
-    
     first_status = await db.workflow_statuses.find_one({}, {"_id": 0}, sort=[("order", 1)])
     initial_status = first_status["name"] if first_status else "clientes_espera"
     
@@ -90,7 +87,7 @@ async def public_client_registration(data: PublicClientRegistration):
             birth = datetime.strptime(birth_date, "%Y-%m-%d")
             age = (datetime.now() - birth).days // 365
             idade_menos_35 = age < 35
-        except:
+        except (ValueError, TypeError):
             pass
     
     # Verificar se checkbox menor_35_anos foi marcado
