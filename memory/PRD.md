@@ -50,6 +50,27 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
   - `CreateEventDialog.js` - Dialog para criar eventos
 - Melhor manutenção e testabilidade do código
 
+### ✅ Calendário CEO/Admin - Ver Todos os Utilizadores (2026-01-25)
+- **Filtro de utilizadores** no calendário (apenas visível para admin/CEO)
+- Dropdown com todos os utilizadores staff (excluindo clientes)
+- Mostra nome e role de cada utilizador
+- Filtra eventos por participante/atribuído
+- Funciona em conjunto com filtros de prioridade e consultor
+
+### ✅ Histórico de Emails (2026-01-25)
+- **Backend CRUD completo** em `/routes/emails.py`:
+  - `POST /api/emails` - Criar registo de email
+  - `GET /api/emails/process/{id}` - Listar emails do processo
+  - `GET /api/emails/stats/{id}` - Estatísticas (total, enviados, recebidos)
+  - `DELETE /api/emails/{id}` - Eliminar email
+- **Frontend** - Componente `EmailHistoryPanel.js`:
+  - Separador "Emails" na ficha do cliente
+  - Filtros: Todos, Enviados, Recebidos
+  - Lista de emails com expand/collapse
+  - Ícones de direção (enviado/recebido)
+  - Dialog para criar email com tipo, de, para, assunto, corpo, notas
+  - Email do cliente pré-preenchido
+
 ### ✅ Melhorias UI - Dashboard e Pesquisa (2026-01-25)
 - **Cards clicáveis no dashboard**: Navegam para lista filtrada
   - Total → /processos
@@ -307,6 +328,14 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 - `POST /api/notifications/push/subscribe` - Registar subscrição
 - `POST /api/notifications/push/unsubscribe` - Cancelar subscrição
 - `GET /api/notifications/push/status` - Estado das subscrições do utilizador
+
+## APIs de Emails
+- `POST /api/emails` - Criar registo de email
+- `GET /api/emails/process/{id}` - Listar emails de um processo (filtro: direction)
+- `GET /api/emails/{id}` - Detalhes de um email
+- `PUT /api/emails/{id}` - Atualizar email (subject, body, notes, status)
+- `DELETE /api/emails/{id}` - Eliminar email
+- `GET /api/emails/stats/{id}` - Estatísticas (total, sent, received)
 
 ## Tarefas Agendadas (Cron)
 Executar: `cd /app/backend && python -m services.scheduled_tasks`
