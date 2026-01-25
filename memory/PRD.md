@@ -33,6 +33,18 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ Separador "Minhas Tarefas" e Melhorias Mobile (2026-01-25)
+- **Separador "Minhas Tarefas"** no StaffDashboard para todos os utilizadores
+- Cada utilizador vê apenas as tarefas que lhe foram atribuídas
+- **Card "Pendentes" melhorado**: Mostra total de prazos + tarefas pendentes
+- Detalhe: "X tarefas • Y prazos"
+- **Botões "Todos" e "Nenhum"** no dialog de criação de tarefa
+- **Responsividade Mobile**:
+  - Dashboard adaptado com grid 2x2
+  - Separadores compactos (Quadro, Tarefas, Cal., Docs)
+  - Kanban com navegação por setas entre colunas
+  - Formulário público e ficha do cliente optimizados
+
 ### ✅ Impersonate - Admin Ver Como Outro Utilizador (2026-01-23)
 - Endpoint POST `/api/admin/impersonate/{user_id}`
 - Endpoint POST `/api/admin/stop-impersonate`
