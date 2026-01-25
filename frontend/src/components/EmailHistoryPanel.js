@@ -214,6 +214,19 @@ const EmailHistoryPanel = ({
               <Button 
                 size="sm" 
                 variant="outline"
+                onClick={handleSyncEmails}
+                disabled={syncing || !clientEmail}
+                title="Sincronizar emails do servidor"
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
                 onClick={() => openCreateDialog("received")}
                 title="Registar email recebido"
               >
