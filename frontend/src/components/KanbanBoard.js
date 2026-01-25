@@ -501,6 +501,7 @@ const KanbanBoard = ({ token }) => {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+      )}
 
       {/* Process Details Dialog */}
       <Dialog open={showProcessDialog} onOpenChange={setShowProcessDialog}>
