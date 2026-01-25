@@ -83,6 +83,32 @@ const EmailHistoryPanel = ({
     }
   };
 
+  const handleSyncEmails = async () => {
+    if (!clientEmail) {
+      toast.error("Cliente não tem email definido");
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      toast.info("A sincronizar emails... Isto pode demorar alguns segundos.");
+      
+      const response = await syncProcessEmails(processId, 60);
+      
+      if (response.data.success) {
+        toast.success(`Sincronização concluída: ${response.data.new_imported} novos emails importados`);
+        fetchData();
+      } else {
+        toast.error(response.data.error || "Erro na sincronização");
+      }
+    } catch (error) {
+      console.error("Erro ao sincronizar:", error);
+      toast.error(error.response?.data?.detail || "Erro ao sincronizar emails");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleCreateEmail = async () => {
     if (!newEmail.subject.trim() || !newEmail.body.trim()) {
       toast.error("Assunto e corpo são obrigatórios");
