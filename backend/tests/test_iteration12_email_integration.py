@@ -445,12 +445,20 @@ class TestTasksRegression:
         if not process_id:
             pytest.skip("No process available")
         
+        # Get current user ID for assigned_to
+        me_response = requests.get(f"{BASE_URL}/api/auth/me", headers=self.headers)
+        user_id = me_response.json()["id"] if me_response.status_code == 200 else None
+        
+        if not user_id:
+            pytest.skip("Could not get user ID")
+        
         # Create task
         task_data = {
             "title": "TEST_REGRESSION_Tarefa de teste",
             "description": "Tarefa criada para teste de regressão",
             "process_id": process_id,
-            "priority": "medium"
+            "priority": "medium",
+            "assigned_to": user_id
         }
         
         create_response = requests.post(f"{BASE_URL}/api/tasks", json=task_data, headers=self.headers)
