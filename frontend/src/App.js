@@ -155,6 +155,16 @@ function App() {
             }
           />
           
+          {/* Pending Items List - Staff and Admin */}
+          <Route
+            path="/pendentes"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <PendingItemsList />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
