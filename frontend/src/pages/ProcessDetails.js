@@ -794,10 +794,14 @@ const ProcessDetails = () => {
             <Card className="border-border">
               <CardContent className="p-0">
                 <Tabs value={sideTab} onValueChange={setSideTab}>
-                  <TabsList className="w-full grid grid-cols-3 rounded-none rounded-t-md">
+                  <TabsList className="w-full grid grid-cols-4 rounded-none rounded-t-md">
                     <TabsTrigger value="deadlines" className="gap-1">
                       <Clock className="h-4 w-4" />
                       <span className="hidden sm:inline">Prazos</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="emails" className="gap-1">
+                      <Send className="h-4 w-4" />
+                      <span className="hidden sm:inline">Emails</span>
                     </TabsTrigger>
                     <TabsTrigger value="history" className="gap-1">
                       <History className="h-4 w-4" />
