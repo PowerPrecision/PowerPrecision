@@ -46,7 +46,8 @@ const TasksPanel = ({
   processName = null,
   showCreateButton = true,
   compact = false,
-  maxHeight = "400px"
+  maxHeight = "400px",
+  showOnlyMyTasks = false  // Novo: mostrar apenas tarefas atribuídas ao utilizador atual
 }) => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -64,17 +65,23 @@ const TasksPanel = ({
 
   useEffect(() => {
     fetchData();
-  }, [processId, showCompleted]);
+  }, [processId, showCompleted, showOnlyMyTasks]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [tasksRes, usersRes] = await Promise.all([
-        processId 
-          ? getProcessTasks(processId)
-          : getTasks({ include_completed: showCompleted }),
-        getUsers()
-      ]);
+      
+      let tasksRes;
+      if (processId) {
+        tasksRes = await getProcessTasks(processId);
+      } else if (showOnlyMyTasks) {
+        // Buscar apenas tarefas atribuídas ao utilizador actual
+        tasksRes = await getMyTasks();
+      } else {
+        tasksRes = await getTasks({ include_completed: showCompleted });
+      }
+      
+      const usersRes = await getUsers();
       
       // Filtrar tarefas concluídas se necessário
       let filteredTasks = tasksRes.data;
