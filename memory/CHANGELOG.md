@@ -4,6 +4,32 @@ Registo de alterações do sistema CreditoIMO.
 
 ---
 
+## [2026-01-25] - Bloqueio de Duplicados e Alertas de Documentos
+
+### Adicionado
+- **Bloqueio de Registo Duplicado**
+  - Verifica email existente antes de criar processo
+  - Verifica NIF existente antes de criar processo
+  - Mensagem amigável: "A nossa equipa entrará em contacto"
+  - Contactos de ambas as empresas para dúvidas
+
+- **Alerta de Verificação de Documentos**
+  - Enviado quando processo muda para CH Aprovado, Fase Escritura ou Escritura Agendada
+  - Notifica todos os envolvidos (consultor, mediador, staff)
+  - Inclui lista de documentos em falta
+  - Email + Notificação em tempo real
+
+- **Etiqueta "Tem Imóvel" no Kanban**
+  - Badge verde para processos com `has_property=True`
+  - Visível no cartão do processo
+  - Ajuda CEO a não atribuir a Consultor Imobiliário por engano
+
+### Corrigido
+- Erro 500 ao mover processo para fases de escritura (parâmetro `priority` inválido)
+- Erro de encoding em emails com caracteres especiais (ex: `luís@...`)
+
+---
+
 ## [2026-01-25] - Integração IMAP/SMTP Email
 
 ### Adicionado
