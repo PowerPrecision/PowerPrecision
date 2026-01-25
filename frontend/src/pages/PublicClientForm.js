@@ -140,9 +140,10 @@ const PublicClientForm = () => {
     }
 
     setLoading(true);
+    setBlockedMessage(null);
 
     try {
-      await axios.post(`${API_URL}/public/client-registration`, {
+      const response = await axios.post(`${API_URL}/public/client-registration`, {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -192,8 +193,14 @@ const PublicClientForm = () => {
         },
       });
 
-      setSubmitted(true);
-      toast.success("Registo enviado com sucesso!");
+      // Verificar se o registo foi bloqueado por duplicado
+      if (response.data.blocked) {
+        setBlockedMessage(response.data.message);
+        toast.info(response.data.message);
+      } else {
+        setSubmitted(true);
+        toast.success("Registo enviado com sucesso!");
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error(error.response?.data?.detail || "Erro ao enviar registo");
