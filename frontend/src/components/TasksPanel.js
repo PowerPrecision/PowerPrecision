@@ -60,7 +60,8 @@ const TasksPanel = ({
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assigned_to: []
+    assigned_to: [],
+    due_date: ""  // Data de vencimento (opcional)
   });
 
   useEffect(() => {
