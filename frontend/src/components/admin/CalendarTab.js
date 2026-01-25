@@ -1,6 +1,7 @@
 /**
  * CalendarTab - Componente de Calendário para Admin Dashboard
  * Layout: Calendário mensal à esquerda, Próximos eventos à direita
+ * CEO pode ver calendário de todos os utilizadores
  */
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +12,7 @@ import { Label } from "../ui/label";
 import { ScrollArea } from "../ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Calendar } from "../ui/calendar";
-import { Plus, Trash2, Eye, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Eye, CalendarDays, Users } from "lucide-react";
 
 const priorityOrder = { high: 1, medium: 2, low: 3 };
 const priorityLabels = { high: "Alta", medium: "Média", low: "Baixa" };
@@ -26,22 +27,50 @@ const CalendarTab = ({
   consultors, 
   intermediarios, 
   users,
+  currentUser,
   onCreateEvent,
-  onDeleteEvent,
-  showAllUsers = false  // Para CEO ver calendário de todos
+  onDeleteEvent
 }) => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [userFilter, setUserFilter] = useState("all");
   const [consultorFilter, setConsultorFilter] = useState("all");
-  const [mediadorFilter, setMediadorFilter] = useState("all");
+
+  // Verificar se é CEO ou Admin (pode ver todos os calendários)
+  const canViewAllCalendars = currentUser?.role === "ceo" || currentUser?.role === "admin";
+
+  // Lista de utilizadores para filtro (excluindo clientes)
+  const staffUsers = useMemo(() => {
+    return users?.filter(u => u.role !== "cliente") || [];
+  }, [users]);
 
   // Ordenar e filtrar eventos do calendário
   const sortedCalendarDeadlines = useMemo(() => {
     let filtered = [...calendarDeadlines];
     
+    // Filtro por prioridade
     if (priorityFilter !== "all") {
       filtered = filtered.filter(d => d.priority === priorityFilter);
+    }
+    
+    // Filtro por utilizador (participantes ou atribuído)
+    if (userFilter !== "all") {
+      filtered = filtered.filter(d => {
+        // Verifica se o utilizador é participante
+        if (d.participants?.includes(userFilter)) return true;
+        // Verifica se é consultor ou mediador atribuído
+        if (d.assigned_consultor_id === userFilter) return true;
+        if (d.assigned_mediador_id === userFilter) return true;
+        // Verifica se criou o evento
+        if (d.created_by === userFilter) return true;
+        return false;
+      });
+    }
+    
+    // Filtro por consultor
+    if (consultorFilter !== "all") {
+      filtered = filtered.filter(d => d.assigned_consultor_id === consultorFilter);
     }
     
     return filtered.sort((a, b) => {
@@ -49,7 +78,7 @@ const CalendarTab = ({
       if (dateCompare !== 0) return dateCompare;
       return (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
     });
-  }, [calendarDeadlines, priorityFilter]);
+  }, [calendarDeadlines, priorityFilter, userFilter, consultorFilter]);
 
   // Próximos 10 eventos
   const upcomingDeadlines = useMemo(() => {
