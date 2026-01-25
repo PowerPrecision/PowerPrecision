@@ -180,6 +180,20 @@ const TasksPanel = ({
     }));
   };
 
+  const selectAllUsers = () => {
+    setNewTask(prev => ({
+      ...prev,
+      assigned_to: users.map(u => u.id)
+    }));
+  };
+
+  const clearAllUsers = () => {
+    setNewTask(prev => ({
+      ...prev,
+      assigned_to: []
+    }));
+  };
+
   if (loading) {
     return (
       <Card className="border-border">
