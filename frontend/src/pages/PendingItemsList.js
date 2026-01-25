@@ -232,8 +232,8 @@ const PendingItemsList = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-blue-950 text-white sticky top-0 z-50">
+      {/* Header - ajusta top quando há banner de impersonate */}
+      <header className={`border-b bg-blue-950 text-white sticky z-50 ${isImpersonating ? 'top-12' : 'top-0'}`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button 
