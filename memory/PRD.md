@@ -4,6 +4,8 @@
 ## Problem Statement
 Sistema de registo de clientes para crédito e assistência imobiliária. Clientes preenchem formulário público (sem login). Consultores, mediadores e CEO gerem os processos num quadro Kanban visual estilo Trello.
 
+**Uso Principal**: Mobile (telemóvel) - interface optimizada para dispositivos móveis.
+
 ## Sites de Referência
 - **Imobiliária**: https://www.powerealestate.pt/
 - **Crédito**: https://precision-credito.pt/
