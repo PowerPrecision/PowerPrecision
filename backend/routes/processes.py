@@ -348,6 +348,14 @@ async def move_process_kanban(
                 "details": property_check.get("details")
             })
     
+    # 1.1 Alerta de verificação de documentos para CPCV/Escritura
+    if new_status in ["ch_aprovado", "fase_escritura", "escritura_agendada"]:
+        await notify_cpcv_or_deed_document_check(process, new_status)
+        alerts_generated.append({
+            "type": "document_verification_alert",
+            "message": "Alerta enviado aos envolvidos para verificação de documentos"
+        })
+    
     # 2. Ao mover para pré-aprovação - Iniciar countdown de 90 dias
     if new_status == "fase_bancaria" and old_status != "fase_bancaria":
         # Guardar data de aprovação se ainda não existir
