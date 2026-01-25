@@ -149,7 +149,7 @@ const StaffDashboard = () => {
           </Card>
           <Card 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setActiveTab('tasks')}
+            onClick={() => navigate('/pendentes')}
           >
             <CardContent className="pt-6">
               <div className="text-center">
