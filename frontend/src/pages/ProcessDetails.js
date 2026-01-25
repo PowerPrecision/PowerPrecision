@@ -772,6 +772,14 @@ const ProcessDetails = () => {
               </CardContent>
             </Card>
 
+            {/* Tasks Panel */}
+            <TasksPanel 
+              processId={id} 
+              processName={process.client_name}
+              compact={true}
+              maxHeight="250px"
+            />
+
             {/* Side Tabs */}
             <Card className="border-border">
               <CardContent className="p-0">
