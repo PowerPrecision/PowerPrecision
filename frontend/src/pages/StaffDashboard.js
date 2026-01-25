@@ -84,10 +84,10 @@ const StaffDashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Olá, {user?.name?.split(' ')[0]}</h1>
-            <p className="text-muted-foreground">
-              <Badge variant="outline" className="mr-2">{roleLabels[user?.role] || user?.role}</Badge>
-              {canSeeAllStats ? `${stats.total_processes || 0} processos no sistema` : "Os seus processos atribuídos"}
-            </p>
+            <div className="text-muted-foreground flex items-center gap-2">
+              <Badge variant="outline">{roleLabels[user?.role] || user?.role}</Badge>
+              <span>{canSeeAllStats ? `${stats.total_processes || 0} processos no sistema` : "Os seus processos atribuídos"}</span>
+            </div>
           </div>
         </div>
 
