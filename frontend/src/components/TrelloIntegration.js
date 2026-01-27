@@ -164,6 +164,55 @@ const TrelloIntegration = () => {
     }
   };
 
+  const handleSetupWebhook = async () => {
+    setSettingUpWebhook(true);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/webhook/setup`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Webhook configurado",
+          description: data.message,
+        });
+        fetchStatus(); // Atualizar lista de webhooks
+      } else {
+        throw new Error(data.detail || "Erro ao configurar webhook");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível configurar o webhook.",
+        variant: "destructive",
+      });
+    } finally {
+      setSettingUpWebhook(false);
+    }
+  };
+
+  const handleDeleteWebhook = async (webhookId) => {
+    try {
+      await fetch(`${API_URL}/api/trello/webhook/${webhookId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast({
+        title: "Webhook removido",
+        description: "O webhook foi removido com sucesso.",
+      });
+      fetchStatus();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o webhook.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Card>
