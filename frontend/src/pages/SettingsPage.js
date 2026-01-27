@@ -516,6 +516,9 @@ const SettingsPage = () => {
           {user?.role === "admin" && (
             <TabsContent value="sistema">
               <div className="space-y-6">
+                {/* Integração Trello */}
+                <TrelloIntegration />
+                
                 {/* Editor de Workflow */}
                 <WorkflowEditor />
                 
