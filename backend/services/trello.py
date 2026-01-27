@@ -199,19 +199,50 @@ def build_card_description(process: Dict) -> str:
     """Construir descrição do card a partir dos dados do processo."""
     lines = []
     
+    # Dados principais
     if process.get("client_email"):
-        lines.append(f"Email: {process['client_email']}")
+        lines.append(f"📧 Email: {process['client_email']}")
     if process.get("client_phone"):
-        lines.append(f"Telefone: {process['client_phone']}")
-    if process.get("valor_pretendido"):
-        lines.append(f"Valor: €{process['valor_pretendido']:,.0f}")
-    if process.get("personal_data", {}).get("morada_fiscal"):
-        lines.append(f"Morada: {process['personal_data']['morada_fiscal']}")
+        lines.append(f"📱 Telefone: {process['client_phone']}")
+    if process.get("client_nif"):
+        lines.append(f"🆔 NIF: {process['client_nif']}")
+    
+    # Dados pessoais
+    personal = process.get("personal_data", {})
+    if personal.get("morada_fiscal"):
+        lines.append(f"📍 Morada: {personal['morada_fiscal']}")
+    if personal.get("data_nascimento"):
+        lines.append(f"🎂 Nascimento: {personal['data_nascimento']}")
+    
+    # Dados financeiros
+    financial = process.get("financial_data", {})
+    if financial.get("rendimento_mensal"):
+        lines.append(f"💰 Rendimento: €{financial['rendimento_mensal']:,.0f}/mês")
+    if financial.get("valor_pretendido") or process.get("valor_pretendido"):
+        valor = financial.get("valor_pretendido") or process.get("valor_pretendido")
+        lines.append(f"🏦 Valor Pretendido: €{valor:,.0f}")
+    
+    # Dados do imóvel
+    real_estate = process.get("real_estate_data", {})
+    if real_estate.get("morada_imovel"):
+        lines.append(f"🏠 Imóvel: {real_estate['morada_imovel']}")
+    if real_estate.get("valor_aquisicao"):
+        lines.append(f"💶 Valor Aquisição: €{real_estate['valor_aquisicao']:,.0f}")
+    
+    # Flags especiais
     if process.get("idade_menos_35"):
         lines.append("⭐ Elegível Apoio ao Estado (<35 anos)")
+    if process.get("has_property"):
+        lines.append("🏡 Tem imóvel identificado")
+    
+    # Atribuições
+    if process.get("consultor_name"):
+        lines.append(f"👤 Consultor: {process['consultor_name']}")
+    if process.get("mediador_name"):
+        lines.append(f"👤 Intermediário: {process['mediador_name']}")
     
     # Adicionar ID do processo para referência
-    lines.append(f"\n---\nID CreditoIMO: {process.get('id', 'N/A')}")
+    lines.append(f"\n---\n🔗 ID CreditoIMO: {process.get('id', 'N/A')}")
     
     return "\n".join(lines)
 
