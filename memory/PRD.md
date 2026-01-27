@@ -34,9 +34,14 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 ## What's Been Implemented
 
 ### ✅ Integração Bidirecional com Trello (2026-01-27)
-- **Sincronização completa**: O sistema funciona como espelho do Trello
+- **Sincronização completa espelho**: O sistema funciona como espelho do Trello em tempo real
 - **152 processos importados** do board "Lista de clientes"
-- **Sincronização automática**: Ao mover processo no Kanban, o card é atualizado no Trello
+- **App → Trello**: 
+  - Ao mover processo no Kanban, o card é atualizado automaticamente no Trello
+  - Ao editar dados do cliente (nome, email, morada, etc.), o card é atualizado no Trello
+- **Trello → App**: 
+  - Webhook configurado para receber atualizações em tempo real
+  - Criar/mover/editar cards no Trello atualiza automaticamente na aplicação
 - **Endpoints implementados**:
   - `GET /api/trello/status` - Estado da conexão
   - `POST /api/trello/sync/from-trello` - Importar do Trello
@@ -44,8 +49,12 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
   - `POST /api/trello/sync/full` - Sincronização bidirecional
   - `POST /api/trello/reset-and-sync` - Apagar dados e reimportar
   - `POST /api/trello/webhook` - Receber eventos do Trello
+  - `POST /api/trello/webhook/setup` - Configurar webhook
 - **15 listas mapeadas**: Clientes em Espera, Fase Documental, Entregue aos Intermediários, etc.
 - **Painel de configuração**: Definições > Sistema > Integração Trello
+  - Estado da conexão e lista de listas mapeadas
+  - Botões de sincronização manual
+  - Gestão de webhook (ativar/remover)
 - **Badge "Trello"**: Processos importados têm etiqueta visual no Kanban
 - **Credenciais**: Configuradas via TRELLO_API_KEY, TRELLO_TOKEN, TRELLO_BOARD_ID no .env
 
