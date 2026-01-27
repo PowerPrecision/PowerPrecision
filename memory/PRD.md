@@ -33,6 +33,22 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 
 ## What's Been Implemented
 
+### ✅ Integração Bidirecional com Trello (2026-01-27)
+- **Sincronização completa**: O sistema funciona como espelho do Trello
+- **152 processos importados** do board "Lista de clientes"
+- **Sincronização automática**: Ao mover processo no Kanban, o card é atualizado no Trello
+- **Endpoints implementados**:
+  - `GET /api/trello/status` - Estado da conexão
+  - `POST /api/trello/sync/from-trello` - Importar do Trello
+  - `POST /api/trello/sync/to-trello` - Exportar para Trello
+  - `POST /api/trello/sync/full` - Sincronização bidirecional
+  - `POST /api/trello/reset-and-sync` - Apagar dados e reimportar
+  - `POST /api/trello/webhook` - Receber eventos do Trello
+- **15 listas mapeadas**: Clientes em Espera, Fase Documental, Entregue aos Intermediários, etc.
+- **Painel de configuração**: Definições > Sistema > Integração Trello
+- **Badge "Trello"**: Processos importados têm etiqueta visual no Kanban
+- **Credenciais**: Configuradas via TRELLO_API_KEY, TRELLO_TOKEN, TRELLO_BOARD_ID no .env
+
 ### ✅ Separador "Minhas Tarefas" e Melhorias Mobile (2026-01-25)
 - **Separador "Minhas Tarefas"** no StaffDashboard para todos os utilizadores
 - Cada utilizador vê apenas as tarefas que lhe foram atribuídas
