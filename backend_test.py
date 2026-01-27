@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
 class CreditoIMOTester:
-    def __init__(self, base_url="https://trello-sync.preview.emergentagent.com"):
+    def __init__(self, base_url="https://creditsync-app.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}  # Store tokens for different users
         self.tests_run = 0
