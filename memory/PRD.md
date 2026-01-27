@@ -446,7 +446,7 @@ Ou modo daemon: `python -m services.scheduled_tasks --daemon`
 
 ### ⏸️ Em Stand-by
 - [ ] Sistema de Documentos CPCV/Escritura (aguarda lista de documentos)
-- [ ] Integração bidirecional com Trello
 - [ ] Testar análise AI com documentos reais
-- [ ] Histórico de emails na ficha do cliente
+- [x] ~~Integração bidirecional com Trello~~ ✅ CONCLUÍDO (2026-01-27)
+- [x] ~~Histórico de emails na ficha do cliente~~ ✅ CONCLUÍDO (2026-01-25)
 - [ ] Faturação
