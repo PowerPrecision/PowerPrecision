@@ -402,6 +402,69 @@ const TrelloIntegration = () => {
           </div>
         )}
 
+        {/* Webhook em Tempo Real */}
+        {status?.connected && (
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Webhook className="h-4 w-4 text-blue-900" />
+                <span className="font-medium">Sincronização em Tempo Real</span>
+              </div>
+              {webhooks.length > 0 ? (
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Ativo
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  Inativo
+                </Badge>
+              )}
+            </div>
+            
+            {webhooks.length > 0 ? (
+              <div className="text-sm text-muted-foreground">
+                <p className="text-green-700">
+                  ✓ Webhook ativo - Alterações no Trello são sincronizadas automaticamente
+                </p>
+                <p className="text-green-700">
+                  ✓ Alterações na App são enviadas automaticamente para o Trello
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteWebhook(webhooks[0].id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Remover Webhook
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-amber-700">
+                  ⚠️ Para receber atualizações do Trello em tempo real, configure o webhook.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={handleSetupWebhook}
+                  disabled={settingUpWebhook}
+                  className="bg-blue-900 hover:bg-blue-800"
+                >
+                  {settingUpWebhook ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Webhook className="h-4 w-4 mr-2" />
+                  )}
+                  Ativar Webhook
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Informação sobre sincronização */}
         <div className="text-xs text-muted-foreground space-y-1 border-t pt-4">
           <p><strong>Trello → App:</strong> Importa novos cards e atualiza estados de processos existentes.</p>
