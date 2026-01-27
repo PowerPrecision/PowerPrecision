@@ -373,9 +373,24 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 ## Integrações
 | Integração | Estado | Config |
 |------------|--------|--------|
+| **Trello** | ✅ FUNCIONAL | Board: Lista de clientes, API Key configurada |
 | SMTP Email | ✅ FUNCIONAL | mail.precisioncredito.pt:465 |
+| IMAP Email | ✅ FUNCIONAL | Precision + Power Real Estate |
 | OneDrive (Links) | ✅ FUNCIONAL | Links de partilha manuais |
 | GPT-4o (AI) | ⏳ Preparado | EMERGENT_LLM_KEY |
+
+## APIs do Trello
+- `GET /api/trello/status` - Estado da conexão e listas do board
+- `POST /api/trello/sync/from-trello` - Importar cards do Trello
+- `POST /api/trello/sync/to-trello` - Exportar processos para Trello
+- `POST /api/trello/sync/full` - Sincronização bidirecional completa
+- `POST /api/trello/reset-and-sync` - Apagar tudo e reimportar do Trello
+- `POST /api/trello/configure` - Configurar credenciais (admin)
+- `POST /api/trello/webhook` - Endpoint para receber eventos (webhooks)
+- `HEAD /api/trello/webhook` - Verificação do webhook pelo Trello
+- `POST /api/trello/webhook/setup` - Configurar webhook
+- `GET /api/trello/webhook/list` - Listar webhooks ativos
+- `DELETE /api/trello/webhook/{id}` - Eliminar webhook
 
 ## APIs de Alertas
 - `GET /api/processes/{id}/alerts` - Todos os alertas do processo
