@@ -555,6 +555,9 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
     updated = await db.processes.find_one({"id": process_id}, {"_id": 0})
     
+    # Sincronizar com Trello (nome e descrição do card)
+    await sync_process_to_trello(updated)
+    
     return ProcessResponse(**updated)
 
 
