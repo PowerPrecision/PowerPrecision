@@ -1,0 +1,360 @@
+/**
+ * ====================================================================
+ * COMPONENTE DE INTEGRAÇÃO TRELLO - CREDITOIMO
+ * ====================================================================
+ * Painel de gestão da integração com o Trello.
+ * 
+ * Funcionalidades:
+ * - Verificar estado da conexão
+ * - Sincronizar dados do Trello
+ * - Configurar webhook para sync em tempo real
+ * ====================================================================
+ */
+
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { useToast } from "../hooks/use-toast";
+import {
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
+  Loader2,
+  AlertTriangle,
+  Trash2,
+  Download,
+  Upload,
+  Webhook,
+} from "lucide-react";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || "";
+
+const TrelloIntegration = () => {
+  const { token } = useAuth();
+  const { toast } = useToast();
+  
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/trello/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStatus(data);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar Trello:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+
+  const handleSyncFromTrello = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/sync/from-trello`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSyncResult(data);
+      toast({
+        title: data.success ? "Sincronização concluída" : "Erro na sincronização",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível sincronizar com o Trello.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncToTrello = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/sync/to-trello`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSyncResult(data);
+      toast({
+        title: data.success ? "Sincronização concluída" : "Erro na sincronização",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível sincronizar para o Trello.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleFullReset = async () => {
+    if (!window.confirm(
+      "⚠️ ATENÇÃO: Esta ação vai APAGAR TODOS os processos, tarefas, prazos e utilizadores (exceto admins) e importar tudo do Trello.\n\nTem a certeza que quer continuar?"
+    )) {
+      return;
+    }
+    
+    setResetting(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/reset-and-sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSyncResult({
+        success: data.success,
+        message: data.message,
+        created: data.imported?.processes || 0,
+        updated: 0,
+        errors: data.imported?.errors || [],
+        deleted: data.deleted
+      });
+      toast({
+        title: data.success ? "Reset concluído" : "Erro no reset",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível fazer o reset.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-10 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-900" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 0H3C1.34 0 0 1.34 0 3v18c0 1.66 1.34 3 3 3h18c1.66 0 3-1.34 3-3V3c0-1.66-1.34-3-3-3zM10.44 18.18c0 .9-.72 1.62-1.62 1.62H4.62c-.9 0-1.62-.72-1.62-1.62V4.62c0-.9.72-1.62 1.62-1.62h4.2c.9 0 1.62.72 1.62 1.62v13.56zm10.56-6c0 .9-.72 1.62-1.62 1.62h-4.2c-.9 0-1.62-.72-1.62-1.62V4.62c0-.9.72-1.62 1.62-1.62h4.2c.9 0 1.62.72 1.62 1.62v7.56z"/>
+              </svg>
+              Integração Trello
+            </CardTitle>
+            <CardDescription>
+              Sincronize processos entre o CreditoIMO e o Trello
+            </CardDescription>
+          </div>
+          {status?.connected ? (
+            <Badge className="bg-green-100 text-green-800 border-green-200">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Conectado
+            </Badge>
+          ) : (
+            <Badge variant="destructive">
+              <XCircle className="h-3 w-3 mr-1" />
+              Desconectado
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Informação do Board */}
+        {status?.board && (
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Board conectado</p>
+                <p className="font-semibold text-blue-900">{status.board.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {status.board.lists_count} listas
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(status.board.url, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Abrir no Trello
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Listas do Trello */}
+        {status?.lists && status.lists.length > 0 && (
+          <div>
+            <p className="text-sm font-medium mb-2">Listas mapeadas:</p>
+            <div className="flex flex-wrap gap-2">
+              {status.lists.map((list) => (
+                <Badge key={list.id} variant="outline" className="text-xs">
+                  {list.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Botões de Sincronização */}
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <Button
+            onClick={handleSyncFromTrello}
+            disabled={syncing || resetting || !status?.connected}
+            className="bg-blue-900 hover:bg-blue-800"
+          >
+            {syncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Trello → App
+          </Button>
+          
+          <Button
+            onClick={handleSyncToTrello}
+            disabled={syncing || resetting || !status?.connected}
+            variant="outline"
+          >
+            {syncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            App → Trello
+          </Button>
+
+          <Button
+            onClick={fetchStatus}
+            variant="outline"
+            disabled={syncing || resetting}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar Estado
+          </Button>
+          
+          <Button
+            onClick={handleFullReset}
+            disabled={syncing || resetting || !status?.connected}
+            variant="destructive"
+          >
+            {resetting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            Reset Total
+          </Button>
+        </div>
+
+        {/* Resultado da Sincronização */}
+        {syncResult && (
+          <div className={`p-4 rounded-lg border ${syncResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            <div className="flex items-start gap-3">
+              {syncResult.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <p className={`font-medium ${syncResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  {syncResult.message}
+                </p>
+                <div className="mt-2 text-sm space-y-1">
+                  {syncResult.created > 0 && (
+                    <p className="text-green-700">✓ {syncResult.created} processos criados</p>
+                  )}
+                  {syncResult.updated > 0 && (
+                    <p className="text-blue-700">↻ {syncResult.updated} processos atualizados</p>
+                  )}
+                  {syncResult.deleted && (
+                    <div className="text-amber-700">
+                      <p>Apagados: {syncResult.deleted.processes} processos, {syncResult.deleted.tasks} tarefas, {syncResult.deleted.deadlines} prazos</p>
+                    </div>
+                  )}
+                  {syncResult.errors && syncResult.errors.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-red-700">
+                        {syncResult.errors.length} erros/avisos
+                      </summary>
+                      <ul className="mt-1 pl-4 text-xs text-red-600">
+                        {syncResult.errors.slice(0, 10).map((err, i) => (
+                          <li key={i}>• {err}</li>
+                        ))}
+                        {syncResult.errors.length > 10 && (
+                          <li>... e mais {syncResult.errors.length - 10}</li>
+                        )}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Aviso se não estiver conectado */}
+        {!status?.connected && (
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800">Trello não configurado</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  As credenciais do Trello não estão configuradas ou são inválidas.
+                  Contacte o administrador para configurar a integração.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Informação sobre sincronização */}
+        <div className="text-xs text-muted-foreground space-y-1 border-t pt-4">
+          <p><strong>Trello → App:</strong> Importa novos cards e atualiza estados de processos existentes.</p>
+          <p><strong>App → Trello:</strong> Exporta processos novos e atualiza cards existentes no Trello.</p>
+          <p><strong>Reset Total:</strong> Apaga TODOS os dados e importa tudo do Trello (usar com cuidado!).</p>
+          <p className="text-blue-700 mt-2">
+            <Webhook className="h-3 w-3 inline mr-1" />
+            A sincronização bidirecional em tempo real está ativa: quando move um processo no Kanban, o card é atualizado automaticamente no Trello.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default TrelloIntegration;
