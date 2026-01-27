@@ -120,6 +120,42 @@ class TrelloService:
         """Arquivar um card."""
         return await self._request("PUT", f"/cards/{card_id}", json={"closed": True})
     
+    async def get_card_actions(self, card_id: str, filter: str = "commentCard") -> List[Dict]:
+        """Obter atividades/comentários de um card."""
+        return await self._request(
+            "GET", 
+            f"/cards/{card_id}/actions",
+            params={"filter": filter}
+        )
+    
+    async def get_card_full(self, card_id: str) -> Dict:
+        """Obter card com todos os detalhes incluindo atividades."""
+        card = await self.get_card(card_id)
+        # Obter comentários
+        comments = await self.get_card_actions(card_id, "commentCard")
+        card["comments"] = comments
+        # Obter todas as ações (criação, movimentos, etc.)
+        all_actions = await self.get_card_actions(card_id, "all")
+        card["actions"] = all_actions
+        return card
+    
+    async def get_cards_with_details(self, list_id: str = None) -> List[Dict]:
+        """Obter cards com todos os dados e atividades."""
+        if list_id:
+            cards = await self._request("GET", f"/lists/{list_id}/cards")
+        else:
+            cards = await self._request("GET", f"/boards/{self.board_id}/cards")
+        
+        # Obter comentários para cada card
+        for card in cards:
+            try:
+                comments = await self.get_card_actions(card["id"], "commentCard")
+                card["comments"] = comments
+            except Exception:
+                card["comments"] = []
+        
+        return cards
+    
     # === Webhooks ===
     
     async def create_webhook(self, callback_url: str, id_model: str = None, 
