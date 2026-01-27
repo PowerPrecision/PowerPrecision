@@ -125,9 +125,14 @@ class TrelloService:
     async def create_webhook(self, callback_url: str, id_model: str = None, 
                              description: str = "CreditoIMO Sync") -> Dict:
         """Criar webhook para receber notificações do Trello."""
+        # Se não for fornecido, obter o ID real do board
+        if not id_model:
+            board = await self.get_board()
+            id_model = board.get("id", self.board_id)
+        
         data = {
             "callbackURL": callback_url,
-            "idModel": id_model or self.board_id,
+            "idModel": id_model,
             "description": description,
         }
         return await self._request("POST", "/webhooks", json=data)
