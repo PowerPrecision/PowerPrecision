@@ -510,7 +510,7 @@ async def handle_card_updated(action: dict):
     """Processar atualização de card no Trello."""
     card = action.get("data", {}).get("card", {})
     list_after = action.get("data", {}).get("listAfter", {})
-    list_before = action.get("data", {}).get("listBefore", {})
+    old_data = action.get("data", {}).get("old", {})
     
     if not card.get("id"):
         return
@@ -518,6 +518,8 @@ async def handle_card_updated(action: dict):
     # Encontrar processo
     process = await db.processes.find_one({"trello_card_id": card["id"]})
     if not process:
+        # Se não existe, criar novo processo
+        await handle_card_created(action)
         return
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
@@ -525,6 +527,19 @@ async def handle_card_updated(action: dict):
     # Atualizar nome se mudou
     if card.get("name") and card["name"] != process.get("client_name"):
         update_data["client_name"] = card["name"]
+        logger.info(f"Nome atualizado via Trello: {process.get('client_name')} -> {card['name']}")
+    
+    # Atualizar descrição se mudou (extrair dados)
+    if "desc" in old_data or card.get("desc"):
+        desc = card.get("desc", "")
+        parsed = parse_card_description(desc)
+        
+        if parsed.get("email"):
+            update_data["client_email"] = parsed["email"]
+        if parsed.get("telefone") or parsed.get("phone"):
+            update_data["client_phone"] = parsed.get("telefone") or parsed.get("phone")
+        if parsed.get("nif"):
+            update_data["client_nif"] = parsed["nif"]
     
     # Atualizar status se mudou de lista
     if list_after.get("name"):
@@ -534,7 +549,9 @@ async def handle_card_updated(action: dict):
             update_data["trello_list_id"] = list_after.get("id")
             logger.info(f"Processo movido via Trello: {process['client_name']} -> {new_status}")
     
-    await db.processes.update_one({"id": process["id"]}, {"$set": update_data})
+    if len(update_data) > 1:  # Mais do que apenas updated_at
+        await db.processes.update_one({"id": process["id"]}, {"$set": update_data})
+        logger.info(f"Processo atualizado via webhook Trello: {process['client_name']}")
 
 
 async def handle_card_deleted(action: dict):
