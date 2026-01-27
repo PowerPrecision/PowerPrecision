@@ -53,9 +53,28 @@ from services.alerts import (
     notify_cpcv_or_deed_document_check
 )
 from services.realtime_notifications import notify_process_status_change
-from services.trello import trello_service, status_to_trello_list
+from services.trello import trello_service, status_to_trello_list, build_card_description
 
 logger = logging.getLogger(__name__)
+
+
+async def sync_process_to_trello(process: dict):
+    """Sincronizar processo com o Trello (nome e descrição do card)."""
+    if not process.get("trello_card_id") or not trello_service.api_key:
+        return False
+    
+    try:
+        description = build_card_description(process)
+        await trello_service.update_card(
+            process["trello_card_id"],
+            name=process.get("client_name", "Sem nome"),
+            desc=description
+        )
+        logger.info(f"Card {process['trello_card_id']} atualizado no Trello: {process.get('client_name')}")
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar com Trello: {e}")
+        return False
 
 
 # ====================================================================
