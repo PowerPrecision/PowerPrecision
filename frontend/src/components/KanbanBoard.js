@@ -72,6 +72,13 @@ const KanbanBoard = ({ token }) => {
 
   useEffect(() => {
     fetchKanbanData();
+    
+    // Polling para atualizar dados a cada 10 segundos (sync com Trello)
+    const pollInterval = setInterval(() => {
+      fetchKanbanData();
+    }, 10000);
+    
+    return () => clearInterval(pollInterval);
   }, [fetchKanbanData]);
 
   const handleDragStart = (e, process, columnName) => {
