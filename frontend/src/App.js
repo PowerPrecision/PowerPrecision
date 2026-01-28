@@ -1,21 +1,22 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import ImpersonateBanner from "./components/ImpersonateBanner";
 import LoginPage from "./pages/LoginPage";
 import PublicClientForm from "./pages/PublicClientForm";
-import ClientDashboard from "./pages/ClientDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProcessDetails from "./pages/ProcessDetails";
-import NewProcess from "./pages/NewProcess";
 import StatisticsPage from "./pages/StatisticsPage";
 import UsersManagementPage from "./pages/UsersManagementPage";
 import ProcessesPage from "./pages/ProcessesPage";
 import SettingsPage from "./pages/SettingsPage";
+import FilteredProcessList from "./pages/FilteredProcessList";
+import PendingItemsList from "./pages/PendingItemsList";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
-const STAFF_ROLES = ["consultor", "mediador", "intermediario", "consultor_mediador", "consultor_intermediario", "ceo", "admin"];
+const STAFF_ROLES = ["consultor", "mediador", "intermediario", "diretor", "administrativo", "ceo", "admin"];
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -33,7 +34,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/staff" replace />;
   }
 
   return children;
@@ -44,21 +45,11 @@ const DashboardRedirect = () => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  switch (user.role) {
-    case "cliente":
-      return <Navigate to="/cliente" replace />;
-    case "admin":
-      return <Navigate to="/admin" replace />;
-    case "consultor":
-    case "mediador":
-    case "intermediario":
-    case "consultor_mediador":
-    case "consultor_intermediario":
-    case "ceo":
-      return <Navigate to="/staff" replace />;
-    default:
-      return <Navigate to="/login" replace />;
+  // Admin vai para /admin, todos os outros staff vão para /staff
+  if (user.role === "admin") {
+    return <Navigate to="/admin" replace />;
   }
+  return <Navigate to="/staff" replace />;
 };
 
 function App() {
@@ -73,74 +64,15 @@ function App() {
           {/* Staff login */}
           <Route path="/login" element={<LoginPage />} />
           
+          {/* Dashboard redirect */}
           <Route path="/dashboard" element={<DashboardRedirect />} />
           
-          {/* Cliente Dashboard */}
-          <Route
-            path="/cliente"
-            element={
-              <ProtectedRoute allowedRoles={["cliente"]}>
-                <ClientDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cliente/novo-processo"
-            element={
-              <ProtectedRoute allowedRoles={["cliente"]}>
-                <NewProcess />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Staff Dashboard (Consultor, Mediador, Consultor/Mediador, CEO) */}
+          {/* Staff Dashboard (Consultor, Mediador, Diretor, Administrativo, CEO) */}
           <Route
             path="/staff"
             element={
               <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <StaffDashboard />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Legacy routes - redirect to staff dashboard */}
-          <Route
-            path="/consultor"
-            element={
-              <ProtectedRoute allowedRoles={STAFF_ROLES}>
-                <Navigate to="/staff" replace />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/mediador"
-            element={
-              <ProtectedRoute allowedRoles={STAFF_ROLES}>
-                <Navigate to="/staff" replace />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/intermediario"
-            element={
-              <ProtectedRoute allowedRoles={STAFF_ROLES}>
-                <Navigate to="/staff" replace />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ceo"
-            element={
-              <ProtectedRoute allowedRoles={STAFF_ROLES}>
-                <Navigate to="/staff" replace />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/consultor_intermediario"
-            element={
-              <ProtectedRoute allowedRoles={STAFF_ROLES}>
-                <Navigate to="/staff" replace />
               </ProtectedRoute>
             }
           />
@@ -155,11 +87,11 @@ function App() {
             }
           />
           
-          {/* Statistics Page - All authenticated users */}
+          {/* Statistics Page - Staff and Admin */}
           <Route
             path="/estatisticas"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <StatisticsPage />
               </ProtectedRoute>
             }
@@ -179,17 +111,17 @@ function App() {
           <Route
             path="/processos"
             element={
-              <ProtectedRoute allowedRoles={[...STAFF_ROLES, "admin"]}>
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <ProcessesPage />
               </ProtectedRoute>
             }
           />
           
-          {/* Process Details - Any authenticated user */}
+          {/* Process Details - Staff and Admin */}
           <Route
             path="/processo/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <ProcessDetails />
               </ProtectedRoute>
             }
@@ -197,24 +129,46 @@ function App() {
           <Route
             path="/process/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <ProcessDetails />
               </ProtectedRoute>
             }
           />
           
-          {/* Settings Page - All authenticated users */}
+          {/* Settings Page - Staff and Admin */}
           <Route
             path="/definicoes"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <SettingsPage />
               </ProtectedRoute>
             }
           />
           
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Filtered Process List - Staff and Admin */}
+          <Route
+            path="/processos-filtrados"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <FilteredProcessList />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Pending Items List - Staff and Admin */}
+          <Route
+            path="/pendentes"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <PendingItemsList />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        <ImpersonateBanner />
       </BrowserRouter>
       <Toaster position="top-right" richColors />
     </AuthProvider>

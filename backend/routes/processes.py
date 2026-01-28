@@ -32,6 +32,7 @@ Autor: CreditoIMO Development Team
 ====================================================================
 """
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -48,8 +49,32 @@ from services.alerts import (
     get_process_alerts,
     check_property_documents,
     create_deed_reminder,
-    notify_pre_approval_countdown
+    notify_pre_approval_countdown,
+    notify_cpcv_or_deed_document_check
 )
+from services.realtime_notifications import notify_process_status_change
+from services.trello import trello_service, status_to_trello_list, build_card_description
+
+logger = logging.getLogger(__name__)
+
+
+async def sync_process_to_trello(process: dict):
+    """Sincronizar processo com o Trello (nome e descrição do card)."""
+    if not process.get("trello_card_id") or not trello_service.api_key:
+        return False
+    
+    try:
+        description = build_card_description(process)
+        await trello_service.update_card(
+            process["trello_card_id"],
+            name=process.get("client_name", "Sem nome"),
+            desc=description
+        )
+        logger.info(f"Card {process['trello_card_id']} atualizado no Trello: {process.get('client_name')}")
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao sincronizar com Trello: {e}")
+        return False
 
 
 # ====================================================================
@@ -346,6 +371,14 @@ async def move_process_kanban(
                 "details": property_check.get("details")
             })
     
+    # 1.1 Alerta de verificação de documentos para CPCV/Escritura
+    if new_status in ["ch_aprovado", "fase_escritura", "escritura_agendada"]:
+        await notify_cpcv_or_deed_document_check(process, new_status)
+        alerts_generated.append({
+            "type": "document_verification_alert",
+            "message": "Alerta enviado aos envolvidos para verificação de documentos"
+        })
+    
     # 2. Ao mover para pré-aprovação - Iniciar countdown de 90 dias
     if new_status == "fase_bancaria" and old_status != "fase_bancaria":
         # Guardar data de aprovação se ainda não existir
@@ -386,6 +419,32 @@ async def move_process_kanban(
             f"Atualização do seu processo",
             f"O estado do seu processo foi atualizado para: {status_label}"
         )
+    
+    # === CRIAR NOTIFICAÇÃO NA BASE DE DADOS ===
+    status_doc = await db.workflow_statuses.find_one({"name": new_status}, {"_id": 0})
+    status_label = status_doc.get("label", new_status) if status_doc else new_status
+    
+    await notify_process_status_change(
+        process=process,
+        old_status=old_status,
+        new_status=new_status,
+        new_status_label=status_label,
+        changed_by=user
+    )
+    
+    # === SINCRONIZAR COM TRELLO ===
+    if process.get("trello_card_id") and trello_service.api_key:
+        try:
+            trello_list_name = status_to_trello_list(new_status)
+            if trello_list_name:
+                # Encontrar a lista do Trello pelo nome
+                trello_list = await trello_service.get_list_by_name(trello_list_name)
+                if trello_list:
+                    await trello_service.move_card(process["trello_card_id"], trello_list["id"])
+                    logger.info(f"Card {process['trello_card_id']} movido para {trello_list_name} no Trello")
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar com Trello: {e}")
+            # Não falhar a operação por erro no Trello
     
     return {
         "message": "Processo movido com sucesso", 
@@ -495,6 +554,9 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
     updated = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    
+    # Sincronizar com Trello (nome e descrição do card)
+    await sync_process_to_trello(updated)
     
     return ProcessResponse(**updated)
 

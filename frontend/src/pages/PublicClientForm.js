@@ -73,6 +73,7 @@ const PublicClientForm = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState(null);
   
   const [formData, setFormData] = useState({
     // Dados Pessoais - Titular
@@ -139,9 +140,10 @@ const PublicClientForm = () => {
     }
 
     setLoading(true);
+    setBlockedMessage(null);
 
     try {
-      await axios.post(`${API_URL}/public/client-registration`, {
+      const response = await axios.post(`${API_URL}/public/client-registration`, {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -191,8 +193,14 @@ const PublicClientForm = () => {
         },
       });
 
-      setSubmitted(true);
-      toast.success("Registo enviado com sucesso!");
+      // Verificar se o registo foi bloqueado por duplicado
+      if (response.data.blocked) {
+        setBlockedMessage(response.data.message);
+        toast.info(response.data.message);
+      } else {
+        setSubmitted(true);
+        toast.success("Registo enviado com sucesso!");
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error(error.response?.data?.detail || "Erro ao enviar registo");
@@ -923,6 +931,39 @@ const PublicClientForm = () => {
     </div>
   );
 
+  const renderBlockedMessage = () => (
+    <div className="text-center py-12">
+      <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Info className="h-8 w-8 text-amber-600" />
+      </div>
+      <h2 className="text-2xl font-semibold mb-2 text-amber-800">Processo Já Existente</h2>
+      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+        {blockedMessage}
+      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-gray-500">
+          Caso tenha dúvidas, pode contactar-nos diretamente:
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a 
+            href="mailto:geral@precisioncredito.pt" 
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition-colors"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Contactar Precision
+          </a>
+          <a 
+            href="mailto:geral@powerealestate.pt" 
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Contactar Power RE
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+
   const canProceed = () => {
     switch (step) {
       case 1:
@@ -944,7 +985,7 @@ const PublicClientForm = () => {
     }
   };
 
-  if (submitted) {
+  if (submitted || blockedMessage) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-amber-50">
         {/* Header com cores da marca */}
@@ -962,7 +1003,7 @@ const PublicClientForm = () => {
         <main className="container mx-auto px-4 py-8">
           <Card className="max-w-4xl mx-auto border-blue-200 shadow-lg">
             <CardContent className="pt-6">
-              {renderSuccessMessage()}
+              {blockedMessage ? renderBlockedMessage() : renderSuccessMessage()}
             </CardContent>
           </Card>
         </main>

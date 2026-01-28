@@ -62,11 +62,14 @@ const DashboardLayout = ({ children, title }) => {
   };
 
   const getNavItems = () => {
+    // Determinar o href correcto para o dashboard
+    const dashboardHref = user?.role === "admin" ? "/admin" : "/staff";
+    
     const baseItems = [
       {
         label: "Dashboard",
         icon: LayoutDashboard,
-        href: `/${user?.role}`,
+        href: dashboardHref,
       },
     ];
 
@@ -77,7 +80,7 @@ const DashboardLayout = ({ children, title }) => {
       href: "/estatisticas",
     };
 
-    // Definições para todos os utilizadores
+    // Definições apenas para admin
     const settingsItem = {
       label: "Definições",
       icon: Settings,
@@ -88,7 +91,6 @@ const DashboardLayout = ({ children, title }) => {
       return [
         ...baseItems,
         statsItem,
-        settingsItem,
       ];
     }
 
@@ -116,7 +118,7 @@ const DashboardLayout = ({ children, title }) => {
     }
 
     // For staff roles (consultor, mediador, intermediario, ceo, etc.)
-    if (["consultor", "mediador", "intermediario", "consultor_intermediario", "ceo"].includes(user?.role)) {
+    if (["consultor", "mediador", "intermediario", "consultor_intermediario", "ceo", "diretor", "administrativo"].includes(user?.role)) {
       return [
         ...baseItems,
         statsItem,
@@ -125,11 +127,10 @@ const DashboardLayout = ({ children, title }) => {
           icon: FileText,
           href: "/processos",
         },
-        settingsItem,
       ];
     }
 
-    return [...baseItems, settingsItem];
+    return [...baseItems];
   };
 
   const navItems = getNavItems();

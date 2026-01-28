@@ -18,7 +18,9 @@
 8. [Documentos e Validades](#8-documentos-e-validades)
 9. [Estatísticas](#9-estatísticas)
 10. [Formulário Público](#10-formulário-público)
-11. [Referência Técnica](#11-referência-técnica)
+11. [Gestão de Utilizadores (Admin)](#11-gestão-de-utilizadores-admin)
+12. [Editor de Fluxos de Workflow (Admin)](#12-editor-de-fluxos-de-workflow-admin)
+13. [Referência Técnica](#13-referência-técnica)
 
 ---
 
@@ -32,11 +34,13 @@ O **CreditoIMO** é um sistema integrado de gestão de processos para empresas d
 ### Funcionalidades Principais
 
 ✅ Gestão visual de processos com quadro Kanban  
-✅ Controlo de 14 fases de workflow  
+✅ Controlo de 14 fases de workflow (editáveis)  
 ✅ Calendário com prazos e alertas  
 ✅ Rastreamento de validade de documentos (60 dias)  
 ✅ **Sistema de Alertas Inteligentes (Idade <35, Countdown 90 dias, Docs a expirar)**  
 ✅ **Notificações em Tempo Real com Som**  
+✅ **Editor de Fluxos de Workflow** (Definições > Sistema)  
+✅ **Gestão Completa de Utilizadores** (criar, editar, eliminar)  
 ✅ Estatísticas e relatórios  
 ✅ Formulário público de registo de clientes  
 ✅ Controlo de acesso por papel  
@@ -55,8 +59,8 @@ O **CreditoIMO** é um sistema integrado de gestão de processos para empresas d
 | Flávio da Silva | flavio@powerealestate.pt | power2026 | Consultor |
 | Estácio Miranda | estacio@precisioncredito.pt | power2026 | Intermediário |
 | Fernando Andrade | fernando@precisioncredito.pt | power2026 | Intermediário |
-| Carina Amuedo | carina@powerealestate.pt | power2026 | Consultor/Intermediário |
-| Marisa Rodrigues | marisa@powerealestate.pt | power2026 | Consultor/Intermediário |
+| Carina Amuedo | carina@powerealestate.pt | power2026 | Diretor(a) |
+| Marisa Rodrigues | marisa@powerealestate.pt | power2026 | Administrativo(a) |
 
 ### Processo de Login
 
@@ -92,11 +96,22 @@ ADMINISTRADOR (admin)
     └── Acesso total ao sistema
     └── Gestão de utilizadores
     └── Configurações do sistema
+    └── Editor de Workflow
 
 CEO (ceo)
     └── Visão global de todos os processos
     └── Estatísticas gerais
     └── Relatórios executivos
+
+DIRETOR(A) (diretor)
+    └── Acesso a ambas as funções (consultor + intermediário)
+    └── Processos atribuídos em ambos os papéis
+    └── Calendário e documentos
+
+ADMINISTRATIVO(A) (administrativo)
+    └── Vê todos os processos (função de apoio)
+    └── Gestão documental
+    └── Calendário e prazos
 
 CONSULTOR (consultor)
     └── Processos imobiliários atribuídos
@@ -107,10 +122,6 @@ INTERMEDIÁRIO (intermediario)
     └── Processos de crédito atribuídos
     └── Contacto com bancos
     └── Gestão documental
-
-CONSULTOR/INTERMEDIÁRIO (consultor_intermediario)
-    └── Ambas as funções
-    └── Processos mistos
 
 CLIENTE (cliente)
     └── Visualização do próprio processo
@@ -605,7 +616,110 @@ const PublicClientForm = () => {
 
 ---
 
-## 11. Referência Técnica
+## 11. Gestão de Utilizadores (Admin)
+
+### Acesso à Gestão de Utilizadores
+
+A gestão de utilizadores está disponível apenas para **Administradores** através de duas formas:
+
+1. **Menu lateral** → Utilizadores
+2. **Dashboard Admin** → Tab "Utilizadores" → Botão "Gerir Todos os Utilizadores"
+
+### Criar Novo Utilizador
+
+1. Aceder à página de Utilizadores
+2. Clicar em **"Novo Utilizador"**
+3. Preencher os campos obrigatórios:
+   - Nome completo
+   - Email (único no sistema)
+   - Password (mínimo 6 caracteres)
+   - Papel/Função
+4. Campos opcionais:
+   - Telefone
+   - Empresa
+5. Clicar em **"Criar Utilizador"**
+
+### Editar Utilizador
+
+1. Na lista de utilizadores, clicar no ícone de **edição** (lápis)
+2. Alterar os campos desejados
+3. Deixar password em branco para manter a atual
+4. Clicar em **"Guardar"**
+
+### Desativar/Ativar Utilizador
+
+- Clicar no ícone de **utilizador** para alternar o estado
+- Utilizadores desativados não conseguem fazer login
+- Dados e histórico são preservados
+
+### Eliminar Utilizador
+
+1. Clicar no ícone de **lixo** (vermelho)
+2. Confirmar a eliminação
+3. **Atenção:** Esta ação é irreversível
+
+---
+
+## 12. Editor de Fluxos de Workflow (Admin)
+
+### Acesso ao Editor
+
+1. Ir a **Definições** (menu lateral)
+2. Clicar na tab **"Sistema"**
+3. Ver o **Editor de Estados do Workflow**
+
+### Estados Disponíveis
+
+O sistema vem configurado com 14 estados de workflow:
+
+| Ordem | Estado | Cor |
+|-------|--------|-----|
+| 1 | Clientes em Espera | Amarelo |
+| 2 | Documentos Solicitados | Azul |
+| 3 | Documentos em Análise | Azul |
+| 4 | Enviado ao Bruno | Laranja |
+| 5 | Enviado ao Luís | Laranja |
+| 6 | Enviado à Carina | Laranja |
+| 7 | Aguarda Docs Banco | Azul |
+| 8 | Docs Entregues Banco | Azul |
+| 9 | Avaliação Pendente | Laranja |
+| 10 | Avaliação Realizada | Laranja |
+| 11 | Carta de Aprovação | Verde |
+| 12 | Escritura Agendada | Verde |
+| 13 | Concluído | Verde |
+| 14 | Desistência | Vermelho |
+
+### Criar Novo Estado
+
+1. Clicar em **"Novo Estado"**
+2. Preencher:
+   - **Etiqueta:** Nome visível no Kanban
+   - **Nome Interno:** Identificador único (automático)
+   - **Ordem:** Posição no fluxo
+   - **Cor:** Amarelo, Azul, Laranja, Verde, Vermelho ou Roxo
+   - **Descrição:** Opcional
+3. Clicar em **"Criar Estado"**
+
+### Editar Estado
+
+1. Clicar no ícone de **edição** (lápis) ao lado do estado
+2. Alterar etiqueta, ordem, cor ou descrição
+3. **Nota:** O nome interno não pode ser alterado
+4. Clicar em **"Guardar"**
+
+### Reordenar Estados
+
+Usar as **setas ↑ ↓** ao lado de cada estado para alterar a ordem no fluxo.
+
+### Eliminar Estado
+
+1. Clicar no ícone de **lixo** ao lado do estado
+2. Confirmar a eliminação
+3. **Atenção:** Certifique-se de que não há processos neste estado
+
+---
+
+## 13. Referência Técnica
 
 ### Arquitetura do Sistema
 
@@ -674,6 +788,13 @@ const PublicClientForm = () => {
 | `/api/deadlines` | GET | Eventos/Prazos |
 | `/api/documents/expiry/upcoming` | GET | Docs a expirar |
 | `/api/users` | GET | Listar utilizadores |
+| `/api/admin/users` | POST | Criar utilizador (Admin) |
+| `/api/admin/users/{id}` | PUT | Editar utilizador (Admin) |
+| `/api/admin/users/{id}` | DELETE | Eliminar utilizador (Admin) |
+| `/api/workflow-statuses` | GET | Listar estados workflow |
+| `/api/workflow-statuses` | POST | Criar estado (Admin) |
+| `/api/workflow-statuses/{id}` | PUT | Editar estado (Admin) |
+| `/api/workflow-statuses/{id}` | DELETE | Eliminar estado (Admin) |
 | `/api/public/register` | POST | Registo público |
 | `/api/processes/{id}/alerts` | GET | Alertas do processo |
 | `/api/alerts/notifications` | GET | Notificações do utilizador |

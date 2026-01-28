@@ -438,6 +438,80 @@ async def notify_new_client_registration(process: dict, has_property: bool = Fal
 # FUNÇÕES DE NOTIFICAÇÃO DE COUNTDOWN
 # ====================================================================
 
+async def notify_cpcv_or_deed_document_check(process: dict, new_status: str):
+    """
+    Notifica os envolvidos quando um processo atinge CPCV ou Escritura
+    para verificar se toda a documentação está em ordem.
+    
+    Args:
+        process: Dados do processo
+        new_status: O novo estado do processo (cpcv, fase_escritura, escritura_agendada)
+    """
+    from services.realtime_notifications import send_realtime_notification
+    
+    # Determinar mensagem baseada no estado
+    status_messages = {
+        "fase_escritura": ("📋 CPCV/Escritura", "O processo entrou em fase de escritura"),
+        "escritura_agendada": ("📝 Escritura Agendada", "A escritura foi agendada"),
+        "ch_aprovado": ("✅ CH Aprovado", "O crédito habitação foi aprovado"),
+    }
+    
+    title, description = status_messages.get(new_status, ("📋 Mudança de Fase", "O processo mudou de fase"))
+    
+    # Obter utilizadores envolvidos
+    user_ids = set()
+    if process.get("assigned_consultor_id"):
+        user_ids.add(process["assigned_consultor_id"])
+    if process.get("consultor_id"):
+        user_ids.add(process["consultor_id"])
+    if process.get("assigned_mediador_id"):
+        user_ids.add(process["assigned_mediador_id"])
+    if process.get("intermediario_id"):
+        user_ids.add(process["intermediario_id"])
+    
+    # Adicionar CEO, Diretores e Administrativos
+    staff = await db.users.find({
+        "role": {"$in": ["ceo", "diretor", "admin"]},
+        "is_active": True
+    }, {"_id": 0, "id": 1, "email": 1, "name": 1}).to_list(100)
+    
+    for s in staff:
+        user_ids.add(s["id"])
+    
+    # Verificar documentos do imóvel
+    property_check = await check_property_documents(process)
+    missing_info = ""
+    if property_check.get("active"):
+        missing_info = f"\n\n⚠️ Documentos em falta: {property_check.get('details', 'Verificar')}"
+    
+    # Enviar notificações
+    client_name = process.get("client_name", "Cliente")
+    
+    for user_id in user_ids:
+        # Notificação em tempo real (WebSocket + Push)
+        await send_realtime_notification(
+            user_id=user_id,
+            title=f"{title} - {client_name}",
+            message=f"{description}. Por favor, verifique se toda a documentação está em ordem.{missing_info}",
+            notification_type="document_verification",
+            link=f"/process/{process['id']}",
+            process_id=process["id"]
+        )
+        
+        # Email
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if user:
+            await send_email_notification(
+                user["email"],
+                f"{title} - {client_name}",
+                f"Olá {user['name']},\n\n"
+                f"{description} para o cliente {client_name}.\n\n"
+                f"Por favor, aceda ao sistema para verificar se toda a documentação está em ordem "
+                f"antes de prosseguir com o processo.{missing_info}\n\n"
+                f"Aceda ao processo: /process/{process['id']}"
+            )
+
+
 async def notify_pre_approval_countdown(process: dict):
     """
     Notifica os envolvidos sobre o countdown da pré-aprovação.

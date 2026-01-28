@@ -1,3 +1,14 @@
+"""
+====================================================================
+ROTAS PÚBLICAS - CREDITOIMO
+====================================================================
+Endpoints públicos (sem autenticação).
+
+IMPORTANTE: O cliente NÃO é um utilizador do sistema.
+O registo público cria apenas um documento na colecção Processes.
+Os dados do cliente (email, telefone) ficam guardados no Process.
+====================================================================
+"""
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter
@@ -5,7 +16,7 @@ from fastapi import APIRouter
 from database import db
 from models.auth import UserRole
 from models.process import PublicClientRegistration
-from services.email import send_new_client_notification
+from services.email import send_registration_confirmation, send_new_client_notification
 from services.alerts import notify_new_client_registration
 
 
@@ -17,35 +28,45 @@ async def public_client_registration(data: PublicClientRegistration):
     """
     Endpoint público para registo de clientes - sem autenticação.
     
-    Quando o cliente preenche o formulário:
-    1. Cria utilizador (se não existir)
-    2. Cria processo
-    3. Notifica administradores
-    4. Se "Já tem imóvel" preenchido, indicar para atribuir só intermediários
+    FLUXO:
+    1. Verifica se email ou NIF já existem (bloqueia duplicados)
+    2. Cria documento na colecção Processes (NÃO cria utilizador)
+    3. Envia email de confirmação ao cliente
+    4. Notifica administradores/staff
+    5. Gera alertas no sistema
+    
+    O cliente é apenas um "conjunto de dados" dentro do Processo,
+    não um utilizador com credenciais de login.
     """
     
-    existing_user = await db.users.find_one({"email": data.email})
+    # =========================================
+    # VERIFICAR DUPLICADOS (EMAIL E NIF)
+    # =========================================
     
-    if existing_user:
-        user_id = existing_user["id"]
-        user_name = existing_user["name"]
-    else:
-        user_id = str(uuid.uuid4())
-        user_name = data.name
-        now = datetime.now(timezone.utc).isoformat()
-        
-        user_doc = {
-            "id": user_id,
-            "email": data.email,
-            "password": None,
-            "name": data.name,
-            "phone": data.phone,
-            "role": UserRole.CLIENTE,
-            "is_active": True,
-            "onedrive_folder": data.name,
-            "created_at": now
+    # Verificar se já existe processo com o mesmo email
+    existing_by_email = await db.processes.find_one({"client_email": data.email})
+    if existing_by_email:
+        return {
+            "success": False,
+            "blocked": True,
+            "reason": "email",
+            "message": "Já existe um processo com este email. A nossa equipa entrará em contacto consigo em breve."
         }
-        await db.users.insert_one(user_doc)
+    
+    # Verificar se já existe processo com o mesmo NIF
+    nif = None
+    if data.personal_data:
+        nif = data.personal_data.nif
+    
+    if nif:
+        existing_by_nif = await db.processes.find_one({"personal_data.nif": nif})
+        if existing_by_nif:
+            return {
+                "success": False,
+                "blocked": True,
+                "reason": "nif",
+                "message": "Já existe um processo com este NIF. A nossa equipa entrará em contacto consigo em breve."
+            }
     
     first_status = await db.workflow_statuses.find_one({}, {"_id": 0}, sort=[("order", 1)])
     initial_status = first_status["name"] if first_status else "clientes_espera"
@@ -53,53 +74,71 @@ async def public_client_registration(data: PublicClientRegistration):
     process_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
-    # Verificar se já tem imóvel (para definir atribuição)
+    # Processar dados do formulário
     real_estate_data = data.real_estate_data.model_dump() if data.real_estate_data else {}
     has_property = bool(real_estate_data.get("ja_tem_imovel") or real_estate_data.get("has_property"))
     
-    # Verificar idade para campo idade_menos_35
     personal_data = data.personal_data.model_dump() if data.personal_data else {}
     birth_date = personal_data.get("birth_date")
     idade_menos_35 = False
+    
     if birth_date:
         try:
             birth = datetime.strptime(birth_date, "%Y-%m-%d")
             age = (datetime.now() - birth).days // 365
             idade_menos_35 = age < 35
-        except:
+        except (ValueError, TypeError):
             pass
     
+    # Verificar se checkbox menor_35_anos foi marcado
+    if personal_data.get("menor_35_anos"):
+        idade_menos_35 = True
+    
+    # Criar documento do processo (SEM criar utilizador)
     process_doc = {
         "id": process_id,
-        "client_id": user_id,
-        "client_name": user_name,
+        # Dados do cliente guardados directamente no processo
+        "client_id": None,  # Não há utilizador associado
+        "client_name": data.name,
         "client_email": data.email,
         "client_phone": data.phone,
+        # Tipo e estado
         "process_type": data.process_type,
         "status": initial_status,
+        # Dados estruturados
         "personal_data": personal_data,
         "titular2_data": data.titular2_data.model_dump() if data.titular2_data else None,
         "financial_data": data.financial_data.model_dump() if data.financial_data else None,
         "real_estate_data": real_estate_data,
         "credit_data": None,
+        # Atribuições (a ser preenchido pelo staff)
         "assigned_consultor_id": None,
         "assigned_mediador_id": None,
         "consultor_id": None,
+        "consultor_name": None,
         "intermediario_id": None,
+        "mediador_id": None,
+        "mediador_name": None,
+        # Flags
         "source": "public_form",
-        "has_property": has_property,  # Flag para indicar se já tem imóvel
-        "idade_menos_35": idade_menos_35,  # Flag para apoio ao estado
+        "has_property": has_property,
+        "idade_menos_35": idade_menos_35,
+        # Documentos e histórico
+        "documents": [],
+        "notes": None,
+        # Timestamps
         "created_at": now,
         "updated_at": now
     }
     
     await db.processes.insert_one(process_doc)
     
+    # Registar no histórico
     await db.history.insert_one({
         "id": str(uuid.uuid4()),
         "process_id": process_id,
-        "user_id": user_id,
-        "user_name": user_name,
+        "user_id": None,
+        "user_name": data.name,
         "action": "Cliente registou-se via formulário público",
         "field": None,
         "old_value": None,
@@ -107,13 +146,24 @@ async def public_client_registration(data: PublicClientRegistration):
         "created_at": now
     })
     
-    # Notificar administradores sobre novo registo
-    # Se já tem imóvel, indicar para atribuir apenas a intermediários
+    # =========================================
+    # ENVIAR EMAIL DE CONFIRMAÇÃO AO CLIENTE
+    # =========================================
+    await send_registration_confirmation(
+        client_email=data.email,
+        client_name=data.name
+    )
+    
+    # =========================================
+    # NOTIFICAR STAFF SOBRE NOVO REGISTO
+    # =========================================
+    
+    # Criar alertas no sistema de notificações
     await notify_new_client_registration(process_doc, has_property)
     
-    # Notificação legacy para compatibilidade
+    # Enviar emails para admins e CEOs
     staff = await db.users.find(
-        {"role": {"$in": [UserRole.ADMIN, UserRole.CEO]}}, 
+        {"role": {"$in": [UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]}}, 
         {"_id": 0}
     ).to_list(100)
     
@@ -129,8 +179,14 @@ async def public_client_registration(data: PublicClientRegistration):
     
     return {
         "success": True,
-        "message": "Registo criado com sucesso",
+        "message": "Registo criado com sucesso. Verifique o seu email.",
         "process_id": process_id,
         "has_property": has_property,
         "idade_menos_35": idade_menos_35
     }
+
+
+@router.get("/health")
+async def public_health():
+    """Health check público."""
+    return {"status": "ok", "public": True}

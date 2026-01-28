@@ -41,9 +41,14 @@ import {
   deleteActivity,
   getHistory,
   getWorkflowStatuses,
+  getClientOneDriveFiles,
+  getOneDriveDownloadUrl,
 } from "../services/api";
 import OneDriveLinks from "../components/OneDriveLinks";
 import ProcessAlerts from "../components/ProcessAlerts";
+import TasksPanel from "../components/TasksPanel";
+import ProcessSummaryCard from "../components/ProcessSummaryCard";
+import EmailHistoryPanel from "../components/EmailHistoryPanel";
 import {
   ArrowLeft,
   User,
@@ -100,6 +105,8 @@ const ProcessDetails = () => {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const [sideTab, setSideTab] = useState("deadlines");
+
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // Form states
   const [personalData, setPersonalData] = useState({});
@@ -159,8 +166,13 @@ const ProcessDetails = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados do processo");
-      navigate(-1);
+      if (error.response?.status === 403) {
+        setAccessDenied(true);
+        toast.error("Não tem permissão para aceder a este processo");
+      } else {
+        toast.error("Erro ao carregar dados do processo");
+        navigate(-1);
+      }
     } finally {
       setLoading(false);
     }
@@ -322,6 +334,26 @@ const ProcessDetails = () => {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <DashboardLayout title="Acesso Negado">
+        <Card className="border-border">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-xl font-semibold mb-2">Acesso Negado</h2>
+            <p className="text-muted-foreground mb-4">
+              Não tem permissão para aceder a este processo.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Este processo não lhe está atribuído. Se acha que deveria ter acesso, contacte o administrador.
+            </p>
+            <Button onClick={() => navigate(-1)}>Voltar</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   if (!process) {
     return (
       <DashboardLayout title="Processo não encontrado">
@@ -376,6 +408,14 @@ const ProcessDetails = () => {
 
         {/* Alertas do Processo */}
         <ProcessAlerts processId={id} className="mb-2" />
+
+        {/* Resumo do Processo */}
+        <ProcessSummaryCard 
+          process={process}
+          statusInfo={currentStatusInfo}
+          consultorName={process.assigned_consultor_name}
+          mediadorName={process.assigned_mediador_name}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
@@ -769,14 +809,26 @@ const ProcessDetails = () => {
               </CardContent>
             </Card>
 
+            {/* Tasks Panel */}
+            <TasksPanel 
+              processId={id} 
+              processName={process.client_name}
+              compact={true}
+              maxHeight="250px"
+            />
+
             {/* Side Tabs */}
             <Card className="border-border">
               <CardContent className="p-0">
                 <Tabs value={sideTab} onValueChange={setSideTab}>
-                  <TabsList className="w-full grid grid-cols-3 rounded-none rounded-t-md">
+                  <TabsList className="w-full grid grid-cols-4 rounded-none rounded-t-md">
                     <TabsTrigger value="deadlines" className="gap-1">
                       <Clock className="h-4 w-4" />
                       <span className="hidden sm:inline">Prazos</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="emails" className="gap-1">
+                      <Send className="h-4 w-4" />
+                      <span className="hidden sm:inline">Emails</span>
                     </TabsTrigger>
                     <TabsTrigger value="history" className="gap-1">
                       <History className="h-4 w-4" />
@@ -932,6 +984,19 @@ const ProcessDetails = () => {
                         </div>
                       )}
                     </ScrollArea>
+                  </TabsContent>
+
+                  {/* Emails Tab */}
+                  <TabsContent value="emails" className="p-0">
+                    <div className="p-4 pt-2">
+                      <EmailHistoryPanel 
+                        processId={id}
+                        clientEmail={process?.client_email}
+                        clientName={process?.client_name}
+                        compact={true}
+                        maxHeight="350px"
+                      />
+                    </div>
                   </TabsContent>
 
                   {/* Files Tab (OneDrive Links) */}

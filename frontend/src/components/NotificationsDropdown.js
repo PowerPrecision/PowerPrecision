@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ScrollArea } from "./ui/scroll-area";
-import { Bell, BellRing, UserPlus, Clock, FileText, Calendar, AlertTriangle, CheckCircle, Volume2, VolumeX } from "lucide-react";
+import { Bell, BellRing, UserPlus, Clock, FileText, Calendar, AlertTriangle, CheckCircle, Volume2, VolumeX, ArrowRight } from "lucide-react";
 import { getNotifications, markNotificationRead } from "../services/api";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ const notificationIcons = {
   document_expiry: FileText,
   property_docs_check: FileText,
   deed_reminder: Calendar,
+  process_status_change: ArrowRight,
   default: Bell
 };
 
@@ -31,6 +32,7 @@ const notificationColors = {
   document_expiry: "text-red-500 bg-red-50",
   property_docs_check: "text-purple-500 bg-purple-50",
   deed_reminder: "text-green-500 bg-green-50",
+  process_status_change: "text-indigo-500 bg-indigo-50",
   default: "text-gray-500 bg-gray-50"
 };
 

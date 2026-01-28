@@ -21,6 +21,7 @@ export const moveProcessKanban = (processId, newStatus) =>
 export const getDeadlines = (processId) => 
   axios.get(`${API_URL}/deadlines`, { params: { process_id: processId } });
 export const getAllDeadlines = () => axios.get(`${API_URL}/deadlines`);
+export const getMyDeadlines = () => axios.get(`${API_URL}/deadlines/my-deadlines`);
 export const getCalendarDeadlines = (consultorId, mediadorId) => 
   axios.get(`${API_URL}/deadlines/calendar`, { 
     params: { consultor_id: consultorId, mediador_id: mediadorId } 
@@ -50,10 +51,10 @@ export const getHistory = (processId) =>
   axios.get(`${API_URL}/history`, { params: { process_id: processId } });
 
 // Workflow Statuses
-export const getWorkflowStatuses = () => axios.get(`${API_URL}/workflow-statuses`);
-export const createWorkflowStatus = (data) => axios.post(`${API_URL}/workflow-statuses`, data);
-export const updateWorkflowStatus = (id, data) => axios.put(`${API_URL}/workflow-statuses/${id}`, data);
-export const deleteWorkflowStatus = (id) => axios.delete(`${API_URL}/workflow-statuses/${id}`);
+export const getWorkflowStatuses = () => axios.get(`${API_URL}/admin/workflow-statuses`);
+export const createWorkflowStatus = (data) => axios.post(`${API_URL}/admin/workflow-statuses`, data);
+export const updateWorkflowStatus = (id, data) => axios.put(`${API_URL}/admin/workflow-statuses/${id}`, data);
+export const deleteWorkflowStatus = (id) => axios.delete(`${API_URL}/admin/workflow-statuses/${id}`);
 
 // OneDrive Links (Manual)
 export const getProcessOneDriveLinks = (processId) => 
@@ -98,3 +99,39 @@ export const getAlertsByProcess = (processId) =>
   axios.get(`${API_URL}/alerts/process/${processId}`);
 export const createDeedReminder = (processId, deedDate) => 
   axios.post(`${API_URL}/alerts/deed-reminder/${processId}`, null, { params: { deed_date: deedDate } });
+
+// Admin - Impersonate
+export const impersonateUser = (userId) => axios.post(`${API_URL}/admin/impersonate/${userId}`);
+export const stopImpersonate = () => axios.post(`${API_URL}/admin/stop-impersonate`);
+
+// Admin Users (CRUD completo)
+export const getAdminUsers = (role) => axios.get(`${API_URL}/admin/users`, { params: { role } });
+export const createAdminUser = (data) => axios.post(`${API_URL}/admin/users`, data);
+export const updateAdminUser = (id, data) => axios.put(`${API_URL}/admin/users/${id}`, data);
+export const deleteAdminUser = (id) => axios.delete(`${API_URL}/admin/users/${id}`);
+
+// Tasks
+export const getTasks = (params = {}) => axios.get(`${API_URL}/tasks`, { params });
+export const getMyTasks = (includeCompleted = false) => 
+  axios.get(`${API_URL}/tasks/my-tasks`, { params: { include_completed: includeCompleted } });
+export const getProcessTasks = (processId) => 
+  axios.get(`${API_URL}/tasks`, { params: { process_id: processId } });
+export const createTask = (data) => axios.post(`${API_URL}/tasks`, data);
+export const updateTask = (id, data) => axios.put(`${API_URL}/tasks/${id}`, data);
+export const completeTask = (id) => axios.put(`${API_URL}/tasks/${id}/complete`);
+export const reopenTask = (id) => axios.put(`${API_URL}/tasks/${id}/reopen`);
+export const deleteTask = (id) => axios.delete(`${API_URL}/tasks/${id}`);
+
+// Emails
+export const getProcessEmails = (processId, direction = null) => 
+  axios.get(`${API_URL}/emails/process/${processId}`, { params: { direction } });
+export const getEmailStats = (processId) => axios.get(`${API_URL}/emails/stats/${processId}`);
+export const createEmail = (data) => axios.post(`${API_URL}/emails`, data);
+export const updateEmail = (id, data) => axios.put(`${API_URL}/emails/${id}`, data);
+export const deleteEmail = (id) => axios.delete(`${API_URL}/emails/${id}`);
+export const syncProcessEmails = (processId, days = 30) => 
+  axios.post(`${API_URL}/emails/sync/${processId}`, null, { params: { days } });
+export const sendEmailViaServer = (data) => axios.post(`${API_URL}/emails/send`, null, { params: data });
+export const testEmailConnection = (account = null) => 
+  axios.get(`${API_URL}/emails/test-connection`, { params: { account } });
+export const getEmailAccounts = () => axios.get(`${API_URL}/emails/accounts`);

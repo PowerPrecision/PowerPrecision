@@ -1,0 +1,125 @@
+{
+  "summary": "Completed testing of Trello bidirectional integration (Iteration 14). All 12 backend tests passed. Frontend UI verified - Trello Integration panel working correctly with sync buttons, connection status, and board info. 152 processes imported from Trello with Trello badges visible on Kanban cards.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "GET /api/trello/status - Returns connected status with board info and 14 lists (PASS)",
+    "GET /api/trello/status - Lists mapping verified (PASS)",
+    "POST /api/trello/sync/from-trello - Imports cards from Trello (PASS)",
+    "POST /api/trello/sync/to-trello - Exports processes to Trello (PASS)",
+    "GET /api/processes/kanban - Processes have trello_card_id (PASS)",
+    "PUT /api/processes/kanban/{id}/move - Moves process and syncs to Trello (PASS)",
+    "PUT /api/processes/kanban/{id}/move to ch_aprovado - Previously broken, now working (PASS)",
+    "POST /api/trello/sync/full - Full bidirectional sync (PASS)",
+    "HEAD /api/trello/webhook - Webhook verification (PASS)",
+    "POST /api/trello/webhook - Webhook event handler (PASS)",
+    "Trello env variables configured (PASS)",
+    "GET /api/trello/webhook/list - List webhooks (PASS)"
+  ],
+  
+  "failed_tests": [],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration14_trello_integration.py",
+    "/app/test_reports/pytest/pytest_results_iteration14.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Trello integration is well implemented with proper error handling",
+    "Bidirectional sync works correctly - App → Trello and Trello → App",
+    "Webhook endpoints properly handle HEAD verification and POST events",
+    "Status mapping between Trello lists and system statuses is comprehensive",
+    "Previous iteration 13 bug (priority parameter) has been fixed"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration14_trello_integration.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (UI verified working)"
+  },
+  
+  "test_credentials": {
+    "admin": "admin@sistema.pt / admin2026",
+    "trello_api_key": "f299eb63c0b59a9938051a2e1b05bf5f",
+    "trello_board_id": "MyXVV27F"
+  },
+  
+  "seed_data_creation": "152 processes imported from Trello board 'Lista de clientes'",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Trello integration fully tested and working. 152 processes synced from Trello. All sync endpoints working (from-trello, to-trello, full, reset-and-sync). Webhook endpoints ready for real-time sync. Kanban move operation syncs to Trello automatically. Previous iteration 13 bug with 'priority' parameter has been fixed.",
+  
+  "verified_features": {
+    "trello_connection": {
+      "status": "WORKING",
+      "details": [
+        "GET /api/trello/status returns connected=true",
+        "Board: Lista de clientes with 14 lists",
+        "All lists properly mapped to system statuses"
+      ]
+    },
+    "sync_from_trello": {
+      "status": "WORKING",
+      "details": [
+        "POST /api/trello/sync/from-trello imports cards",
+        "Creates new processes or updates existing ones",
+        "152 processes imported successfully"
+      ]
+    },
+    "sync_to_trello": {
+      "status": "WORKING",
+      "details": [
+        "POST /api/trello/sync/to-trello exports processes",
+        "Creates new cards or updates existing ones",
+        "Card descriptions include process details"
+      ]
+    },
+    "kanban_trello_sync": {
+      "status": "WORKING",
+      "details": [
+        "PUT /api/processes/kanban/{id}/move syncs to Trello",
+        "Card moved to corresponding Trello list automatically",
+        "Works for all statuses including ch_aprovado (previously broken)"
+      ]
+    },
+    "trello_ui_panel": {
+      "status": "WORKING",
+      "details": [
+        "Settings > Sistema > Integração Trello panel visible",
+        "Shows connected status with green badge",
+        "Board info and mapped lists displayed",
+        "Sync buttons (Trello→App, App→Trello, Reset Total) working",
+        "Sync results displayed after operation"
+      ]
+    },
+    "webhook_endpoints": {
+      "status": "WORKING",
+      "details": [
+        "HEAD /api/trello/webhook returns 200 for verification",
+        "POST /api/trello/webhook handles events",
+        "GET /api/trello/webhook/list shows active webhooks"
+      ]
+    }
+  },
+  
+  "mocked_apis": {
+    "note": "NO MOCKED APIs - Real Trello integration tested"
+  }
+}

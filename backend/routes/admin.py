@@ -9,7 +9,7 @@ from models.workflow import WorkflowStatusCreate, WorkflowStatusUpdate, Workflow
 from services.auth import hash_password, require_roles
 
 
-router = APIRouter(tags=["Admin"])
+router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 # ============== WORKFLOW STATUS ROUTES ==============
@@ -169,3 +169,104 @@ async def delete_user(user_id: str, user: dict = Depends(require_roles([UserRole
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
     return {"message": "Utilizador eliminado"}
+
+
+# ============== IMPERSONATE (VER COMO OUTRO UTILIZADOR) ==============
+
+@router.post("/impersonate/{user_id}")
+async def impersonate_user(user_id: str, user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """
+    Permite ao admin ver o sistema como outro utilizador.
+    Gera um token temporário com os dados do utilizador alvo.
+    
+    O token inclui informação sobre o admin original para auditoria.
+    """
+    from services.auth import create_access_token
+    
+    # Verificar que o utilizador alvo existe
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # Não permitir impersonate de outro admin
+    if target_user["role"] == UserRole.ADMIN and user_id != user["id"]:
+        raise HTTPException(status_code=403, detail="Não pode personificar outro administrador")
+    
+    # Criar token com dados do utilizador alvo, mas marcar como impersonated
+    token_data = {
+        "sub": target_user["id"],
+        "email": target_user["email"],
+        "role": target_user["role"],
+        "name": target_user["name"],
+        # Informação de auditoria
+        "impersonated_by": user["id"],
+        "impersonated_by_name": user["name"],
+        "is_impersonated": True
+    }
+    
+    access_token = create_access_token(token_data)
+    
+    # Log da acção
+    await db.history.insert_one({
+        "id": str(uuid.uuid4()),
+        "process_id": None,
+        "user_id": user["id"],
+        "user_name": user["name"],
+        "action": f"Admin impersonou utilizador: {target_user['name']} ({target_user['email']})",
+        "field": "impersonate",
+        "old_value": None,
+        "new_value": target_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": target_user["id"],
+            "email": target_user["email"],
+            "name": target_user["name"],
+            "role": target_user["role"],
+            "is_impersonated": True,
+            "impersonated_by": user["name"]
+        }
+    }
+
+
+@router.post("/stop-impersonate")
+async def stop_impersonate(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.DIRETOR, UserRole.ADMINISTRATIVO]))):
+    """
+    Terminar sessão de impersonate e voltar à conta original.
+    Requer o token do admin original.
+    """
+    from services.auth import create_access_token
+    
+    if not user.get("impersonated_by"):
+        raise HTTPException(status_code=400, detail="Não está em modo de personificação")
+    
+    # Buscar o admin original
+    admin_user = await db.users.find_one({"id": user["impersonated_by"]}, {"_id": 0, "password": 0})
+    if not admin_user:
+        raise HTTPException(status_code=404, detail="Administrador original não encontrado")
+    
+    # Criar novo token para o admin
+    token_data = {
+        "sub": admin_user["id"],
+        "email": admin_user["email"],
+        "role": admin_user["role"],
+        "name": admin_user["name"]
+    }
+    
+    access_token = create_access_token(token_data)
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": admin_user["id"],
+            "email": admin_user["email"],
+            "name": admin_user["name"],
+            "role": admin_user["role"]
+        }
+    }
+

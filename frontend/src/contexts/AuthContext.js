@@ -9,6 +9,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [originalAdminName, setOriginalAdminName] = useState(null);
 
   useEffect(() => {
     if (token) {
@@ -22,7 +24,17 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const response = await axios.get(`${API_URL}/auth/me`);
-      setUser(response.data);
+      const userData = response.data;
+      setUser(userData);
+      
+      // Verificar se está em modo impersonate
+      if (userData.is_impersonated) {
+        setIsImpersonating(true);
+        setOriginalAdminName(userData.impersonated_by_name);
+      } else {
+        setIsImpersonating(false);
+        setOriginalAdminName(null);
+      }
     } catch (error) {
       console.error("Error fetching user:", error);
       logout();
@@ -41,6 +53,8 @@ export const AuthProvider = ({ children }) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
     setToken(access_token);
     setUser(userData);
+    setIsImpersonating(false);
+    setOriginalAdminName(null);
     return userData;
   };
 
@@ -64,11 +78,72 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common["Authorization"];
     setToken(null);
     setUser(null);
+    setIsImpersonating(false);
+    setOriginalAdminName(null);
+  };
+
+  // Impersonate - ver como outro utilizador
+  const impersonate = async (userId) => {
+    try {
+      const response = await axios.post(`${API_URL}/admin/impersonate/${userId}`);
+      const { access_token, user: userData } = response.data;
+      
+      // Guardar token original para poder voltar
+      localStorage.setItem("originalToken", localStorage.getItem("token"));
+      localStorage.setItem("token", access_token);
+      
+      axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+      setToken(access_token);
+      setUser(userData);
+      setIsImpersonating(true);
+      setOriginalAdminName(userData.impersonated_by);
+      
+      return userData;
+    } catch (error) {
+      console.error("Error impersonating:", error);
+      throw error;
+    }
+  };
+
+  // Terminar impersonate e voltar à conta original
+  const stopImpersonating = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/admin/stop-impersonate`);
+      const { access_token, user: userData } = response.data;
+      
+      // Restaurar token original
+      localStorage.removeItem("originalToken");
+      localStorage.setItem("token", access_token);
+      
+      axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+      setToken(access_token);
+      setUser(userData);
+      setIsImpersonating(false);
+      setOriginalAdminName(null);
+      
+      return userData;
+    } catch (error) {
+      console.error("Error stopping impersonate:", error);
+      // Fallback: fazer logout
+      logout();
+      throw error;
+    }
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout }}
+      value={{ 
+        user, 
+        token, 
+        loading, 
+        login, 
+        register, 
+        logout,
+        isImpersonating,
+        originalAdminName,
+        impersonate,
+        stopImpersonating
+      }}
     >
       {children}
     </AuthContext.Provider>

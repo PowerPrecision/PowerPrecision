@@ -6,7 +6,8 @@ import KanbanBoard from "../components/KanbanBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
-import { Loader2, LayoutGrid, Calendar, Users, Settings, FileText, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { Loader2, LayoutGrid, Calendar, Users, Settings, FileText, CheckCircle, XCircle, TrendingUp, ClipboardList } from "lucide-react";
+import TasksPanel from "../components/TasksPanel";
 import { toast } from "sonner";
 import { getStats, getUsers, getUpcomingExpiries, getCalendarDeadlines } from "../services/api";
 
@@ -62,6 +63,11 @@ const StaffDashboard = () => {
     }
   };
 
+  // Navegação para lista filtrada
+  const goToFilteredList = (filter) => {
+    navigate(`/processos-filtrados?filter=${filter}`);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -79,16 +85,19 @@ const StaffDashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Olá, {user?.name?.split(' ')[0]}</h1>
-            <p className="text-muted-foreground">
-              <Badge variant="outline" className="mr-2">{roleLabels[user?.role] || user?.role}</Badge>
-              {canSeeAllStats ? `${stats.total_processes || 0} processos no sistema` : "Os seus processos atribuídos"}
-            </p>
+            <div className="text-muted-foreground flex items-center gap-2">
+              <Badge variant="outline">{roleLabels[user?.role] || user?.role}</Badge>
+              <span>{canSeeAllStats ? `${stats.total_processes || 0} processos no sistema` : "Os seus processos atribuídos"}</span>
+            </div>
           </div>
         </div>
 
-        {/* Quick Stats - Updated with Active/Concluded/Dropped */}
+        {/* Quick Stats - Clickable cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/processos')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">{stats.total_processes || 0}</p>
@@ -96,7 +105,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
+          <Card 
+            className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('active')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
@@ -107,7 +119,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200">
+          <Card 
+            className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('concluded')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
@@ -118,7 +133,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-red-50 dark:bg-red-950/30 border-red-200">
+          <Card 
+            className="bg-red-50 dark:bg-red-950/30 border-red-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('dropped')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
@@ -129,11 +147,19 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/pendentes')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-3xl font-bold text-orange-500">{stats.pending_deadlines || 0}</p>
-                <p className="text-sm text-muted-foreground">Prazos Pendentes</p>
+                <p className="text-3xl font-bold text-orange-500">{stats.total_pending || stats.pending_deadlines || 0}</p>
+                <p className="text-sm text-muted-foreground">Pendentes</p>
+                {(stats.pending_tasks > 0 || stats.pending_deadlines > 0) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.pending_tasks || 0} tarefas • {stats.pending_deadlines || 0} prazos
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -144,26 +170,36 @@ const StaffDashboard = () => {
           <TabsList className="flex-wrap">
             <TabsTrigger value="kanban" className="gap-2">
               <LayoutGrid className="h-4 w-4" />
-              Quadro Geral
+              <span className="hidden sm:inline">Quadro Geral</span>
+              <span className="sm:hidden">Quadro</span>
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Minhas Tarefas</span>
+              <span className="sm:hidden">Tarefas</span>
             </TabsTrigger>
             <TabsTrigger value="calendar" className="gap-2">
               <Calendar className="h-4 w-4" />
-              Calendário
+              <span className="hidden sm:inline">Calendário</span>
+              <span className="sm:hidden">Cal.</span>
             </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
-              Documentos
+              <span className="hidden sm:inline">Documentos</span>
+              <span className="sm:hidden">Docs</span>
             </TabsTrigger>
             {canManageUsers && (
               <TabsTrigger value="users" className="gap-2">
                 <Users className="h-4 w-4" />
-                Utilizadores
+                <span className="hidden sm:inline">Utilizadores</span>
+                <span className="sm:hidden">Users</span>
               </TabsTrigger>
             )}
             {canManageWorkflow && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" />
-                Configurações
+                <span className="hidden sm:inline">Configurações</span>
+                <span className="sm:hidden">Config</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -171,6 +207,16 @@ const StaffDashboard = () => {
           {/* Kanban Tab */}
           <TabsContent value="kanban" className="mt-6">
             <KanbanBoard token={token} />
+          </TabsContent>
+
+          {/* Tasks Tab - Minhas Tarefas */}
+          <TabsContent value="tasks" className="mt-6">
+            <TasksPanel 
+              showCreateButton={true}
+              compact={false}
+              maxHeight="600px"
+              showOnlyMyTasks={true}
+            />
           </TabsContent>
 
           {/* Calendar Tab */}

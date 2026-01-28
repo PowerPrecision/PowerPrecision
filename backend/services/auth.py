@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from typing import List
+from typing import List, Dict, Any
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
@@ -31,6 +31,18 @@ def create_token(user_id: str, email: str, role: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+def create_access_token(data: Dict[str, Any]) -> str:
+    """
+    Criar token JWT com dados personalizados.
+    Usado para impersonate e outros cenários especiais.
+    """
+    payload = {
+        **data,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -39,6 +51,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=401, detail="Utilizador não encontrado")
         if not user.get("is_active", True):
             raise HTTPException(status_code=401, detail="Conta desativada")
+        
+        # Adicionar informação de impersonate se presente no token
+        if payload.get("is_impersonated"):
+            user["is_impersonated"] = True
+            user["impersonated_by"] = payload.get("impersonated_by")
+            user["impersonated_by_name"] = payload.get("impersonated_by_name")
+        
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expirado")

@@ -85,14 +85,24 @@ async def login(data: UserLogin):
     )
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me")
 async def get_me(user: dict = Depends(get_current_user)):
-    return UserResponse(
-        id=user["id"],
-        email=user["email"],
-        name=user["name"],
-        phone=user.get("phone"),
-        role=user["role"],
-        created_at=user["created_at"],
-        onedrive_folder=user.get("onedrive_folder")
-    )
+    """Retorna o utilizador atual incluindo info de impersonate se aplicável."""
+    response = {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "phone": user.get("phone"),
+        "role": user["role"],
+        "created_at": user["created_at"],
+        "onedrive_folder": user.get("onedrive_folder"),
+        "is_active": user.get("is_active", True)
+    }
+    
+    # Incluir informação de impersonate se presente
+    if user.get("is_impersonated"):
+        response["is_impersonated"] = True
+        response["impersonated_by"] = user.get("impersonated_by")
+        response["impersonated_by_name"] = user.get("impersonated_by_name")
+    
+    return response

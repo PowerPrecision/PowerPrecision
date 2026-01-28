@@ -2,37 +2,116 @@
 
 ## Sistema CreditoIMO - Roadmap de Evolução
 
+**Última Atualização:** Janeiro 2026
+
 ---
 
 ## 📋 Índice
 
-1. [Integrações Prioritárias](#1-integrações-prioritárias)
-2. [Funcionalidades de Comunicação](#2-funcionalidades-de-comunicação)
-3. [Funcionalidades de Produtividade](#3-funcionalidades-de-produtividade)
-4. [Inteligência Artificial](#4-inteligência-artificial)
-5. [Portal do Cliente](#5-portal-do-cliente)
-6. [Integrações Bancárias](#6-integrações-bancárias)
-7. [Mobile e Notificações](#7-mobile-e-notificações)
-8. [Análise e Relatórios](#8-análise-e-relatórios)
+1. [Funcionalidades Já Implementadas](#1-funcionalidades-já-implementadas)
+2. [Integrações Prioritárias](#2-integrações-prioritárias)
+3. [Funcionalidades de Comunicação](#3-funcionalidades-de-comunicação)
+4. [Funcionalidades de Produtividade](#4-funcionalidades-de-produtividade)
+5. [Inteligência Artificial](#5-inteligência-artificial)
+6. [Portal do Cliente](#6-portal-do-cliente)
+7. [Integrações Bancárias](#7-integrações-bancárias)
+8. [Mobile e Notificações](#8-mobile-e-notificações)
+9. [Análise e Relatórios](#9-análise-e-relatórios)
+10. [Priorização e Custos](#10-priorização-e-custos)
 
 ---
 
-## 1. Integrações Prioritárias
+## 1. Funcionalidades Já Implementadas ✅
 
-### 📁 Microsoft OneDrive / Google Drive
-**Prioridade: ALTA**
+### Sistema de Notificações em Tempo Real
+**Estado: IMPLEMENTADO**
 
-Integração para gestão centralizada de documentos.
+- ✅ Colecção MongoDB `notifications` com índices optimizados
+- ✅ WebSocket para notificações em tempo real (`/api/ws/notifications`)
+- ✅ Hook React `useWebSocket` com auto-reconnect
+- ✅ Dropdown de notificações com som
+- ✅ Notificação automática na mudança de fase do processo
+- ✅ Tipos: novo registo, idade <35, countdown pré-aprovação, docs a expirar, mudança de estado
 
-**Benefícios:**
-- Armazenamento seguro de documentos dos clientes
-- Partilha fácil com bancos e parceiros
-- Organização automática por processo
-- Backup na cloud
+---
 
-**Implementação Sugerida:**
-```python
-# Exemplo de estrutura de pastas no OneDrive
+### Editor de Workflow
+**Estado: IMPLEMENTADO**
+
+- ✅ UI completa em Definições > Sistema
+- ✅ CRUD de estados (criar, editar, eliminar)
+- ✅ Reordenação com setas ↑↓
+- ✅ Selecção de cores por estado
+- ✅ 14 estados pré-configurados (Trello-like)
+
+---
+
+### Análise de Documentos com IA
+**Estado: IMPLEMENTADO**
+
+- ✅ Modelo: `gpt-4o-mini` (económico)
+- ✅ Extracção de texto de PDF com `pypdf`
+- ✅ Análise de visão apenas quando necessário
+- ✅ Redimensionamento de imagens (max 1024px)
+- ✅ Tipos suportados: CC, Recibo Vencimento, IRS
+
+---
+
+### Tarefas Agendadas (Cron Jobs)
+**Estado: IMPLEMENTADO**
+
+- ✅ Verificação diária de documentos a expirar
+- ✅ Verificação de prazos próximos (24h)
+- ✅ Countdown de pré-aprovação (90 dias)
+- ✅ Limpeza de notificações antigas (30 dias)
+- ✅ Modo daemon disponível (`--daemon`)
+
+**Uso:**
+```bash
+# Executar manualmente
+python -m services.scheduled_tasks
+
+# Cron diário às 8h
+0 8 * * * cd /app/backend && python -m services.scheduled_tasks
+```
+
+---
+
+### CI/CD Pipeline
+**Estado: IMPLEMENTADO**
+
+- ✅ GitHub Actions workflow
+- ✅ Testes backend (pytest + MongoDB)
+- ✅ Testes frontend (Jest)
+- ✅ Testes de integração
+- ✅ Scan de segurança (Trivy)
+- ✅ Deploy automático para main
+
+---
+
+### Segurança e Validação
+**Estado: IMPLEMENTADO**
+
+- ✅ Variáveis de ambiente obrigatórias (JWT_SECRET, MONGO_URL)
+- ✅ Passwords em variáveis de ambiente (não hardcoded)
+- ✅ Validador de NIF (9 dígitos numéricos)
+- ✅ Campos legacy removidos dos modelos
+
+---
+
+## 2. Integrações Prioritárias
+
+### 📁 Microsoft OneDrive
+**Prioridade: ALTA** | **Estado: PARCIALMENTE IMPLEMENTADO**
+
+A integração base existe mas precisa de:
+- [ ] Upload automático de documentos por processo
+- [ ] Estrutura de pastas automática por NIF
+- [ ] Sincronização bidirecional
+- [ ] Preview de documentos no sistema
+
+**Estrutura Sugerida:**
+```
 /CreditoIMO/
 ├── Clientes/
 │   ├── {NIF_Cliente}/
@@ -44,267 +123,202 @@ Integração para gestão centralizada de documentos.
 
 ---
 
-### 📧 Integração de Email (SendGrid / Mailgun)
+### 🔗 Integração Trello Bidirecional
+**Prioridade: MÉDIA** | **Estado: EM STANDBY**
+
+Base implementada, aguarda activação:
+- ✅ Autenticação com API Trello
+- ✅ Leitura de quadros e listas
+- [ ] Criar cartão no Trello ao criar processo
+- [ ] Mover cartão ao mudar fase
+- [ ] Webhook para sincronizar Trello → CreditoIMO
+- [ ] Campo `trello_card_id` no modelo Process
+
+**Credenciais configuradas:**
+- API Key: `f299eb63c0b59a9938051a2e1b05bf5f`
+- Board ID: `MyXVV27F`
+
+---
+
+### 📧 Email Transacional (SendGrid/Mailgun)
 **Prioridade: ALTA**
 
-Sistema de envio automático de emails transacionais.
-
-**Casos de Uso:**
-- Notificação de mudança de estado do processo
-- Lembretes de documentos a expirar
-- Confirmação de reuniões agendadas
-- Newsletter mensal com atualizações do mercado
+- [ ] Templates HTML profissionais
+- [ ] Tracking de abertura/cliques
+- [ ] Gestão de unsubscribes
+- [ ] Integração com variáveis do processo
 
 **Templates Sugeridos:**
-1. Boas-vindas ao novo cliente
+1. Boas-vindas ao cliente
 2. Pedido de documentos
 3. Atualização de estado
 4. Aprovação de crédito
 5. Agendamento de escritura
+6. Documento a expirar (lembrete)
 
 ---
 
 ### 📱 WhatsApp Business API
 **Prioridade: MÉDIA-ALTA**
 
-Comunicação direta com clientes via WhatsApp.
+- [ ] Notificações opt-in
+- [ ] Templates aprovados pela Meta
+- [ ] Respostas automáticas FAQ
+- [ ] Envio de lembretes de documentos
 
-**Funcionalidades:**
-- Notificações automáticas (opt-in)
-- Respostas rápidas para perguntas frequentes
-- Envio de lembretes de documentos
-- Confirmação de agendamentos
-
-**Exemplo de Fluxo:**
+**Fluxo:**
 ```
 Cliente submete formulário → 
-Sistema envia mensagem WhatsApp de boas-vindas →
-Consultor recebe notificação →
-Contacto inicial agendado
+WhatsApp de boas-vindas →
+Consultor notificado →
+Agendamento de contacto
 ```
 
 ---
 
-### 📅 Google Calendar / Microsoft Outlook
+## 3. Funcionalidades de Comunicação
+
+### 💬 Chat Interno por Processo
 **Prioridade: MÉDIA**
 
-Sincronização bidirecional de calendário.
-
-**Benefícios:**
-- Agendamentos aparecem no calendário pessoal
-- Evita conflitos de horário
-- Lembretes automáticos
-- Partilha de eventos com clientes
+- [ ] Mensagens em tempo real (WebSocket já implementado)
+- [ ] Menções @utilizador
+- [ ] Anexos de ficheiros
+- [ ] Histórico pesquisável
+- [ ] Notificações de nova mensagem
 
 ---
 
-## 2. Funcionalidades de Comunicação
-
-### 💬 Chat Interno
+### 📝 Assinatura Digital
 **Prioridade: MÉDIA**
 
-Sistema de mensagens entre colaboradores sobre processos.
+**Opções:**
+- DocuSign (internacional)
+- Autenticação.gov (Portugal - Chave Móvel Digital)
 
-**Funcionalidades:**
-- Chat por processo
-- Menções (@utilizador)
-- Anexos de ficheiros
-- Histórico pesquisável
-
----
-
-### 📞 Integração VoIP (Twilio)
-**Prioridade: BAIXA-MÉDIA**
-
-Registo automático de chamadas telefónicas.
-
-**Funcionalidades:**
-- Click-to-call direto do sistema
-- Gravação de chamadas (com consentimento)
-- Log automático no histórico do processo
-- Transcrição via IA
+**Documentos para assinatura:**
+- CPCV
+- Mandatos de intermediação
+- Autorizações de consulta
 
 ---
 
-### 📝 Assinatura Digital (DocuSign / Autenticação.gov)
-**Prioridade: MÉDIA**
-
-Assinatura eletrónica de documentos.
-
-**Casos de Uso:**
-- CPCV (Contrato Promessa Compra e Venda)
-- Mandatos de intermediação de crédito
-- Autorizações de consulta de dados
-
-**Integração com Autenticação.gov:**
-- Assinatura qualificada via Chave Móvel Digital
-- Validade legal em Portugal
-
----
-
-## 3. Funcionalidades de Produtividade
+## 4. Funcionalidades de Produtividade
 
 ### 📋 Templates de Documentos
 **Prioridade: ALTA**
 
-Geração automática de documentos padronizados.
+- [ ] Geração automática com dados do processo
+- [ ] Export para Word/PDF
+- [ ] Templates personalizáveis
 
 **Templates Sugeridos:**
-- Ficha de cliente
-- Proposta bancária
-- Relatório de análise
-- Carta de apresentação
-
-**Implementação:**
 ```python
-# Exemplo com biblioteca python-docx
-from docx import Document
-from docx.shared import Inches
-
-def gerar_proposta_bancaria(processo):
-    doc = Document('templates/proposta_bancaria.docx')
-    
-    # Substituir campos
-    for paragraph in doc.paragraphs:
-        paragraph.text = paragraph.text.replace(
-            '{{NOME_CLIENTE}}', 
-            processo['client_name']
-        )
-    
-    return doc
+# Usando python-docx
+templates = [
+    "proposta_bancaria.docx",
+    "ficha_cliente.docx",
+    "relatorio_analise.docx",
+    "carta_apresentacao.docx"
+]
 ```
 
 ---
 
-### 🔄 Automação de Workflow (n8n / Zapier)
+### 🔄 Automação de Workflow
 **Prioridade: MÉDIA**
 
-Automação de tarefas repetitivas.
-
-**Exemplos de Automações:**
-1. Quando processo muda para "Fase Documental" → Enviar email com checklist
-2. Quando documento expira em 7 dias → Criar tarefa urgente
-3. Quando crédito aprovado → Notificar todos os envolvidos
-4. Semanal → Gerar relatório de processos pendentes
+Triggers automáticos:
+- [ ] Fase "Documental" → Email com checklist
+- [ ] Documento expira em 7 dias → Tarefa urgente
+- [ ] Crédito aprovado → Notificar todos
+- [ ] Semanal → Relatório de pendentes
 
 ---
 
-### 📊 Importação de Dados (Excel/CSV)
+### 📊 Importação em Massa (Excel/CSV)
 **Prioridade: MÉDIA**
 
-Importação em massa de processos existentes.
-
-**Funcionalidades:**
-- Upload de ficheiro Excel/CSV
-- Mapeamento de colunas
-- Validação de dados
-- Prevenção de duplicados
+- [ ] Upload de ficheiro
+- [ ] Mapeamento de colunas
+- [ ] Validação prévia
+- [ ] Prevenção de duplicados
+- [ ] Log de importação
 
 ---
 
-## 4. Inteligência Artificial
+## 5. Inteligência Artificial
 
 ### 🤖 Análise Preditiva de Aprovação
 **Prioridade: ALTA**
 
-Previsão da probabilidade de aprovação de crédito.
+Usar dados históricos para prever:
+- [ ] Probabilidade de aprovação (%)
+- [ ] Fatores de risco identificados
+- [ ] Banco mais adequado
+- [ ] Condições estimadas
 
-**Implementação Sugerida:**
+**Modelo Sugerido:**
 ```python
-# Modelo de previsão usando dados históricos
 def prever_aprovacao(processo):
     features = {
-        'rendimento_mensal': processo['financial_data']['monthly_income'],
+        'rendimento_mensal': processo['financial_data']['renda_habitacao_atual'],
         'taxa_esforco': calcular_taxa_esforco(processo),
         'idade': calcular_idade(processo['personal_data']['birth_date']),
-        'tipo_contrato': processo['financial_data']['employment_type'],
+        'tipo_contrato': processo['financial_data']['efetivo'],
         'valor_entrada': processo['financial_data']['capital_proprio'],
-        'valor_imovel': processo['real_estate_data']['max_budget'],
+        'menor_35': processo['personal_data']['menor_35_anos'],
     }
-    
-    # Modelo treinado com dados históricos
-    probabilidade = modelo.predict_proba(features)
-    
-    return {
-        'probabilidade_aprovacao': probabilidade,
-        'fatores_risco': identificar_riscos(features),
-        'recomendacoes': gerar_recomendacoes(features)
-    }
+    return modelo.predict_proba(features)
 ```
 
-**Benefícios:**
-- Triagem inicial mais rápida
-- Identificação de documentos em falta
-- Sugestão de banco mais adequado
-- Estimativa de condições possíveis
-
 ---
 
-### 📄 OCR e Extração de Dados (Google Vision / AWS Textract)
+### 💬 Chatbot de Atendimento
 **Prioridade: MÉDIA**
 
-Extração automática de dados de documentos digitalizados.
-
-**Casos de Uso:**
-- Extrair dados do CC/BI
-- Ler recibos de vencimento
-- Processar declarações IRS
-- Validar NIFs automaticamente
+- [ ] FAQ automático
+- [ ] Verificação de estado do processo
+- [ ] Agendamento de reuniões
+- [ ] Recepção de documentos
+- [ ] Handoff para consultor humano
 
 ---
 
-### 💬 Chatbot de Atendimento (OpenAI / Claude)
-**Prioridade: MÉDIA**
-
-Assistente virtual para clientes.
-
-**Funcionalidades:**
-- Responder perguntas frequentes
-- Verificar estado do processo
-- Agendar reuniões
-- Receber documentos
-
----
-
-## 5. Portal do Cliente
+## 6. Portal do Cliente
 
 ### 🌐 Área de Cliente Dedicada
 **Prioridade: ALTA**
 
-Portal self-service para clientes acompanharem processos.
-
-**Funcionalidades:**
-- Ver estado atual do processo
-- Upload de documentos
-- Histórico de interações
-- Chat com consultor
-- Notificações push
+- [ ] Login com email/password ou link mágico
+- [ ] Ver estado atual do processo
+- [ ] Timeline de progresso visual
+- [ ] Upload de documentos
+- [ ] Chat com consultor
+- [ ] Histórico de interações
 
 ---
 
-### 📱 App Móvel
+### 📱 App Móvel (React Native/Flutter)
 **Prioridade: MÉDIA**
 
-Aplicação nativa para iOS e Android.
-
-**Tecnologias Sugeridas:**
-- React Native (reutilizar código do frontend)
-- Flutter (performance nativa)
-
-**Funcionalidades:**
-- Push notifications
-- Scan de documentos com câmara
-- Assinatura no ecrã
-- Offline mode
+- [ ] Push notifications nativas
+- [ ] Scan de documentos com câmara
+- [ ] Assinatura no ecrã
+- [ ] Modo offline
+- [ ] Biometria para login
 
 ---
 
-## 6. Integrações Bancárias
+## 7. Integrações Bancárias
 
-### 🏦 Portais Bancários
-**Prioridade: BAIXA (complexidade alta)**
+### 🏦 Simuladores de Crédito
+**Prioridade: MÉDIA**
 
-Integração com sistemas dos bancos parceiros.
+- [ ] Cálculo de prestação em tempo real
+- [ ] Comparação multi-banco
+- [ ] Taxa de esforço
+- [ ] Relatório de simulação PDF
 
 **Bancos Prioritários:**
 - Millennium BCP
@@ -313,133 +327,141 @@ Integração com sistemas dos bancos parceiros.
 - Novo Banco
 - BPI
 
-**Funcionalidades Possíveis:**
+---
+
+### 💰 API Bancárias (Futuro)
+**Prioridade: BAIXA** (requer parcerias formais)
+
 - Submissão automática de propostas
-- Consulta de estado de pré-aprovação
-- Receber aprovações/recusas
-
-**Nota:** Esta integração requer parcerias formais com cada banco.
+- Consulta de pré-aprovações
+- Receber decisões em tempo real
 
 ---
 
-### 💰 Simuladores de Crédito (API)
-**Prioridade: MÉDIA**
+## 8. Mobile e Notificações
 
-Integração com simuladores de crédito habitação.
-
-**Funcionalidades:**
-- Simular prestação em tempo real
-- Comparar propostas de vários bancos
-- Calcular taxa de esforço
-- Gerar relatório de simulação
-
----
-
-## 7. Mobile e Notificações
-
-### 🔔 Sistema de Notificações Push
+### 🔔 Push Notifications (Browser/Mobile)
 **Prioridade: ALTA**
 
-Alertas em tempo real para utilizadores.
+**Já Implementado:**
+- ✅ WebSocket para tempo real
+- ✅ Som de notificação
 
-**Tipos de Notificações:**
-- Novo processo atribuído
-- Documento a expirar
-- Mudança de estado
-- Mensagem de cliente
-- Reunião em 1 hora
-
-**Implementação:**
-- Web Push (navegador)
-- Firebase Cloud Messaging (mobile)
-- Email como fallback
+**A Implementar:**
+- [ ] Web Push API (browser)
+- [ ] Firebase Cloud Messaging (mobile)
+- [ ] Service Worker para offline
+- [ ] Preferências de notificação por utilizador
 
 ---
 
-### 📍 Geolocalização (para Visitas)
+### 📍 Geolocalização para Visitas
 **Prioridade: BAIXA**
 
-Funcionalidades baseadas em localização.
-
-**Casos de Uso:**
-- Routing otimizado para visitas
-- Check-in no local do imóvel
-- Mapa de imóveis disponíveis
-- Tempo de viagem estimado
+- [ ] Routing optimizado
+- [ ] Check-in no local
+- [ ] Mapa de imóveis
+- [ ] Tempo de viagem estimado
 
 ---
 
-## 8. Análise e Relatórios
+## 9. Análise e Relatórios
 
-### 📈 Business Intelligence (Metabase / PowerBI)
+### 📈 Business Intelligence
 **Prioridade: MÉDIA**
 
-Dashboards avançados de análise.
-
-**Relatórios Sugeridos:**
-- Funil de conversão
+**Dashboards Sugeridos:**
+- Funil de conversão por fase
 - Performance por consultor/mês
 - Tempo médio por fase
 - Taxa de aprovação por banco
 - Valor total financiado
 
+**Ferramentas:**
+- Metabase (open-source)
+- PowerBI (Microsoft)
+- Google Data Studio (grátis)
+
 ---
 
-### 📊 Exportação de Dados
+### 📊 Exportação Avançada
 **Prioridade: MÉDIA**
 
-Exportação para análise externa.
-
-**Formatos:**
-- Excel (.xlsx)
-- CSV
-- PDF (relatórios)
-- JSON (API)
+- [ ] Excel com formatação
+- [ ] PDF com gráficos
+- [ ] CSV para análise
+- [ ] API para integrações
 
 ---
 
-## 🎯 Priorização Sugerida
+## 10. Priorização e Custos
 
-### Fase 1 (1-2 meses)
-1. ✅ Notificações por Email (SendGrid)
-2. ✅ Templates de Documentos
-3. ✅ Sistema de Notificações Push
+### 📅 Roadmap Sugerido
 
-### Fase 2 (2-4 meses)
-4. OneDrive/Google Drive
-5. Portal do Cliente
-6. WhatsApp Business
+#### Fase 1 - Concluída ✅
+1. ✅ Sistema de Notificações em Tempo Real
+2. ✅ Editor de Workflow
+3. ✅ Análise de Documentos com IA
+4. ✅ CI/CD Pipeline
+5. ✅ Tarefas Agendadas
 
-### Fase 3 (4-6 meses)
-7. IA Preditiva
-8. OCR de Documentos
-9. Assinatura Digital
+#### Fase 2 - Próximos Passos (1-2 meses)
+1. 🔄 Activar integração Trello
+2. 📧 Templates de Email profissionais
+3. 📋 Templates de Documentos Word/PDF
+4. 🔔 Push Notifications (browser)
 
-### Fase 4 (6-12 meses)
-10. App Móvel
-11. Chatbot IA
-12. Integrações Bancárias
+#### Fase 3 - Médio Prazo (2-4 meses)
+5. 📱 WhatsApp Business API
+6. 🌐 Portal do Cliente básico
+7. 🤖 IA Preditiva de aprovação
+8. 📊 Exportação avançada
+
+#### Fase 4 - Longo Prazo (4-6 meses)
+9. 📱 App Móvel
+10. 💬 Chatbot IA
+11. 📝 Assinatura Digital
+12. 🏦 Simuladores Bancários
 
 ---
 
-## 💡 Notas Finais
+### 💰 Estimativa de Custos Mensais
 
-### Considerações Técnicas
-- Todas as integrações devem respeitar RGPD
-- APIs externas requerem gestão de chaves segura
-- Considerar rate limits de APIs de terceiros
-- Implementar circuit breakers para resiliência
-
-### Estimativa de Custos Mensais (aproximados)
-| Serviço | Plano Base | Custo/Mês |
-|---------|-----------|-----------|
+| Serviço | Uso Estimado | Custo/Mês |
+|---------|-------------|-----------|
+| **Já Incluídos** | | |
+| MongoDB Atlas | 512MB | Grátis |
+| OpenAI (gpt-4o-mini) | ~1k docs | ~€5-10 |
+| | | |
+| **A Implementar** | | |
 | SendGrid | 50k emails | ~€15 |
-| WhatsApp API | 1k conversas | ~€50 |
-| Google Vision | 1k documentos | ~€10 |
-| OneDrive API | Incluído M365 | - |
+| WhatsApp Business | 1k conversas | ~€50 |
 | Firebase Push | 10k mensagens | Grátis |
+| OneDrive API | Incluído M365 | - |
+| DocuSign | 50 envelopes | ~€25 |
 
 ---
 
-*Documento de roadmap - CreditoIMO v2.0*
-*Janeiro 2026*
+### ⚠️ Considerações Técnicas
+
+1. **RGPD:** Todas as integrações devem cumprir regulamento de proteção de dados
+2. **API Keys:** Gestão segura via variáveis de ambiente (já implementado)
+3. **Rate Limits:** Implementar circuit breakers para APIs externas
+4. **Backups:** MongoDB com backups automáticos diários
+5. **Logging:** Centralizar logs para debugging
+
+---
+
+### 📞 Contactos para Integrações
+
+| Serviço | URL | Notas |
+|---------|-----|-------|
+| SendGrid | sendgrid.com | API key gratuita até 100 emails/dia |
+| WhatsApp Business | business.whatsapp.com | Requer verificação de empresa |
+| DocuSign | docusign.com | Sandbox disponível para testes |
+| Autenticação.gov | autenticacao.gov.pt | Apenas para empresas portuguesas |
+
+---
+
+*Documento de roadmap - CreditoIMO v2.1*
+*Última atualização: Janeiro 2026*

@@ -1,0 +1,126 @@
+{
+  "summary": "Completed testing of CreditoIMO Iteration 11 - Calendar User Filter & Email History. All new features working correctly: 1) Calendar user filter visible for admin/CEO roles with dropdown showing all staff users, 2) Email CRUD backend endpoints (POST, GET, DELETE, stats) all working, 3) Email tab in ProcessDetails with EmailHistoryPanel showing filters (Todos, Enviados, Recebidos), 4) Create email dialog with type selection (sent/received), pre-filled client email, subject, body, notes fields. Regression tests passed for Tasks system.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: POST /api/emails - Create sent email (PASS)",
+    "Backend: POST /api/emails - Create received email (PASS)",
+    "Backend: GET /api/emails/process/{id} - Get process emails (PASS)",
+    "Backend: GET /api/emails/process/{id}?direction=sent - Filter by direction (PASS)",
+    "Backend: GET /api/emails/stats/{id} - Get email statistics (PASS)",
+    "Backend: DELETE /api/emails/{id} - Delete email (PASS)",
+    "Backend: GET /api/users - Admin can see all users (PASS)",
+    "Backend: GET /api/deadlines/calendar - Calendar deadlines endpoint (PASS)",
+    "Backend: GET /api/deadlines/calendar?consultor_id=X - Filter by user (PASS)",
+    "Backend: GET /api/tasks - Tasks regression (PASS)",
+    "Backend: GET /api/tasks/my-tasks - My tasks regression (PASS)",
+    "Frontend: Login as admin (PASS)",
+    "Frontend: Calendar tab visible with user filter (PASS)",
+    "Frontend: User filter dropdown shows all staff users (PASS)",
+    "Frontend: ProcessDetails page loads (PASS)",
+    "Frontend: Emails tab visible in ProcessDetails sidebar (PASS)",
+    "Frontend: EmailHistoryPanel shows filter tabs (Todos, Enviados, Recebidos) (PASS)",
+    "Frontend: 'Novo' button visible for creating emails (PASS)",
+    "Frontend: Create email dialog opens (PASS)",
+    "Frontend: Email form has all fields (Tipo, De, Para, Assunto, Corpo, Notas) (PASS)",
+    "Frontend: Email creation via UI works - success toast shown (PASS)",
+    "Frontend: Email count updates after creation (PASS)",
+    "Frontend: Tasks tab works (regression) (PASS)",
+    "Frontend: Tasks 'Nova' button works (regression) (PASS)",
+    "Frontend: 'Mostrar concluídas' checkbox visible (regression) (PASS)",
+    "Frontend: Dashboard cards visible (regression) (PASS)"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration11_emails_calendar.py",
+    "/app/test_reports/iteration_11.json"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "CalendarTab.js: Well-implemented user filter with canViewAllCalendars check for CEO/admin roles, staffUsers memo excludes clients",
+    "emails.py: Clean CRUD implementation with proper enrichment (client_name, created_by_name), stats aggregation pipeline",
+    "EmailHistoryPanel.js: Good UX with expandable emails, filter tabs, direction icons, pre-filled client email in dialog",
+    "ProcessDetails.js: EmailHistoryPanel properly integrated in side tabs alongside Prazos, Histórico, Ficheiros",
+    "api.js: Email service functions properly implemented (getProcessEmails, getEmailStats, createEmail, deleteEmail)"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration11_emails_calendar.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (14/14 UI tests passed)"
+  },
+  
+  "test_credentials": {
+    "admin": "admin@sistema.pt / admin2026"
+  },
+  
+  "seed_data_creation": "None - used existing data, test emails cleaned up",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Iteration 11 features verified: 1) Calendar user filter (Utilizador dropdown) visible only for admin/CEO roles, shows all staff users with role labels, filters calendar events by participant/assigned user, 2) Email system fully functional - backend CRUD at /api/emails with stats endpoint, frontend EmailHistoryPanel in ProcessDetails sidebar with Emails tab, supports creating sent/received emails with dialog, shows email list with expand/collapse, filter tabs (Todos/Enviados/Recebidos), delete functionality. Note: Emails are manually registered - no SMTP integration yet (future feature).",
+  
+  "verified_features": {
+    "calendar_user_filter": {
+      "status": "WORKING",
+      "details": [
+        "User filter dropdown visible for admin/CEO roles only",
+        "Shows all staff users (excludes clients)",
+        "Displays user name and role in dropdown",
+        "Filters calendar events by selected user",
+        "Works alongside existing priority and consultor filters"
+      ]
+    },
+    "email_backend_crud": {
+      "status": "WORKING",
+      "endpoints": [
+        "POST /api/emails - Create email record",
+        "GET /api/emails/process/{id} - List process emails",
+        "GET /api/emails/process/{id}?direction=sent|received - Filter by direction",
+        "GET /api/emails/stats/{id} - Get email statistics (total, sent, received)",
+        "DELETE /api/emails/{id} - Delete email record"
+      ]
+    },
+    "email_frontend_panel": {
+      "status": "WORKING",
+      "features": [
+        "Emails tab in ProcessDetails sidebar (alongside Prazos, Histórico, Ficheiros)",
+        "EmailHistoryPanel component with stats badge",
+        "Filter tabs: Todos, Enviados, Recebidos",
+        "Email list with expand/collapse for details",
+        "Direction icons (Send/Inbox) with color coding",
+        "Create email dialog with type selection",
+        "Pre-filled client email in To/From fields",
+        "Delete email functionality"
+      ]
+    },
+    "tasks_regression": {
+      "status": "WORKING",
+      "note": "Tasks tab, Nova button, Mostrar concluídas checkbox all working"
+    },
+    "dashboard_regression": {
+      "status": "WORKING",
+      "note": "Dashboard cards and Kanban board working correctly"
+    }
+  },
+  
+  "mocked_apis": {
+    "note": "Email system is for manual registration only - no SMTP integration. Future feature for actual email sending."
+  }
+}

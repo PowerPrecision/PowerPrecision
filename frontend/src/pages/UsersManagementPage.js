@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { 
-  Users, Search, UserPlus, Edit, Trash2, Loader2, UserX, UserCheck
+  Users, Search, UserPlus, Edit, Trash2, Loader2, UserX, UserCheck, Eye
 } from "lucide-react";
 import { toast } from "sonner";
 import { getUsers, createUser, updateUser, deleteUser } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const roleLabels = {
   cliente: "Cliente",
@@ -37,6 +38,7 @@ const roleColors = {
 };
 
 const UsersManagementPage = () => {
+  const { user: currentUser, impersonate } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
@@ -332,6 +334,25 @@ const UsersManagementPage = () => {
                         </TableCell>
                         <TableCell className="font-mono text-sm">{user.onedrive_folder || "-"}</TableCell>
                         <TableCell className="text-right">
+                          {/* Botão Impersonate - só para admins e não para si próprio */}
+                          {currentUser?.role === "admin" && user.id !== currentUser?.id && user.role !== "admin" && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={async () => {
+                                try {
+                                  await impersonate(user.id);
+                                  toast.success(`A ver como ${user.name}`);
+                                } catch (error) {
+                                  toast.error("Erro ao iniciar visualização");
+                                }
+                              }}
+                              title="Ver como este utilizador"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="icon" 

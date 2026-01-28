@@ -131,6 +131,7 @@ async def get_upcoming_expiries(
     Obter documentos que expiram nos próximos N dias.
     
     Por defeito, retorna documentos a expirar em 60 dias.
+    EXCLUI processos concluídos e desistências.
     Estes documentos também aparecem no calendário como alertas.
     
     Args:
@@ -142,6 +143,9 @@ async def get_upcoming_expiries(
     """
     today = datetime.now(timezone.utc).date()
     future_date = today + timedelta(days=days)
+    
+    # Estados a EXCLUIR da análise de documentos
+    excluded_statuses = ["concluido", "desistencia", "desistência"]
     
     query = {
         "expiry_date": {
@@ -214,11 +218,16 @@ async def get_upcoming_expiries(
     
     docs = await db.document_expiries.find(query, {"_id": 0}).sort("expiry_date", 1).to_list(1000)
     
-    # Enriquecer com informação do processo
+    # Enriquecer com informação do processo e filtrar por estado
     result = []
     for doc in docs:
         process = await db.processes.find_one({"id": doc["process_id"]}, {"_id": 0})
         if process:
+            # EXCLUIR processos concluídos e desistências
+            process_status = process.get("status", "").lower()
+            if process_status in excluded_statuses:
+                continue
+            
             # Calcular dias até expirar
             expiry = datetime.strptime(doc["expiry_date"], "%Y-%m-%d").date()
             days_until = (expiry - today).days
