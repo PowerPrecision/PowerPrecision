@@ -6,7 +6,8 @@ import KanbanBoard from "../components/KanbanBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
-import { Loader2, LayoutGrid, Calendar, Users, Settings, FileText, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { Loader2, LayoutGrid, Calendar, Users, Settings, FileText, CheckCircle, XCircle, TrendingUp, ClipboardList } from "lucide-react";
+import TasksPanel from "../components/TasksPanel";
 import { toast } from "sonner";
 import { getStats, getUsers, getUpcomingExpiries, getCalendarDeadlines } from "../services/api";
 
@@ -148,12 +149,17 @@ const StaffDashboard = () => {
           </Card>
           <Card 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => goToFilteredList('pending_deadlines')}
+            onClick={() => navigate('/pendentes')}
           >
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-3xl font-bold text-orange-500">{stats.pending_deadlines || 0}</p>
-                <p className="text-sm text-muted-foreground">Prazos Pendentes</p>
+                <p className="text-3xl font-bold text-orange-500">{stats.total_pending || stats.pending_deadlines || 0}</p>
+                <p className="text-sm text-muted-foreground">Pendentes</p>
+                {(stats.pending_tasks > 0 || stats.pending_deadlines > 0) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.pending_tasks || 0} tarefas • {stats.pending_deadlines || 0} prazos
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -164,26 +170,36 @@ const StaffDashboard = () => {
           <TabsList className="flex-wrap">
             <TabsTrigger value="kanban" className="gap-2">
               <LayoutGrid className="h-4 w-4" />
-              Quadro Geral
+              <span className="hidden sm:inline">Quadro Geral</span>
+              <span className="sm:hidden">Quadro</span>
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Minhas Tarefas</span>
+              <span className="sm:hidden">Tarefas</span>
             </TabsTrigger>
             <TabsTrigger value="calendar" className="gap-2">
               <Calendar className="h-4 w-4" />
-              Calendário
+              <span className="hidden sm:inline">Calendário</span>
+              <span className="sm:hidden">Cal.</span>
             </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
-              Documentos
+              <span className="hidden sm:inline">Documentos</span>
+              <span className="sm:hidden">Docs</span>
             </TabsTrigger>
             {canManageUsers && (
               <TabsTrigger value="users" className="gap-2">
                 <Users className="h-4 w-4" />
-                Utilizadores
+                <span className="hidden sm:inline">Utilizadores</span>
+                <span className="sm:hidden">Users</span>
               </TabsTrigger>
             )}
             {canManageWorkflow && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" />
-                Configurações
+                <span className="hidden sm:inline">Configurações</span>
+                <span className="sm:hidden">Config</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -191,6 +207,16 @@ const StaffDashboard = () => {
           {/* Kanban Tab */}
           <TabsContent value="kanban" className="mt-6">
             <KanbanBoard token={token} />
+          </TabsContent>
+
+          {/* Tasks Tab - Minhas Tarefas */}
+          <TabsContent value="tasks" className="mt-6">
+            <TasksPanel 
+              showCreateButton={true}
+              compact={false}
+              maxHeight="600px"
+              showOnlyMyTasks={true}
+            />
           </TabsContent>
 
           {/* Calendar Tab */}

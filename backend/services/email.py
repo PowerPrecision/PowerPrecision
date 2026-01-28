@@ -242,7 +242,8 @@ async def send_email_notification(to_email: str, subject: str, body: str, html_b
         
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context) as server:
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
-            server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+            # Codificar o email corretamente para suportar caracteres especiais
+            server.sendmail(SMTP_EMAIL, to_email.encode('utf-8').decode('ascii', 'ignore'), msg.as_bytes())
         
         logger.info(f"[EMAIL SENT] To: {to_email}, Subject: {subject}")
         return True

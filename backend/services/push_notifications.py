@@ -115,6 +115,14 @@ async def send_push_notification(
             if e.response and e.response.status_code in [404, 410]:
                 failed_subscriptions.append(sub["endpoint"])
                 logger.info(f"Subscrição expirada marcada para remoção: {sub['endpoint'][:50]}...")
+        
+        except ValueError as e:
+            # Erro de deserialização da chave VAPID - log e continuar
+            logger.error(f"Erro de chave VAPID para {user_id}: {e}")
+            
+        except Exception as e:
+            # Qualquer outro erro - log e continuar
+            logger.error(f"Erro inesperado ao enviar push para {user_id}: {e}")
     
     # Desativar subscrições inválidas
     if failed_subscriptions:

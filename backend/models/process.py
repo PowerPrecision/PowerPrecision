@@ -84,6 +84,7 @@ class RealEstateData(BaseModel):
     Campos activos:
     - tipo_imovel, num_quartos, localizacao, caracteristicas
     - outras_caracteristicas, outras_informacoes
+    - ja_tem_imovel (indica se o cliente já tem imóvel identificado)
     """
     tipo_imovel: Optional[str] = None
     num_quartos: Optional[str] = None
@@ -91,6 +92,8 @@ class RealEstateData(BaseModel):
     caracteristicas: Optional[List[str]] = None
     outras_caracteristicas: Optional[str] = None
     outras_informacoes: Optional[str] = None
+    ja_tem_imovel: Optional[bool] = None  # Indica se cliente já tem imóvel identificado
+    has_property: Optional[bool] = None   # Alias para ja_tem_imovel
 
 
 class FinancialData(BaseModel):
@@ -155,6 +158,7 @@ class ProcessResponse(BaseModel):
     client_name: str
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
+    client_nif: Optional[str] = None
     process_type: Optional[str] = None
     type: Optional[str] = None  # Alias for process_type (from Trello import)
     status: str
@@ -173,3 +177,7 @@ class ProcessResponse(BaseModel):
     prioridade: Optional[bool] = None
     labels: Optional[List[str]] = None
     onedrive_links: Optional[List[dict]] = None
+    has_property: Optional[bool] = None  # Flag para indicar se cliente já tem imóvel
+    trello_card_id: Optional[str] = None  # ID do card no Trello
+    trello_list_id: Optional[str] = None  # ID da lista no Trello
+    source: Optional[str] = None  # Origem do processo (trello_import, web_form, etc.)

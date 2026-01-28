@@ -72,6 +72,13 @@ const KanbanBoard = ({ token }) => {
 
   useEffect(() => {
     fetchKanbanData();
+    
+    // Polling para atualizar dados a cada 10 segundos (sync com Trello)
+    const pollInterval = setInterval(() => {
+      fetchKanbanData();
+    }, 10000);
+    
+    return () => clearInterval(pollInterval);
   }, [fetchKanbanData]);
 
   const handleDragStart = (e, process, columnName) => {
@@ -268,7 +275,7 @@ const KanbanBoard = ({ token }) => {
                   {allFilteredProcesses.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Nenhum resultado para "{searchTerm}"
+                        Nenhum resultado para &quot;{searchTerm}&quot;
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -410,8 +417,14 @@ const KanbanBoard = ({ token }) => {
                                   </div>
                                   
                                   {/* Labels */}
+                                  {process.has_property && (
+                                    <Badge variant="outline" className="mt-1 text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
+                                      <Home className="h-3 w-3 mr-1" />
+                                      Tem Imóvel
+                                    </Badge>
+                                  )}
                                   {process.prioridade && (
-                                    <Badge variant="destructive" className="mt-1 text-xs">
+                                    <Badge variant="destructive" className="mt-1 ml-1 text-xs">
                                       <AlertCircle className="h-3 w-3 mr-1" />
                                       Prioridade
                                     </Badge>

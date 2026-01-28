@@ -125,6 +125,64 @@ async def get_deadlines(process_id: Optional[str] = None, user: dict = Depends(g
     return [DeadlineResponse(**d) for d in deadlines]
 
 
+@router.get("/my-deadlines", response_model=List[DeadlineResponse])
+async def get_my_deadlines(user: dict = Depends(get_current_user)):
+    """
+    Obter APENAS prazos onde o utilizador tem acesso ao processo.
+    
+    Diferente do endpoint /deadlines, este endpoint:
+    - NÃO inclui prazos onde o utilizador é apenas participante mas não tem acesso ao processo
+    - Inclui apenas prazos dos processos onde o utilizador está atribuído
+    """
+    if user["role"] in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
+        # Admin, CEO e Administrativo vêem todos os prazos
+        deadlines = await db.deadlines.find({}, {"_id": 0}).to_list(1000)
+    elif user["role"] == UserRole.CLIENTE:
+        # Clientes vêem eventos dos seus processos
+        processes = await db.processes.find({"client_id": user["id"]}, {"id": 1, "_id": 0}).to_list(1000)
+        process_ids = [p["id"] for p in processes]
+        deadlines = await db.deadlines.find({"process_id": {"$in": process_ids}}, {"_id": 0}).to_list(1000)
+    else:
+        # Consultores/Intermediários/Diretores vêem apenas prazos dos processos que lhes estão atribuídos
+        my_processes = await db.processes.find({
+            "$or": [
+                {"assigned_consultor_id": user["id"]},
+                {"consultor_id": user["id"]},
+                {"assigned_mediador_id": user["id"]},
+                {"intermediario_id": user["id"]}
+            ]
+        }, {"id": 1, "_id": 0}).to_list(1000)
+        my_process_ids = [p["id"] for p in my_processes]
+        
+        # Prazos dos processos atribuídos OU criados pelo utilizador OU onde está directamente atribuído ao prazo
+        query = {
+            "$or": [
+                {"process_id": {"$in": my_process_ids}} if my_process_ids else {"process_id": None},
+                {"created_by": user["id"]},
+            ]
+        }
+        
+        # Filtrar para incluir apenas prazos onde tem acesso ao processo
+        deadlines = await db.deadlines.find(query, {"_id": 0}).to_list(1000)
+        
+        # Segunda verificação: remover prazos cujo process_id não está em my_process_ids
+        # (excepto se foi criado pelo utilizador e não tem processo associado)
+        filtered_deadlines = []
+        for d in deadlines:
+            process_id = d.get("process_id")
+            if not process_id:
+                # Prazo sem processo - mostrar apenas se foi criado pelo utilizador
+                if d.get("created_by") == user["id"]:
+                    filtered_deadlines.append(d)
+            elif process_id in my_process_ids:
+                # Prazo de um processo atribuído
+                filtered_deadlines.append(d)
+        
+        deadlines = filtered_deadlines
+    
+    return [DeadlineResponse(**d) for d in deadlines]
+
+
 @router.get("/calendar")
 async def get_calendar_deadlines(
     consultor_id: Optional[str] = None,

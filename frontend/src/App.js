@@ -12,6 +12,7 @@ import UsersManagementPage from "./pages/UsersManagementPage";
 import ProcessesPage from "./pages/ProcessesPage";
 import SettingsPage from "./pages/SettingsPage";
 import FilteredProcessList from "./pages/FilteredProcessList";
+import PendingItemsList from "./pages/PendingItemsList";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
@@ -150,6 +151,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <FilteredProcessList />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Pending Items List - Staff and Admin */}
+          <Route
+            path="/pendentes"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <PendingItemsList />
               </ProtectedRoute>
             }
           />

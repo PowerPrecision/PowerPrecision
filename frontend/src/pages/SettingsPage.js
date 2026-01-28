@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import WorkflowEditor from "../components/WorkflowEditor";
 import NotificationSettings from "../components/NotificationSettings";
+import TrelloIntegration from "../components/TrelloIntegration";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -515,6 +516,9 @@ const SettingsPage = () => {
           {user?.role === "admin" && (
             <TabsContent value="sistema">
               <div className="space-y-6">
+                {/* Integração Trello */}
+                <TrelloIntegration />
+                
                 {/* Editor de Workflow */}
                 <WorkflowEditor />
                 

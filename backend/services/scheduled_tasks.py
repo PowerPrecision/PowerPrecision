@@ -202,6 +202,87 @@ class ScheduledTasksService:
         logger.info(f"Prazos próximos: {notifications_created} notificações criadas")
         return notifications_created
     
+    async def check_tasks_due_soon(self) -> int:
+        """
+        Verificar tarefas com prazo próximo (3 dias ou menos) ou atrasadas.
+        Enviar alertas para os utilizadores atribuídos.
+        
+        Alertas:
+        - 3 dias antes: "Tarefa vence em 3 dias"
+        - 1 dia antes: "Tarefa vence amanhã"
+        - No dia: "Tarefa vence hoje!"
+        - Atrasada: "Tarefa atrasada!"
+        """
+        logger.info("A verificar tarefas com prazo próximo...")
+        
+        today = datetime.now(timezone.utc)
+        
+        # Buscar tarefas não concluídas com due_date
+        tasks = await self.db.tasks.find({
+            "completed": False,
+            "due_date": {"$exists": True, "$ne": None}
+        }, {"_id": 0}).to_list(500)
+        
+        notifications_created = 0
+        
+        for task in tasks:
+            due_date_str = task.get("due_date")
+            if not due_date_str:
+                continue
+            
+            try:
+                due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+            except (ValueError, TypeError):
+                continue
+            
+            days_until_due = (due_date.date() - today.date()).days
+            
+            # Definir mensagem baseada nos dias
+            if days_until_due < 0:
+                # Atrasada
+                message = f"🚨 TAREFA ATRASADA ({abs(days_until_due)} dias): {task.get('title', 'Sem título')}"
+                notification_type = "task_overdue"
+            elif days_until_due == 0:
+                # Vence hoje
+                message = f"⚠️ Tarefa vence HOJE: {task.get('title', 'Sem título')}"
+                notification_type = "task_due_today"
+            elif days_until_due == 1:
+                # Vence amanhã
+                message = f"📅 Tarefa vence amanhã: {task.get('title', 'Sem título')}"
+                notification_type = "task_due_tomorrow"
+            elif days_until_due <= 3:
+                # Vence em 3 dias ou menos
+                message = f"📋 Tarefa vence em {days_until_due} dias: {task.get('title', 'Sem título')}"
+                notification_type = "task_due_soon"
+            else:
+                # Ainda não está perto do prazo
+                continue
+            
+            # Notificar todos os utilizadores atribuídos
+            for user_id in task.get("assigned_to", []):
+                # Verificar se já existe notificação similar nas últimas 12 horas
+                existing = await self.db.notifications.find_one({
+                    "user_id": user_id,
+                    "type": notification_type,
+                    "message": {"$regex": task.get("id", "")},
+                    "created_at": {"$gte": (today - timedelta(hours=12)).isoformat()}
+                })
+                
+                if not existing:
+                    link = f"/process/{task['process_id']}" if task.get("process_id") else "/staff?tab=tasks"
+                    
+                    await self.create_notification(
+                        user_id=user_id,
+                        message=message,
+                        notification_type=notification_type,
+                        process_id=task.get("process_id"),
+                        link=link
+                    )
+                    notifications_created += 1
+        
+        logger.info(f"Tarefas com prazo próximo: {notifications_created} notificações criadas")
+        return notifications_created
+    
     async def check_pre_approval_countdown(self) -> int:
         """
         Verificar processos com pré-aprovação a expirar (90 dias).
@@ -510,6 +591,7 @@ class ScheduledTasksService:
             # Executar tarefas
             docs_count = await self.check_expiring_documents()
             deadlines_count = await self.check_upcoming_deadlines()
+            tasks_count = await self.check_tasks_due_soon()
             countdown_count = await self.check_pre_approval_countdown()
             waiting_count = await self.check_clients_waiting_too_long()
             monthly_count = await self.send_monthly_document_reminder()
@@ -519,6 +601,7 @@ class ScheduledTasksService:
             logger.info("RESUMO DAS TAREFAS")
             logger.info(f"- Alertas de documentos: {docs_count}")
             logger.info(f"- Alertas de prazos: {deadlines_count}")
+            logger.info(f"- Alertas de tarefas: {tasks_count}")
             logger.info(f"- Alertas de countdown: {countdown_count}")
             logger.info(f"- Alertas clientes em espera: {waiting_count}")
             logger.info(f"- Lembretes mensais: {monthly_count}")

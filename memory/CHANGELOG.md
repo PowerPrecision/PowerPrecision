@@ -4,6 +4,108 @@ Registo de alterações do sistema CreditoIMO.
 
 ---
 
+## [2026-01-25] - Página "Itens Pendentes" Dedicada
+
+### Adicionado
+- **Nova página `/pendentes`** - Lista unificada de todos os itens pendentes
+  - Combina tarefas e prazos numa única lista
+  - Ordenada por urgência (mais urgente primeiro)
+  - Cards de filtro: Total, Tarefas, Prazos (clicáveis)
+  - Badges visuais: tipo (Tarefa/Prazo) + urgência
+  - Checkbox para marcar tarefas como concluídas
+  - Link para ver processo associado
+  - Responsivo para mobile
+
+- **Card "Pendentes" no Dashboard**
+  - Agora navega para `/pendentes` em vez do separador de tarefas
+  - Mostra total combinado (tarefas + prazos)
+
+---
+
+## [2026-01-25] - Data de Vencimento nas Tarefas e Alertas Automáticos
+
+### Adicionado
+- **Campo "Data de Vencimento" nas Tarefas (opcional)**
+  - Campo de data no dialog de criação de tarefa
+  - Não obrigatório - tarefas podem ou não ter prazo
+  - Validação: data mínima é hoje
+
+- **Badges Visuais de Prazo nas Tarefas**
+  - 🔴 Vermelho: "Atrasada (X dias)"
+  - 🔴 Vermelho: "Vence hoje"
+  - 🟠 Laranja: "Vence amanhã"
+  - 🟡 Laranja claro: "X dias" (3 dias ou menos)
+  - ⚪ Cinza: Data do prazo (mais de 3 dias)
+
+- **Sistema de Alertas Automáticos para Tarefas**
+  - Alerta 3 dias antes do vencimento
+  - Alerta 1 dia antes (amanhã)
+  - Alerta no dia do vencimento
+  - Alerta quando atrasada
+  - Notificações enviadas aos utilizadores atribuídos
+
+- **Endpoint Atualizado**
+  - `POST /api/tasks` - aceita campo `due_date` opcional
+  - `GET /api/tasks` - retorna `due_date`, `is_overdue`, `days_until_due`
+
+---
+
+## [2026-01-25] - Separador "Minhas Tarefas" e Melhorias Mobile
+
+### Adicionado
+- **Separador "Minhas Tarefas" no StaffDashboard**
+  - Novo separador visível para todos os utilizadores
+  - Cada utilizador vê apenas as tarefas que lhe foram atribuídas
+  - Endpoint `GET /api/tasks/my-tasks` filtra por utilizador
+
+- **Card "Pendentes" Melhorado**
+  - Agora mostra total de prazos + tarefas pendentes
+  - Detalhe: "X tarefas • Y prazos"
+  - Ao clicar, abre separador de tarefas
+
+- **Botões "Todos" e "Nenhum" nas Tarefas**
+  - Adicionados ao dialog de criação de tarefa
+  - "Todos" selecciona todos os utilizadores
+  - "Nenhum" limpa a selecção
+
+- **Responsividade Mobile Melhorada**
+  - Dashboard adaptado com grid 2x2 para cards de estatísticas
+  - Separadores compactos (Quadro, Tarefas, Cal., Docs)
+  - Kanban com navegação por setas entre colunas
+  - Formulário público e ficha do cliente optimizados
+
+### Alterado
+- Contagem de "Pendentes" inclui agora tarefas + prazos (não apenas prazos)
+- Endpoint `/api/stats` retorna `total_pending`, `pending_tasks`, `pending_deadlines`
+
+---
+
+## [2026-01-25] - Bloqueio de Duplicados e Alertas de Documentos
+
+### Adicionado
+- **Bloqueio de Registo Duplicado**
+  - Verifica email existente antes de criar processo
+  - Verifica NIF existente antes de criar processo
+  - Mensagem amigável: "A nossa equipa entrará em contacto"
+  - Contactos de ambas as empresas para dúvidas
+
+- **Alerta de Verificação de Documentos**
+  - Enviado quando processo muda para CH Aprovado, Fase Escritura ou Escritura Agendada
+  - Notifica todos os envolvidos (consultor, mediador, staff)
+  - Inclui lista de documentos em falta
+  - Email + Notificação em tempo real
+
+- **Etiqueta "Tem Imóvel" no Kanban**
+  - Badge verde para processos com `has_property=True`
+  - Visível no cartão do processo
+  - Ajuda CEO a não atribuir a Consultor Imobiliário por engano
+
+### Corrigido
+- Erro 500 ao mover processo para fases de escritura (parâmetro `priority` inválido)
+- Erro de encoding em emails com caracteres especiais (ex: `luís@...`)
+
+---
+
 ## [2026-01-25] - Integração IMAP/SMTP Email
 
 ### Adicionado

@@ -106,6 +106,8 @@ const ProcessDetails = () => {
   const [activeTab, setActiveTab] = useState("personal");
   const [sideTab, setSideTab] = useState("deadlines");
 
+  const [accessDenied, setAccessDenied] = useState(false);
+
   // Form states
   const [personalData, setPersonalData] = useState({});
   const [financialData, setFinancialData] = useState({});
@@ -164,8 +166,13 @@ const ProcessDetails = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados do processo");
-      navigate(-1);
+      if (error.response?.status === 403) {
+        setAccessDenied(true);
+        toast.error("Não tem permissão para aceder a este processo");
+      } else {
+        toast.error("Erro ao carregar dados do processo");
+        navigate(-1);
+      }
     } finally {
       setLoading(false);
     }
@@ -323,6 +330,26 @@ const ProcessDetails = () => {
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <DashboardLayout title="Acesso Negado">
+        <Card className="border-border">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+            <h2 className="text-xl font-semibold mb-2">Acesso Negado</h2>
+            <p className="text-muted-foreground mb-4">
+              Não tem permissão para aceder a este processo.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Este processo não lhe está atribuído. Se acha que deveria ter acesso, contacte o administrador.
+            </p>
+            <Button onClick={() => navigate(-1)}>Voltar</Button>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }

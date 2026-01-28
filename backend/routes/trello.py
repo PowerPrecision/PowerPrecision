@@ -121,6 +121,153 @@ async def configure_trello(
 
 # === Sincronização ===
 
+@router.post("/reset-and-sync")
+async def reset_and_sync_from_trello(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Apagar todos os dados existentes e importar tudo do Trello.
+    ATENÇÃO: Esta operação é destrutiva e irreversível!
+    """
+    result = {
+        "success": True,
+        "deleted": {
+            "processes": 0,
+            "deadlines": 0,
+            "tasks": 0,
+            "activities": 0,
+            "documents": 0,
+            "emails": 0,
+            "notifications": 0,
+            "users": 0
+        },
+        "imported": {
+            "processes": 0,
+            "errors": []
+        },
+        "message": ""
+    }
+    
+    try:
+        # 1. Apagar dados existentes (exceto admins)
+        logger.info("A apagar dados existentes...")
+        
+        # Apagar processos e dados relacionados
+        del_processes = await db.processes.delete_many({})
+        result["deleted"]["processes"] = del_processes.deleted_count
+        
+        del_deadlines = await db.deadlines.delete_many({})
+        result["deleted"]["deadlines"] = del_deadlines.deleted_count
+        
+        del_tasks = await db.tasks.delete_many({})
+        result["deleted"]["tasks"] = del_tasks.deleted_count
+        
+        del_activities = await db.activities.delete_many({})
+        result["deleted"]["activities"] = del_activities.deleted_count
+        
+        del_documents = await db.documents.delete_many({})
+        result["deleted"]["documents"] = del_documents.deleted_count
+        
+        del_emails = await db.emails.delete_many({})
+        result["deleted"]["emails"] = del_emails.deleted_count
+        
+        del_notifications = await db.notifications.delete_many({})
+        result["deleted"]["notifications"] = del_notifications.deleted_count
+        
+        # Apagar utilizadores não-admin
+        del_users = await db.users.delete_many({"role": {"$ne": "admin"}})
+        result["deleted"]["users"] = del_users.deleted_count
+        
+        logger.info(f"Dados apagados: {result['deleted']}")
+        
+        # 2. Importar cards do Trello com todos os detalhes
+        logger.info("A importar do Trello...")
+        lists = await trello_service.get_lists(force_refresh=True)
+        all_cards = await trello_service.get_cards_with_details()
+        
+        logger.info(f"Encontrados {len(all_cards)} cards no Trello")
+        
+        result["imported"]["activities"] = 0
+        
+        for card in all_cards:
+            try:
+                # Encontrar a lista do card
+                list_info = next((l for l in lists if l["id"] == card["idList"]), None)
+                if not list_info:
+                    result["imported"]["errors"].append(f"Lista não encontrada para card: {card.get('name', 'N/A')}")
+                    continue
+                
+                # Converter para status do sistema
+                status = trello_list_to_status(list_info["name"])
+                if not status:
+                    # Se a lista não estiver mapeada, usar um status genérico
+                    status = "clientes_espera"
+                    result["imported"]["errors"].append(f"Lista não mapeada '{list_info['name']}', usando 'clientes_espera'")
+                
+                # Extrair dados da descrição
+                card_data = parse_card_description(card.get("desc", ""))
+                
+                # Gerar ID do processo
+                process_id = str(uuid.uuid4())
+                
+                # Criar novo processo
+                new_process = {
+                    "id": process_id,
+                    "client_name": card["name"],
+                    "client_email": card_data.get("email", card_data.get("📧_email", "")),
+                    "client_phone": card_data.get("telefone", card_data.get("phone", card_data.get("📱_telefone", ""))),
+                    "client_nif": card_data.get("nif", card_data.get("🆔_nif", "")),
+                    "status": status,
+                    "trello_card_id": card["id"],
+                    "trello_list_id": card["idList"],
+                    "trello_url": card.get("shortUrl", ""),
+                    "created_at": card.get("dateLastActivity", datetime.now(timezone.utc).isoformat()),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "trello_import",
+                    "notes": card.get("desc", ""),
+                    "personal_data": {},
+                    "financial_data": {},
+                    "real_estate_data": {},
+                    "credit_data": {},
+                }
+                
+                await db.processes.insert_one(new_process)
+                result["imported"]["processes"] += 1
+                
+                # Importar comentários/atividades do Trello como atividades do sistema
+                comments = card.get("comments", [])
+                for comment in comments:
+                    try:
+                        activity = {
+                            "id": str(uuid.uuid4()),
+                            "process_id": process_id,
+                            "type": "comment",
+                            "title": "Comentário do Trello",
+                            "description": comment.get("data", {}).get("text", ""),
+                            "created_at": comment.get("date", datetime.now(timezone.utc).isoformat()),
+                            "created_by": comment.get("memberCreator", {}).get("fullName", "Trello"),
+                            "source": "trello_import",
+                            "trello_action_id": comment.get("id")
+                        }
+                        await db.activities.insert_one(activity)
+                        result["imported"]["activities"] += 1
+                    except Exception as e:
+                        logger.warning(f"Erro ao importar comentário: {e}")
+                
+            except Exception as e:
+                result["imported"]["errors"].append(f"Erro no card {card.get('name', 'N/A')}: {str(e)}")
+        
+        result["message"] = f"Reset completo! Apagados {result['deleted']['processes']} processos. Importados {result['imported']['processes']} do Trello com {result['imported']['activities']} atividades."
+        logger.info(result["message"])
+        
+    except Exception as e:
+        logger.error(f"Erro no reset e sync: {e}")
+        result["success"] = False
+        result["message"] = f"Erro: {str(e)}"
+    
+    return result
+
+
 @router.post("/sync/from-trello", response_model=SyncResult)
 async def sync_from_trello(
     background_tasks: BackgroundTasks,
@@ -390,7 +537,7 @@ async def handle_card_updated(action: dict):
     """Processar atualização de card no Trello."""
     card = action.get("data", {}).get("card", {})
     list_after = action.get("data", {}).get("listAfter", {})
-    list_before = action.get("data", {}).get("listBefore", {})
+    old_data = action.get("data", {}).get("old", {})
     
     if not card.get("id"):
         return
@@ -398,6 +545,8 @@ async def handle_card_updated(action: dict):
     # Encontrar processo
     process = await db.processes.find_one({"trello_card_id": card["id"]})
     if not process:
+        # Se não existe, criar novo processo
+        await handle_card_created(action)
         return
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
@@ -405,6 +554,19 @@ async def handle_card_updated(action: dict):
     # Atualizar nome se mudou
     if card.get("name") and card["name"] != process.get("client_name"):
         update_data["client_name"] = card["name"]
+        logger.info(f"Nome atualizado via Trello: {process.get('client_name')} -> {card['name']}")
+    
+    # Atualizar descrição se mudou (extrair dados)
+    if "desc" in old_data or card.get("desc"):
+        desc = card.get("desc", "")
+        parsed = parse_card_description(desc)
+        
+        if parsed.get("email"):
+            update_data["client_email"] = parsed["email"]
+        if parsed.get("telefone") or parsed.get("phone"):
+            update_data["client_phone"] = parsed.get("telefone") or parsed.get("phone")
+        if parsed.get("nif"):
+            update_data["client_nif"] = parsed["nif"]
     
     # Atualizar status se mudou de lista
     if list_after.get("name"):
@@ -414,7 +576,9 @@ async def handle_card_updated(action: dict):
             update_data["trello_list_id"] = list_after.get("id")
             logger.info(f"Processo movido via Trello: {process['client_name']} -> {new_status}")
     
-    await db.processes.update_one({"id": process["id"]}, {"$set": update_data})
+    if len(update_data) > 1:  # Mais do que apenas updated_at
+        await db.processes.update_one({"id": process["id"]}, {"$set": update_data})
+        logger.info(f"Processo atualizado via webhook Trello: {process['client_name']}")
 
 
 async def handle_card_deleted(action: dict):
@@ -444,11 +608,33 @@ async def handle_card_moved(action: dict):
 
 @router.post("/webhook/setup")
 async def setup_webhook(
-    callback_url: str,
+    callback_url: Optional[str] = None,
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
     """Configurar webhook para sincronização em tempo real."""
     try:
+        # Se não for fornecido, usar o URL do ambiente
+        if not callback_url:
+            import os
+            base_url = os.environ.get("WEBHOOK_BASE_URL")
+            if not base_url:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="WEBHOOK_BASE_URL não configurado. Configure a variável de ambiente ou forneça callback_url."
+                )
+            callback_url = f"{base_url}/api/trello/webhook"
+        
+        # Verificar se já existe webhook ativo
+        existing_webhooks = await trello_service.get_webhooks()
+        for wh in existing_webhooks:
+            if wh.get("callbackURL") == callback_url:
+                return {
+                    "success": True,
+                    "webhook_id": wh["id"],
+                    "message": "Webhook já está configurado",
+                    "callback_url": callback_url
+                }
+        
         webhook = await trello_service.create_webhook(
             callback_url=callback_url,
             description="CreditoIMO Real-time Sync"
@@ -469,7 +655,8 @@ async def setup_webhook(
         return {
             "success": True,
             "webhook_id": webhook["id"],
-            "message": "Webhook configurado com sucesso"
+            "message": "Webhook configurado com sucesso",
+            "callback_url": callback_url
         }
     except Exception as e:
         logger.error(f"Erro ao criar webhook: {e}")

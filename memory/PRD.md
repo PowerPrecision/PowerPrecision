@@ -4,6 +4,8 @@
 ## Problem Statement
 Sistema de registo de clientes para crédito e assistência imobiliária. Clientes preenchem formulário público (sem login). Consultores, mediadores e CEO gerem os processos num quadro Kanban visual estilo Trello.
 
+**Uso Principal**: Mobile (telemóvel) - interface optimizada para dispositivos móveis.
+
 ## Sites de Referência
 - **Imobiliária**: https://www.powerealestate.pt/
 - **Crédito**: https://precision-credito.pt/
@@ -30,6 +32,43 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 | Admin | admin@sistema.pt | Admin | admin2026 |
 
 ## What's Been Implemented
+
+### ✅ Integração Bidirecional com Trello (2026-01-27)
+- **Sincronização completa espelho**: O sistema funciona como espelho do Trello em tempo real
+- **152 processos importados** do board "Lista de clientes"
+- **App → Trello**: 
+  - Ao mover processo no Kanban, o card é atualizado automaticamente no Trello
+  - Ao editar dados do cliente (nome, email, morada, etc.), o card é atualizado no Trello
+- **Trello → App**: 
+  - Webhook configurado para receber atualizações em tempo real
+  - Criar/mover/editar cards no Trello atualiza automaticamente na aplicação
+- **Endpoints implementados**:
+  - `GET /api/trello/status` - Estado da conexão
+  - `POST /api/trello/sync/from-trello` - Importar do Trello
+  - `POST /api/trello/sync/to-trello` - Exportar para Trello
+  - `POST /api/trello/sync/full` - Sincronização bidirecional
+  - `POST /api/trello/reset-and-sync` - Apagar dados e reimportar
+  - `POST /api/trello/webhook` - Receber eventos do Trello
+  - `POST /api/trello/webhook/setup` - Configurar webhook
+- **15 listas mapeadas**: Clientes em Espera, Fase Documental, Entregue aos Intermediários, etc.
+- **Painel de configuração**: Definições > Sistema > Integração Trello
+  - Estado da conexão e lista de listas mapeadas
+  - Botões de sincronização manual
+  - Gestão de webhook (ativar/remover)
+- **Badge "Trello"**: Processos importados têm etiqueta visual no Kanban
+- **Credenciais**: Configuradas via TRELLO_API_KEY, TRELLO_TOKEN, TRELLO_BOARD_ID no .env
+
+### ✅ Separador "Minhas Tarefas" e Melhorias Mobile (2026-01-25)
+- **Separador "Minhas Tarefas"** no StaffDashboard para todos os utilizadores
+- Cada utilizador vê apenas as tarefas que lhe foram atribuídas
+- **Card "Pendentes" melhorado**: Mostra total de prazos + tarefas pendentes
+- Detalhe: "X tarefas • Y prazos"
+- **Botões "Todos" e "Nenhum"** no dialog de criação de tarefa
+- **Responsividade Mobile**:
+  - Dashboard adaptado com grid 2x2
+  - Separadores compactos (Quadro, Tarefas, Cal., Docs)
+  - Kanban com navegação por setas entre colunas
+  - Formulário público e ficha do cliente optimizados
 
 ### ✅ Impersonate - Admin Ver Como Outro Utilizador (2026-01-23)
 - Endpoint POST `/api/admin/impersonate/{user_id}`
@@ -86,6 +125,31 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
   - Ícones de direção (enviado/recebido)
   - Dialog para criar email com tipo, de, para, assunto, corpo, notas
   - Email do cliente pré-preenchido
+
+### ✅ Bloqueio de Registo Duplicado (2026-01-25)
+- **Verificação de duplicados** no formulário público:
+  - Verifica se email já existe na base de dados
+  - Verifica se NIF já existe na base de dados
+  - Retorna `blocked: true` com razão (`email` ou `nif`)
+- **Mensagem amigável**: "Já existe um processo com este email/NIF. A nossa equipa entrará em contacto consigo em breve."
+- **UI de bloqueio**: Página com contactos das empresas para dúvidas
+- **Endpoint**: `POST /api/public/client-registration`
+
+### ✅ Alerta de Verificação de Documentos (2026-01-25)
+- **Trigger automático** quando processo muda para:
+  - CH Aprovado
+  - Fase Escritura
+  - Escritura Agendada
+- **Notifica todos os envolvidos**: consultor, mediador, CEO, diretores, admin
+- **Inclui lista de documentos em falta** do imóvel
+- **Email + Notificação em tempo real**
+- **Implementado em**: `services/alerts.py` → `notify_cpcv_or_deed_document_check()`
+
+### ✅ Etiqueta "Tem Imóvel" no Kanban (2026-01-25)
+- **Badge verde** para processos com `has_property=True`
+- **Ícone de casa** para identificação rápida
+- **Visível no cartão** do processo
+- **Ajuda CEO** a não atribuir a Consultor Imobiliário por engano
 
 ### ✅ Melhorias UI - Dashboard e Pesquisa (2026-01-25)
 - **Cards clicáveis no dashboard**: Navegam para lista filtrada
@@ -318,9 +382,24 @@ Sistema de registo de clientes para crédito e assistência imobiliária. Client
 ## Integrações
 | Integração | Estado | Config |
 |------------|--------|--------|
+| **Trello** | ✅ FUNCIONAL | Board: Lista de clientes, API Key configurada |
 | SMTP Email | ✅ FUNCIONAL | mail.precisioncredito.pt:465 |
+| IMAP Email | ✅ FUNCIONAL | Precision + Power Real Estate |
 | OneDrive (Links) | ✅ FUNCIONAL | Links de partilha manuais |
 | GPT-4o (AI) | ⏳ Preparado | EMERGENT_LLM_KEY |
+
+## APIs do Trello
+- `GET /api/trello/status` - Estado da conexão e listas do board
+- `POST /api/trello/sync/from-trello` - Importar cards do Trello
+- `POST /api/trello/sync/to-trello` - Exportar processos para Trello
+- `POST /api/trello/sync/full` - Sincronização bidirecional completa
+- `POST /api/trello/reset-and-sync` - Apagar tudo e reimportar do Trello
+- `POST /api/trello/configure` - Configurar credenciais (admin)
+- `POST /api/trello/webhook` - Endpoint para receber eventos (webhooks)
+- `HEAD /api/trello/webhook` - Verificação do webhook pelo Trello
+- `POST /api/trello/webhook/setup` - Configurar webhook
+- `GET /api/trello/webhook/list` - Listar webhooks ativos
+- `DELETE /api/trello/webhook/{id}` - Eliminar webhook
 
 ## APIs de Alertas
 - `GET /api/processes/{id}/alerts` - Todos os alertas do processo
@@ -376,7 +455,7 @@ Ou modo daemon: `python -m services.scheduled_tasks --daemon`
 
 ### ⏸️ Em Stand-by
 - [ ] Sistema de Documentos CPCV/Escritura (aguarda lista de documentos)
-- [ ] Integração bidirecional com Trello
 - [ ] Testar análise AI com documentos reais
-- [ ] Histórico de emails na ficha do cliente
+- [x] ~~Integração bidirecional com Trello~~ ✅ CONCLUÍDO (2026-01-27)
+- [x] ~~Histórico de emails na ficha do cliente~~ ✅ CONCLUÍDO (2026-01-25)
 - [ ] Faturação

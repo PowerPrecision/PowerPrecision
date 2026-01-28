@@ -120,14 +120,55 @@ class TrelloService:
         """Arquivar um card."""
         return await self._request("PUT", f"/cards/{card_id}", json={"closed": True})
     
+    async def get_card_actions(self, card_id: str, filter: str = "commentCard") -> List[Dict]:
+        """Obter atividades/comentários de um card."""
+        return await self._request(
+            "GET", 
+            f"/cards/{card_id}/actions",
+            params={"filter": filter}
+        )
+    
+    async def get_card_full(self, card_id: str) -> Dict:
+        """Obter card com todos os detalhes incluindo atividades."""
+        card = await self.get_card(card_id)
+        # Obter comentários
+        comments = await self.get_card_actions(card_id, "commentCard")
+        card["comments"] = comments
+        # Obter todas as ações (criação, movimentos, etc.)
+        all_actions = await self.get_card_actions(card_id, "all")
+        card["actions"] = all_actions
+        return card
+    
+    async def get_cards_with_details(self, list_id: str = None) -> List[Dict]:
+        """Obter cards com todos os dados e atividades."""
+        if list_id:
+            cards = await self._request("GET", f"/lists/{list_id}/cards")
+        else:
+            cards = await self._request("GET", f"/boards/{self.board_id}/cards")
+        
+        # Obter comentários para cada card
+        for card in cards:
+            try:
+                comments = await self.get_card_actions(card["id"], "commentCard")
+                card["comments"] = comments
+            except Exception:
+                card["comments"] = []
+        
+        return cards
+    
     # === Webhooks ===
     
     async def create_webhook(self, callback_url: str, id_model: str = None, 
                              description: str = "CreditoIMO Sync") -> Dict:
         """Criar webhook para receber notificações do Trello."""
+        # Se não for fornecido, obter o ID real do board
+        if not id_model:
+            board = await self.get_board()
+            id_model = board.get("id", self.board_id)
+        
         data = {
             "callbackURL": callback_url,
-            "idModel": id_model or self.board_id,
+            "idModel": id_model,
             "description": description,
         }
         return await self._request("POST", "/webhooks", json=data)
@@ -146,6 +187,7 @@ TRELLO_TO_STATUS = {
     "clientes em espera": "clientes_espera",
     "fase documental": "fase_documental",
     "fase documental ii": "fase_documental_ii",
+    "entregue aos intermediarios": "entregue_intermediarios",
     "enviado ao bruno": "enviado_bruno",
     "enviado ao luís": "enviado_luis",
     "enviado bcp rui": "enviado_bcp_rui",
@@ -198,19 +240,50 @@ def build_card_description(process: Dict) -> str:
     """Construir descrição do card a partir dos dados do processo."""
     lines = []
     
+    # Dados principais
     if process.get("client_email"):
-        lines.append(f"Email: {process['client_email']}")
+        lines.append(f"📧 Email: {process['client_email']}")
     if process.get("client_phone"):
-        lines.append(f"Telefone: {process['client_phone']}")
-    if process.get("valor_pretendido"):
-        lines.append(f"Valor: €{process['valor_pretendido']:,.0f}")
-    if process.get("personal_data", {}).get("morada_fiscal"):
-        lines.append(f"Morada: {process['personal_data']['morada_fiscal']}")
+        lines.append(f"📱 Telefone: {process['client_phone']}")
+    if process.get("client_nif"):
+        lines.append(f"🆔 NIF: {process['client_nif']}")
+    
+    # Dados pessoais
+    personal = process.get("personal_data", {})
+    if personal.get("morada_fiscal"):
+        lines.append(f"📍 Morada: {personal['morada_fiscal']}")
+    if personal.get("data_nascimento"):
+        lines.append(f"🎂 Nascimento: {personal['data_nascimento']}")
+    
+    # Dados financeiros
+    financial = process.get("financial_data", {})
+    if financial.get("rendimento_mensal"):
+        lines.append(f"💰 Rendimento: €{financial['rendimento_mensal']:,.0f}/mês")
+    if financial.get("valor_pretendido") or process.get("valor_pretendido"):
+        valor = financial.get("valor_pretendido") or process.get("valor_pretendido")
+        lines.append(f"🏦 Valor Pretendido: €{valor:,.0f}")
+    
+    # Dados do imóvel
+    real_estate = process.get("real_estate_data", {})
+    if real_estate.get("morada_imovel"):
+        lines.append(f"🏠 Imóvel: {real_estate['morada_imovel']}")
+    if real_estate.get("valor_aquisicao"):
+        lines.append(f"💶 Valor Aquisição: €{real_estate['valor_aquisicao']:,.0f}")
+    
+    # Flags especiais
     if process.get("idade_menos_35"):
         lines.append("⭐ Elegível Apoio ao Estado (<35 anos)")
+    if process.get("has_property"):
+        lines.append("🏡 Tem imóvel identificado")
+    
+    # Atribuições
+    if process.get("consultor_name"):
+        lines.append(f"👤 Consultor: {process['consultor_name']}")
+    if process.get("mediador_name"):
+        lines.append(f"👤 Intermediário: {process['mediador_name']}")
     
     # Adicionar ID do processo para referência
-    lines.append(f"\n---\nID CreditoIMO: {process.get('id', 'N/A')}")
+    lines.append(f"\n---\n🔗 ID CreditoIMO: {process.get('id', 'N/A')}")
     
     return "\n".join(lines)
 

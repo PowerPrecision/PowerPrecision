@@ -21,6 +21,7 @@ export const moveProcessKanban = (processId, newStatus) =>
 export const getDeadlines = (processId) => 
   axios.get(`${API_URL}/deadlines`, { params: { process_id: processId } });
 export const getAllDeadlines = () => axios.get(`${API_URL}/deadlines`);
+export const getMyDeadlines = () => axios.get(`${API_URL}/deadlines/my-deadlines`);
 export const getCalendarDeadlines = (consultorId, mediadorId) => 
   axios.get(`${API_URL}/deadlines/calendar`, { 
     params: { consultor_id: consultorId, mediador_id: mediadorId } 

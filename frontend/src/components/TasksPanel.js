@@ -34,10 +34,10 @@ import {
 } from "./ui/dropdown-menu";
 import { 
   ClipboardList, Plus, Check, RotateCcw, Trash2, Loader2, 
-  MoreVertical, User, Clock, CheckCircle2, Circle
+  MoreVertical, User, Clock, CheckCircle2, Circle, Calendar, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { getTasks, getMyTasks, getProcessTasks, createTask, completeTask, reopenTask, deleteTask, getUsers } from "../services/api";
 
@@ -46,7 +46,8 @@ const TasksPanel = ({
   processName = null,
   showCreateButton = true,
   compact = false,
-  maxHeight = "400px"
+  maxHeight = "400px",
+  showOnlyMyTasks = false  // Novo: mostrar apenas tarefas atribuídas ao utilizador atual
 }) => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -59,22 +60,29 @@ const TasksPanel = ({
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assigned_to: []
+    assigned_to: [],
+    due_date: ""  // Data de vencimento (opcional)
   });
 
   useEffect(() => {
     fetchData();
-  }, [processId, showCompleted]);
+  }, [processId, showCompleted, showOnlyMyTasks]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [tasksRes, usersRes] = await Promise.all([
-        processId 
-          ? getProcessTasks(processId)
-          : getTasks({ include_completed: showCompleted }),
-        getUsers()
-      ]);
+      
+      let tasksRes;
+      if (processId) {
+        tasksRes = await getProcessTasks(processId);
+      } else if (showOnlyMyTasks) {
+        // Buscar apenas tarefas atribuídas ao utilizador actual
+        tasksRes = await getMyTasks();
+      } else {
+        tasksRes = await getTasks({ include_completed: showCompleted });
+      }
+      
+      const usersRes = await getUsers();
       
       // Filtrar tarefas concluídas se necessário
       let filteredTasks = tasksRes.data;
@@ -104,13 +112,24 @@ const TasksPanel = ({
 
     try {
       setCreating(true);
-      await createTask({
-        ...newTask,
+      
+      // Preparar dados da tarefa
+      const taskData = {
+        title: newTask.title,
+        description: newTask.description,
+        assigned_to: newTask.assigned_to,
         process_id: processId
-      });
+      };
+      
+      // Adicionar due_date apenas se preenchido
+      if (newTask.due_date) {
+        taskData.due_date = new Date(newTask.due_date).toISOString();
+      }
+      
+      await createTask(taskData);
       toast.success("Tarefa criada com sucesso");
       setIsCreateDialogOpen(false);
-      setNewTask({ title: "", description: "", assigned_to: [] });
+      setNewTask({ title: "", description: "", assigned_to: [], due_date: "" });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Erro ao criar tarefa");
@@ -159,7 +178,7 @@ const TasksPanel = ({
         assigned_to: []
       });
     } else {
-      setNewTask({ title: "", description: "", assigned_to: [] });
+      setNewTask({ title: "", description: "", assigned_to: [], due_date: "" });
     }
     setIsCreateDialogOpen(true);
   };
@@ -171,6 +190,65 @@ const TasksPanel = ({
         ? prev.assigned_to.filter(id => id !== userId)
         : [...prev.assigned_to, userId]
     }));
+  };
+
+  const selectAllUsers = () => {
+    setNewTask(prev => ({
+      ...prev,
+      assigned_to: users.map(u => u.id)
+    }));
+  };
+
+  const clearAllUsers = () => {
+    setNewTask(prev => ({
+      ...prev,
+      assigned_to: []
+    }));
+  };
+
+  // Helper para mostrar badge de prazo
+  const getDueDateBadge = (task) => {
+    if (!task.due_date || task.completed) return null;
+    
+    const daysUntil = task.days_until_due;
+    const isOverdue = task.is_overdue;
+    
+    if (isOverdue) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Atrasada ({Math.abs(daysUntil)}d)
+        </Badge>
+      );
+    } else if (daysUntil === 0) {
+      return (
+        <Badge variant="destructive" className="text-xs">
+          <Clock className="h-3 w-3 mr-1" />
+          Vence hoje
+        </Badge>
+      );
+    } else if (daysUntil === 1) {
+      return (
+        <Badge variant="warning" className="text-xs bg-orange-100 text-orange-800">
+          <Clock className="h-3 w-3 mr-1" />
+          Vence amanhã
+        </Badge>
+      );
+    } else if (daysUntil <= 3) {
+      return (
+        <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+          <Clock className="h-3 w-3 mr-1" />
+          {daysUntil} dias
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3 mr-1" />
+          {format(parseISO(task.due_date), "dd/MM", { locale: pt })}
+        </Badge>
+      );
+    }
   };
 
   if (loading) {
@@ -268,6 +346,8 @@ const TasksPanel = ({
                         </p>
                       )}
                       <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {/* Badge de prazo */}
+                        {getDueDateBadge(task)}
                         {/* Atribuídos */}
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <User className="h-3 w-3" />
@@ -279,7 +359,7 @@ const TasksPanel = ({
                             {task.process_name}
                           </Badge>
                         )}
-                        {/* Data */}
+                        {/* Data de criação */}
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           {format(parseISO(task.created_at), "dd/MM/yyyy", { locale: pt })}
@@ -357,9 +437,31 @@ const TasksPanel = ({
             
             <div className="space-y-2">
               <Label>Atribuir a *</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Selecione um ou mais utilizadores
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground">
+                  Selecione um ou mais utilizadores
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={selectAllUsers}
+                    className="text-xs h-7"
+                  >
+                    Todos
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={clearAllUsers}
+                    className="text-xs h-7"
+                  >
+                    Nenhum
+                  </Button>
+                </div>
+              </div>
               <ScrollArea className="h-[200px] border rounded-md p-2">
                 <div className="space-y-2">
                   {users.map((user) => (
@@ -389,6 +491,21 @@ const TasksPanel = ({
                   {newTask.assigned_to.length} utilizador(es) selecionado(s)
                 </p>
               )}
+            </div>
+
+            {/* Data de vencimento (opcional) */}
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Data de Vencimento (opcional)</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={newTask.due_date}
+                onChange={(e) => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se definida, será enviado um alerta quando o prazo se aproximar.
+              </p>
             </div>
           </div>
           
