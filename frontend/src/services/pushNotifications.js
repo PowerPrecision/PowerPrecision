@@ -4,6 +4,7 @@
  */
 
 const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 class PushNotificationService {
   constructor() {
@@ -67,6 +68,13 @@ class PushNotificationService {
   }
 
   /**
+   * Obter token de autenticação do localStorage
+   */
+  getAuthToken() {
+    return localStorage.getItem('token');
+  }
+
+  /**
    * Subscrever para notificações push
    */
   async subscribe() {
@@ -82,23 +90,51 @@ class PushNotificationService {
       // Verificar subscrição existente
       let subscription = await this.swRegistration.pushManager.getSubscription();
       
-      if (subscription) {
-        console.log('Subscrição existente:', subscription);
-        return { success: true, subscription };
+      if (!subscription) {
+        // Criar nova subscrição
+        const options = {
+          userVisibleOnly: true
+        };
+
+        // Adicionar VAPID key se disponível
+        if (VAPID_PUBLIC_KEY) {
+          options.applicationServerKey = this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        }
+
+        subscription = await this.swRegistration.pushManager.subscribe(options);
+        console.log('Nova subscrição criada:', subscription);
       }
 
-      // Criar nova subscrição
-      const options = {
-        userVisibleOnly: true
-      };
-
-      // Adicionar VAPID key se disponível
-      if (VAPID_PUBLIC_KEY) {
-        options.applicationServerKey = this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      // Enviar subscrição para o backend
+      const token = this.getAuthToken();
+      if (token && API_URL) {
+        try {
+          const response = await fetch(`${API_URL}/api/notifications/push/subscribe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              endpoint: subscription.endpoint,
+              keys: {
+                p256dh: subscription.getKey ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : null,
+                auth: subscription.getKey ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : null
+              },
+              expirationTime: subscription.expirationTime
+            })
+          });
+          
+          if (response.ok) {
+            console.log('Subscrição registada no backend');
+          } else {
+            console.warn('Erro ao registar subscrição no backend:', response.status);
+          }
+        } catch (backendError) {
+          console.warn('Erro ao comunicar com backend:', backendError);
+          // Continuar mesmo sem backend - notificações locais funcionam
+        }
       }
-
-      subscription = await this.swRegistration.pushManager.subscribe(options);
-      console.log('Nova subscrição:', subscription);
       
       return { success: true, subscription };
     } catch (error) {
@@ -118,6 +154,29 @@ class PushNotificationService {
     try {
       const subscription = await this.swRegistration.pushManager.getSubscription();
       if (subscription) {
+        // Notificar backend antes de cancelar
+        const token = this.getAuthToken();
+        if (token && API_URL) {
+          try {
+            await fetch(`${API_URL}/api/notifications/push/unsubscribe`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                endpoint: subscription.endpoint,
+                keys: {
+                  p256dh: subscription.getKey ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : null,
+                  auth: subscription.getKey ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : null
+                }
+              })
+            });
+          } catch (backendError) {
+            console.warn('Erro ao notificar backend:', backendError);
+          }
+        }
+        
         await subscription.unsubscribe();
         console.log('Subscrição cancelada');
       }

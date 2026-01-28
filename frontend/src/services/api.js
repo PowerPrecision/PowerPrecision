@@ -108,3 +108,29 @@ export const getAdminUsers = (role) => axios.get(`${API_URL}/admin/users`, { par
 export const createAdminUser = (data) => axios.post(`${API_URL}/admin/users`, data);
 export const updateAdminUser = (id, data) => axios.put(`${API_URL}/admin/users/${id}`, data);
 export const deleteAdminUser = (id) => axios.delete(`${API_URL}/admin/users/${id}`);
+
+// Tasks
+export const getTasks = (params = {}) => axios.get(`${API_URL}/tasks`, { params });
+export const getMyTasks = (includeCompleted = false) => 
+  axios.get(`${API_URL}/tasks/my-tasks`, { params: { include_completed: includeCompleted } });
+export const getProcessTasks = (processId) => 
+  axios.get(`${API_URL}/tasks`, { params: { process_id: processId } });
+export const createTask = (data) => axios.post(`${API_URL}/tasks`, data);
+export const updateTask = (id, data) => axios.put(`${API_URL}/tasks/${id}`, data);
+export const completeTask = (id) => axios.put(`${API_URL}/tasks/${id}/complete`);
+export const reopenTask = (id) => axios.put(`${API_URL}/tasks/${id}/reopen`);
+export const deleteTask = (id) => axios.delete(`${API_URL}/tasks/${id}`);
+
+// Emails
+export const getProcessEmails = (processId, direction = null) => 
+  axios.get(`${API_URL}/emails/process/${processId}`, { params: { direction } });
+export const getEmailStats = (processId) => axios.get(`${API_URL}/emails/stats/${processId}`);
+export const createEmail = (data) => axios.post(`${API_URL}/emails`, data);
+export const updateEmail = (id, data) => axios.put(`${API_URL}/emails/${id}`, data);
+export const deleteEmail = (id) => axios.delete(`${API_URL}/emails/${id}`);
+export const syncProcessEmails = (processId, days = 30) => 
+  axios.post(`${API_URL}/emails/sync/${processId}`, null, { params: { days } });
+export const sendEmailViaServer = (data) => axios.post(`${API_URL}/emails/send`, null, { params: data });
+export const testEmailConnection = (account = null) => 
+  axios.get(`${API_URL}/emails/test-connection`, { params: { account } });
+export const getEmailAccounts = () => axios.get(`${API_URL}/emails/accounts`);

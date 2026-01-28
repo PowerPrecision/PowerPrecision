@@ -6,7 +6,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { Loader2, Search, Phone, Mail, User, Users, GripVertical, Eye, ChevronLeft, ChevronRight, AlertCircle, MapPin, Home, Euro, Calendar, ExternalLink } from "lucide-react";
+import { Loader2, Search, Phone, Mail, User, Users, GripVertical, Eye, ChevronLeft, ChevronRight, AlertCircle, MapPin, Home, Euro, Calendar, ExternalLink, List, LayoutGrid } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { toast } from "sonner";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -154,10 +155,18 @@ const KanbanBoard = ({ token }) => {
     processes: column.processes.filter((process) =>
       process.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       process.client_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      process.client_phone?.includes(searchTerm) ||
       process.consultor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       process.mediador_name?.toLowerCase().includes(searchTerm.toLowerCase())
     ),
   }));
+
+  // Obter todos os processos filtrados para vista de lista
+  const allFilteredProcesses = searchTerm.length >= 2 
+    ? filteredColumns.flatMap(col => col.processes.map(p => ({ ...p, columnLabel: col.label, columnColor: col.color })))
+    : [];
+
+  const [viewMode, setViewMode] = useState("kanban"); // kanban ou list
 
   const scrollContainer = (direction) => {
     const container = document.getElementById("kanban-scroll-container");
@@ -199,6 +208,27 @@ const KanbanBoard = ({ token }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          {/* Toggle View Mode quando há pesquisa */}
+          {searchTerm.length >= 2 && (
+            <div className="flex gap-1 border rounded-md p-1">
+              <Button 
+                variant={viewMode === "kanban" ? "default" : "ghost"} 
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode("kanban")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant={viewMode === "list" ? "default" : "ghost"} 
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex gap-1">
             <Button variant="outline" size="icon" onClick={() => scrollContainer("left")}>
               <ChevronLeft className="h-4 w-4" />
@@ -210,7 +240,108 @@ const KanbanBoard = ({ token }) => {
         </div>
       </div>
 
-      {/* Kanban Board */}
+      {/* Search Results List View */}
+      {searchTerm.length >= 2 && viewMode === "list" && (
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Resultados da Pesquisa
+              <Badge variant="secondary">{allFilteredProcesses.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[500px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Fase</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Consultor</TableHead>
+                    <TableHead>Intermediário</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allFilteredProcesses.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Nenhum resultado para "{searchTerm}"
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    allFilteredProcesses.map((process) => (
+                      <TableRow
+                        key={process.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/process/${process.id}`)}
+                      >
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{process.client_name}</p>
+                            {process.under_35 && (
+                              <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 mt-1">
+                                &lt;35 anos
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {process.client_phone || "-"}
+                            </p>
+                            <p className="text-muted-foreground text-xs truncate max-w-[150px]">
+                              {process.client_email}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            className={`${statusColors[process.columnColor]} border text-xs`}
+                          >
+                            {process.columnLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {process.property_value 
+                            ? `€${process.property_value.toLocaleString('pt-PT')}`
+                            : "-"
+                          }
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {process.consultor_name || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {process.mediador_name || "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/process/${process.id}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Kanban Board - Mostrar quando não há pesquisa ou viewMode é kanban */}
+      {(searchTerm.length < 2 || viewMode === "kanban") && (
       <div className="relative">
         <ScrollArea className="w-full whitespace-nowrap rounded-md">
           <div
@@ -370,6 +501,7 @@ const KanbanBoard = ({ token }) => {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+      )}
 
       {/* Process Details Dialog */}
       <Dialog open={showProcessDialog} onOpenChange={setShowProcessDialog}>

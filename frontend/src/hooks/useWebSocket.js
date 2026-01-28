@@ -77,10 +77,28 @@ export function useWebSocket(options = {}) {
       return null;
     }
     
-    // Converter http(s) para ws(s)
-    const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
-    const wsUrl = backendUrl.replace(/^https?:\/\//, `${wsProtocol}://`);
-    return `${wsUrl}/api/ws/notifications?token=${token}`;
+    // Construir URL WebSocket corretamente
+    // REACT_APP_BACKEND_URL pode ser:
+    // - https://domain.com (produção/preview)
+    // - http://localhost:8001 (desenvolvimento local)
+    
+    try {
+      const url = new URL(backendUrl);
+      
+      // Determinar protocolo WebSocket baseado no protocolo HTTP
+      const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      
+      // Construir URL WebSocket mantendo host e porta originais
+      const wsUrl = `${wsProtocol}//${url.host}/api/ws/notifications?token=${token}`;
+      
+      return wsUrl;
+    } catch (e) {
+      // Fallback para o método antigo se URL() falhar
+      console.warn('WebSocket: Erro ao parsear URL, usando fallback');
+      const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
+      const wsUrl = backendUrl.replace(/^https?:\/\//, `${wsProtocol}://`);
+      return `${wsUrl}/api/ws/notifications?token=${token}`;
+    }
   }, [token]);
 
   // Limpar heartbeat

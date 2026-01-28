@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useAuth } from "../contexts/AuthContext";
 import { 
   Users, FolderOpen, Loader2, CheckCircle, XCircle, FileText, 
-  Calendar as CalendarIcon, Eye, Sparkles, LayoutGrid, Search
+  Calendar as CalendarIcon, Eye, Sparkles, LayoutGrid, Search, ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -26,6 +26,7 @@ import {
   CalendarTab, DocumentsTab, UsersTab, ClientSearchTab, 
   CreateEventDialog, AIAnalysisTab 
 } from "../components/admin";
+import TasksPanel from "../components/TasksPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -221,6 +222,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="clients" className="gap-2" data-testid="tab-search">
               <Search className="h-4 w-4" />Pesquisar
             </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-2" data-testid="tab-tasks">
+              <ClipboardList className="h-4 w-4" />Tarefas
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -271,6 +275,7 @@ const AdminDashboard = () => {
               consultors={consultors}
               intermediarios={intermediarios}
               users={users}
+              currentUser={user}
               onCreateEvent={openCreateEvent}
               onDeleteEvent={handleDeleteEvent}
             />
@@ -294,6 +299,11 @@ const AdminDashboard = () => {
           {/* Client Search Tab */}
           <TabsContent value="clients" className="mt-6">
             <ClientSearchTab processes={processes} workflowStatuses={workflowStatuses} />
+          </TabsContent>
+
+          {/* Tasks Tab */}
+          <TabsContent value="tasks" className="mt-6">
+            <TasksPanel showCreateButton={true} maxHeight="600px" />
           </TabsContent>
         </Tabs>
 

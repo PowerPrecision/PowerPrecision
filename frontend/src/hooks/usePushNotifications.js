@@ -5,6 +5,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import pushService from '../services/pushNotifications';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState('default');
@@ -27,7 +29,35 @@ export function usePushNotifications() {
         }
       });
     }
+    
+    // Verificar estado no backend
+    checkBackendStatus();
   }, []);
+
+  /**
+   * Verificar estado de subscrição no backend
+   */
+  const checkBackendStatus = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || !API_URL) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/notifications/push/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.is_subscribed) {
+          setIsSubscribed(true);
+        }
+      }
+    } catch (error) {
+      console.warn('Erro ao verificar estado push no backend:', error);
+    }
+  };
 
   /**
    * Pedir permissão e subscrever
@@ -43,7 +73,7 @@ export function usePushNotifications() {
         return { success: false, error: 'Permissão negada' };
       }
 
-      // Subscrever
+      // Subscrever (inclui registo no backend)
       const subResult = await pushService.subscribe();
       setIsSubscribed(subResult.success);
       

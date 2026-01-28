@@ -278,6 +278,225 @@ class ScheduledTasksService:
         logger.info(f"Notificações removidas: {result.deleted_count}")
         return result.deleted_count
     
+    async def check_clients_waiting_too_long(self, days: int = 15) -> int:
+        """
+        Verificar clientes no estado "em espera" há mais de X dias.
+        Alerta CEO e Diretores.
+        """
+        logger.info(f"A verificar clientes em espera há mais de {days} dias...")
+        
+        today = datetime.now(timezone.utc)
+        cutoff_date = (today - timedelta(days=days)).isoformat()
+        
+        # Buscar processos em estado "clientes_espera" há muito tempo
+        processes = await self.db.processes.find({
+            "status": "clientes_espera",
+            "created_at": {"$lte": cutoff_date}
+        }, {"_id": 0}).to_list(500)
+        
+        if not processes:
+            logger.info("Nenhum cliente em espera há muito tempo")
+            return 0
+        
+        # Obter CEO e Diretores
+        managers = await self.db.users.find({
+            "role": {"$in": ["ceo", "diretor", "admin"]},
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1, "name": 1}).to_list(50)
+        
+        notifications_created = 0
+        
+        for manager in managers:
+            # Verificar se já enviou notificação hoje
+            existing = await self.db.notifications.find_one({
+                "user_id": manager["id"],
+                "type": "clients_waiting",
+                "created_at": {"$gte": (today - timedelta(hours=24)).isoformat()}
+            })
+            
+            if not existing:
+                await self.create_notification(
+                    user_id=manager["id"],
+                    message=f"⚠️ {len(processes)} cliente(s) em espera há mais de {days} dias. Requer atenção!",
+                    notification_type="clients_waiting",
+                    link="/admin?tab=overview"
+                )
+                notifications_created += 1
+        
+        logger.info(f"Clientes em espera: {notifications_created} notificações criadas para {len(processes)} clientes")
+        return notifications_created
+    
+    async def send_monthly_document_reminder(self) -> int:
+        """
+        No 1º dia de cada mês, enviar alerta para consultores e intermediários
+        para pedirem recibo e extrato de conta ao cliente.
+        Também envia email ao cliente.
+        """
+        today = datetime.now(timezone.utc)
+        
+        # Verificar se é o 1º dia do mês
+        if today.day != 1:
+            logger.info("Não é o 1º dia do mês - ignorando alerta mensal")
+            return 0
+        
+        logger.info("A enviar lembretes mensais de documentação...")
+        
+        # Mês anterior
+        if today.month == 1:
+            prev_month = 12
+            prev_year = today.year - 1
+        else:
+            prev_month = today.month - 1
+            prev_year = today.year
+        
+        month_names = {
+            1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+            5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+            9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+        }
+        prev_month_name = month_names[prev_month]
+        
+        # Buscar processos ativos (não concluídos ou desistidos)
+        active_statuses = [
+            "clientes_espera", "fase_documental", "fase_documental_ii",
+            "enviado_bruno", "enviado_luis", "enviado_bcp_rui",
+            "entradas_precision", "fase_bancaria", "fase_visitas",
+            "ch_aprovado", "fase_escritura", "escritura_agendada"
+        ]
+        
+        processes = await self.db.processes.find({
+            "status": {"$in": active_statuses}
+        }, {"_id": 0}).to_list(1000)
+        
+        notifications_created = 0
+        
+        for process in processes:
+            users_to_notify = []
+            
+            # Consultor
+            if process.get("assigned_consultor_id"):
+                users_to_notify.append(process["assigned_consultor_id"])
+            elif process.get("consultor_id"):
+                users_to_notify.append(process["consultor_id"])
+            
+            # Intermediário
+            if process.get("assigned_mediador_id"):
+                users_to_notify.append(process["assigned_mediador_id"])
+            elif process.get("mediador_id"):
+                users_to_notify.append(process["mediador_id"])
+            
+            client_name = process.get("client_name", "Cliente")
+            
+            for user_id in set(users_to_notify):
+                await self.create_notification(
+                    user_id=user_id,
+                    message=f"📄 Pedir recibo de vencimento e extrato bancário de {prev_month_name} ao cliente {client_name}",
+                    notification_type="monthly_document_reminder",
+                    process_id=process.get("id"),
+                    client_name=client_name,
+                    link=f"/process/{process.get('id')}"
+                )
+                notifications_created += 1
+            
+            # Enviar email ao cliente
+            client_email = process.get("client_email")
+            if client_email:
+                try:
+                    await self.send_monthly_reminder_email(
+                        to_email=client_email,
+                        client_name=client_name,
+                        month_name=prev_month_name,
+                        year=prev_year
+                    )
+                except Exception as e:
+                    logger.error(f"Erro ao enviar email para {client_email}: {e}")
+        
+        logger.info(f"Lembretes mensais: {notifications_created} notificações criadas")
+        return notifications_created
+    
+    async def send_monthly_reminder_email(
+        self, 
+        to_email: str, 
+        client_name: str, 
+        month_name: str, 
+        year: int
+    ):
+        """Enviar email ao cliente a pedir documentos mensais."""
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        smtp_server = os.environ.get('SMTP_SERVER')
+        smtp_port = int(os.environ.get('SMTP_PORT', 465))
+        smtp_email = os.environ.get('SMTP_EMAIL')
+        smtp_password = os.environ.get('SMTP_PASSWORD')
+        
+        if not all([smtp_server, smtp_email, smtp_password]):
+            logger.warning("SMTP não configurado - email não enviado")
+            return
+        
+        subject = f"Documentação Mensal - {month_name} {year}"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #1e3a5f; color: white; padding: 20px; text-align: center; }}
+                .content {{ padding: 20px; background: #f9f9f9; }}
+                .docs-list {{ background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+                .footer {{ text-align: center; padding: 20px; font-size: 12px; color: #666; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Power Real Estate & Precision Crédito</h1>
+                </div>
+                <div class="content">
+                    <p>Exmo(a). Sr(a). <strong>{client_name}</strong>,</p>
+                    
+                    <p>Para manter o seu processo de crédito atualizado, solicitamos o envio dos seguintes documentos referentes ao mês de <strong>{month_name} de {year}</strong>:</p>
+                    
+                    <div class="docs-list">
+                        <h3>📄 Documentos Necessários:</h3>
+                        <ul>
+                            <li><strong>Recibo de Vencimento</strong> - Mês de {month_name}</li>
+                            <li><strong>Extrato Bancário</strong> - Mês de {month_name}</li>
+                        </ul>
+                    </div>
+                    
+                    <p>Por favor, envie estes documentos assim que possível para que possamos dar continuidade ao seu processo.</p>
+                    
+                    <p>Pode enviar os documentos em resposta a este email ou através do seu consultor/intermediário.</p>
+                    
+                    <p>Com os melhores cumprimentos,<br>
+                    <strong>Equipa Power Real Estate & Precision Crédito</strong></p>
+                </div>
+                <div class="footer">
+                    <p>Este email foi enviado automaticamente. Por favor não responda diretamente.</p>
+                    <p>Em caso de dúvidas, contacte o seu consultor ou intermediário.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = smtp_email
+        msg['To'] = to_email
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+            server.login(smtp_email, smtp_password)
+            server.sendmail(smtp_email, to_email, msg.as_string())
+        
+        logger.info(f"Email mensal enviado para {to_email}")
+    
     async def run_all_tasks(self):
         """Executar todas as tarefas agendadas."""
         logger.info("=" * 50)
@@ -292,6 +511,8 @@ class ScheduledTasksService:
             docs_count = await self.check_expiring_documents()
             deadlines_count = await self.check_upcoming_deadlines()
             countdown_count = await self.check_pre_approval_countdown()
+            waiting_count = await self.check_clients_waiting_too_long()
+            monthly_count = await self.send_monthly_document_reminder()
             cleanup_count = await self.cleanup_old_notifications()
             
             logger.info("=" * 50)
@@ -299,6 +520,8 @@ class ScheduledTasksService:
             logger.info(f"- Alertas de documentos: {docs_count}")
             logger.info(f"- Alertas de prazos: {deadlines_count}")
             logger.info(f"- Alertas de countdown: {countdown_count}")
+            logger.info(f"- Alertas clientes em espera: {waiting_count}")
+            logger.info(f"- Lembretes mensais: {monthly_count}")
             logger.info(f"- Notificações limpas: {cleanup_count}")
             logger.info("=" * 50)
             

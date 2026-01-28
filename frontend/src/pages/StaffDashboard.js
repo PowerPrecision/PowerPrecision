@@ -62,6 +62,11 @@ const StaffDashboard = () => {
     }
   };
 
+  // Navegação para lista filtrada
+  const goToFilteredList = (filter) => {
+    navigate(`/processos-filtrados?filter=${filter}`);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -79,16 +84,19 @@ const StaffDashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Olá, {user?.name?.split(' ')[0]}</h1>
-            <p className="text-muted-foreground">
-              <Badge variant="outline" className="mr-2">{roleLabels[user?.role] || user?.role}</Badge>
-              {canSeeAllStats ? `${stats.total_processes || 0} processos no sistema` : "Os seus processos atribuídos"}
-            </p>
+            <div className="text-muted-foreground flex items-center gap-2">
+              <Badge variant="outline">{roleLabels[user?.role] || user?.role}</Badge>
+              <span>{canSeeAllStats ? `${stats.total_processes || 0} processos no sistema` : "Os seus processos atribuídos"}</span>
+            </div>
           </div>
         </div>
 
-        {/* Quick Stats - Updated with Active/Concluded/Dropped */}
+        {/* Quick Stats - Clickable cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/processos')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">{stats.total_processes || 0}</p>
@@ -96,7 +104,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
+          <Card 
+            className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('active')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
@@ -107,7 +118,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200">
+          <Card 
+            className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('concluded')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
@@ -118,7 +132,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-red-50 dark:bg-red-950/30 border-red-200">
+          <Card 
+            className="bg-red-50 dark:bg-red-950/30 border-red-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('dropped')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
@@ -129,7 +146,10 @@ const StaffDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => goToFilteredList('pending_deadlines')}
+          >
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-orange-500">{stats.pending_deadlines || 0}</p>

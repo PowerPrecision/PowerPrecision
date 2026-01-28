@@ -11,6 +11,7 @@ import StatisticsPage from "./pages/StatisticsPage";
 import UsersManagementPage from "./pages/UsersManagementPage";
 import ProcessesPage from "./pages/ProcessesPage";
 import SettingsPage from "./pages/SettingsPage";
+import FilteredProcessList from "./pages/FilteredProcessList";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
@@ -139,6 +140,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={STAFF_ROLES}>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Filtered Process List - Staff and Admin */}
+          <Route
+            path="/processos-filtrados"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <FilteredProcessList />
               </ProtectedRoute>
             }
           />
