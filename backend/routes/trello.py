@@ -250,6 +250,9 @@ async def reset_and_sync_from_trello(
                     # Due date do Trello
                     "due_date": card.get("due"),
                     "due_complete": card.get("dueComplete", False),
+                    # Membros atribuídos do Trello
+                    "trello_members": assigned_members,  # Nomes dos membros
+                    "trello_member_ids": assigned_member_ids,  # IDs dos membros
                     # Dados estruturados
                     "personal_data": {
                         "morada_fiscal": card_data.get("morada", card_data.get("📍_morada", "")),
