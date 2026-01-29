@@ -377,8 +377,6 @@ async def fetch_emails_by_name(
         logger.error(f"Erro ao buscar emails por nome em {account.name}: {e}")
     
     return emails_found
-    
-    return emails_found
 
 
 async def fetch_emails_from_account(
