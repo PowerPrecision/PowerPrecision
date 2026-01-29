@@ -58,6 +58,20 @@ from services.trello import trello_service, status_to_trello_list, build_card_de
 logger = logging.getLogger(__name__)
 
 
+async def get_next_process_number() -> int:
+    """Obter o próximo número sequencial para um novo processo."""
+    # Buscar o maior process_number existente
+    result = await db.processes.find_one(
+        {"process_number": {"$exists": True, "$ne": None}},
+        {"process_number": 1},
+        sort=[("process_number", -1)]
+    )
+    
+    if result and result.get("process_number"):
+        return result["process_number"] + 1
+    return 1  # Primeiro processo
+
+
 async def sync_process_to_trello(process: dict):
     """Sincronizar processo com o Trello (nome e descrição do card)."""
     if not process.get("trello_card_id") or not trello_service.api_key:
