@@ -448,6 +448,32 @@ const ProcessDetails = () => {
                   {/* Personal Data Tab */}
                   <TabsContent value="personal" className="space-y-4 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Contactos do Cliente */}
+                      <div className="md:col-span-2 pb-4 border-b">
+                        <h4 className="font-medium text-sm text-muted-foreground mb-4">Contactos do Cliente</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input
+                              type="email"
+                              value={process?.client_email || ""}
+                              onChange={(e) => setProcess({ ...process, client_email: e.target.value })}
+                              disabled={!canEditPersonal}
+                              placeholder="email@exemplo.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Telefone</Label>
+                            <Input
+                              value={process?.client_phone || ""}
+                              onChange={(e) => setProcess({ ...process, client_phone: e.target.value })}
+                              disabled={!canEditPersonal}
+                              placeholder="+351 000 000 000"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label>NIF</Label>
                         <Input
