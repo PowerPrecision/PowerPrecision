@@ -140,11 +140,19 @@ class TrelloService:
         return card
     
     async def get_cards_with_details(self, list_id: str = None) -> List[Dict]:
-        """Obter cards com todos os dados e atividades."""
+        """Obter cards com todos os dados, labels e atividades."""
         if list_id:
-            cards = await self._request("GET", f"/lists/{list_id}/cards")
+            cards = await self._request(
+                "GET", 
+                f"/lists/{list_id}/cards",
+                params={"fields": "all"}
+            )
         else:
-            cards = await self._request("GET", f"/boards/{self.board_id}/cards")
+            cards = await self._request(
+                "GET", 
+                f"/boards/{self.board_id}/cards",
+                params={"fields": "all"}
+            )
         
         # Obter comentários para cada card
         for card in cards:
