@@ -122,33 +122,37 @@ async def create_user(data: UserCreate, user: dict = Depends(require_roles([User
     
     await db.users.insert_one(user_doc)
     
-    # Associar automaticamente processos do Trello que têm este utilizador no assigned_label
-    # Verifica se o nome do utilizador corresponde a algum label de responsável
+    # Associar automaticamente processos do Trello que têm este utilizador atribuído
+    # Verifica se o nome do utilizador corresponde a algum membro atribuído no Trello
     name_lower = data.name.lower()
-    name_parts = name_lower.split()
+    name_parts = [p for p in name_lower.split() if len(p) >= 3]
     
-    # Procurar processos com assigned_label que corresponda ao nome
-    query = {"assigned_label": {"$exists": True, "$ne": None}}
-    processes_to_update = await db.processes.find(query, {"_id": 0, "id": 1, "assigned_label": 1}).to_list(1000)
+    # Procurar processos com trello_members que corresponda ao nome
+    query = {"trello_members": {"$exists": True, "$ne": []}}
+    processes_to_update = await db.processes.find(query, {"_id": 0, "id": 1, "trello_members": 1}).to_list(1000)
     
     updated_count = 0
     for proc in processes_to_update:
-        label = (proc.get("assigned_label") or "").lower()
-        # Verificar se o nome do utilizador está no label
-        if any(part in label for part in name_parts if len(part) >= 3):
-            # Determinar qual campo atualizar baseado no role
-            if data.role in [UserRole.CONSULTOR]:
-                await db.processes.update_one(
-                    {"id": proc["id"]},
-                    {"$set": {"assigned_consultor_id": user_id}}
-                )
-                updated_count += 1
-            elif data.role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
-                await db.processes.update_one(
-                    {"id": proc["id"]},
-                    {"$set": {"assigned_mediador_id": user_id}}
-                )
-                updated_count += 1
+        members = proc.get("trello_members", [])
+        # Verificar se o nome do utilizador está na lista de membros
+        for member in members:
+            member_lower = member.lower()
+            # Verificar se alguma parte do nome corresponde
+            if any(part in member_lower for part in name_parts):
+                # Determinar qual campo atualizar baseado no role
+                if data.role in [UserRole.CONSULTOR]:
+                    await db.processes.update_one(
+                        {"id": proc["id"]},
+                        {"$set": {"assigned_consultor_id": user_id}}
+                    )
+                    updated_count += 1
+                elif data.role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
+                    await db.processes.update_one(
+                        {"id": proc["id"]},
+                        {"$set": {"assigned_mediador_id": user_id}}
+                    )
+                    updated_count += 1
+                break  # Já encontrou match, passar ao próximo processo
     
     if updated_count > 0:
         import logging
