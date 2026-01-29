@@ -278,23 +278,6 @@ const EmailHistoryPanel = ({
                   <RefreshCw className="h-4 w-4" />
                 )}
               </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => openCreateDialog("received")}
-                title="Registar email recebido"
-              >
-                <Inbox className="h-4 w-4" />
-              </Button>
-              <Button 
-                size="sm"
-                onClick={() => openCreateDialog("sent")}
-                className="bg-blue-900 hover:bg-blue-800"
-                title="Registar email enviado"
-              >
-                <Send className="h-4 w-4 mr-1" />
-                Novo
-              </Button>
             </div>
           </div>
         </CardHeader>
