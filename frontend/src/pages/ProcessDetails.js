@@ -995,19 +995,6 @@ const ProcessDetails = () => {
                     </ScrollArea>
                   </TabsContent>
 
-                  {/* Emails Tab */}
-                  <TabsContent value="emails" className="p-0">
-                    <div className="p-4 pt-2">
-                      <EmailHistoryPanel 
-                        processId={id}
-                        clientEmail={process?.client_email}
-                        clientName={process?.client_name}
-                        compact={true}
-                        maxHeight="350px"
-                      />
-                    </div>
-                  </TabsContent>
-
                   {/* Files Tab (OneDrive Links) */}
                   <TabsContent value="files" className="p-4 pt-2">
                     <OneDriveLinks processId={id} clientName={process?.client_name} />
