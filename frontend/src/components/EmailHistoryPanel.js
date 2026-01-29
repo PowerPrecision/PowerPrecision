@@ -422,7 +422,7 @@ const EmailHistoryPanel = ({
                           </div>
 
                           {/* Corpo */}
-                          <div className="bg-muted/30 rounded p-3">
+                          <div className="bg-muted/30 rounded p-3 max-h-[300px] overflow-y-auto">
                             <p className="text-sm whitespace-pre-wrap">{email.body}</p>
                           </div>
 
