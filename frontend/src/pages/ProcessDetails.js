@@ -382,8 +382,8 @@ const ProcessDetails = () => {
             </Button>
             <div>
               <h2 className="text-xl font-semibold">{process.client_name}</h2>
-              <p className="text-sm text-muted-foreground font-mono">
-                {process.id.slice(0, 8)}... • {typeLabels[process.process_type]}
+              <p className="text-sm text-muted-foreground">
+                #{process.process_number || '—'} • {typeLabels[process.process_type]}
               </p>
             </div>
           </div>
