@@ -299,7 +299,7 @@ async def fetch_emails_by_name(
                         "direction": direction,
                         "source": "imap_sync",
                         "account": account.name,
-                        "matched_by": "client_name"
+                        "matched_by": "client_name_subject"
                     })
                     
                 except Exception as e:
@@ -308,6 +308,67 @@ async def fetch_emails_by_name(
                     
         except Exception as e:
             logger.warning(f"Erro na busca por assunto: {e}")
+        
+        # 4. Buscar por nome no CORPO do email (emails recentes e filtrar localmente)
+        try:
+            mail.select(folder)
+            _, message_numbers = mail.search(None, f'(SINCE {since_date})')
+            
+            # Limitar a 200 emails mais recentes para performance
+            nums = message_numbers[0].split()[-200:] if message_numbers[0] else []
+            
+            for num in nums:
+                try:
+                    _, msg_data = mail.fetch(num, "(RFC822)")
+                    email_body = msg_data[0][1]
+                    msg = email.message_from_bytes(email_body)
+                    
+                    msg_id = msg.get("Message-ID", "")
+                    if msg_id in seen_ids:
+                        continue
+                    
+                    body_text, body_html = get_email_body(msg)
+                    body_content = (body_text or body_html or "").lower()
+                    
+                    # Verificar se o nome do cliente aparece no corpo
+                    name_in_body = any(part in body_content for part in name_parts)
+                    if not name_in_body:
+                        continue
+                    
+                    seen_ids.add(msg_id)
+                    
+                    from_email = extract_email_address(msg.get("From", ""))
+                    to_emails = [extract_email_address(e) for e in (msg.get("To", "")).split(",")]
+                    subject = decode_email_header(msg.get("Subject", ""))
+                    date_str = msg.get("Date", "")
+                    
+                    direction = "sent" if from_email.lower() == account.email.lower() else "received"
+                    
+                    email_date = None
+                    if date_str:
+                        try:
+                            email_date = email.utils.parsedate_to_datetime(date_str)
+                        except:
+                            email_date = datetime.now()
+                    
+                    emails_found.append({
+                        "message_id": msg_id,
+                        "from_email": from_email,
+                        "to_emails": to_emails,
+                        "subject": subject,
+                        "body": body_text or body_html or "",
+                        "date": email_date.isoformat() if email_date else datetime.now().isoformat(),
+                        "direction": direction,
+                        "source": "imap_sync",
+                        "account": account.name,
+                        "matched_by": "client_name_body"
+                    })
+                    
+                except Exception as e:
+                    continue
+                    
+        except Exception as e:
+            logger.warning(f"Erro na busca por corpo: {e}")
         
         mail.logout()
         logger.info(f"Encontrados {len(emails_found)} emails para '{search_name}' em {account.name}")
