@@ -28,12 +28,13 @@ import {
 } from "./ui/select";
 import { 
   Mail, Send, Inbox, Plus, Loader2, Clock, User, 
-  Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw
+  Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw,
+  Settings, X, AtSign
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
-import { getProcessEmails, getEmailStats, createEmail, deleteEmail, syncProcessEmails } from "../services/api";
+import { getProcessEmails, getEmailStats, createEmail, deleteEmail, syncProcessEmails, getMonitoredEmails, addMonitoredEmail, removeMonitoredEmail } from "../services/api";
 
 const EmailHistoryPanel = ({ 
   processId, 
