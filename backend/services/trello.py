@@ -290,9 +290,6 @@ def build_card_description(process: Dict) -> str:
     if process.get("mediador_name"):
         lines.append(f"👤 Intermediário: {process['mediador_name']}")
     
-    # Adicionar ID do processo para referência
-    lines.append(f"\n---\n🔗 ID CreditoIMO: {process.get('id', 'N/A')}")
-    
     return "\n".join(lines)
 
 
