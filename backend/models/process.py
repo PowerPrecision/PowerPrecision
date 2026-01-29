@@ -154,6 +154,7 @@ class ProcessUpdate(BaseModel):
 
 class ProcessResponse(BaseModel):
     id: str
+    process_number: Optional[int] = None  # Número sequencial único do processo
     client_id: Optional[str] = None
     client_name: str
     client_email: Optional[str] = None
