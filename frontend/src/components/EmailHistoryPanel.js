@@ -252,6 +252,7 @@ const EmailHistoryPanel = ({
               {!compact && (
                 <CardDescription>
                   {stats.sent} enviado(s) • {stats.received} recebido(s)
+                  {monitoredEmails.length > 0 && ` • ${monitoredEmails.length + 1} email(s) monitorizados`}
                 </CardDescription>
               )}
             </div>
@@ -259,8 +260,16 @@ const EmailHistoryPanel = ({
               <Button 
                 size="sm" 
                 variant="outline"
+                onClick={() => setIsSettingsOpen(true)}
+                title="Configurar emails monitorizados"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
                 onClick={handleSyncEmails}
-                disabled={syncing || !clientEmail}
+                disabled={syncing || (!clientEmail && monitoredEmails.length === 0)}
                 title="Sincronizar emails do servidor"
               >
                 {syncing ? (
@@ -276,8 +285,7 @@ const EmailHistoryPanel = ({
                 title="Registar email recebido"
               >
                 <Inbox className="h-4 w-4" />
-              </Button>
-              <Button 
+              </Button> 
                 size="sm"
                 onClick={() => openCreateDialog("sent")}
                 className="bg-blue-900 hover:bg-blue-800"
