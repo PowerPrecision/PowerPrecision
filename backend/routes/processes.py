@@ -185,13 +185,15 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
     first_status = await db.workflow_statuses.find_one({}, {"_id": 0}, sort=[("order", 1)])
     initial_status = first_status["name"] if first_status else "clientes_espera"
     
-    # Gerar ID único e timestamp
+    # Gerar ID único, número sequencial e timestamp
     process_id = str(uuid.uuid4())
+    process_number = await get_next_process_number()
     now = datetime.now(timezone.utc).isoformat()
     
     # Construir documento do processo
     process_doc = {
         "id": process_id,
+        "process_number": process_number,
         "client_id": user["id"],
         "client_name": user["name"],
         "client_email": user["email"],
