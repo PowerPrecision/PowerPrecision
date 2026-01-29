@@ -418,8 +418,8 @@ async def fetch_emails_from_account(
             if not client_email:
                 continue
                 
-            # Buscar emails de/para este cliente
-            for search_type in ["FROM", "TO"]:
+            # Buscar emails de/para/cc este cliente
+            for search_type in ["FROM", "TO", "CC"]:
                 try:
                     _, message_numbers = mail.search(None, f'({search_type} "{client_email}" SINCE {since_date})')
                     
@@ -432,6 +432,7 @@ async def fetch_emails_from_account(
                             # Extrair informações
                             from_email = extract_email_address(msg.get("From", ""))
                             to_emails = [extract_email_address(e) for e in (msg.get("To", "")).split(",")]
+                            cc_emails = [extract_email_address(e) for e in (msg.get("Cc", "")).split(",") if e]
                             subject = decode_email_header(msg.get("Subject", ""))
                             date_str = msg.get("Date", "")
                             body_text, body_html = get_email_body(msg)
@@ -451,6 +452,7 @@ async def fetch_emails_from_account(
                                 "direction": direction,
                                 "from_email": from_email,
                                 "to_emails": to_emails,
+                                "cc_emails": cc_emails,
                                 "subject": subject,
                                 "body": body_text or body_html,
                                 "body_html": body_html,
