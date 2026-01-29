@@ -416,6 +416,11 @@ const KanbanBoard = ({ token }) => {
                                     </p>
                                   </div>
                                   
+                                  {/* ID do Processo */}
+                                  <p className="text-xs text-muted-foreground ml-6 font-mono">
+                                    ID: {process.id?.substring(0, 8)}...
+                                  </p>
+                                  
                                   {/* Labels */}
                                   {process.has_property && (
                                     <Badge variant="outline" className="mt-1 text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
