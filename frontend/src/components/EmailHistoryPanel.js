@@ -285,7 +285,8 @@ const EmailHistoryPanel = ({
                 title="Registar email recebido"
               >
                 <Inbox className="h-4 w-4" />
-              </Button> 
+              </Button>
+              <Button 
                 size="sm"
                 onClick={() => openCreateDialog("sent")}
                 className="bg-blue-900 hover:bg-blue-800"
