@@ -246,7 +246,6 @@ async def reset_and_sync_from_trello(
                     "prioridade": prioridade,
                     "docs_preparados": docs_preparados,
                     "ch_aprovado": ch_aprovado,
-                    "assigned_label": assigned_label,
                     # Due date do Trello
                     "due_date": card.get("due"),
                     "due_complete": card.get("dueComplete", False),
