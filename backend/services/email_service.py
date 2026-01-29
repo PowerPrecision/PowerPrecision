@@ -272,7 +272,7 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
     for account in accounts:
         # Buscar na inbox
         inbox_emails = await fetch_emails_from_account(
-            account, [client_email], days, "INBOX"
+            account, emails_to_monitor, days, "INBOX"
         )
         all_emails.extend(inbox_emails)
         
@@ -280,7 +280,7 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
         for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
             try:
                 sent_emails = await fetch_emails_from_account(
-                    account, [client_email], days, sent_folder
+                    account, emails_to_monitor, days, sent_folder
                 )
                 all_emails.extend(sent_emails)
                 break
