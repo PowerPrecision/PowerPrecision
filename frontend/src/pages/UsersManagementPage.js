@@ -409,7 +409,6 @@ const UsersManagementPage = () => {
               <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cliente">Cliente</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                   <SelectItem value="intermediario">Intermediário de Crédito</SelectItem>
                   <SelectItem value="diretor">Diretor(a)</SelectItem>
