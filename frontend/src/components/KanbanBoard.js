@@ -419,9 +419,9 @@ const KanbanBoard = ({ token }) => {
                                     </p>
                                   </div>
                                   
-                                  {/* ID do Processo */}
-                                  <p className="text-xs text-muted-foreground ml-6 font-mono">
-                                    ID: {process.id?.substring(0, 8)}...
+                                  {/* Número do Processo */}
+                                  <p className="text-xs text-muted-foreground ml-6 font-semibold">
+                                    #{process.process_number || '—'}
                                   </p>
                                   
                                   {/* Labels */}
