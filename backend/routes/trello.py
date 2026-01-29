@@ -207,12 +207,14 @@ async def reset_and_sync_from_trello(
                 # Extrair dados da descrição
                 card_data = parse_card_description(card.get("desc", ""))
                 
-                # Gerar ID do processo
+                # Gerar ID e número do processo
                 process_id = str(uuid.uuid4())
+                process_number = result["imported"]["processes"] + 1  # Número sequencial
                 
                 # Criar novo processo
                 new_process = {
                     "id": process_id,
+                    "process_number": process_number,
                     "client_name": card["name"],
                     "client_email": card_data.get("email", card_data.get("📧_email", "")),
                     "client_phone": card_data.get("telefone", card_data.get("phone", card_data.get("📱_telefone", ""))),
