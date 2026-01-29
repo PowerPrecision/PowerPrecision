@@ -270,3 +270,47 @@ async def stop_impersonate(user: dict = Depends(require_roles([UserRole.ADMIN, U
         }
     }
 
+
+# ============== PROCESS NUMBER MIGRATION ==============
+
+@router.post("/migrate-process-numbers")
+async def migrate_process_numbers(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """
+    Atribuir números sequenciais a todos os processos que não têm.
+    Os processos são ordenados por data de criação (mais antigos primeiro).
+    """
+    # Buscar processos sem número, ordenados por data de criação
+    processes_without_number = await db.processes.find(
+        {"$or": [{"process_number": {"$exists": False}}, {"process_number": None}]},
+        {"_id": 0, "id": 1, "created_at": 1, "client_name": 1}
+    ).sort("created_at", 1).to_list(10000)
+    
+    if not processes_without_number:
+        return {"message": "Todos os processos já têm número atribuído", "updated": 0}
+    
+    # Obter o maior número existente
+    max_result = await db.processes.find_one(
+        {"process_number": {"$exists": True, "$ne": None}},
+        {"process_number": 1},
+        sort=[("process_number", -1)]
+    )
+    
+    next_number = (max_result["process_number"] + 1) if max_result and max_result.get("process_number") else 1
+    
+    updated_count = 0
+    for process in processes_without_number:
+        await db.processes.update_one(
+            {"id": process["id"]},
+            {"$set": {"process_number": next_number}}
+        )
+        next_number += 1
+        updated_count += 1
+    
+    return {
+        "message": f"Números atribuídos a {updated_count} processos",
+        "updated": updated_count,
+        "first_number": next_number - updated_count,
+        "last_number": next_number - 1
+    }
+
+
