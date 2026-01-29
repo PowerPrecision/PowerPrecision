@@ -818,17 +818,13 @@ const ProcessDetails = () => {
             />
 
             {/* Emails Panel - Visível logo na página */}
-            <Card className="border-border">
-              <CardContent className="p-4">
-                <EmailHistoryPanel 
-                  processId={id}
-                  clientEmail={process?.client_email}
-                  clientName={process?.client_name}
-                  compact={true}
-                  maxHeight="400px"
-                />
-              </CardContent>
-            </Card>
+            <EmailHistoryPanel 
+              processId={id}
+              clientEmail={process?.client_email}
+              clientName={process?.client_name}
+              compact={false}
+              maxHeight="450px"
+            />
 
             {/* Side Tabs */}
             <Card className="border-border">
