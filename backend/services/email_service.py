@@ -501,11 +501,12 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
     # Guardar na base de dados
     new_count = 0
     for em in unique_emails:
-        # Verificar se já existe
+        # Verificar se já existe (usar date como sent_at)
+        sent_at = em.get("date") or em.get("sent_at")
         existing = await db.emails.find_one({
             "process_id": process_id,
             "subject": em["subject"],
-            "sent_at": em["sent_at"],
+            "sent_at": sent_at,
             "from_email": em["from_email"]
         })
         
@@ -523,10 +524,10 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
                 "body_html": em.get("body_html"),
                 "attachments": [],
                 "status": "sent",
-                "sent_at": em["sent_at"],
+                "sent_at": sent_at,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "created_by": None,
-                "notes": f"Sincronizado de {em['account']}",
+                "notes": f"Sincronizado de {em.get('account', 'desconhecido')}",
                 "synced": True,
                 "account": em["account"]
             }
