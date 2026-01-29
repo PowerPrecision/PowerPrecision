@@ -344,12 +344,15 @@ async def fetch_emails_from_account(
 async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, Any]:
     """
     Sincronizar emails para um processo específico.
-    Busca emails de ambas as contas relacionados com o cliente e emails monitorizados.
+    Busca emails de ambas as contas relacionados com o cliente por NOME e por emails monitorizados.
     """
     # Obter processo
     process = await db.processes.find_one({"id": process_id}, {"_id": 0})
     if not process:
         return {"success": False, "error": "Processo não encontrado"}
+    
+    # Nome do cliente para busca por assunto
+    client_name = process.get("client_name", "")
     
     # Coletar todos os emails a monitorizar
     emails_to_monitor = []
@@ -367,9 +370,6 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
     # Remover duplicados
     emails_to_monitor = list(set([e.lower().strip() for e in emails_to_monitor if e]))
     
-    if not emails_to_monitor:
-        return {"success": False, "error": "Nenhum email para monitorizar"}
-    
     accounts = get_email_accounts()
     if not accounts:
         return {"success": False, "error": "Nenhuma conta de email configurada"}
@@ -378,22 +378,36 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
     
     # Buscar emails de todas as contas
     for account in accounts:
-        # Buscar na inbox
-        inbox_emails = await fetch_emails_from_account(
-            account, emails_to_monitor, days, "INBOX"
-        )
-        all_emails.extend(inbox_emails)
+        # 1. Buscar por NOME DO CLIENTE no assunto (principal)
+        if client_name:
+            inbox_by_name = await fetch_emails_by_name(account, client_name, days, "INBOX")
+            all_emails.extend(inbox_by_name)
+            
+            # Tentar buscar nos enviados por nome
+            for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
+                try:
+                    sent_by_name = await fetch_emails_by_name(account, client_name, days, sent_folder)
+                    all_emails.extend(sent_by_name)
+                    break
+                except:
+                    continue
         
-        # Tentar buscar nos enviados
-        for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
-            try:
-                sent_emails = await fetch_emails_from_account(
-                    account, emails_to_monitor, days, sent_folder
-                )
-                all_emails.extend(sent_emails)
-                break
-            except:
-                continue
+        # 2. Buscar por endereço de email (se houver emails monitorizados)
+        if emails_to_monitor:
+            inbox_emails = await fetch_emails_from_account(
+                account, emails_to_monitor, days, "INBOX"
+            )
+            all_emails.extend(inbox_emails)
+            
+            for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
+                try:
+                    sent_emails = await fetch_emails_from_account(
+                        account, emails_to_monitor, days, sent_folder
+                    )
+                    all_emails.extend(sent_emails)
+                    break
+                except:
+                    continue
     
     # Remover duplicados por Message-ID
     seen_ids = set()
