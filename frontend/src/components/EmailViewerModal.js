@@ -109,32 +109,36 @@ const EmailViewerModal = ({
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Conteúdo do email - lado direito */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-background">
+            <div className="p-4 border-b flex items-center justify-between bg-background shrink-0">
               <div className="flex items-center gap-2">
                 <Button 
-                  variant="ghost" 
-                  size="icon" 
+                  variant="outline" 
+                  size="sm" 
                   onClick={handlePrevious}
                   disabled={currentIndex === 0}
+                  className="h-8"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Anterior
                 </Button>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground px-2">
                   {currentIndex + 1} de {emails.length}
                 </span>
                 <Button 
-                  variant="ghost" 
-                  size="icon" 
+                  variant="outline" 
+                  size="sm" 
                   onClick={handleNext}
                   disabled={currentIndex === emails.length - 1}
+                  className="h-8"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  Seguinte
+                  <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose}>
