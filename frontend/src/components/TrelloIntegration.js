@@ -294,7 +294,7 @@ const TrelloIntegration = () => {
           <Button
             onClick={handleSyncFromTrello}
             disabled={syncing || resetting || !status?.connected}
-            className="bg-blue-900 hover:bg-blue-800"
+            className="bg-teal-600 hover:bg-teal-700"
           >
             {syncing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -451,7 +451,7 @@ const TrelloIntegration = () => {
                   size="sm"
                   onClick={handleSetupWebhook}
                   disabled={settingUpWebhook}
-                  className="bg-blue-900 hover:bg-blue-800"
+                  className="bg-teal-600 hover:bg-teal-700"
                 >
                   {settingUpWebhook ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -6,8 +6,8 @@
  * Power Real Estate & Precision Crédito
  * 
  * PALETA DE CORES:
- * - Power Real Estate: Azul (#1E3A8A) - Profissional, Confiança
- * - Precision Crédito: Dourado (#D4AF37) - Premium, Financeiro
+ * - Precision Crédito: Teal (#0D9488) - Principal, Confiança
+ * - Power Real Estate: Dourado (#D4AF37) - Acentos, Premium
  * - Sucesso: Verde (#22C55E)
  * - Alerta: Âmbar (#F59E0B)
  * - Erro: Vermelho (#EF4444)
@@ -46,14 +46,14 @@ code {
 /**
  * VARIÁVEIS CSS - TEMA CLARO
  * Cores baseadas em:
- * - Power Real Estate (www.powerealestate.pt): Azul escuro profissional
- * - Precision Crédito (precision-credito.pt): Azul com acentos dourados
+ * - Precision Crédito (precision-credito.pt): Teal como cor principal
+ * - Power Real Estate (www.powerealestate.pt): Dourado como acentos
  */
 @layer base {
     :root {
         /* Fundos */
-        --background: 210 40% 98%;           /* Fundo geral claro */
-        --foreground: 222 47% 11%;           /* Texto principal escuro */
+        --background: 180 10% 98%;             /* Fundo com tom suave teal */
+        --foreground: 222 47% 11%;             /* Texto principal escuro */
         
         /* Cartões e Popovers */
         --card: 0 0% 100%;
@@ -61,20 +61,20 @@ code {
         --popover: 0 0% 100%;
         --popover-foreground: 222 47% 11%;
         
-        /* Cor Primária - Azul Power Real Estate (#1E3A8A) */
-        --primary: 224 76% 33%;              /* Azul escuro profissional */
+        /* Cor Primária - Teal Precision Crédito (#0D9488) */
+        --primary: 175 84% 32%;                /* Teal principal */
         --primary-foreground: 0 0% 100%;
         
-        /* Cor Secundária - Azul Precision */
-        --secondary: 217 91% 60%;            /* Azul médio */
+        /* Cor Secundária - Teal mais claro */
+        --secondary: 175 60% 45%;              /* Teal médio */
         --secondary-foreground: 0 0% 100%;
         
         /* Tons neutros */
-        --muted: 210 40% 96%;
+        --muted: 180 10% 96%;
         --muted-foreground: 215 20% 40%;
         
-        /* Cor de Destaque - Dourado Precision (#D4AF37) */
-        --accent: 43 74% 52%;                /* Dourado financeiro */
+        /* Cor de Destaque - Dourado Power Real Estate (#D4AF37) */
+        --accent: 43 74% 52%;                  /* Dourado premium */
         --accent-foreground: 222 47% 11%;
         
         /* Cor de erro */
@@ -275,6 +275,25 @@ code {
 
 ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Scrollbar fina para listas */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
 }
 
 /**

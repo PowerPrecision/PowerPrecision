@@ -202,6 +202,14 @@ const ProcessDetails = () => {
     try {
       const updateData = {};
 
+      // Sempre incluir email e telefone do cliente se foram alterados
+      if (process?.client_email !== undefined) {
+        updateData.client_email = process.client_email;
+      }
+      if (process?.client_phone !== undefined) {
+        updateData.client_phone = process.client_phone;
+      }
+
       if (user.role === "cliente" || user.role === "admin") {
         updateData.personal_data = personalData;
         updateData.financial_data = financialData;
@@ -382,8 +390,8 @@ const ProcessDetails = () => {
             </Button>
             <div>
               <h2 className="text-xl font-semibold">{process.client_name}</h2>
-              <p className="text-sm text-muted-foreground font-mono">
-                {process.id.slice(0, 8)}... • {typeLabels[process.process_type]}
+              <p className="text-sm text-muted-foreground">
+                #{process.process_number || '—'} • {typeLabels[process.process_type]}
               </p>
             </div>
           </div>
@@ -448,6 +456,32 @@ const ProcessDetails = () => {
                   {/* Personal Data Tab */}
                   <TabsContent value="personal" className="space-y-4 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Contactos do Cliente */}
+                      <div className="md:col-span-2 pb-4 border-b">
+                        <h4 className="font-medium text-sm text-muted-foreground mb-4">Contactos do Cliente</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input
+                              type="email"
+                              value={process?.client_email || ""}
+                              onChange={(e) => setProcess({ ...process, client_email: e.target.value })}
+                              disabled={!canEditPersonal}
+                              placeholder="email@exemplo.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Telefone</Label>
+                            <Input
+                              value={process?.client_phone || ""}
+                              onChange={(e) => setProcess({ ...process, client_phone: e.target.value })}
+                              disabled={!canEditPersonal}
+                              placeholder="+351 000 000 000"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label>NIF</Label>
                         <Input
@@ -643,6 +677,41 @@ const ProcessDetails = () => {
                             disabled={!canEditRealEstate}
                           />
                         </div>
+                        
+                        {/* Dados do Proprietário */}
+                        <div className="md:col-span-2 pt-4 border-t">
+                          <h4 className="font-medium text-sm text-muted-foreground mb-4">Dados do Proprietário</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label>Nome do Proprietário</Label>
+                              <Input
+                                value={realEstateData.owner_name || ""}
+                                onChange={(e) => setRealEstateData({ ...realEstateData, owner_name: e.target.value })}
+                                disabled={!canEditRealEstate}
+                                placeholder="Nome completo"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Email do Proprietário</Label>
+                              <Input
+                                type="email"
+                                value={realEstateData.owner_email || ""}
+                                onChange={(e) => setRealEstateData({ ...realEstateData, owner_email: e.target.value })}
+                                disabled={!canEditRealEstate}
+                                placeholder="email@exemplo.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Telefone do Proprietário</Label>
+                              <Input
+                                value={realEstateData.owner_phone || ""}
+                                onChange={(e) => setRealEstateData({ ...realEstateData, owner_phone: e.target.value })}
+                                disabled={!canEditRealEstate}
+                                placeholder="+351 000 000 000"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </TabsContent>
@@ -817,18 +886,23 @@ const ProcessDetails = () => {
               maxHeight="250px"
             />
 
+            {/* Emails Panel - Visível logo na página */}
+            <EmailHistoryPanel 
+              processId={id}
+              clientEmail={process?.client_email}
+              clientName={process?.client_name}
+              compact={false}
+              maxHeight="450px"
+            />
+
             {/* Side Tabs */}
             <Card className="border-border">
               <CardContent className="p-0">
                 <Tabs value={sideTab} onValueChange={setSideTab}>
-                  <TabsList className="w-full grid grid-cols-4 rounded-none rounded-t-md">
+                  <TabsList className="w-full grid grid-cols-3 rounded-none rounded-t-md">
                     <TabsTrigger value="deadlines" className="gap-1">
                       <Clock className="h-4 w-4" />
                       <span className="hidden sm:inline">Prazos</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="emails" className="gap-1">
-                      <Send className="h-4 w-4" />
-                      <span className="hidden sm:inline">Emails</span>
                     </TabsTrigger>
                     <TabsTrigger value="history" className="gap-1">
                       <History className="h-4 w-4" />
@@ -984,19 +1058,6 @@ const ProcessDetails = () => {
                         </div>
                       )}
                     </ScrollArea>
-                  </TabsContent>
-
-                  {/* Emails Tab */}
-                  <TabsContent value="emails" className="p-0">
-                    <div className="p-4 pt-2">
-                      <EmailHistoryPanel 
-                        processId={id}
-                        clientEmail={process?.client_email}
-                        clientName={process?.client_name}
-                        compact={true}
-                        maxHeight="350px"
-                      />
-                    </div>
                   </TabsContent>
 
                   {/* Files Tab (OneDrive Links) */}

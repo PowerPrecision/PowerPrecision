@@ -42,7 +42,7 @@ const roleLabels = {
 // Cores dos badges de papel - Azul Power Real Estate, Dourado Precision
 const roleColors = {
   cliente: "bg-blue-100 text-blue-800",
-  consultor: "bg-blue-900 text-white",                    // Power Real Estate
+  consultor: "bg-teal-600 text-white",                    // Power Real Estate
   mediador: "bg-amber-500 text-white",                    // Precision Crédito
   intermediario: "bg-amber-500 text-white",               // Precision Crédito
   consultor_intermediario: "bg-gradient-to-r from-blue-900 to-amber-500 text-white",
@@ -147,24 +147,24 @@ const DashboardLayout = ({ children, title }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-blue-950 text-white border-r border-blue-900 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-slate-900 text-white border-r border-slate-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo - Power Real Estate & Precision Crédito */}
-          <div className="h-16 flex items-center justify-between px-6 border-b border-blue-800 bg-blue-900">
+          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-700 bg-slate-900">
             <div className="flex items-center gap-2">
               <Building2 className="h-6 w-6 text-amber-400" />
               <div className="flex flex-col">
                 <span className="font-bold text-sm tracking-tight text-white">Power Real Estate</span>
-                <span className="text-xs text-amber-400">&amp; Precision Crédito</span>
+                <span className="text-xs text-teal-400">&amp; Precision Crédito</span>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden text-white hover:bg-blue-800"
+              className="lg:hidden text-white hover:bg-slate-700"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -182,8 +182,8 @@ const DashboardLayout = ({ children, title }) => {
                     to={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-amber-500 text-white"
-                        : "text-blue-100 hover:bg-blue-800 hover:text-white"
+                        ? "bg-teal-600 text-white"
+                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
                     }`}
                     onClick={() => setSidebarOpen(false)}
                   >

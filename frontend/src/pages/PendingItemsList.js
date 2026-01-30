@@ -240,7 +240,7 @@ const PendingItemsList = () => {
               variant="ghost" 
               size="icon"
               onClick={() => navigate(-1)}
-              className="text-white hover:bg-blue-900"
+              className="text-white hover:bg-teal-600"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

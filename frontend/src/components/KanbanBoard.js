@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { Loader2, Search, Phone, Mail, User, Users, GripVertical, Eye, ChevronLeft, ChevronRight, AlertCircle, MapPin, Home, Euro, Calendar, ExternalLink, List, LayoutGrid } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Loader2, Search, Phone, Mail, User, Users, GripVertical, Eye, ChevronLeft, ChevronRight, AlertCircle, MapPin, Home, Euro, Calendar, ExternalLink, List, LayoutGrid, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { toast } from "sonner";
+import { createClientProcess } from "../services/api";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -27,7 +30,7 @@ const openEmailClient = (email, clientName) => {
 
 const statusColors = {
   yellow: "bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30",
-  blue: "bg-blue-100 border-blue-300 dark:bg-blue-900/30",
+  blue: "bg-blue-100 border-blue-300 dark:bg-teal-600/30",
   purple: "bg-purple-100 border-purple-300 dark:bg-purple-900/30",
   orange: "bg-orange-100 border-orange-300 dark:bg-orange-900/30",
   green: "bg-green-100 border-green-300 dark:bg-green-900/30",
@@ -43,7 +46,7 @@ const statusHeaderColors = {
   red: "bg-red-500",
 };
 
-const KanbanBoard = ({ token }) => {
+const KanbanBoard = ({ token, user }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [kanbanData, setKanbanData] = useState({ columns: [], total_processes: 0 });
@@ -53,6 +56,55 @@ const KanbanBoard = ({ token }) => {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
+  
+  // Estado para criação de novo cliente
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newClient, setNewClient] = useState({
+    client_name: "",
+    client_email: "",
+    client_phone: "",
+    process_type: "credito_habitacao"
+  });
+  
+  // Verificar se o utilizador pode criar clientes
+  const canCreateClient = user && ["intermediario", "mediador"].includes(user.role);
+  
+  const handleCreateClient = async () => {
+    if (!newClient.client_name.trim()) {
+      toast.error("Por favor, introduza o nome do cliente");
+      return;
+    }
+    
+    setCreating(true);
+    try {
+      await createClientProcess({
+        client_name: newClient.client_name,
+        client_email: newClient.client_email,
+        process_type: newClient.process_type,
+        personal_data: {
+          nome_completo: newClient.client_name,
+          email: newClient.client_email,
+          telefone: newClient.client_phone
+        }
+      });
+      
+      toast.success(`Cliente "${newClient.client_name}" criado com sucesso!`);
+      setShowCreateDialog(false);
+      setNewClient({
+        client_name: "",
+        client_email: "",
+        client_phone: "",
+        process_type: "credito_habitacao"
+      });
+      fetchKanbanData();
+    } catch (error) {
+      console.error("Erro ao criar cliente:", error);
+      toast.error(error.response?.data?.detail || "Erro ao criar cliente");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const fetchKanbanData = useCallback(async () => {
     try {
@@ -206,6 +258,16 @@ const KanbanBoard = ({ token }) => {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Botão para criar novo cliente */}
+          {canCreateClient && (
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Novo Cliente</span>
+            </Button>
+          )}
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -288,6 +350,9 @@ const KanbanBoard = ({ token }) => {
                         <TableCell>
                           <div>
                             <p className="font-medium">{process.client_name}</p>
+                            <p className="text-xs text-muted-foreground font-semibold">
+                              #{process.process_number || '—'}
+                            </p>
                             {process.under_35 && (
                               <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 mt-1">
                                 &lt;35 anos
@@ -415,6 +480,11 @@ const KanbanBoard = ({ token }) => {
                                       {process.client_name}
                                     </p>
                                   </div>
+                                  
+                                  {/* Número do Processo */}
+                                  <p className="text-xs text-muted-foreground ml-6 font-semibold">
+                                    #{process.process_number || '—'}
+                                  </p>
                                   
                                   {/* Labels */}
                                   {process.has_property && (
@@ -696,6 +766,95 @@ const KanbanBoard = ({ token }) => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para criar novo cliente */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Criar Novo Cliente
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="client_name">Nome do Cliente *</Label>
+              <Input
+                id="client_name"
+                placeholder="Nome completo do cliente"
+                value={newClient.client_name}
+                onChange={(e) => setNewClient({ ...newClient, client_name: e.target.value })}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client_email">Email</Label>
+                <Input
+                  id="client_email"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={newClient.client_email}
+                  onChange={(e) => setNewClient({ ...newClient, client_email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client_phone">Telefone</Label>
+                <Input
+                  id="client_phone"
+                  placeholder="+351 000 000 000"
+                  value={newClient.client_phone}
+                  onChange={(e) => setNewClient({ ...newClient, client_phone: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="process_type">Tipo de Processo</Label>
+              <Select 
+                value={newClient.process_type} 
+                onValueChange={(v) => setNewClient({ ...newClient, process_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credito_habitacao">Crédito Habitação</SelectItem>
+                  <SelectItem value="credito_pessoal">Crédito Pessoal</SelectItem>
+                  <SelectItem value="credito_consolidado">Crédito Consolidado</SelectItem>
+                  <SelectItem value="credito_automovel">Crédito Automóvel</SelectItem>
+                  <SelectItem value="transferencia_credito">Transferência de Crédito</SelectItem>
+                  <SelectItem value="imobiliario">Imobiliário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCreateClient} 
+              disabled={creating || !newClient.client_name.trim()}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  A criar...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Cliente
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

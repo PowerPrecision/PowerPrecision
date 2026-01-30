@@ -286,7 +286,7 @@ const MediadorDashboard = () => {
           <Card className="border-border">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <div className="p-3 bg-blue-100 dark:bg-teal-600/30 rounded-lg">
                   <Euro className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>

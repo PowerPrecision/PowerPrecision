@@ -206,7 +206,7 @@ const StaffDashboard = () => {
 
           {/* Kanban Tab */}
           <TabsContent value="kanban" className="mt-6">
-            <KanbanBoard token={token} />
+            <KanbanBoard token={token} user={user} />
           </TabsContent>
 
           {/* Tasks Tab - Minhas Tarefas */}

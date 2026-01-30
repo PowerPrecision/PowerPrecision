@@ -134,6 +134,251 @@ def get_email_body(msg) -> tuple:
     return body_text, body_html
 
 
+async def fetch_emails_by_name(
+    account: EmailAccount,
+    client_name: str,
+    since_days: int = 30,
+    folder: str = "INBOX"
+) -> List[Dict[str, Any]]:
+    """
+    Buscar emails do cliente de duas formas:
+    1. Por nome no assunto
+    2. Em subpastas que correspondam ao nome do cliente
+    
+    Args:
+        account: Configuração da conta
+        client_name: Nome do cliente para buscar
+        since_days: Buscar emails dos últimos X dias
+        folder: Pasta IMAP base
+    
+    Returns:
+        Lista de emails encontrados
+    """
+    emails_found = []
+    
+    if not client_name or len(client_name) < 3:
+        return emails_found
+    
+    search_name = client_name.strip()
+    # Extrair partes do nome para matching de subpastas
+    name_parts = [p.lower() for p in search_name.split() if len(p) >= 3]
+    
+    try:
+        context = ssl.create_default_context()
+        mail = imaplib.IMAP4_SSL(account.imap_server, account.imap_port, ssl_context=context)
+        mail.login(account.email, account.password)
+        
+        logger.info(f"Buscando emails para '{search_name}' em {account.name}")
+        
+        seen_ids = set()
+        since_date = (datetime.now() - timedelta(days=since_days)).strftime("%d-%b-%Y")
+        
+        # 1. Procurar em subpastas que correspondam ao nome do cliente
+        _, folders = mail.list()
+        matching_folders = []
+        
+        for folder_info in folders:
+            try:
+                folder_str = folder_info.decode('utf-8', errors='replace')
+                # Extrair nome da pasta (está entre aspas ou após o último /)
+                if '"' in folder_str:
+                    folder_name = folder_str.split('"')[-2]
+                else:
+                    folder_name = folder_str.split('/')[-1]
+                
+                folder_name_lower = folder_name.lower()
+                
+                # Verificar se alguma parte do nome está no nome da pasta
+                for part in name_parts:
+                    if part in folder_name_lower:
+                        # Extrair o nome completo da pasta para seleção
+                        if '"' in folder_str:
+                            full_folder = '"' + folder_str.split('"')[-2] + '"'
+                        else:
+                            parts = folder_str.split(' ')[-1]
+                            full_folder = parts
+                        matching_folders.append(full_folder)
+                        logger.info(f"Pasta encontrada para '{search_name}': {full_folder}")
+                        break
+            except Exception as e:
+                continue
+        
+        # 2. Buscar emails nas pastas encontradas
+        for folder_name in matching_folders:
+            try:
+                result, _ = mail.select(folder_name)
+                if result != 'OK':
+                    continue
+                
+                _, message_numbers = mail.search(None, 'ALL')
+                
+                for num in message_numbers[0].split():
+                    try:
+                        _, msg_data = mail.fetch(num, "(RFC822)")
+                        email_body = msg_data[0][1]
+                        msg = email.message_from_bytes(email_body)
+                        
+                        msg_id = msg.get("Message-ID", "")
+                        if msg_id in seen_ids:
+                            continue
+                        seen_ids.add(msg_id)
+                        
+                        from_email = extract_email_address(msg.get("From", ""))
+                        to_emails = [extract_email_address(e) for e in (msg.get("To", "")).split(",")]
+                        subject = decode_email_header(msg.get("Subject", ""))
+                        date_str = msg.get("Date", "")
+                        body_text, body_html = get_email_body(msg)
+                        
+                        direction = "sent" if from_email.lower() == account.email.lower() else "received"
+                        
+                        email_date = None
+                        if date_str:
+                            try:
+                                email_date = email.utils.parsedate_to_datetime(date_str)
+                            except:
+                                email_date = datetime.now()
+                        
+                        emails_found.append({
+                            "message_id": msg_id,
+                            "from_email": from_email,
+                            "to_emails": to_emails,
+                            "subject": subject,
+                            "body": body_text or body_html or "",
+                            "date": email_date.isoformat() if email_date else datetime.now().isoformat(),
+                            "direction": direction,
+                            "source": "imap_sync",
+                            "account": account.name,
+                            "matched_by": "client_folder"
+                        })
+                        
+                    except Exception as e:
+                        logger.warning(f"Erro ao processar email: {e}")
+                        continue
+                        
+            except Exception as e:
+                logger.warning(f"Erro ao aceder pasta {folder_name}: {e}")
+        
+        # 3. Também buscar na INBOX por nome no assunto
+        try:
+            mail.select(folder)
+            _, message_numbers = mail.search(None, f'(SUBJECT "{search_name}" SINCE {since_date})')
+            
+            for num in message_numbers[0].split():
+                try:
+                    _, msg_data = mail.fetch(num, "(RFC822)")
+                    email_body = msg_data[0][1]
+                    msg = email.message_from_bytes(email_body)
+                    
+                    msg_id = msg.get("Message-ID", "")
+                    if msg_id in seen_ids:
+                        continue
+                    seen_ids.add(msg_id)
+                    
+                    from_email = extract_email_address(msg.get("From", ""))
+                    to_emails = [extract_email_address(e) for e in (msg.get("To", "")).split(",")]
+                    subject = decode_email_header(msg.get("Subject", ""))
+                    date_str = msg.get("Date", "")
+                    body_text, body_html = get_email_body(msg)
+                    
+                    direction = "sent" if from_email.lower() == account.email.lower() else "received"
+                    
+                    email_date = None
+                    if date_str:
+                        try:
+                            email_date = email.utils.parsedate_to_datetime(date_str)
+                        except:
+                            email_date = datetime.now()
+                    
+                    emails_found.append({
+                        "message_id": msg_id,
+                        "from_email": from_email,
+                        "to_emails": to_emails,
+                        "subject": subject,
+                        "body": body_text or body_html or "",
+                        "date": email_date.isoformat() if email_date else datetime.now().isoformat(),
+                        "direction": direction,
+                        "source": "imap_sync",
+                        "account": account.name,
+                        "matched_by": "client_name_subject"
+                    })
+                    
+                except Exception as e:
+                    logger.warning(f"Erro ao processar email: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.warning(f"Erro na busca por assunto: {e}")
+        
+        # 4. Buscar por nome no CORPO do email (emails recentes e filtrar localmente)
+        try:
+            mail.select(folder)
+            _, message_numbers = mail.search(None, f'(SINCE {since_date})')
+            
+            # Limitar a 200 emails mais recentes para performance
+            nums = message_numbers[0].split()[-200:] if message_numbers[0] else []
+            
+            for num in nums:
+                try:
+                    _, msg_data = mail.fetch(num, "(RFC822)")
+                    email_body = msg_data[0][1]
+                    msg = email.message_from_bytes(email_body)
+                    
+                    msg_id = msg.get("Message-ID", "")
+                    if msg_id in seen_ids:
+                        continue
+                    
+                    body_text, body_html = get_email_body(msg)
+                    body_content = (body_text or body_html or "").lower()
+                    
+                    # Verificar se o nome do cliente aparece no corpo
+                    name_in_body = any(part in body_content for part in name_parts)
+                    if not name_in_body:
+                        continue
+                    
+                    seen_ids.add(msg_id)
+                    
+                    from_email = extract_email_address(msg.get("From", ""))
+                    to_emails = [extract_email_address(e) for e in (msg.get("To", "")).split(",")]
+                    subject = decode_email_header(msg.get("Subject", ""))
+                    date_str = msg.get("Date", "")
+                    
+                    direction = "sent" if from_email.lower() == account.email.lower() else "received"
+                    
+                    email_date = None
+                    if date_str:
+                        try:
+                            email_date = email.utils.parsedate_to_datetime(date_str)
+                        except:
+                            email_date = datetime.now()
+                    
+                    emails_found.append({
+                        "message_id": msg_id,
+                        "from_email": from_email,
+                        "to_emails": to_emails,
+                        "subject": subject,
+                        "body": body_text or body_html or "",
+                        "date": email_date.isoformat() if email_date else datetime.now().isoformat(),
+                        "direction": direction,
+                        "source": "imap_sync",
+                        "account": account.name,
+                        "matched_by": "client_name_body"
+                    })
+                    
+                except Exception as e:
+                    continue
+                    
+        except Exception as e:
+            logger.warning(f"Erro na busca por corpo: {e}")
+        
+        mail.logout()
+        logger.info(f"Encontrados {len(emails_found)} emails para '{search_name}' em {account.name}")
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar emails por nome em {account.name}: {e}")
+    
+    return emails_found
+
+
 async def fetch_emails_from_account(
     account: EmailAccount,
     client_emails: List[str],
@@ -173,8 +418,8 @@ async def fetch_emails_from_account(
             if not client_email:
                 continue
                 
-            # Buscar emails de/para este cliente
-            for search_type in ["FROM", "TO"]:
+            # Buscar emails de/para/cc este cliente
+            for search_type in ["FROM", "TO", "CC"]:
                 try:
                     _, message_numbers = mail.search(None, f'({search_type} "{client_email}" SINCE {since_date})')
                     
@@ -187,6 +432,7 @@ async def fetch_emails_from_account(
                             # Extrair informações
                             from_email = extract_email_address(msg.get("From", ""))
                             to_emails = [extract_email_address(e) for e in (msg.get("To", "")).split(",")]
+                            cc_emails = [extract_email_address(e) for e in (msg.get("Cc", "")).split(",") if e]
                             subject = decode_email_header(msg.get("Subject", ""))
                             date_str = msg.get("Date", "")
                             body_text, body_html = get_email_body(msg)
@@ -206,6 +452,7 @@ async def fetch_emails_from_account(
                                 "direction": direction,
                                 "from_email": from_email,
                                 "to_emails": to_emails,
+                                "cc_emails": cc_emails,
                                 "subject": subject,
                                 "body": body_text or body_html,
                                 "body_html": body_html,
@@ -236,16 +483,48 @@ async def fetch_emails_from_account(
 async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, Any]:
     """
     Sincronizar emails para um processo específico.
-    Busca emails de ambas as contas relacionados com o cliente.
+    Busca emails de ambas as contas relacionados com:
+    - Nome do cliente (busca no assunto e corpo)
+    - Email do cliente
+    - Email do proprietário do imóvel
+    - Emails adicionais monitorizados
     """
     # Obter processo
     process = await db.processes.find_one({"id": process_id}, {"_id": 0})
     if not process:
         return {"success": False, "error": "Processo não encontrado"}
     
+    # Nome do cliente para busca por assunto
+    client_name = process.get("client_name", "")
+    
+    # Coletar todos os emails a monitorizar
+    emails_to_monitor = []
+    
+    # Email principal do cliente
     client_email = process.get("client_email")
-    if not client_email:
-        return {"success": False, "error": "Cliente sem email"}
+    if client_email:
+        # Limpar emails com formatação markdown do Trello
+        clean_email = client_email
+        if "[" in clean_email and "]" in clean_email:
+            import re
+            match = re.search(r'[\w\.-]+@[\w\.-]+', clean_email)
+            if match:
+                clean_email = match.group()
+        emails_to_monitor.append(clean_email)
+    
+    # Email do proprietário do imóvel (muito importante para o match)
+    real_estate_data = process.get("real_estate_data", {}) or {}
+    owner_email = real_estate_data.get("owner_email")
+    if owner_email:
+        emails_to_monitor.append(owner_email)
+    
+    # Emails adicionais monitorizados
+    monitored_emails = process.get("monitored_emails", [])
+    if monitored_emails:
+        emails_to_monitor.extend(monitored_emails)
+    
+    # Remover duplicados e limpar
+    emails_to_monitor = list(set([e.lower().strip() for e in emails_to_monitor if e and "@" in e]))
     
     accounts = get_email_accounts()
     if not accounts:
@@ -255,22 +534,36 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
     
     # Buscar emails de todas as contas
     for account in accounts:
-        # Buscar na inbox
-        inbox_emails = await fetch_emails_from_account(
-            account, [client_email], days, "INBOX"
-        )
-        all_emails.extend(inbox_emails)
+        # 1. Buscar por NOME DO CLIENTE no assunto (principal)
+        if client_name:
+            inbox_by_name = await fetch_emails_by_name(account, client_name, days, "INBOX")
+            all_emails.extend(inbox_by_name)
+            
+            # Tentar buscar nos enviados por nome
+            for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
+                try:
+                    sent_by_name = await fetch_emails_by_name(account, client_name, days, sent_folder)
+                    all_emails.extend(sent_by_name)
+                    break
+                except:
+                    continue
         
-        # Tentar buscar nos enviados
-        for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
-            try:
-                sent_emails = await fetch_emails_from_account(
-                    account, [client_email], days, sent_folder
-                )
-                all_emails.extend(sent_emails)
-                break
-            except:
-                continue
+        # 2. Buscar por endereço de email (se houver emails monitorizados)
+        if emails_to_monitor:
+            inbox_emails = await fetch_emails_from_account(
+                account, emails_to_monitor, days, "INBOX"
+            )
+            all_emails.extend(inbox_emails)
+            
+            for sent_folder in ["Sent", "INBOX.Sent", "Sent Items", "Enviados"]:
+                try:
+                    sent_emails = await fetch_emails_from_account(
+                        account, emails_to_monitor, days, sent_folder
+                    )
+                    all_emails.extend(sent_emails)
+                    break
+                except:
+                    continue
     
     # Remover duplicados por Message-ID
     seen_ids = set()
@@ -286,11 +579,12 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
     # Guardar na base de dados
     new_count = 0
     for em in unique_emails:
-        # Verificar se já existe
+        # Verificar se já existe (usar date como sent_at)
+        sent_at = em.get("date") or em.get("sent_at")
         existing = await db.emails.find_one({
             "process_id": process_id,
             "subject": em["subject"],
-            "sent_at": em["sent_at"],
+            "sent_at": sent_at,
             "from_email": em["from_email"]
         })
         
@@ -308,10 +602,10 @@ async def sync_emails_for_process(process_id: str, days: int = 30) -> Dict[str, 
                 "body_html": em.get("body_html"),
                 "attachments": [],
                 "status": "sent",
-                "sent_at": em["sent_at"],
+                "sent_at": sent_at,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "created_by": None,
-                "notes": f"Sincronizado de {em['account']}",
+                "notes": f"Sincronizado de {em.get('account', 'desconhecido')}",
                 "synced": True,
                 "account": em["account"]
             }

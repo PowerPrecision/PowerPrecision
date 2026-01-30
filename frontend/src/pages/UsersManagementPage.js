@@ -52,7 +52,7 @@ const UsersManagementPage = () => {
     email: "",
     password: "",
     phone: "",
-    role: "cliente",
+    role: "consultor",
     onedrive_folder: "",
   });
 
@@ -93,7 +93,7 @@ const UsersManagementPage = () => {
         email: "",
         password: "",
         phone: "",
-        role: "cliente",
+        role: "consultor",
         onedrive_folder: "",
       });
       fetchUsers();
@@ -239,7 +239,6 @@ const UsersManagementPage = () => {
                       <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="cliente">Cliente</SelectItem>
                           <SelectItem value="consultor">Consultor</SelectItem>
                           <SelectItem value="intermediario">Intermediário de Crédito</SelectItem>
                           <SelectItem value="diretor">Diretor(a)</SelectItem>
@@ -248,6 +247,7 @@ const UsersManagementPage = () => {
                           <SelectItem value="admin">Administrador</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">Nota: Clientes são processos, não utilizadores do sistema.</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Pasta OneDrive</Label>
@@ -409,7 +409,6 @@ const UsersManagementPage = () => {
               <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cliente">Cliente</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                   <SelectItem value="intermediario">Intermediário de Crédito</SelectItem>
                   <SelectItem value="diretor">Diretor(a)</SelectItem>

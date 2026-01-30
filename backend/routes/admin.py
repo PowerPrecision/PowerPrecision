@@ -102,7 +102,11 @@ async def create_user(data: UserCreate, user: dict = Depends(require_roles([User
     if existing:
         raise HTTPException(status_code=400, detail="Email já registado")
     
-    if data.role not in [UserRole.CLIENTE, UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.INTERMEDIARIO, UserRole.DIRETOR, UserRole.ADMINISTRATIVO, UserRole.CEO, UserRole.ADMIN]:
+    # Cliente não é um utilizador do sistema - é um processo
+    if data.role == UserRole.CLIENTE:
+        raise HTTPException(status_code=400, detail="Cliente não pode ser criado como utilizador. O cliente é representado pelo processo.")
+    
+    if data.role not in [UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.INTERMEDIARIO, UserRole.DIRETOR, UserRole.ADMINISTRATIVO, UserRole.CEO, UserRole.ADMIN]:
         raise HTTPException(status_code=400, detail="Role inválido")
     
     user_id = str(uuid.uuid4())
@@ -121,6 +125,42 @@ async def create_user(data: UserCreate, user: dict = Depends(require_roles([User
     }
     
     await db.users.insert_one(user_doc)
+    
+    # Associar automaticamente processos do Trello que têm este utilizador atribuído
+    # Verifica se o nome do utilizador corresponde a algum membro atribuído no Trello
+    name_lower = data.name.lower()
+    name_parts = [p for p in name_lower.split() if len(p) >= 3]
+    
+    # Procurar processos com trello_members que corresponda ao nome
+    query = {"trello_members": {"$exists": True, "$ne": []}}
+    processes_to_update = await db.processes.find(query, {"_id": 0, "id": 1, "trello_members": 1}).to_list(1000)
+    
+    updated_count = 0
+    for proc in processes_to_update:
+        members = proc.get("trello_members", [])
+        # Verificar se o nome do utilizador está na lista de membros
+        for member in members:
+            member_lower = member.lower()
+            # Verificar se alguma parte do nome corresponde
+            if any(part in member_lower for part in name_parts):
+                # Determinar qual campo atualizar baseado no role
+                if data.role in [UserRole.CONSULTOR]:
+                    await db.processes.update_one(
+                        {"id": proc["id"]},
+                        {"$set": {"assigned_consultor_id": user_id}}
+                    )
+                    updated_count += 1
+                elif data.role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
+                    await db.processes.update_one(
+                        {"id": proc["id"]},
+                        {"$set": {"assigned_mediador_id": user_id}}
+                    )
+                    updated_count += 1
+                break  # Já encontrou match, passar ao próximo processo
+    
+    if updated_count > 0:
+        import logging
+        logging.getLogger(__name__).info(f"Utilizador {data.name} criado e associado a {updated_count} processos automaticamente")
     
     return UserResponse(
         id=user_id,
@@ -269,4 +309,48 @@ async def stop_impersonate(user: dict = Depends(require_roles([UserRole.ADMIN, U
             "role": admin_user["role"]
         }
     }
+
+
+# ============== PROCESS NUMBER MIGRATION ==============
+
+@router.post("/migrate-process-numbers")
+async def migrate_process_numbers(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """
+    Atribuir números sequenciais a todos os processos que não têm.
+    Os processos são ordenados por data de criação (mais antigos primeiro).
+    """
+    # Buscar processos sem número, ordenados por data de criação
+    processes_without_number = await db.processes.find(
+        {"$or": [{"process_number": {"$exists": False}}, {"process_number": None}]},
+        {"_id": 0, "id": 1, "created_at": 1, "client_name": 1}
+    ).sort("created_at", 1).to_list(10000)
+    
+    if not processes_without_number:
+        return {"message": "Todos os processos já têm número atribuído", "updated": 0}
+    
+    # Obter o maior número existente
+    max_result = await db.processes.find_one(
+        {"process_number": {"$exists": True, "$ne": None}},
+        {"process_number": 1},
+        sort=[("process_number", -1)]
+    )
+    
+    next_number = (max_result["process_number"] + 1) if max_result and max_result.get("process_number") else 1
+    
+    updated_count = 0
+    for process in processes_without_number:
+        await db.processes.update_one(
+            {"id": process["id"]},
+            {"$set": {"process_number": next_number}}
+        )
+        next_number += 1
+        updated_count += 1
+    
+    return {
+        "message": f"Números atribuídos a {updated_count} processos",
+        "updated": updated_count,
+        "first_number": next_number - updated_count,
+        "last_number": next_number - 1
+    }
+
 

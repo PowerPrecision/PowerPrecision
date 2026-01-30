@@ -263,7 +263,7 @@ const AdminDashboard = () => {
                     </Select>
                   </div>
                 </div>
-                <KanbanBoard token={localStorage.getItem('token')} />
+                <KanbanBoard token={localStorage.getItem('token')} user={user} />
               </CardContent>
             </Card>
           </TabsContent>

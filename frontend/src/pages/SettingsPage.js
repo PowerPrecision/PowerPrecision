@@ -218,20 +218,20 @@ const SettingsPage = () => {
 
         <Tabs defaultValue="perfil" className="space-y-6">
           <TabsList className="bg-blue-50 border border-blue-200">
-            <TabsTrigger value="perfil" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+            <TabsTrigger value="perfil" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white">
               <User className="h-4 w-4 mr-2" />
               Perfil
             </TabsTrigger>
-            <TabsTrigger value="seguranca" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+            <TabsTrigger value="seguranca" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white">
               <Lock className="h-4 w-4 mr-2" />
               Segurança
             </TabsTrigger>
-            <TabsTrigger value="notificacoes" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+            <TabsTrigger value="notificacoes" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white">
               <Bell className="h-4 w-4 mr-2" />
               Notificações
             </TabsTrigger>
             {user?.role === "admin" && (
-              <TabsTrigger value="sistema" className="data-[state=active]:bg-blue-900 data-[state=active]:text-white">
+              <TabsTrigger value="sistema" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white">
                 <Settings className="h-4 w-4 mr-2" />
                 Sistema
               </TabsTrigger>
@@ -253,7 +253,7 @@ const SettingsPage = () => {
               <CardContent className="space-y-6">
                 {/* Informação do papel */}
                 <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="h-12 w-12 rounded-full bg-blue-900 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-full bg-teal-600 flex items-center justify-center">
                     <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div>
@@ -313,7 +313,7 @@ const SettingsPage = () => {
                   <Button 
                     onClick={handleSaveProfile} 
                     disabled={loading}
-                    className="bg-blue-900 hover:bg-blue-800"
+                    className="bg-teal-600 hover:bg-teal-700"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Guardar Alterações
@@ -408,7 +408,7 @@ const SettingsPage = () => {
                   <Button 
                     onClick={handleChangePassword} 
                     disabled={loading || !passwordData.current_password || !passwordData.new_password}
-                    className="bg-blue-900 hover:bg-blue-800"
+                    className="bg-teal-600 hover:bg-teal-700"
                   >
                     <Lock className="h-4 w-4 mr-2" />
                     Alterar Password
@@ -501,7 +501,7 @@ const SettingsPage = () => {
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleSaveNotifications}
-                      className="bg-blue-900 hover:bg-blue-800"
+                      className="bg-teal-600 hover:bg-teal-700"
                     >
                       <Save className="h-4 w-4 mr-2" />
                       Guardar Preferências

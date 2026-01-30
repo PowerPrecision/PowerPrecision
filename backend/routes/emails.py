@@ -287,3 +287,97 @@ async def delete_email(
     logger.info(f"Email {email_id} eliminado por {current_user['name']}")
     
     return {"success": True, "message": "Email eliminado"}
+
+
+
+# ==== GESTÃO DE EMAILS MONITORIZADOS ====
+
+@router.get("/monitored/{process_id}")
+async def get_monitored_emails(
+    process_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Obter lista de emails monitorizados de um processo.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0, "client_email": 1, "monitored_emails": 1})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    return {
+        "client_email": process.get("client_email"),
+        "monitored_emails": process.get("monitored_emails", [])
+    }
+
+
+@router.post("/monitored/{process_id}")
+async def add_monitored_email(
+    process_id: str,
+    email: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Adicionar email à lista de monitorizados de um processo.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Validar email
+    email = email.lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Email inválido")
+    
+    # Obter lista atual
+    monitored = process.get("monitored_emails", [])
+    
+    # Verificar se já existe
+    if email in monitored or email == process.get("client_email", "").lower():
+        raise HTTPException(status_code=400, detail="Email já está na lista")
+    
+    # Adicionar
+    monitored.append(email)
+    await db.processes.update_one(
+        {"id": process_id},
+        {"$set": {"monitored_emails": monitored}}
+    )
+    
+    logger.info(f"Email {email} adicionado à monitorização do processo {process_id}")
+    
+    return {
+        "success": True,
+        "monitored_emails": monitored
+    }
+
+
+@router.delete("/monitored/{process_id}/{email}")
+async def remove_monitored_email(
+    process_id: str,
+    email: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Remover email da lista de monitorizados.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    email = email.lower().strip()
+    monitored = process.get("monitored_emails", [])
+    
+    if email not in monitored:
+        raise HTTPException(status_code=404, detail="Email não encontrado na lista")
+    
+    monitored.remove(email)
+    await db.processes.update_one(
+        {"id": process_id},
+        {"$set": {"monitored_emails": monitored}}
+    )
+    
+    logger.info(f"Email {email} removido da monitorização do processo {process_id}")
+    
+    return {
+        "success": True,
+        "monitored_emails": monitored
+    }

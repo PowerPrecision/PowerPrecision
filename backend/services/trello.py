@@ -140,11 +140,19 @@ class TrelloService:
         return card
     
     async def get_cards_with_details(self, list_id: str = None) -> List[Dict]:
-        """Obter cards com todos os dados e atividades."""
+        """Obter cards com todos os dados, labels, membros e atividades."""
         if list_id:
-            cards = await self._request("GET", f"/lists/{list_id}/cards")
+            cards = await self._request(
+                "GET", 
+                f"/lists/{list_id}/cards",
+                params={"fields": "all", "members": "true"}
+            )
         else:
-            cards = await self._request("GET", f"/boards/{self.board_id}/cards")
+            cards = await self._request(
+                "GET", 
+                f"/boards/{self.board_id}/cards",
+                params={"fields": "all", "members": "true"}
+            )
         
         # Obter comentários para cada card
         for card in cards:
@@ -281,9 +289,6 @@ def build_card_description(process: Dict) -> str:
         lines.append(f"👤 Consultor: {process['consultor_name']}")
     if process.get("mediador_name"):
         lines.append(f"👤 Intermediário: {process['mediador_name']}")
-    
-    # Adicionar ID do processo para referência
-    lines.append(f"\n---\n🔗 ID CreditoIMO: {process.get('id', 'N/A')}")
     
     return "\n".join(lines)
 

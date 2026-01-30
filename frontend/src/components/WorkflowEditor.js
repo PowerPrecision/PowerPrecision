@@ -224,7 +224,7 @@ const WorkflowEditor = () => {
                 resetForm();
                 setIsCreateDialogOpen(true);
               }}
-              className="bg-blue-900 hover:bg-blue-800"
+              className="bg-teal-600 hover:bg-teal-700"
               data-testid="add-workflow-status-btn"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -409,7 +409,7 @@ const WorkflowEditor = () => {
               <Button
                 type="submit"
                 disabled={formLoading}
-                className="bg-blue-900 hover:bg-blue-800"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 {formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar Estado"}
               </Button>
@@ -496,7 +496,7 @@ const WorkflowEditor = () => {
               <Button
                 type="submit"
                 disabled={formLoading}
-                className="bg-blue-900 hover:bg-blue-800"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 {formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
               </Button>

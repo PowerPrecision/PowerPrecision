@@ -284,7 +284,7 @@ const TasksPanel = ({
               <Button 
                 size="sm" 
                 onClick={openCreateDialog}
-                className="bg-blue-900 hover:bg-blue-800"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Nova
@@ -516,7 +516,7 @@ const TasksPanel = ({
             <Button 
               onClick={handleCreateTask} 
               disabled={creating}
-              className="bg-blue-900 hover:bg-blue-800"
+              className="bg-teal-600 hover:bg-teal-700"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
               Criar Tarefa

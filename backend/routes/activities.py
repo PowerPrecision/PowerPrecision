@@ -55,7 +55,21 @@ async def get_activities(process_id: str, user: dict = Depends(get_current_user)
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     activities = await db.activities.find({"process_id": process_id}, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    return [ActivityResponse(**a) for a in activities]
+    
+    # Filtrar atividades com dados válidos (podem existir registos antigos incompletos)
+    valid_activities = []
+    for a in activities:
+        # Garantir que tem os campos obrigatórios
+        if all(k in a for k in ["id", "user_id", "user_name", "user_role", "comment", "created_at"]):
+            valid_activities.append(ActivityResponse(**a))
+        elif "comment" in a:
+            # Tentar recuperar atividade com dados parciais
+            a.setdefault("user_id", "system")
+            a.setdefault("user_name", "Sistema")
+            a.setdefault("user_role", "admin")
+            valid_activities.append(ActivityResponse(**a))
+    
+    return valid_activities
 
 
 @router.delete("/activities/{activity_id}")

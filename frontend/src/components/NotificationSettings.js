@@ -128,7 +128,7 @@ const NotificationSettings = () => {
                 <Button 
                   onClick={handleEnable} 
                   disabled={loading}
-                  className="bg-blue-900 hover:bg-blue-800"
+                  className="bg-teal-600 hover:bg-teal-700"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

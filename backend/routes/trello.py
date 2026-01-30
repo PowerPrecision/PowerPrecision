@@ -200,19 +200,34 @@ async def reset_and_sync_from_trello(
                 # Converter para status do sistema
                 status = trello_list_to_status(list_info["name"])
                 if not status:
-                    # Se a lista não estiver mapeada, usar um status genérico
                     status = "clientes_espera"
                     result["imported"]["errors"].append(f"Lista não mapeada '{list_info['name']}', usando 'clientes_espera'")
                 
                 # Extrair dados da descrição
                 card_data = parse_card_description(card.get("desc", ""))
                 
-                # Gerar ID do processo
+                # Gerar ID e número do processo
                 process_id = str(uuid.uuid4())
+                process_number = result["imported"]["processes"] + 1
                 
-                # Criar novo processo
+                # Extrair labels do Trello
+                trello_labels = [l.get("name") for l in card.get("labels", []) if l.get("name")]
+                
+                # Verificar flags especiais baseadas em labels
+                idade_menos_35 = any("35" in l.lower() or "menos" in l.lower() for l in trello_labels)
+                prioridade = any("prioridade" in l.lower() for l in trello_labels)
+                docs_preparados = any("documento" in l.lower() and "preparad" in l.lower() for l in trello_labels)
+                ch_aprovado = any("aprovado" in l.lower() for l in trello_labels)
+                
+                # Extrair MEMBROS atribuídos ao cartão (utilizadores do Trello)
+                trello_members = card.get("members", [])
+                assigned_members = [m.get("fullName") for m in trello_members if m.get("fullName")]
+                assigned_member_ids = card.get("idMembers", [])
+                
+                # Criar novo processo com todos os dados do Trello
                 new_process = {
                     "id": process_id,
+                    "process_number": process_number,
                     "client_name": card["name"],
                     "client_email": card_data.get("email", card_data.get("📧_email", "")),
                     "client_phone": card_data.get("telefone", card_data.get("phone", card_data.get("📱_telefone", ""))),
@@ -225,9 +240,31 @@ async def reset_and_sync_from_trello(
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                     "source": "trello_import",
                     "notes": card.get("desc", ""),
-                    "personal_data": {},
-                    "financial_data": {},
-                    "real_estate_data": {},
+                    # Labels e flags do Trello
+                    "labels": trello_labels,
+                    "idade_menos_35": idade_menos_35,
+                    "prioridade": prioridade,
+                    "docs_preparados": docs_preparados,
+                    "ch_aprovado": ch_aprovado,
+                    # Due date do Trello
+                    "due_date": card.get("due"),
+                    "due_complete": card.get("dueComplete", False),
+                    # Membros atribuídos do Trello
+                    "trello_members": assigned_members,  # Nomes dos membros
+                    "trello_member_ids": assigned_member_ids,  # IDs dos membros
+                    # Dados estruturados
+                    "personal_data": {
+                        "morada_fiscal": card_data.get("morada", card_data.get("📍_morada", "")),
+                        "data_nascimento": card_data.get("nascimento", card_data.get("🎂_nascimento", "")),
+                    },
+                    "financial_data": {
+                        "rendimento_mensal": card_data.get("rendimento", ""),
+                        "valor_pretendido": card_data.get("valor_pretendido", card_data.get("🏦_valor_pretendido", "")),
+                    },
+                    "real_estate_data": {
+                        "morada_imovel": card_data.get("imovel", card_data.get("🏠_imóvel", "")),
+                        "valor_aquisicao": card_data.get("valor_aquisicao", card_data.get("💶_valor_aquisição", "")),
+                    },
                     "credit_data": {},
                 }
                 

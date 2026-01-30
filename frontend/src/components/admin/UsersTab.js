@@ -23,7 +23,7 @@ const roleLabels = {
 const roleColors = {
   admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   ceo: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  consultor: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  consultor: "bg-blue-100 text-blue-800 dark:bg-teal-600/30 dark:text-blue-400",
   mediador: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
   intermediario: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
   diretor: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
@@ -105,7 +105,7 @@ const UsersTab = ({ users, onImpersonate }) => {
               <Button 
                 size="sm"
                 onClick={() => navigate('/utilizadores')}
-                className="bg-blue-900 hover:bg-blue-800"
+                className="bg-teal-600 hover:bg-teal-700"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Gerir Utilizadores

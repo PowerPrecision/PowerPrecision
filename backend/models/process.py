@@ -85,6 +85,7 @@ class RealEstateData(BaseModel):
     - tipo_imovel, num_quartos, localizacao, caracteristicas
     - outras_caracteristicas, outras_informacoes
     - ja_tem_imovel (indica se o cliente já tem imóvel identificado)
+    - Dados do proprietário: owner_name, owner_email, owner_phone
     """
     tipo_imovel: Optional[str] = None
     num_quartos: Optional[str] = None
@@ -94,6 +95,10 @@ class RealEstateData(BaseModel):
     outras_informacoes: Optional[str] = None
     ja_tem_imovel: Optional[bool] = None  # Indica se cliente já tem imóvel identificado
     has_property: Optional[bool] = None   # Alias para ja_tem_imovel
+    # Dados do proprietário do imóvel
+    owner_name: Optional[str] = None
+    owner_email: Optional[str] = None
+    owner_phone: Optional[str] = None
 
 
 class FinancialData(BaseModel):
@@ -128,6 +133,8 @@ class CreditData(BaseModel):
 
 class ProcessCreate(BaseModel):
     process_type: str
+    client_name: Optional[str] = None
+    client_email: Optional[str] = None
     personal_data: Optional[PersonalData] = None
     financial_data: Optional[FinancialData] = None
 
@@ -150,10 +157,13 @@ class ProcessUpdate(BaseModel):
     real_estate_data: Optional[RealEstateData] = None
     credit_data: Optional[CreditData] = None
     status: Optional[str] = None
+    client_email: Optional[str] = None
+    client_phone: Optional[str] = None
 
 
 class ProcessResponse(BaseModel):
     id: str
+    process_number: Optional[int] = None  # Número sequencial único do processo
     client_id: Optional[str] = None
     client_name: str
     client_email: Optional[str] = None
@@ -181,3 +191,4 @@ class ProcessResponse(BaseModel):
     trello_card_id: Optional[str] = None  # ID do card no Trello
     trello_list_id: Optional[str] = None  # ID da lista no Trello
     source: Optional[str] = None  # Origem do processo (trello_import, web_form, etc.)
+    monitored_emails: Optional[List[str]] = None  # Emails adicionais para monitorizar

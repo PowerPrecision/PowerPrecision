@@ -164,7 +164,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
                 className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <div className="p-2 bg-blue-100 dark:bg-teal-600/30 rounded-lg">
                     <LinkIcon className="h-4 w-4 text-blue-600" />
                   </div>
                   <div className="min-w-0">

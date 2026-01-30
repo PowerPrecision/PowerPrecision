@@ -28,12 +28,14 @@ import {
 } from "./ui/select";
 import { 
   Mail, Send, Inbox, Plus, Loader2, Clock, User, 
-  Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw
+  Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw,
+  Settings, X, AtSign, Maximize2
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
-import { getProcessEmails, getEmailStats, createEmail, deleteEmail, syncProcessEmails } from "../services/api";
+import { getProcessEmails, getEmailStats, createEmail, deleteEmail, syncProcessEmails, getMonitoredEmails, addMonitoredEmail, removeMonitoredEmail } from "../services/api";
+import EmailViewerModal from "./EmailViewerModal";
 
 const EmailHistoryPanel = ({ 
   processId, 
@@ -48,8 +50,18 @@ const EmailHistoryPanel = ({
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("all"); // all, sent, received
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [expandedEmail, setExpandedEmail] = useState(null);
+  
+  // Modal de visualização
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [selectedEmailId, setSelectedEmailId] = useState(null);
+  
+  // Emails monitorizados
+  const [monitoredEmails, setMonitoredEmails] = useState([]);
+  const [newMonitoredEmail, setNewMonitoredEmail] = useState("");
+  const [addingEmail, setAddingEmail] = useState(false);
   
   // Form state
   const [newEmail, setNewEmail] = useState({
@@ -60,12 +72,55 @@ const EmailHistoryPanel = ({
     body: "",
     notes: ""
   });
+  
+  const openEmailViewer = (emailId) => {
+    setSelectedEmailId(emailId);
+    setIsViewerOpen(true);
+  };
 
   useEffect(() => {
     if (processId) {
       fetchData();
+      fetchMonitoredEmails();
     }
   }, [processId, filter]);
+
+  const fetchMonitoredEmails = async () => {
+    try {
+      const response = await getMonitoredEmails(processId);
+      setMonitoredEmails(response.data.monitored_emails || []);
+    } catch (error) {
+      console.error("Erro ao carregar emails monitorizados:", error);
+    }
+  };
+
+  const handleAddMonitoredEmail = async () => {
+    if (!newMonitoredEmail.trim() || !newMonitoredEmail.includes("@")) {
+      toast.error("Introduza um email válido");
+      return;
+    }
+    try {
+      setAddingEmail(true);
+      await addMonitoredEmail(processId, newMonitoredEmail.trim());
+      toast.success("Email adicionado à monitorização");
+      setNewMonitoredEmail("");
+      fetchMonitoredEmails();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao adicionar email");
+    } finally {
+      setAddingEmail(false);
+    }
+  };
+
+  const handleRemoveMonitoredEmail = async (email) => {
+    try {
+      await removeMonitoredEmail(processId, email);
+      toast.success("Email removido da monitorização");
+      fetchMonitoredEmails();
+    } catch (error) {
+      toast.error("Erro ao remover email");
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -207,6 +262,7 @@ const EmailHistoryPanel = ({
               {!compact && (
                 <CardDescription>
                   {stats.sent} enviado(s) • {stats.received} recebido(s)
+                  {monitoredEmails.length > 0 && ` • ${monitoredEmails.length + 1} email(s) monitorizados`}
                 </CardDescription>
               )}
             </div>
@@ -214,8 +270,16 @@ const EmailHistoryPanel = ({
               <Button 
                 size="sm" 
                 variant="outline"
+                onClick={() => setIsSettingsOpen(true)}
+                title="Configurar emails monitorizados"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
                 onClick={handleSyncEmails}
-                disabled={syncing || !clientEmail}
+                disabled={syncing || (!clientEmail && monitoredEmails.length === 0)}
                 title="Sincronizar emails do servidor"
               >
                 {syncing ? (
@@ -223,23 +287,6 @@ const EmailHistoryPanel = ({
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => openCreateDialog("received")}
-                title="Registar email recebido"
-              >
-                <Inbox className="h-4 w-4" />
-              </Button>
-              <Button 
-                size="sm"
-                onClick={() => openCreateDialog("sent")}
-                className="bg-blue-900 hover:bg-blue-800"
-                title="Registar email enviado"
-              >
-                <Send className="h-4 w-4 mr-1" />
-                Novo
               </Button>
             </div>
           </div>
@@ -262,7 +309,7 @@ const EmailHistoryPanel = ({
             </TabsList>
           </Tabs>
 
-          {/* Lista de emails */}
+          {/* Lista de emails - Layout compacto com scroll horizontal no assunto */}
           {emails.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Mail className="h-12 w-12 mx-auto mb-2 opacity-20" />
@@ -277,135 +324,68 @@ const EmailHistoryPanel = ({
               </Button>
             </div>
           ) : (
-            <ScrollArea style={{ maxHeight }}>
-              <div className="space-y-2">
+            <ScrollArea className="pr-1" style={{ height: maxHeight }}>
+              <div className="space-y-1">
                 {emails.map((email) => (
                   <div
                     key={email.id}
-                    className="border rounded-lg overflow-hidden"
+                    className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
+                      email.direction === "sent" 
+                        ? "bg-blue-50/30 dark:bg-blue-950/10 border-blue-200/50" 
+                        : "bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200/50"
+                    }`}
+                    onClick={() => openEmailViewer(email.id)}
                   >
-                    {/* Header do email */}
-                    <div 
-                      className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
-                        email.direction === "sent" 
-                          ? "bg-blue-50/50 dark:bg-blue-950/20" 
-                          : "bg-emerald-50/50 dark:bg-emerald-950/20"
-                      }`}
-                      onClick={() => toggleExpandEmail(email.id)}
-                    >
-                      {/* Ícone de direção */}
-                      <div className={`mt-0.5 p-1.5 rounded ${
-                        email.direction === "sent" 
-                          ? "bg-blue-100 text-blue-600" 
-                          : "bg-emerald-100 text-emerald-600"
-                      }`}>
-                        {email.direction === "sent" ? (
-                          <Send className="h-4 w-4" />
-                        ) : (
-                          <Inbox className="h-4 w-4" />
-                        )}
-                      </div>
-
-                      {/* Conteúdo */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {email.subject}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {email.direction === "sent" ? "Para: " : "De: "}
-                              {email.direction === "sent" 
-                                ? email.to_emails?.join(", ")
-                                : email.from_email
-                              }
-                            </p>
-                          </div>
-                          {expandedEmail === email.id ? (
-                            <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {email.sent_at 
-                              ? format(parseISO(email.sent_at), "dd/MM/yyyy HH:mm", { locale: pt })
-                              : "-"
-                            }
-                          </div>
-                          {email.attachments?.length > 0 && (
-                            <Badge variant="outline" className="text-[10px]">
-                              <Paperclip className="h-3 w-3 mr-1" />
-                              {email.attachments.length}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+                    {/* Ícone de direção */}
+                    <div className={`p-1.5 rounded shrink-0 ${
+                      email.direction === "sent" 
+                        ? "bg-blue-100 text-blue-600" 
+                        : "bg-emerald-100 text-emerald-600"
+                    }`}>
+                      {email.direction === "sent" ? (
+                        <Send className="h-3 w-3" />
+                      ) : (
+                        <Inbox className="h-3 w-3" />
+                      )}
                     </div>
 
-                    {/* Corpo expandido */}
-                    {expandedEmail === email.id && (
-                      <div className="px-3 pb-3 border-t bg-background">
-                        <div className="pt-3 space-y-3">
-                          {/* Detalhes */}
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-muted-foreground">De:</span>
-                              <span className="ml-1">{email.from_email}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Para:</span>
-                              <span className="ml-1">{email.to_emails?.join(", ")}</span>
-                            </div>
-                            {email.cc_emails?.length > 0 && (
-                              <div className="col-span-2">
-                                <span className="text-muted-foreground">CC:</span>
-                                <span className="ml-1">{email.cc_emails.join(", ")}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Corpo */}
-                          <div className="bg-muted/30 rounded p-3">
-                            <p className="text-sm whitespace-pre-wrap">{email.body}</p>
-                          </div>
-
-                          {/* Notas */}
-                          {email.notes && (
-                            <div className="text-xs">
-                              <span className="text-muted-foreground">Notas:</span>
-                              <span className="ml-1">{email.notes}</span>
-                            </div>
-                          )}
-
-                          {/* Registado por */}
-                          {email.created_by_name && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <User className="h-3 w-3" />
-                              Registado por {email.created_by_name}
-                            </div>
-                          )}
-
-                          {/* Ações */}
-                          <div className="flex justify-end pt-2 border-t">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteEmail(email.id);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </div>
-                        </div>
+                    {/* Conteúdo com scroll horizontal */}
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted">
+                        <p className="font-medium text-sm whitespace-nowrap pr-2" title={email.subject}>
+                          {email.subject}
+                        </p>
                       </div>
-                    )}
+                      <p className="text-xs text-muted-foreground truncate">
+                        {email.direction === "sent" ? "Para: " : "De: "}
+                        {email.direction === "sent" 
+                          ? email.to_emails?.join(", ")
+                          : email.from_email
+                        }
+                      </p>
+                    </div>
+
+                    {/* Data e botão */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {email.sent_at 
+                          ? format(parseISO(email.sent_at), "dd/MM/yy", { locale: pt })
+                          : "-"
+                        }
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEmailViewer(email.id);
+                        }}
+                        title="Ver email completo"
+                      >
+                        <Maximize2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -413,6 +393,15 @@ const EmailHistoryPanel = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Modal para visualização de email */}
+      <EmailViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => setIsViewerOpen(false)}
+        emails={emails}
+        selectedEmailId={selectedEmailId}
+        onSelectEmail={setSelectedEmailId}
+      />
 
       {/* Dialog para registar email */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -517,10 +506,125 @@ const EmailHistoryPanel = ({
             <Button 
               onClick={handleCreateEmail} 
               disabled={creating}
-              className="bg-blue-900 hover:bg-blue-800"
+              className="bg-teal-600 hover:bg-teal-700"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
               Registar Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Configurações de Emails Monitorizados */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AtSign className="h-5 w-5" />
+              Emails Monitorizados
+            </DialogTitle>
+            <DialogDescription>
+              Configure os emails que serão sincronizados para este processo.
+              Os emails de geral@powerealestate.pt e geral@precisioncredito.pt são verificados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Email principal do cliente */}
+            <div>
+              <Label className="text-sm font-medium">Email Principal do Cliente</Label>
+              <div className="flex items-center gap-2 mt-1 p-2 bg-muted rounded-md">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{clientEmail || "Não definido"}</span>
+                <Badge variant="outline" className="ml-auto text-xs">Principal</Badge>
+              </div>
+            </div>
+
+            {/* Emails adicionais */}
+            <div>
+              <Label className="text-sm font-medium">Emails Adicionais</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Adicione outros emails relacionados com este processo (bancos, intermediários, etc.)
+              </p>
+              
+              {/* Lista de emails monitorizados */}
+              {monitoredEmails.length > 0 ? (
+                <div className="space-y-2 mb-3">
+                  {monitoredEmails.map((email) => (
+                    <div key={email} className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                      <AtSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm flex-1">{email}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveMonitoredEmail(email)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic mb-3">
+                  Nenhum email adicional configurado
+                </p>
+              )}
+
+              {/* Adicionar novo email */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="email@exemplo.pt"
+                  value={newMonitoredEmail}
+                  onChange={(e) => setNewMonitoredEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddMonitoredEmail()}
+                />
+                <Button 
+                  onClick={handleAddMonitoredEmail}
+                  disabled={addingEmail}
+                  size="sm"
+                >
+                  {addingEmail ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Contas de email da empresa */}
+            <div className="pt-2 border-t">
+              <Label className="text-sm font-medium">Contas da Empresa</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Emails da empresa onde os emails são sincronizados
+              </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm">
+                  <Badge variant="outline" className="text-xs">Precision</Badge>
+                  geral@precisioncredito.pt
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Badge variant="outline" className="text-xs">Power</Badge>
+                  geral@powerealestate.pt
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+              Fechar
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsSettingsOpen(false);
+                handleSyncEmails();
+              }}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Sincronizar Agora
             </Button>
           </DialogFooter>
         </DialogContent>

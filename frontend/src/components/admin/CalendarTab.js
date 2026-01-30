@@ -118,7 +118,7 @@ const CalendarTab = ({
               <CalendarDays className="h-5 w-5" />
               Calendário
             </CardTitle>
-            <Button size="sm" onClick={() => onCreateEvent(selectedDate)} className="bg-blue-900 hover:bg-blue-800">
+            <Button size="sm" onClick={() => onCreateEvent(selectedDate)} className="bg-teal-600 hover:bg-teal-700">
               <Plus className="h-4 w-4 mr-1" />Evento
             </Button>
           </div>

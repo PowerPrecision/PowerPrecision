@@ -190,7 +190,7 @@ const CreateEventDialog = ({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="bg-blue-900 hover:bg-blue-800">
+            <Button type="submit" disabled={loading} className="bg-teal-600 hover:bg-teal-700">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar Evento"}
             </Button>
           </DialogFooter>

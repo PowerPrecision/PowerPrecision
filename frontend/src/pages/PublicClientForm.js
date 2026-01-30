@@ -237,11 +237,11 @@ const PublicClientForm = () => {
         <div key={s} className="flex items-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-              ${step >= s ? "bg-blue-900 text-white" : "bg-gray-200 text-gray-500"}`}
+              ${step >= s ? "bg-teal-600 text-white" : "bg-gray-200 text-gray-500"}`}
           >
             {step > s ? <Check className="h-4 w-4" /> : s}
           </div>
-          {s < 6 && <div className={`w-8 md:w-12 h-0.5 ${step > s ? "bg-blue-900" : "bg-gray-200"}`} />}
+          {s < 6 && <div className={`w-8 md:w-12 h-0.5 ${step > s ? "bg-teal-600" : "bg-gray-200"}`} />}
         </div>
       ))}
     </div>
@@ -947,7 +947,7 @@ const PublicClientForm = () => {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a 
             href="mailto:geral@precisioncredito.pt" 
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
           >
             <HelpCircle className="h-4 w-4" />
             Contactar Precision
@@ -1069,7 +1069,7 @@ const PublicClientForm = () => {
                 <Button
                   onClick={() => setStep(Math.min(6, step + 1))}
                   disabled={!canProceed()}
-                  className="bg-blue-900 hover:bg-blue-800 text-white"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Próximo
                   <ArrowRight className="ml-2 h-4 w-4" />
