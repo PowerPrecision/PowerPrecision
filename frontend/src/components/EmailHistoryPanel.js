@@ -388,78 +388,20 @@ const EmailHistoryPanel = ({
                     </div>
                   </div>
                 ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Corpo expandido */}
-                    {expandedEmail === email.id && (
-                      <div className="px-3 pb-3 border-t bg-background">
-                        <div className="pt-3 space-y-3">
-                          {/* Detalhes */}
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-muted-foreground">De:</span>
-                              <span className="ml-1">{email.from_email}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Para:</span>
-                              <span className="ml-1">{email.to_emails?.join(", ")}</span>
-                            </div>
-                            {email.cc_emails?.length > 0 && (
-                              <div className="col-span-2">
-                                <span className="text-muted-foreground">CC:</span>
-                                <span className="ml-1">{email.cc_emails.join(", ")}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Corpo */}
-                          <div className="bg-muted/30 rounded p-3 max-h-[300px] overflow-y-auto">
-                            <p className="text-sm whitespace-pre-wrap">{email.body}</p>
-                          </div>
-
-                          {/* Notas */}
-                          {email.notes && (
-                            <div className="text-xs">
-                              <span className="text-muted-foreground">Notas:</span>
-                              <span className="ml-1">{email.notes}</span>
-                            </div>
-                          )}
-
-                          {/* Registado por */}
-                          {email.created_by_name && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <User className="h-3 w-3" />
-                              Registado por {email.created_by_name}
-                            </div>
-                          )}
-
-                          {/* Ações */}
-                          <div className="flex justify-end pt-2 border-t">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteEmail(email.id);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
             </ScrollArea>
           )}
         </CardContent>
       </Card>
+
+      {/* Modal para visualização de email */}
+      <EmailViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => setIsViewerOpen(false)}
+        emails={emails}
+        selectedEmailId={selectedEmailId}
+        onSelectEmail={setSelectedEmailId}
+      />
 
       {/* Dialog para registar email */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
