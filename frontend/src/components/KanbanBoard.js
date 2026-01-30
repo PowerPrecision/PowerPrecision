@@ -46,7 +46,7 @@ const statusHeaderColors = {
   red: "bg-red-500",
 };
 
-const KanbanBoard = ({ token }) => {
+const KanbanBoard = ({ token, user }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [kanbanData, setKanbanData] = useState({ columns: [], total_processes: 0 });
@@ -56,6 +56,55 @@ const KanbanBoard = ({ token }) => {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
+  
+  // Estado para criação de novo cliente
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newClient, setNewClient] = useState({
+    client_name: "",
+    client_email: "",
+    client_phone: "",
+    process_type: "credito_habitacao"
+  });
+  
+  // Verificar se o utilizador pode criar clientes
+  const canCreateClient = user && ["admin", "ceo", "consultor", "intermediario", "mediador"].includes(user.role);
+  
+  const handleCreateClient = async () => {
+    if (!newClient.client_name.trim()) {
+      toast.error("Por favor, introduza o nome do cliente");
+      return;
+    }
+    
+    setCreating(true);
+    try {
+      await createClientProcess({
+        client_name: newClient.client_name,
+        client_email: newClient.client_email,
+        process_type: newClient.process_type,
+        personal_data: {
+          nome_completo: newClient.client_name,
+          email: newClient.client_email,
+          telefone: newClient.client_phone
+        }
+      });
+      
+      toast.success(`Cliente "${newClient.client_name}" criado com sucesso!`);
+      setShowCreateDialog(false);
+      setNewClient({
+        client_name: "",
+        client_email: "",
+        client_phone: "",
+        process_type: "credito_habitacao"
+      });
+      fetchKanbanData();
+    } catch (error) {
+      console.error("Erro ao criar cliente:", error);
+      toast.error(error.response?.data?.detail || "Erro ao criar cliente");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const fetchKanbanData = useCallback(async () => {
     try {
