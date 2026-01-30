@@ -6,6 +6,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL + "/api";
 export const getProcesses = () => axios.get(`${API_URL}/processes`);
 export const getProcess = (id) => axios.get(`${API_URL}/processes/${id}`);
 export const createProcess = (data) => axios.post(`${API_URL}/processes`, data);
+export const createClientProcess = (data) => axios.post(`${API_URL}/processes/create-client`, data);
 export const updateProcess = (id, data) => axios.put(`${API_URL}/processes/${id}`, data);
 export const assignProcess = (id, consultorId, mediadorId) => 
   axios.post(`${API_URL}/processes/${id}/assign`, null, {
