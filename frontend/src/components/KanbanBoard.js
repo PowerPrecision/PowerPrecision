@@ -68,7 +68,7 @@ const KanbanBoard = ({ token, user }) => {
   });
   
   // Verificar se o utilizador pode criar clientes
-  const canCreateClient = user && ["admin", "ceo", "consultor", "intermediario", "mediador"].includes(user.role);
+  const canCreateClient = user && ["intermediario", "mediador"].includes(user.role);
   
   const handleCreateClient = async () => {
     if (!newClient.client_name.trim()) {
