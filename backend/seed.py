@@ -83,7 +83,7 @@ async def seed_users():
     # Lista de utilizadores a criar
     default_users = [
         {
-            "email": "admin@sistema.pt",
+            "email": "geral@powerealestate.pt",
             "password": admin_password,
             "name": "Admin",
             "role": UserRole.ADMIN,
