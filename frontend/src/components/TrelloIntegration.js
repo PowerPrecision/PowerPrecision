@@ -220,6 +220,34 @@ const TrelloIntegration = () => {
     }
   };
 
+  const handleAssignExisting = async () => {
+    setAssigning(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/assign-existing`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSyncResult(data);
+      toast({
+        title: data.success ? "Atribuição concluída" : "Erro na atribuição",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+      // Atualizar status para mostrar novas estatísticas
+      fetchStatus();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atribuir os processos.",
+        variant: "destructive",
+      });
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
