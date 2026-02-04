@@ -34,9 +34,9 @@ export const deleteDeadline = (id) => axios.delete(`${API_URL}/deadlines/${id}`)
 // Users (Admin)
 export const getUsers = (role) => 
   axios.get(`${API_URL}/users`, { params: { role } });
-export const createUser = (data) => axios.post(`${API_URL}/users`, data);
-export const updateUser = (id, data) => axios.put(`${API_URL}/users/${id}`, data);
-export const deleteUser = (id) => axios.delete(`${API_URL}/users/${id}`);
+export const createUser = (data) => axios.post(`${API_URL}/admin/users`, data);
+export const updateUser = (id, data) => axios.put(`${API_URL}/admin/users/${id}`, data);
+export const deleteUser = (id) => axios.delete(`${API_URL}/admin/users/${id}`);
 
 // Stats
 export const getStats = () => axios.get(`${API_URL}/stats`);
