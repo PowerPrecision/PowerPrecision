@@ -123,19 +123,79 @@ class SyncResult(BaseModel):
 
 @router.get("/status")
 async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))):
-    """Verificar estado da integração Trello."""
+    """Verificar estado da integração Trello com diagnósticos detalhados."""
+    # Informação de configuração (mesmo que falhe a conexão)
+    config_info = {
+        "has_api_key": bool(trello_service.api_key),
+        "has_token": bool(trello_service.token),
+        "has_board_id": bool(trello_service.board_id),
+        "board_id": trello_service.board_id[:8] + "..." if trello_service.board_id and len(trello_service.board_id) > 8 else trello_service.board_id
+    }
+    
     try:
         # Verificar se as credenciais estão configuradas
         if not trello_service.api_key or not trello_service.token:
             return {
                 "connected": False,
                 "message": "Credenciais Trello não configuradas",
-                "board": None
+                "board": None,
+                "config": config_info,
+                "error": "TRELLO_API_KEY e/ou TRELLO_TOKEN não definidos nas variáveis de ambiente"
+            }
+        
+        if not trello_service.board_id:
+            return {
+                "connected": False,
+                "message": "Board ID não configurado",
+                "board": None,
+                "config": config_info,
+                "error": "TRELLO_BOARD_ID não definido nas variáveis de ambiente"
             }
         
         # Testar conexão
         board = await trello_service.get_board()
         lists = await trello_service.get_lists()
+        
+        # Obter estatísticas da sincronização
+        last_sync = await db.settings.find_one({"key": "trello_last_sync"}, {"_id": 0})
+        
+        # Contar processos sincronizados
+        total_processes = await db.processes.count_documents({})
+        trello_processes = await db.processes.count_documents({"trello_card_id": {"$exists": True, "$ne": None}})
+        assigned_processes = await db.processes.count_documents({
+            "$or": [
+                {"assigned_consultor_id": {"$exists": True, "$ne": None}},
+                {"assigned_mediador_id": {"$exists": True, "$ne": None}}
+            ]
+        })
+        
+        # Obter membros do board para diagnóstico
+        board_members = []
+        try:
+            members_response = await trello_service._request("GET", f"/boards/{trello_service.board_id}/members")
+            board_members = [{"id": m.get("id"), "name": m.get("fullName"), "username": m.get("username")} for m in members_response]
+        except Exception as e:
+            logger.warning(f"Não foi possível obter membros do board: {e}")
+        
+        # Verificar correspondência de membros com utilizadores da app
+        app_users = await db.users.find(
+            {"is_active": {"$ne": False}},
+            {"_id": 0, "id": 1, "name": 1, "role": 1}
+        ).to_list(100)
+        
+        member_mapping = []
+        for member in board_members:
+            matched = next(
+                (u for u in app_users if u["name"].lower().strip() == member["name"].lower().strip()),
+                None
+            )
+            member_mapping.append({
+                "trello_name": member["name"],
+                "trello_username": member.get("username"),
+                "app_user": matched["name"] if matched else None,
+                "app_role": matched["role"] if matched else None,
+                "matched": matched is not None
+            })
         
         return {
             "connected": True,
@@ -146,14 +206,27 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
                 "url": board["url"],
                 "lists_count": len(lists)
             },
-            "lists": [{"id": l["id"], "name": l["name"]} for l in lists]
+            "lists": [{"id": l["id"], "name": l["name"]} for l in lists],
+            "config": config_info,
+            "sync_stats": {
+                "total_processes": total_processes,
+                "trello_synced": trello_processes,
+                "with_assignment": assigned_processes,
+                "without_assignment": trello_processes - assigned_processes,
+                "last_sync": last_sync.get("timestamp") if last_sync else None
+            },
+            "member_mapping": member_mapping,
+            "board_members_count": len(board_members),
+            "app_users_count": len(app_users)
         }
     except Exception as e:
         logger.error(f"Erro ao verificar Trello: {e}")
         return {
             "connected": False,
             "message": f"Erro de conexão: {str(e)}",
-            "board": None
+            "board": None,
+            "config": config_info,
+            "error": str(e)
         }
 
 
