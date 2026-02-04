@@ -605,6 +605,94 @@ async def sync_from_trello(
     return result
 
 
+@router.post("/assign-existing", response_model=SyncResult)
+async def assign_existing_processes(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Atribuir automaticamente processos existentes a utilizadores.
+    
+    Este endpoint percorre todos os processos que têm membros do Trello
+    mas não têm consultor/mediador atribuído, e tenta fazer a correspondência.
+    Útil para corrigir processos já importados.
+    """
+    result = SyncResult(success=True, message="")
+    
+    try:
+        # Buscar processos sem atribuição mas com membros do Trello
+        processes = await db.processes.find(
+            {
+                "$and": [
+                    {"trello_card_id": {"$exists": True, "$ne": None}},
+                    {"$or": [
+                        {"assigned_consultor_id": {"$exists": False}},
+                        {"assigned_consultor_id": None},
+                        {"assigned_mediador_id": {"$exists": False}},
+                        {"assigned_mediador_id": None}
+                    ]}
+                ]
+            },
+            {"_id": 0}
+        ).to_list(1000)
+        
+        logger.info(f"Encontrados {len(processes)} processos para verificar atribuição")
+        
+        # Obter cards do Trello para obter membros atualizados
+        all_cards = await trello_service.get_cards_with_details()
+        cards_by_id = {c["id"]: c for c in all_cards}
+        
+        for process in processes:
+            try:
+                card_id = process.get("trello_card_id")
+                card = cards_by_id.get(card_id)
+                
+                if not card:
+                    # Tentar usar membros guardados no processo
+                    trello_members = []
+                    if process.get("trello_members"):
+                        trello_members = [{"fullName": name} for name in process["trello_members"]]
+                else:
+                    trello_members = card.get("members", [])
+                
+                if not trello_members:
+                    continue
+                
+                # Encontrar correspondência
+                assignment = await find_matching_user(trello_members)
+                
+                update_data = {}
+                
+                # Só atribuir se não tiver já atribuição
+                if assignment["assigned_consultor_id"] and not process.get("assigned_consultor_id"):
+                    update_data["assigned_consultor_id"] = assignment["assigned_consultor_id"]
+                    update_data["consultor_name"] = assignment["consultor_name"]
+                
+                if assignment["assigned_mediador_id"] and not process.get("assigned_mediador_id"):
+                    update_data["assigned_mediador_id"] = assignment["assigned_mediador_id"]
+                    update_data["mediador_name"] = assignment["mediador_name"]
+                
+                if update_data:
+                    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    await db.processes.update_one(
+                        {"id": process["id"]},
+                        {"$set": update_data}
+                    )
+                    result.updated += 1
+                    logger.info(f"Processo '{process.get('client_name')}' atribuído: {update_data}")
+                
+            except Exception as e:
+                result.errors.append(f"Erro no processo {process.get('client_name', 'N/A')}: {str(e)}")
+        
+        result.message = f"Atribuição concluída: {result.updated} processos atualizados"
+        
+    except Exception as e:
+        logger.error(f"Erro na atribuição: {e}")
+        result.success = False
+        result.message = f"Erro: {str(e)}"
+    
+    return result
+
+
 @router.post("/sync/to-trello", response_model=SyncResult)
 async def sync_to_trello(
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
