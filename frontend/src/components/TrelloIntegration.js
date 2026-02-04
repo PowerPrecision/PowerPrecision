@@ -391,12 +391,68 @@ const TrelloIntegration = () => {
           <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-amber-800">Trello não configurado</p>
                 <p className="text-sm text-amber-700 mt-1">
                   As credenciais do Trello não estão configuradas ou são inválidas.
-                  Contacte o administrador para configurar a integração.
                 </p>
+                {status?.error && (
+                  <div className="mt-3 p-2 bg-red-100 rounded text-xs text-red-700">
+                    <strong>Erro:</strong> {status.error}
+                  </div>
+                )}
+                <div className="mt-3 p-3 bg-white rounded border text-xs space-y-1">
+                  <p className="font-medium text-gray-700 mb-2">Variáveis necessárias no Render:</p>
+                  <div className="grid gap-1">
+                    <div className="flex items-center gap-2">
+                      {status?.config?.has_api_key ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <XCircle className="h-3 w-3 text-red-600" />
+                      )}
+                      <code className="bg-gray-100 px-1 rounded">TRELLO_API_KEY</code>
+                      <span className="text-gray-500">
+                        {status?.config?.has_api_key ? "Configurada" : "Não configurada"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {status?.config?.has_token ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <XCircle className="h-3 w-3 text-red-600" />
+                      )}
+                      <code className="bg-gray-100 px-1 rounded">TRELLO_TOKEN</code>
+                      <span className="text-gray-500">
+                        {status?.config?.has_token ? "Configurado" : "Não configurado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {status?.config?.has_board_id ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <XCircle className="h-3 w-3 text-red-600" />
+                      )}
+                      <code className="bg-gray-100 px-1 rounded">TRELLO_BOARD_ID</code>
+                      <span className="text-gray-500">
+                        {status?.config?.board_id || "Não configurado"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-2 border-t">
+                    <p className="text-gray-600">
+                      <strong>Como obter:</strong> Aceda a{" "}
+                      <a 
+                        href="https://trello.com/power-ups/admin" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        trello.com/power-ups/admin
+                      </a>
+                      {" "}para criar uma API Key e Token.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
