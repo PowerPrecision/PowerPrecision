@@ -432,10 +432,10 @@ const TrelloIntegration = () => {
         )}
 
         {/* Botões de Sincronização */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
           <Button
             onClick={handleSyncFromTrello}
-            disabled={syncing || resetting || !status?.connected}
+            disabled={syncing || resetting || assigning || !status?.connected}
             className="bg-teal-600 hover:bg-teal-700"
           >
             {syncing ? (
@@ -448,7 +448,7 @@ const TrelloIntegration = () => {
           
           <Button
             onClick={handleSyncToTrello}
-            disabled={syncing || resetting || !status?.connected}
+            disabled={syncing || resetting || assigning || !status?.connected}
             variant="outline"
           >
             {syncing ? (
@@ -460,17 +460,31 @@ const TrelloIntegration = () => {
           </Button>
 
           <Button
+            onClick={handleAssignExisting}
+            disabled={syncing || resetting || assigning || !status?.connected}
+            className="bg-amber-500 hover:bg-amber-600"
+            title="Atribuir processos existentes a utilizadores"
+          >
+            {assigning ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <UserCheck className="h-4 w-4 mr-2" />
+            )}
+            Atribuir Auto
+          </Button>
+
+          <Button
             onClick={fetchStatus}
             variant="outline"
-            disabled={syncing || resetting}
+            disabled={syncing || resetting || assigning}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar Estado
+            Atualizar
           </Button>
           
           <Button
             onClick={handleFullReset}
-            disabled={syncing || resetting || !status?.connected}
+            disabled={syncing || resetting || assigning || !status?.connected}
             variant="destructive"
           >
             {resetting ? (
