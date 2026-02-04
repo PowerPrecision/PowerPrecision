@@ -431,6 +431,10 @@ async def reset_and_sync_from_trello(
                 await db.processes.insert_one(new_process)
                 result["imported"]["processes"] += 1
                 
+                # Contar atribuições
+                if assignment["assigned_consultor_id"] or assignment["assigned_mediador_id"]:
+                    result["imported"]["assignments"] += 1
+                
                 # Importar comentários/atividades do Trello como atividades do sistema
                 comments = card.get("comments", [])
                 for comment in comments:
