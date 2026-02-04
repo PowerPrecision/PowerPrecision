@@ -324,6 +324,113 @@ const TrelloIntegration = () => {
           </div>
         )}
 
+        {/* Estatísticas de Sincronização */}
+        {status?.sync_stats && (
+          <div className="p-4 bg-gray-50 rounded-lg border">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-teal-600" />
+              <span className="font-medium">Estatísticas de Sincronização</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-teal-600">{status.sync_stats.total_processes}</p>
+                <p className="text-xs text-muted-foreground">Total Processos</p>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-blue-600">{status.sync_stats.trello_synced}</p>
+                <p className="text-xs text-muted-foreground">Do Trello</p>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-green-600">{status.sync_stats.with_assignment}</p>
+                <p className="text-xs text-muted-foreground">Com Atribuição</p>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-amber-600">{status.sync_stats.without_assignment}</p>
+                <p className="text-xs text-muted-foreground">Sem Atribuição</p>
+              </div>
+            </div>
+            {status.sync_stats.last_sync && (
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Última sincronização: {new Date(status.sync_stats.last_sync).toLocaleString("pt-PT")}
+              </p>
+            )}
+            {status.sync_stats.without_assignment > 0 && (
+              <div className="mt-3 p-2 bg-amber-50 rounded border border-amber-200">
+                <p className="text-xs text-amber-700 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Existem {status.sync_stats.without_assignment} processos sem utilizador atribuído. 
+                  Utilize o botão "Atribuir Automático" para corrigir.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mapeamento de Membros */}
+        {status?.member_mapping && status.member_mapping.length > 0 && (
+          <div className="border rounded-lg">
+            <button
+              onClick={() => setShowMemberMapping(!showMemberMapping)}
+              className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-blue-900" />
+                <span className="font-medium text-sm">Mapeamento Membros Trello ↔ Utilizadores</span>
+                <Badge variant="outline" className="text-xs">
+                  {status.member_mapping.filter(m => m.matched).length}/{status.member_mapping.length} mapeados
+                </Badge>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {showMemberMapping ? "Ocultar" : "Mostrar"}
+              </span>
+            </button>
+            
+            {showMemberMapping && (
+              <div className="border-t p-3 space-y-2">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Os membros do Trello são automaticamente associados aos utilizadores da aplicação pelo nome.
+                  Para que a atribuição automática funcione, os nomes devem coincidir.
+                </p>
+                {status.member_mapping.map((mapping, idx) => (
+                  <div 
+                    key={idx}
+                    className={`flex items-center justify-between p-2 rounded text-sm ${
+                      mapping.matched ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {mapping.matched ? (
+                        <UserCheck className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <UserX className="h-4 w-4 text-red-600" />
+                      )}
+                      <div>
+                        <p className="font-medium">{mapping.trello_name}</p>
+                        <p className="text-xs text-muted-foreground">@{mapping.trello_username}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {mapping.matched ? (
+                        <>
+                          <p className="text-green-700">{mapping.app_user}</p>
+                          <p className="text-xs text-green-600">{mapping.app_role}</p>
+                        </>
+                      ) : (
+                        <p className="text-red-600 text-xs">Sem correspondência</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {status.member_mapping.some(m => !m.matched) && (
+                  <p className="text-xs text-amber-700 mt-2 p-2 bg-amber-50 rounded">
+                    💡 Para mapear membros não correspondidos, crie utilizadores na aplicação com o mesmo nome exacto do Trello.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Botões de Sincronização */}
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <Button
