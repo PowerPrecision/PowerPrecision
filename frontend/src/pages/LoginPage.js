@@ -28,7 +28,7 @@ const LoginPage = () => {
         navigate("/admin");
       } else if (user.role === "cliente") {
         navigate("/cliente");
-      } else if (["consultor", "mediador", "intermediario", "consultor_intermediario", "consultor_mediador", "ceo"].includes(user.role)) {
+      } else if (["consultor", "mediador", "intermediario", "consultor_intermediario", "consultor_mediador", "ceo", "diretor", "administrativo"].includes(user.role)) {
         navigate("/staff");
       } else {
         navigate("/");
