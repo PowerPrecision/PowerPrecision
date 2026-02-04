@@ -42,7 +42,13 @@ DB_NAME = get_required_env('DB_NAME')
 # ====================================================================
 # CORS CONFIG
 # ====================================================================
-CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
+_cors_env = os.environ.get('CORS_ORIGINS', '*').strip().strip('"').strip("'")
+if _cors_env == '*':
+    CORS_ORIGINS = ["*"]
+else:
+    CORS_ORIGINS = [origin.strip() for origin in _cors_env.split(',') if origin.strip()]
+    if not CORS_ORIGINS:
+        CORS_ORIGINS = ["*"]
 
 
 # ====================================================================
