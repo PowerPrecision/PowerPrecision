@@ -5,8 +5,9 @@
  * Painel de gestão da integração com o Trello.
  * 
  * Funcionalidades:
- * - Verificar estado da conexão
- * - Sincronizar dados do Trello
+ * - Verificar estado da conexão com diagnóstico detalhado
+ * - Sincronizar dados do Trello com atribuição automática
+ * - Visualizar mapeamento de membros Trello ↔ Utilizadores
  * - Configurar webhook para sync em tempo real
  * ====================================================================
  */
@@ -28,6 +29,10 @@ import {
   Download,
   Upload,
   Webhook,
+  Users,
+  UserCheck,
+  UserX,
+  Link2,
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
