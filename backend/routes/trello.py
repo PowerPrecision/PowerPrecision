@@ -27,6 +27,84 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trello", tags=["Trello Integration"])
 
 
+# === Função auxiliar para atribuição automática ===
+
+async def find_matching_user(trello_members: list) -> dict:
+    """
+    Encontrar utilizador da aplicação correspondente aos membros do Trello.
+    
+    Procura por:
+    1. Nome exato (case-insensitive)
+    2. Email do membro Trello
+    
+    Retorna dict com assigned_consultor_id e/ou assigned_mediador_id
+    """
+    result = {
+        "assigned_consultor_id": None,
+        "assigned_mediador_id": None,
+        "consultor_name": None,
+        "mediador_name": None,
+        "matched_members": []
+    }
+    
+    if not trello_members:
+        return result
+    
+    # Obter todos os utilizadores ativos da aplicação
+    users = await db.users.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
+    ).to_list(500)
+    
+    # Criar mapas para busca rápida
+    users_by_name = {u["name"].lower().strip(): u for u in users}
+    users_by_email = {u.get("email", "").lower().strip(): u for u in users if u.get("email")}
+    
+    for member in trello_members:
+        member_name = member.get("fullName", "").lower().strip()
+        member_email = member.get("email", member.get("username", "")).lower().strip()
+        
+        matched_user = None
+        
+        # Tentar encontrar por nome
+        if member_name and member_name in users_by_name:
+            matched_user = users_by_name[member_name]
+        # Tentar encontrar por email/username
+        elif member_email and member_email in users_by_email:
+            matched_user = users_by_email[member_email]
+        # Tentar busca parcial por nome (primeiro nome + último nome)
+        elif member_name:
+            for user_name, user in users_by_name.items():
+                # Verificar se o nome do membro contém o nome do utilizador ou vice-versa
+                if member_name in user_name or user_name in member_name:
+                    matched_user = user
+                    break
+        
+        if matched_user:
+            result["matched_members"].append({
+                "trello_member": member.get("fullName"),
+                "matched_user": matched_user["name"],
+                "role": matched_user["role"]
+            })
+            
+            # Atribuir baseado no papel do utilizador
+            role = matched_user["role"]
+            
+            # Papéis que podem ser consultores
+            if role in ["consultor", "diretor", "admin", "ceo"]:
+                if not result["assigned_consultor_id"]:
+                    result["assigned_consultor_id"] = matched_user["id"]
+                    result["consultor_name"] = matched_user["name"]
+            
+            # Papéis que podem ser intermediários
+            if role in ["mediador", "intermediario", "intermediario_credito", "diretor"]:
+                if not result["assigned_mediador_id"]:
+                    result["assigned_mediador_id"] = matched_user["id"]
+                    result["mediador_name"] = matched_user["name"]
+    
+    return result
+
+
 class TrelloConfig(BaseModel):
     api_key: str
     token: str
