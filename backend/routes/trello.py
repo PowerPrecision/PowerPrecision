@@ -375,6 +375,9 @@ async def reset_and_sync_from_trello(
                 assigned_members = [m.get("fullName") for m in trello_members if m.get("fullName")]
                 assigned_member_ids = card.get("idMembers", [])
                 
+                # ATRIBUIÇÃO AUTOMÁTICA: Encontrar utilizadores correspondentes
+                assignment = await find_matching_user(trello_members)
+                
                 # Criar novo processo com todos os dados do Trello
                 new_process = {
                     "id": process_id,
@@ -403,6 +406,11 @@ async def reset_and_sync_from_trello(
                     # Membros atribuídos do Trello
                     "trello_members": assigned_members,  # Nomes dos membros
                     "trello_member_ids": assigned_member_ids,  # IDs dos membros
+                    # ATRIBUIÇÃO AUTOMÁTICA
+                    "assigned_consultor_id": assignment["assigned_consultor_id"],
+                    "assigned_mediador_id": assignment["assigned_mediador_id"],
+                    "consultor_name": assignment["consultor_name"],
+                    "mediador_name": assignment["mediador_name"],
                     # Dados estruturados
                     "personal_data": {
                         "morada_fiscal": card_data.get("morada", card_data.get("📍_morada", "")),
