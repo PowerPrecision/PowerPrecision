@@ -5,8 +5,9 @@
  * Painel de gestão da integração com o Trello.
  * 
  * Funcionalidades:
- * - Verificar estado da conexão
- * - Sincronizar dados do Trello
+ * - Verificar estado da conexão com diagnóstico detalhado
+ * - Sincronizar dados do Trello com atribuição automática
+ * - Visualizar mapeamento de membros Trello ↔ Utilizadores
  * - Configurar webhook para sync em tempo real
  * ====================================================================
  */
@@ -28,6 +29,10 @@ import {
   Download,
   Upload,
   Webhook,
+  Users,
+  UserCheck,
+  UserX,
+  Link2,
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -40,9 +45,11 @@ const TrelloIntegration = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [webhooks, setWebhooks] = useState([]);
   const [settingUpWebhook, setSettingUpWebhook] = useState(false);
+  const [showMemberMapping, setShowMemberMapping] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -213,6 +220,34 @@ const TrelloIntegration = () => {
     }
   };
 
+  const handleAssignExisting = async () => {
+    setAssigning(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/assign-existing`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSyncResult(data);
+      toast({
+        title: data.success ? "Atribuição concluída" : "Erro na atribuição",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+      // Atualizar status para mostrar novas estatísticas
+      fetchStatus();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atribuir os processos.",
+        variant: "destructive",
+      });
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -289,11 +324,118 @@ const TrelloIntegration = () => {
           </div>
         )}
 
+        {/* Estatísticas de Sincronização */}
+        {status?.sync_stats && (
+          <div className="p-4 bg-gray-50 rounded-lg border">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-teal-600" />
+              <span className="font-medium">Estatísticas de Sincronização</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-teal-600">{status.sync_stats.total_processes}</p>
+                <p className="text-xs text-muted-foreground">Total Processos</p>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-blue-600">{status.sync_stats.trello_synced}</p>
+                <p className="text-xs text-muted-foreground">Do Trello</p>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-green-600">{status.sync_stats.with_assignment}</p>
+                <p className="text-xs text-muted-foreground">Com Atribuição</p>
+              </div>
+              <div className="text-center p-2 bg-white rounded border">
+                <p className="text-2xl font-bold text-amber-600">{status.sync_stats.without_assignment}</p>
+                <p className="text-xs text-muted-foreground">Sem Atribuição</p>
+              </div>
+            </div>
+            {status.sync_stats.last_sync && (
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Última sincronização: {new Date(status.sync_stats.last_sync).toLocaleString("pt-PT")}
+              </p>
+            )}
+            {status.sync_stats.without_assignment > 0 && (
+              <div className="mt-3 p-2 bg-amber-50 rounded border border-amber-200">
+                <p className="text-xs text-amber-700 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Existem {status.sync_stats.without_assignment} processos sem utilizador atribuído. 
+                  Utilize o botão "Atribuir Automático" para corrigir.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mapeamento de Membros */}
+        {status?.member_mapping && status.member_mapping.length > 0 && (
+          <div className="border rounded-lg">
+            <button
+              onClick={() => setShowMemberMapping(!showMemberMapping)}
+              className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-blue-900" />
+                <span className="font-medium text-sm">Mapeamento Membros Trello ↔ Utilizadores</span>
+                <Badge variant="outline" className="text-xs">
+                  {status.member_mapping.filter(m => m.matched).length}/{status.member_mapping.length} mapeados
+                </Badge>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {showMemberMapping ? "Ocultar" : "Mostrar"}
+              </span>
+            </button>
+            
+            {showMemberMapping && (
+              <div className="border-t p-3 space-y-2">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Os membros do Trello são automaticamente associados aos utilizadores da aplicação pelo nome.
+                  Para que a atribuição automática funcione, os nomes devem coincidir.
+                </p>
+                {status.member_mapping.map((mapping, idx) => (
+                  <div 
+                    key={idx}
+                    className={`flex items-center justify-between p-2 rounded text-sm ${
+                      mapping.matched ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {mapping.matched ? (
+                        <UserCheck className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <UserX className="h-4 w-4 text-red-600" />
+                      )}
+                      <div>
+                        <p className="font-medium">{mapping.trello_name}</p>
+                        <p className="text-xs text-muted-foreground">@{mapping.trello_username}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {mapping.matched ? (
+                        <>
+                          <p className="text-green-700">{mapping.app_user}</p>
+                          <p className="text-xs text-green-600">{mapping.app_role}</p>
+                        </>
+                      ) : (
+                        <p className="text-red-600 text-xs">Sem correspondência</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {status.member_mapping.some(m => !m.matched) && (
+                  <p className="text-xs text-amber-700 mt-2 p-2 bg-amber-50 rounded">
+                    💡 Para mapear membros não correspondidos, crie utilizadores na aplicação com o mesmo nome exacto do Trello.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Botões de Sincronização */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
           <Button
             onClick={handleSyncFromTrello}
-            disabled={syncing || resetting || !status?.connected}
+            disabled={syncing || resetting || assigning || !status?.connected}
             className="bg-teal-600 hover:bg-teal-700"
           >
             {syncing ? (
@@ -306,7 +448,7 @@ const TrelloIntegration = () => {
           
           <Button
             onClick={handleSyncToTrello}
-            disabled={syncing || resetting || !status?.connected}
+            disabled={syncing || resetting || assigning || !status?.connected}
             variant="outline"
           >
             {syncing ? (
@@ -318,17 +460,31 @@ const TrelloIntegration = () => {
           </Button>
 
           <Button
+            onClick={handleAssignExisting}
+            disabled={syncing || resetting || assigning || !status?.connected}
+            className="bg-amber-500 hover:bg-amber-600"
+            title="Atribuir processos existentes a utilizadores"
+          >
+            {assigning ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <UserCheck className="h-4 w-4 mr-2" />
+            )}
+            Atribuir Auto
+          </Button>
+
+          <Button
             onClick={fetchStatus}
             variant="outline"
-            disabled={syncing || resetting}
+            disabled={syncing || resetting || assigning}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar Estado
+            Atualizar
           </Button>
           
           <Button
             onClick={handleFullReset}
-            disabled={syncing || resetting || !status?.connected}
+            disabled={syncing || resetting || assigning || !status?.connected}
             variant="destructive"
           >
             {resetting ? (
@@ -391,12 +547,68 @@ const TrelloIntegration = () => {
           <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-amber-800">Trello não configurado</p>
                 <p className="text-sm text-amber-700 mt-1">
                   As credenciais do Trello não estão configuradas ou são inválidas.
-                  Contacte o administrador para configurar a integração.
                 </p>
+                {status?.error && (
+                  <div className="mt-3 p-2 bg-red-100 rounded text-xs text-red-700">
+                    <strong>Erro:</strong> {status.error}
+                  </div>
+                )}
+                <div className="mt-3 p-3 bg-white rounded border text-xs space-y-1">
+                  <p className="font-medium text-gray-700 mb-2">Variáveis necessárias no Render:</p>
+                  <div className="grid gap-1">
+                    <div className="flex items-center gap-2">
+                      {status?.config?.has_api_key ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <XCircle className="h-3 w-3 text-red-600" />
+                      )}
+                      <code className="bg-gray-100 px-1 rounded">TRELLO_API_KEY</code>
+                      <span className="text-gray-500">
+                        {status?.config?.has_api_key ? "Configurada" : "Não configurada"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {status?.config?.has_token ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <XCircle className="h-3 w-3 text-red-600" />
+                      )}
+                      <code className="bg-gray-100 px-1 rounded">TRELLO_TOKEN</code>
+                      <span className="text-gray-500">
+                        {status?.config?.has_token ? "Configurado" : "Não configurado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {status?.config?.has_board_id ? (
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <XCircle className="h-3 w-3 text-red-600" />
+                      )}
+                      <code className="bg-gray-100 px-1 rounded">TRELLO_BOARD_ID</code>
+                      <span className="text-gray-500">
+                        {status?.config?.board_id || "Não configurado"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-2 border-t">
+                    <p className="text-gray-600">
+                      <strong>Como obter:</strong> Aceda a{" "}
+                      <a 
+                        href="https://trello.com/power-ups/admin" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        trello.com/power-ups/admin
+                      </a>
+                      {" "}para criar uma API Key e Token.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
