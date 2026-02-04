@@ -458,8 +458,20 @@ async def reset_and_sync_from_trello(
             except Exception as e:
                 result["imported"]["errors"].append(f"Erro no card {card.get('name', 'N/A')}: {str(e)}")
         
-        result["message"] = f"Reset completo! Apagados {result['deleted']['processes']} processos. Importados {result['imported']['processes']} do Trello com {result['imported']['activities']} atividades."
+        result["message"] = f"Reset completo! Apagados {result['deleted']['processes']} processos. Importados {result['imported']['processes']} do Trello com {result['imported']['activities']} atividades e {result['imported']['assignments']} atribuições automáticas."
         logger.info(result["message"])
+        
+        # Guardar timestamp da última sincronização
+        await db.settings.update_one(
+            {"key": "trello_last_sync"},
+            {"$set": {
+                "key": "trello_last_sync",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "by": user["name"],
+                "type": "reset_and_sync"
+            }},
+            upsert=True
+        )
         
     except Exception as e:
         logger.error(f"Erro no reset e sync: {e}")
