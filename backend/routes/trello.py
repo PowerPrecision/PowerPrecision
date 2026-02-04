@@ -294,6 +294,7 @@ async def reset_and_sync_from_trello(
         },
         "imported": {
             "processes": 0,
+            "assignments": 0,
             "errors": []
         },
         "message": ""
