@@ -461,12 +461,14 @@ async def sync_from_trello(
     background_tasks: BackgroundTasks,
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
 ):
-    """Importar/sincronizar cards do Trello para o sistema."""
+    """Importar/sincronizar cards do Trello para o sistema com atribuição automática."""
     result = SyncResult(success=True, message="")
+    assignments_made = 0
     
     try:
         lists = await trello_service.get_lists()
-        all_cards = await trello_service.get_cards()
+        # Usar get_cards_with_details para obter membros
+        all_cards = await trello_service.get_cards_with_details()
         
         for card in all_cards:
             try:
@@ -481,6 +483,10 @@ async def sync_from_trello(
                     result.errors.append(f"Lista não mapeada: {list_info['name']}")
                     continue
                 
+                # Obter membros do card para atribuição automática
+                trello_members = card.get("members", [])
+                assignment = await find_matching_user(trello_members)
+                
                 # Verificar se já existe (pelo trello_card_id ou nome)
                 existing = await db.processes.find_one({
                     "$or": [
@@ -493,8 +499,23 @@ async def sync_from_trello(
                     # Atualizar processo existente
                     update_data = {"status": status, "trello_card_id": card["id"]}
                     
-                    # Só atualizar status se mudou
-                    if existing.get("status") != status:
+                    # Atribuir utilizadores se não estiverem já atribuídos
+                    if assignment["assigned_consultor_id"] and not existing.get("assigned_consultor_id"):
+                        update_data["assigned_consultor_id"] = assignment["assigned_consultor_id"]
+                        update_data["consultor_name"] = assignment["consultor_name"]
+                        assignments_made += 1
+                    
+                    if assignment["assigned_mediador_id"] and not existing.get("assigned_mediador_id"):
+                        update_data["assigned_mediador_id"] = assignment["assigned_mediador_id"]
+                        update_data["mediador_name"] = assignment["mediador_name"]
+                        assignments_made += 1
+                    
+                    # Guardar membros do Trello para referência
+                    if trello_members:
+                        update_data["trello_members"] = [m.get("fullName") for m in trello_members if m.get("fullName")]
+                    
+                    # Só atualizar se há mudanças
+                    if existing.get("status") != status or len(update_data) > 2:
                         update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
                         await db.processes.update_one(
                             {"id": existing["id"]},
@@ -520,7 +541,17 @@ async def sync_from_trello(
                         "financial_data": {},
                         "real_estate_data": {},
                         "credit_data": {},
+                        # Atribuição automática
+                        "assigned_consultor_id": assignment["assigned_consultor_id"],
+                        "assigned_mediador_id": assignment["assigned_mediador_id"],
+                        "consultor_name": assignment["consultor_name"],
+                        "mediador_name": assignment["mediador_name"],
+                        # Guardar membros do Trello para referência
+                        "trello_members": [m.get("fullName") for m in trello_members if m.get("fullName")],
                     }
+                    
+                    if assignment["assigned_consultor_id"] or assignment["assigned_mediador_id"]:
+                        assignments_made += 1
                     
                     await db.processes.insert_one(new_process)
                     result.created += 1
@@ -528,7 +559,18 @@ async def sync_from_trello(
             except Exception as e:
                 result.errors.append(f"Erro no card {card.get('name', 'N/A')}: {str(e)}")
         
-        result.message = f"Sincronização concluída: {result.created} criados, {result.updated} atualizados"
+        # Guardar timestamp da última sincronização
+        await db.settings.update_one(
+            {"key": "trello_last_sync"},
+            {"$set": {
+                "key": "trello_last_sync",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "by": user["name"]
+            }},
+            upsert=True
+        )
+        
+        result.message = f"Sincronização concluída: {result.created} criados, {result.updated} atualizados, {assignments_made} atribuições automáticas"
         
     except Exception as e:
         logger.error(f"Erro na sincronização: {e}")
