@@ -335,6 +335,33 @@ async def analyze_single_file(
     return result
 
 
+@router.get("/check-client")
+async def check_client_exists(
+    name: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Verificar se um cliente existe pelo nome.
+    Usado para validar antes de processar ficheiros.
+    """
+    if not name:
+        return {"exists": False, "client": None}
+    
+    process = await find_client_by_name(name)
+    
+    if process:
+        return {
+            "exists": True,
+            "client": {
+                "id": process.get("id"),
+                "name": process.get("client_name"),
+                "number": process.get("process_number")
+            }
+        }
+    
+    return {"exists": False, "client": None}
+
+
 @router.get("/clients-list")
 async def get_clients_list(
     user: dict = Depends(require_roles([UserRole.ADMIN]))
