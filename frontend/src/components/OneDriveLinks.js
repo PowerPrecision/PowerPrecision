@@ -35,6 +35,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
 
   useEffect(() => {
     fetchLinks();
+    fetchFolderUrl();
   }, [processId]);
 
   const fetchLinks = async () => {
@@ -45,6 +46,88 @@ const OneDriveLinks = ({ processId, clientName }) => {
       console.error("Error fetching links:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Buscar URL da pasta do OneDrive
+  const fetchFolderUrl = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/onedrive/process/${processId}/folder-url`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMainFolderUrl(data.url);
+        if (data.type === "saved") {
+          setSavedFolderUrl(data.url);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching folder URL:", error);
+    }
+  };
+
+  // Abrir pasta do cliente no OneDrive
+  const handleOpenFolder = () => {
+    if (savedFolderUrl) {
+      window.open(savedFolderUrl, "_blank");
+    } else if (mainFolderUrl) {
+      window.open(mainFolderUrl, "_blank");
+      toast.info(`Procure pela pasta "${clientName}" no OneDrive`, { duration: 5000 });
+    } else {
+      toast.error("OneDrive não configurado");
+    }
+  };
+
+  // Guardar link da pasta específica do cliente
+  const handleSaveFolderUrl = async () => {
+    const url = prompt(
+      "Cole aqui o link da pasta específica do cliente no OneDrive:\n\n(Ex: https://1drv.ms/f/...)",
+      ""
+    );
+    if (!url) return;
+
+    setLoadingFolder(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_URL}/api/onedrive/process/${processId}/folder-url?folder_url=${encodeURIComponent(url)}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      if (response.ok) {
+        toast.success("Link da pasta guardado com sucesso!");
+        setSavedFolderUrl(url);
+      } else {
+        const data = await response.json();
+        toast.error(data.detail || "Erro ao guardar link");
+      }
+    } catch (error) {
+      toast.error("Erro ao guardar link da pasta");
+    } finally {
+      setLoadingFolder(false);
+    }
+  };
+
+  // Remover link da pasta
+  const handleRemoveFolderUrl = async () => {
+    if (!window.confirm("Tem a certeza que deseja remover o link da pasta?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/onedrive/process/${processId}/folder-url`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        toast.success("Link removido");
+        setSavedFolderUrl(null);
+      }
+    } catch (error) {
+      toast.error("Erro ao remover link");
     }
   };
 
