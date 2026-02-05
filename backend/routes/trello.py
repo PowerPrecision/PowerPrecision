@@ -208,34 +208,33 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
             {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
         ).to_list(100)
         
-        # Criar mapa por email para matching
+        # Criar mapas para busca
         users_by_email = {u.get("email", "").lower().strip(): u for u in app_users if u.get("email")}
         users_by_name = {u["name"].lower().strip(): u for u in app_users}
+        users_by_email_local = {}
+        for u in app_users:
+            if u.get("email") and "@" in u["email"]:
+                local_part = u["email"].split("@")[0].lower().strip()
+                users_by_email_local[local_part] = u
         
         member_mapping = []
         for member in board_members:
             member_username = member.get("username", "").lower().strip()
             member_name = member.get("name", "").lower().strip()
             
-            # Tentar match por email/username primeiro
             matched = None
             match_method = None
             
-            # 1. Username como email direto
-            if member_username and member_username in users_by_email:
-                matched = users_by_email[member_username]
-                match_method = "email"
-            
-            # 2. Username com domínios comuns
-            if not matched and member_username:
-                for domain in ["@gmail.com", "@hotmail.com", "@outlook.com", "@precisioncredito.pt", "@powerealestate.pt"]:
-                    test_email = member_username + domain
-                    if test_email in users_by_email:
-                        matched = users_by_email[test_email]
-                        match_method = "email_domain"
+            # 1. PRIORIDADE: Username começa com parte local do email
+            if member_username:
+                for local_part, user in users_by_email_local.items():
+                    username_clean = ''.join(c for c in member_username if not c.isdigit())
+                    if member_username.startswith(local_part) or local_part.startswith(username_clean):
+                        matched = user
+                        match_method = "email"
                         break
             
-            # 3. Fallback para nome
+            # 2. Nome exacto
             if not matched and member_name in users_by_name:
                 matched = users_by_name[member_name]
                 match_method = "name"
