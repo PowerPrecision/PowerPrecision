@@ -20,6 +20,7 @@ from routes.push_notifications import router as push_notifications_router
 from routes.tasks import router as tasks_router
 from routes.emails import router as emails_router
 from routes.trello import router as trello_router
+from routes.ai_bulk import router as ai_bulk_router
 
 
 # Configure logging
