@@ -681,33 +681,62 @@ async def assign_process(
     process_id: str, 
     consultor_id: Optional[str] = None,
     mediador_id: Optional[str] = None,
-    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+    user: dict = Depends(require_staff())
 ):
-    """Assign consultor and/or mediador to a process"""
+    """
+    Atribuir consultor e/ou mediador a um processo.
+    Qualquer utilizador staff pode atribuir.
+    """
     process = await db.processes.find_one({"id": process_id})
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    old_consultor = process.get("assigned_consultor_id")
+    old_mediador = process.get("assigned_mediador_id")
     
-    if consultor_id:
-        # Check if user can act as consultor
-        consultor = await db.users.find_one({"id": consultor_id})
-        if not consultor or not UserRole.can_act_as_consultor(consultor.get("role", "")):
-            raise HTTPException(status_code=404, detail="Consultor não encontrado ou inválido")
-        update_data["assigned_consultor_id"] = consultor_id
-        await log_history(process_id, user, "Atribuiu consultor", "assigned_consultor_id", None, consultor["name"])
+    # Atribuir consultor
+    if consultor_id is not None:
+        if consultor_id == "" or consultor_id == "null":
+            # Remover consultor
+            update_data["assigned_consultor_id"] = None
+            update_data["consultor_name"] = None
+            if old_consultor:
+                old_user = await db.users.find_one({"id": old_consultor}, {"name": 1})
+                await log_history(process_id, user, "Removeu consultor", "assigned_consultor_id", old_user.get("name") if old_user else old_consultor, None)
+        else:
+            consultor = await db.users.find_one({"id": consultor_id})
+            if consultor:
+                update_data["assigned_consultor_id"] = consultor_id
+                update_data["consultor_name"] = consultor["name"]
+                old_name = None
+                if old_consultor:
+                    old_user = await db.users.find_one({"id": old_consultor}, {"name": 1})
+                    old_name = old_user.get("name") if old_user else None
+                await log_history(process_id, user, "Atribuiu consultor", "assigned_consultor_id", old_name, consultor["name"])
     
-    if mediador_id:
-        # Check if user can act as mediador
-        mediador = await db.users.find_one({"id": mediador_id})
-        if not mediador or not UserRole.can_act_as_mediador(mediador.get("role", "")):
-            raise HTTPException(status_code=404, detail="Mediador não encontrado ou inválido")
-        update_data["assigned_mediador_id"] = mediador_id
-        await log_history(process_id, user, "Atribuiu mediador", "assigned_mediador_id", None, mediador["name"])
+    # Atribuir mediador
+    if mediador_id is not None:
+        if mediador_id == "" or mediador_id == "null":
+            # Remover mediador
+            update_data["assigned_mediador_id"] = None
+            update_data["mediador_name"] = None
+            if old_mediador:
+                old_user = await db.users.find_one({"id": old_mediador}, {"name": 1})
+                await log_history(process_id, user, "Removeu mediador", "assigned_mediador_id", old_user.get("name") if old_user else old_mediador, None)
+        else:
+            mediador = await db.users.find_one({"id": mediador_id})
+            if mediador:
+                update_data["assigned_mediador_id"] = mediador_id
+                update_data["mediador_name"] = mediador["name"]
+                old_name = None
+                if old_mediador:
+                    old_user = await db.users.find_one({"id": old_mediador}, {"name": 1})
+                    old_name = old_user.get("name") if old_user else None
+                await log_history(process_id, user, "Atribuiu mediador", "assigned_mediador_id", old_name, mediador["name"])
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
-    return {"message": "Processo atribuído com sucesso"}
+    return {"success": True, "message": "Atribuições actualizadas com sucesso"}
 
 
 @router.post("/{process_id}/assign-me")
