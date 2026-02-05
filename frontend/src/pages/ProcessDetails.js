@@ -131,6 +131,54 @@ const ProcessDetails = () => {
   });
   const [selectedDate, setSelectedDate] = useState(null);
 
+  const API_URL = window.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+
+  // Verificar se o utilizador está atribuído a este processo
+  const isAssignedToMe = process && user && (
+    process.assigned_consultor_id === user.id || 
+    process.assigned_mediador_id === user.id
+  );
+
+  // Função para atribuir-se ao processo
+  const handleAssignMe = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/processes/${id}/assign-me`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || "Atribuído com sucesso");
+        fetchData();
+      } else {
+        toast.error(data.detail || "Erro ao atribuir");
+      }
+    } catch (error) {
+      console.error("Erro ao atribuir:", error);
+      toast.error("Erro ao atribuir-se ao processo");
+    }
+  };
+
+  // Função para remover-se do processo
+  const handleUnassignMe = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/processes/${id}/unassign-me`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || "Removido com sucesso");
+        fetchData();
+      } else {
+        toast.error(data.detail || "Erro ao remover");
+      }
+    } catch (error) {
+      console.error("Erro ao remover:", error);
+      toast.error("Erro ao remover-se do processo");
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [id]);
