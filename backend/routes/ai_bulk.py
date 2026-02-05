@@ -189,18 +189,19 @@ async def analyze_single_file(
     O frontend envia um ficheiro de cada vez, evitando problemas de memória
     e ficheiros fechados prematuramente pelo browser.
     
+    FUNCIONALIDADES:
+    - Se detectar CC frente ou verso, guarda em cache e espera pelo outro
+    - Quando tem frente+verso, junta num PDF e analisa
+    - Normaliza nomes de ficheiros
+    
     Estrutura do path: PastaRaiz/NomeCliente/[subpastas/]documento.pdf
-    O cliente é sempre a SEGUNDA pasta (índice 1 após split).
-    Subpastas dentro da pasta do cliente também pertencem ao mesmo cliente.
     """
     filename = file.filename or "documento.pdf"
     
     # Extrair nome do cliente do path
-    # Estrutura: PastaRaiz/NomeCliente/[subpastas/]ficheiro.pdf
     parts = filename.replace("\\", "/").split("/")
     
     if len(parts) >= 2:
-        # parts[0] = pasta raiz, parts[1] = cliente, parts[-1] = ficheiro
         client_name = parts[1]
         doc_filename = parts[-1]
     else:
@@ -217,8 +218,9 @@ async def analyze_single_file(
     )
     
     try:
-        # Ler ficheiro imediatamente (não deixar à espera)
+        # Ler ficheiro imediatamente
         content = await read_file_with_limit(file)
+        mime_type = get_mime_type(doc_filename)
         
         # Procurar cliente
         process = await find_client_by_name(client_name)
@@ -232,7 +234,73 @@ async def analyze_single_file(
         document_type = detect_document_type(doc_filename)
         result.document_type = document_type
         
-        # Analisar com IA
+        # Nome normalizado
+        normalized_name = get_normalized_filename(document_type)
+        
+        # Verificar se é CC frente ou verso
+        if document_type == "cc":
+            cc_side = is_cc_frente_or_verso(doc_filename)
+            
+            if cc_side:
+                # Guardar em cache
+                if process_id not in cc_cache:
+                    cc_cache[process_id] = {}
+                
+                cc_cache[process_id][cc_side] = (content, mime_type)
+                logger.info(f"CC {cc_side} guardado em cache para {client_name}")
+                
+                # Verificar se já temos frente E verso
+                if "frente" in cc_cache[process_id] and "verso" in cc_cache[process_id]:
+                    logger.info(f"CC completo (frente+verso) para {client_name}, a juntar...")
+                    
+                    # Juntar frente e verso num PDF
+                    frente_data = cc_cache[process_id]["frente"]
+                    verso_data = cc_cache[process_id]["verso"]
+                    
+                    merged_pdf = merge_images_to_pdf([frente_data, verso_data])
+                    
+                    if merged_pdf:
+                        # Analisar o PDF combinado
+                        merged_base64 = base64.b64encode(merged_pdf).decode('utf-8')
+                        
+                        analysis_result = await analyze_document_from_base64(
+                            merged_base64,
+                            "application/pdf",
+                            "cc"
+                        )
+                        
+                        # Limpar cache
+                        del cc_cache[process_id]
+                        
+                        if analysis_result.get("success") or analysis_result.get("extracted_data"):
+                            result.success = True
+                            result.fields_extracted = list(analysis_result.get("extracted_data", {}).keys())
+                            result.filename = normalized_name
+                            
+                            # Actualizar ficha do cliente
+                            updated = await update_client_data(
+                                process_id,
+                                analysis_result.get("extracted_data", {}),
+                                document_type
+                            )
+                            result.updated = updated
+                            
+                            logger.info(f"CC (frente+verso) analisado para {client_name}: {len(result.fields_extracted)} campos")
+                        else:
+                            result.error = analysis_result.get("error", "Erro na análise do CC combinado")
+                    else:
+                        result.error = "Erro ao juntar CC frente+verso"
+                        del cc_cache[process_id]
+                else:
+                    # Ainda falta frente ou verso
+                    result.success = True
+                    result.filename = f"CC_{cc_side} (a aguardar {'verso' if cc_side == 'frente' else 'frente'})"
+                    result.fields_extracted = []
+                    logger.info(f"A aguardar {'verso' if cc_side == 'frente' else 'frente'} do CC para {client_name}")
+                
+                return result
+        
+        # Análise normal (não é CC frente/verso)
         analysis_result = await analyze_single_document(
             content=content,
             filename=doc_filename,
@@ -243,11 +311,28 @@ async def analyze_single_file(
         if analysis_result.get("success") and analysis_result.get("extracted_data"):
             result.success = True
             result.fields_extracted = list(analysis_result["extracted_data"].keys())
+            result.filename = normalized_name  # Nome normalizado
             
             # Actualizar ficha do cliente
             updated = await update_client_data(
                 process_id,
                 analysis_result["extracted_data"],
+                document_type
+            )
+            result.updated = updated
+            
+            logger.info(f"Analisado {doc_filename} -> {normalized_name} para {client_name}: {len(result.fields_extracted)} campos")
+        else:
+            result.error = analysis_result.get("error", "Erro na análise")
+            logger.warning(f"Falha ao analisar {doc_filename}: {result.error}")
+        
+    except ValueError as e:
+        result.error = str(e)
+    except Exception as e:
+        result.error = f"Erro inesperado: {str(e)}"
+        logger.error(f"Erro ao processar {filename}: {e}")
+    
+    return result
                 document_type
             )
             result.updated = updated
