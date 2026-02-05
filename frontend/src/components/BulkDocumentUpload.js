@@ -2,7 +2,8 @@
  * BulkDocumentUpload - Upload massivo de documentos para análise com IA
  * Apenas disponível para administradores
  * 
- * Mostra progresso individual por ficheiro usando Server-Sent Events (SSE)
+ * IMPORTANTE: Envia um ficheiro de cada vez (fila de espera) para evitar
+ * que o browser feche os ficheiros antes de serem processados.
  */
 import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -20,7 +21,6 @@ import {
 } from "./ui/dialog";
 import {
   Sparkles,
-  Upload,
   Loader2,
   FolderUp,
   CheckCircle,
@@ -47,14 +47,16 @@ const FILE_STATUS = {
 const BulkDocumentUpload = () => {
   const { token, user } = useAuth();
   const folderInputRef = useRef(null);
+  const abortControllerRef = useRef(null);
   
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [fileStatuses, setFileStatuses] = useState({}); // filename -> {status, message, fields}
+  const [fileStatuses, setFileStatuses] = useState({});
   const [summary, setSummary] = useState(null);
   const [clientsList, setClientsList] = useState([]);
   const [loadingClients, setLoadingClients] = useState(false);
+  const [currentFile, setCurrentFile] = useState(null);
 
   // Verificar se é admin
   if (user?.role !== "admin") {
@@ -92,7 +94,7 @@ const BulkDocumentUpload = () => {
     setFileStatuses({});
   };
 
-  // Agrupar ficheiros por cliente
+  // Agrupar ficheiros por cliente (apenas para visualização)
   const getFilesByClient = () => {
     const grouped = {};
     selectedFiles.forEach((file) => {
@@ -108,14 +110,77 @@ const BulkDocumentUpload = () => {
   };
 
   // Actualizar estado de um ficheiro
-  const updateFileStatus = (filename, status, message = "", fields = []) => {
+  const updateFileStatus = (path, status, message = "", fields = []) => {
     setFileStatuses((prev) => ({
       ...prev,
-      [filename]: { status, message, fields },
+      [path]: { status, message, fields },
     }));
   };
 
-  // Fazer upload e análise com streaming de progresso
+  // Processar um único ficheiro
+  const processOneFile = async (file) => {
+    const path = file.webkitRelativePath || file.name;
+    
+    // Extrair nome do cliente do path
+    const parts = path.replace("\\", "/").split("/");
+    let clientName, docFilename;
+    
+    if (parts.length >= 2) {
+      clientName = parts[parts.length - 2];
+      docFilename = parts[parts.length - 1];
+    } else {
+      docFilename = parts[0];
+      clientName = docFilename.includes("_") 
+        ? docFilename.split("_")[0] 
+        : "Desconhecido";
+    }
+
+    setCurrentFile({ name: docFilename, client: clientName });
+    updateFileStatus(path, FILE_STATUS.PROCESSING, "A enviar...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file, path);
+
+      const response = await fetch(`${API_URL}/api/ai/bulk/analyze-single`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Erro ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        updateFileStatus(
+          path,
+          FILE_STATUS.SUCCESS,
+          result.updated ? "Ficha actualizada" : "Analisado",
+          result.fields_extracted || []
+        );
+        return { success: true, updated: result.updated };
+      } else {
+        updateFileStatus(path, FILE_STATUS.ERROR, result.error || "Erro na análise");
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        updateFileStatus(path, FILE_STATUS.ERROR, "Cancelado");
+        return { success: false, error: "Cancelado" };
+      }
+      updateFileStatus(path, FILE_STATUS.ERROR, error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Processar ficheiros um a um (fila de espera)
   const handleUpload = async () => {
     if (selectedFiles.length === 0) {
       toast.error("Selecione uma pasta com documentos");
@@ -124,136 +189,78 @@ const BulkDocumentUpload = () => {
 
     setUploading(true);
     setSummary(null);
-    
-    // Inicializar todos os ficheiros como pending
+    abortControllerRef.current = new AbortController();
+
+    // Inicializar todos como pendentes
     const initialStatuses = {};
     selectedFiles.forEach((file) => {
       const path = file.webkitRelativePath || file.name;
-      initialStatuses[path] = { status: FILE_STATUS.PENDING, message: "A aguardar..." };
+      initialStatuses[path] = { status: FILE_STATUS.PENDING, message: "Na fila..." };
     });
     setFileStatuses(initialStatuses);
 
-    try {
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        const path = file.webkitRelativePath || file.name;
-        formData.append("files", file, path);
-      });
+    let processed = 0;
+    let updatedClients = 0;
+    let errors = 0;
 
-      // Usar endpoint com streaming
-      const response = await fetch(`${API_URL}/api/ai/bulk/analyze-stream`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+    toast.info(`A processar ${selectedFiles.length} ficheiros...`);
 
-      if (!response.ok) {
-        throw new Error("Erro ao iniciar processamento");
+    // Processar um ficheiro de cada vez
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      
+      // Verificar se foi cancelado
+      if (abortControllerRef.current?.signal.aborted) {
+        break;
       }
 
-      // Processar eventos SSE
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+      const result = await processOneFile(file);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // Guardar linha incompleta
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              handleSSEEvent(data);
-            } catch (e) {
-              console.warn("Erro ao processar SSE:", e);
-            }
-          }
+      if (result.success) {
+        processed++;
+        if (result.updated) {
+          updatedClients++;
         }
+      } else {
+        errors++;
       }
-    } catch (error) {
-      toast.error(error.message);
-      setSummary({ success: false, error: error.message });
-    } finally {
-      setUploading(false);
+
+      // Pequena pausa entre ficheiros para não sobrecarregar
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    setCurrentFile(null);
+    setUploading(false);
+
+    // Resumo final
+    setSummary({
+      success: processed > 0,
+      total: selectedFiles.length,
+      processed,
+      updated_clients: updatedClients,
+      errors_count: errors,
+    });
+
+    if (processed > 0) {
+      toast.success(`Concluído! ${processed}/${selectedFiles.length} processados, ${updatedClients} fichas actualizadas.`);
+    } else {
+      toast.error("Nenhum documento foi processado com sucesso.");
     }
   };
 
-  // Processar eventos SSE
-  const handleSSEEvent = (data) => {
-    const { type, file, client, error, fields, updated, total, processed, updated_clients, errors_count } = data;
-
-    switch (type) {
-      case "start":
-        toast.info(`A processar ${total} ficheiros...`);
-        break;
-
-      case "processing":
-        updateFileStatus(
-          findFilePath(file, client),
-          FILE_STATUS.PROCESSING,
-          "A analisar com IA..."
-        );
-        break;
-
-      case "success":
-        updateFileStatus(
-          findFilePath(file, client),
-          FILE_STATUS.SUCCESS,
-          updated ? "Ficha actualizada" : "Analisado",
-          fields || []
-        );
-        break;
-
-      case "error":
-        updateFileStatus(
-          findFilePath(file, client),
-          FILE_STATUS.ERROR,
-          error || "Erro desconhecido"
-        );
-        break;
-
-      case "complete":
-        setSummary({
-          success: true,
-          total,
-          processed,
-          updated_clients,
-          errors_count,
-        });
-        if (processed > 0) {
-          toast.success(`Processados ${processed}/${total} documentos. ${updated_clients} clientes actualizados.`);
-        } else {
-          toast.warning("Nenhum documento foi processado com sucesso");
-        }
-        break;
-
-      default:
-        break;
+  // Cancelar processamento
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      toast.info("A cancelar...");
     }
-  };
-
-  // Encontrar path completo do ficheiro
-  const findFilePath = (filename, clientName) => {
-    for (const file of selectedFiles) {
-      const path = file.webkitRelativePath || file.name;
-      if (path.endsWith(filename) && path.includes(clientName)) {
-        return path;
-      }
-    }
-    return `${clientName}/${filename}`;
   };
 
   const resetState = () => {
     setSelectedFiles([]);
     setSummary(null);
     setFileStatuses({});
+    setCurrentFile(null);
     if (folderInputRef.current) {
       folderInputRef.current.value = "";
     }
@@ -262,14 +269,14 @@ const BulkDocumentUpload = () => {
   const filesByClient = getFilesByClient();
   const clientCount = Object.keys(filesByClient).length;
 
-  // Calcular progresso geral
+  // Calcular progresso
   const totalFiles = selectedFiles.length;
   const completedFiles = Object.values(fileStatuses).filter(
     (s) => s.status === FILE_STATUS.SUCCESS || s.status === FILE_STATUS.ERROR
   ).length;
   const progressPercent = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0;
 
-  // Ícone de estado do ficheiro
+  // Ícone de estado
   const getStatusIcon = (status) => {
     switch (status) {
       case FILE_STATUS.SUCCESS:
@@ -305,7 +312,7 @@ const BulkDocumentUpload = () => {
             Upload Massivo de Documentos
           </DialogTitle>
           <DialogDescription>
-            Selecione uma pasta com subpastas de clientes. A IA analisa os documentos e preenche as fichas automaticamente.
+            Selecione uma pasta com subpastas de clientes. Os ficheiros são processados um a um.
           </DialogDescription>
         </DialogHeader>
 
@@ -319,15 +326,13 @@ const BulkDocumentUpload = () => {
 {`PastaRaiz/
 ├── João Silva/
 │   ├── CC.pdf
-│   ├── Recibo_Vencimento.pdf
-│   └── IRS.pdf
+│   └── Recibo.pdf
 ├── Maria Santos/
-│   ├── CartaoCidadao.jpg
-│   └── Contrato.pdf
+│   └── IRS.pdf
 └── ...`}
                 </pre>
                 <p className="text-xs text-blue-600 mt-2">
-                  O nome da pasta deve corresponder ao nome do cliente no sistema. Máx. 10MB por ficheiro.
+                  O nome da pasta deve corresponder ao nome do cliente. Máx. 10MB por ficheiro.
                 </p>
               </CardContent>
             </Card>
@@ -335,33 +340,30 @@ const BulkDocumentUpload = () => {
 
           {/* Selecção de pasta */}
           {!uploading && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={folderInputRef}
-                  type="file"
-                  webkitdirectory="true"
-                  directory="true"
-                  multiple
-                  onChange={handleFolderSelect}
-                  className="hidden"
-                  id="folder-input"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => folderInputRef.current?.click()}
-                  className="flex-1"
-                  disabled={uploading}
-                >
-                  <FolderUp className="h-4 w-4 mr-2" />
-                  Selecionar Pasta
+            <div className="flex items-center gap-2">
+              <input
+                ref={folderInputRef}
+                type="file"
+                webkitdirectory="true"
+                directory="true"
+                multiple
+                onChange={handleFolderSelect}
+                className="hidden"
+                id="folder-input"
+              />
+              <Button
+                variant="outline"
+                onClick={() => folderInputRef.current?.click()}
+                className="flex-1"
+              >
+                <FolderUp className="h-4 w-4 mr-2" />
+                Selecionar Pasta
+              </Button>
+              {selectedFiles.length > 0 && !uploading && (
+                <Button variant="ghost" size="icon" onClick={resetState}>
+                  <RefreshCw className="h-4 w-4" />
                 </Button>
-                {selectedFiles.length > 0 && (
-                  <Button variant="ghost" size="icon" onClick={resetState}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           )}
 
@@ -369,14 +371,25 @@ const BulkDocumentUpload = () => {
           {uploading && (
             <div className="space-y-2 p-4 bg-purple-50 rounded-lg">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">A processar documentos com IA...</span>
+                <span className="font-medium flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {currentFile ? `A processar: ${currentFile.client}/${currentFile.name}` : "A processar..."}
+                </span>
                 <span>{completedFiles}/{totalFiles} ({progressPercent}%)</span>
               </div>
               <Progress value={progressPercent} className="h-3" />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCancel}
+                className="mt-2"
+              >
+                Cancelar
+              </Button>
             </div>
           )}
 
-          {/* Lista de ficheiros com progresso individual */}
+          {/* Lista de ficheiros */}
           {selectedFiles.length > 0 && (
             <Card>
               <CardHeader className="py-3">
@@ -392,7 +405,7 @@ const BulkDocumentUpload = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <ScrollArea className="h-[300px]">
+                <ScrollArea className="h-[280px]">
                   <div className="space-y-3">
                     {Object.entries(filesByClient).map(([clientName, files]) => (
                       <div key={clientName} className="border rounded-lg p-3">
@@ -403,7 +416,7 @@ const BulkDocumentUpload = () => {
                             {files.length} docs
                           </Badge>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           {files.map(({ file, path }, idx) => {
                             const status = fileStatuses[path] || { status: FILE_STATUS.PENDING };
                             return (
@@ -415,16 +428,16 @@ const BulkDocumentUpload = () => {
                                     : status.status === FILE_STATUS.ERROR
                                     ? "bg-red-50"
                                     : status.status === FILE_STATUS.PROCESSING
-                                    ? "bg-blue-50"
+                                    ? "bg-blue-50 animate-pulse"
                                     : "bg-gray-50"
                                 }`}
                               >
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
                                   {getStatusIcon(status.status)}
-                                  <span className="truncate">{file.name}</span>
+                                  <span className="truncate text-xs">{file.name}</span>
                                 </div>
                                 <div className="flex items-center gap-2 ml-2">
-                                  {status.status === FILE_STATUS.SUCCESS && status.fields?.length > 0 && (
+                                  {status.fields?.length > 0 && (
                                     <Badge variant="outline" className="text-xs bg-green-100">
                                       {status.fields.length} campos
                                     </Badge>
@@ -477,7 +490,7 @@ const BulkDocumentUpload = () => {
                     <p className="text-xs text-muted-foreground">Actualizados</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-red-600">{summary.errors_count || 0}</p>
+                    <p className="text-2xl font-bold text-red-600">{summary.errors_count}</p>
                     <p className="text-xs text-muted-foreground">Erros</p>
                   </div>
                 </div>
@@ -485,19 +498,17 @@ const BulkDocumentUpload = () => {
             </Card>
           )}
 
-          {/* Lista de clientes do sistema */}
+          {/* Lista de clientes */}
           {!uploading && !summary && clientsList.length > 0 && (
             <details className="text-sm">
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                 Ver lista de clientes no sistema ({clientsList.length})
               </summary>
-              <ScrollArea className="h-[150px] mt-2 border rounded p-2">
+              <ScrollArea className="h-[120px] mt-2 border rounded p-2">
                 <div className="space-y-1">
                   {clientsList.map((client) => (
                     <div key={client.id} className="text-xs flex items-center gap-2">
-                      <Badge variant="outline" className="font-mono">
-                        #{client.number || "—"}
-                      </Badge>
+                      <Badge variant="outline" className="font-mono">#{client.number || "—"}</Badge>
                       <span>{client.name}</span>
                     </div>
                   ))}
@@ -512,23 +523,14 @@ const BulkDocumentUpload = () => {
           <Button variant="outline" onClick={() => setIsOpen(false)} disabled={uploading}>
             {uploading ? "A processar..." : "Fechar"}
           </Button>
-          {!summary && (
+          {!summary && !uploading && (
             <Button
               onClick={handleUpload}
-              disabled={selectedFiles.length === 0 || uploading}
+              disabled={selectedFiles.length === 0}
               className="bg-purple-600 hover:bg-purple-700"
             >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  A processar...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Analisar {selectedFiles.length} Documentos
-                </>
-              )}
+              <Sparkles className="h-4 w-4 mr-2" />
+              Analisar {selectedFiles.length} Documentos
             </Button>
           )}
           {summary && (
