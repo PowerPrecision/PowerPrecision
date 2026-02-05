@@ -147,16 +147,16 @@ const KanbanBoard = ({ token, user }) => {
     
     setSavingAssignment(true);
     try {
-      const response = await fetch(`${API_URL}/api/processes/${assigningProcess.id}`, {
-        method: "PUT",
+      // Construir query params
+      const params = new URLSearchParams();
+      params.append("consultor_id", selectedConsultor || "");
+      params.append("mediador_id", selectedMediador || "");
+      
+      const response = await fetch(`${API_URL}/api/processes/${assigningProcess.id}/assign?${params.toString()}`, {
+        method: "POST",
         headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          assigned_consultor_id: selectedConsultor || null,
-          assigned_mediador_id: selectedMediador || null
-        })
+          Authorization: `Bearer ${token}`
+        }
       });
       
       if (response.ok) {
