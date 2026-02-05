@@ -336,13 +336,16 @@ const BulkDocumentUpload = () => {
 {`PastaRaiz/
 ├── João Silva/
 │   ├── CC.pdf
-│   └── Recibo.pdf
+│   ├── Recibo.pdf
+│   └── Documentos/        ← subpastas OK
+│       ├── NIF.pdf
+│       └── Morada.pdf
 ├── Maria Santos/
 │   └── IRS.pdf
 └── ...`}
                 </pre>
                 <p className="text-xs text-blue-600 mt-2">
-                  O nome da pasta deve corresponder ao nome do cliente. Máx. 10MB por ficheiro.
+                  O nome da <strong>primeira pasta</strong> é o nome do cliente. Subpastas são suportadas.
                 </p>
               </CardContent>
             </Card>
