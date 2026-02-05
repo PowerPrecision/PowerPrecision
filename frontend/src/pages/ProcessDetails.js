@@ -1150,6 +1150,92 @@ const ProcessDetails = () => {
           </div>
         </div>
       </div>
+      
+      {/* Dialog para atribuir utilizadores */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-600" />
+              Gerir Atribuições
+            </DialogTitle>
+            <DialogDescription>
+              Seleccione os utilizadores a atribuir a este processo.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium">{process?.client_name}</p>
+              <p className="text-sm text-muted-foreground">
+                #{process?.process_number || '—'}
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Consultor</Label>
+                <Select value={selectedConsultor} onValueChange={setSelectedConsultor}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Seleccionar consultor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {appUsers
+                      .filter(u => ["consultor", "diretor", "admin", "ceo"].includes(u.role))
+                      .map(u => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.role})
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Intermediário / Mediador</Label>
+                <Select value={selectedMediador} onValueChange={setSelectedMediador}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Seleccionar intermediário..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {appUsers
+                      .filter(u => ["mediador", "intermediario", "intermediario_credito", "diretor"].includes(u.role))
+                      .map(u => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.role})
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSaveAssignment}
+              disabled={savingAssignment}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {savingAssignment ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  A guardar...
+                </>
+              ) : (
+                "Guardar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
