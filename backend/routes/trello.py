@@ -475,7 +475,7 @@ async def reset_and_sync_from_trello(
                     "created_at": card.get("dateLastActivity", datetime.now(timezone.utc).isoformat()),
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                     "source": "trello_import",
-                    "notes": card.get("desc", ""),
+                    "notes": clean_markdown_emails_in_text(card.get("desc", "")),
                     # Labels e flags do Trello
                     "labels": trello_labels,
                     "idade_menos_35": idade_menos_35,
