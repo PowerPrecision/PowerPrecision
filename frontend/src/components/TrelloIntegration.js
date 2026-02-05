@@ -413,7 +413,8 @@ const TrelloIntegration = () => {
                       {mapping.matched ? (
                         <>
                           <p className="text-green-700">{mapping.app_user}</p>
-                          <p className="text-xs text-green-600">{mapping.app_role}</p>
+                          <p className="text-xs text-green-600">{mapping.app_email}</p>
+                          <p className="text-xs text-muted-foreground">{mapping.app_role} • via {mapping.match_method}</p>
                         </>
                       ) : (
                         <p className="text-red-600 text-xs">Sem correspondência</p>
