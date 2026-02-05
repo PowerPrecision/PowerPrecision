@@ -986,7 +986,7 @@ async def handle_card_updated(action: dict):
         parsed = parse_card_description(desc)
         
         if parsed.get("email"):
-            update_data["client_email"] = parsed["email"]
+            update_data["client_email"] = clean_email(parsed["email"])
         if parsed.get("telefone") or parsed.get("phone"):
             update_data["client_phone"] = parsed.get("telefone") or parsed.get("phone")
         if parsed.get("nif"):
