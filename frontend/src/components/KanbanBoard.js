@@ -647,7 +647,7 @@ const KanbanBoard = ({ token, user }) => {
                                     }}
                                     title="Ver Detalhes"
                                   >
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-3.5 w-3.5" />
                                   </Button>
                                 </div>
                               </div>
