@@ -133,50 +133,67 @@ const ProcessDetails = () => {
     priority: "medium",
   });
   const [selectedDate, setSelectedDate] = useState(null);
+  
+  // Estado para atribuição de utilizadores
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [appUsers, setAppUsers] = useState([]);
+  const [selectedConsultor, setSelectedConsultor] = useState("");
+  const [selectedMediador, setSelectedMediador] = useState("");
+  const [savingAssignment, setSavingAssignment] = useState(false);
 
-  // Verificar se o utilizador está atribuído a este processo
-  const isAssignedToMe = process && user && (
-    process.assigned_consultor_id === user.id || 
-    process.assigned_mediador_id === user.id
-  );
-
-  // Função para atribuir-se ao processo
-  const handleAssignMe = async () => {
+  // Buscar utilizadores
+  const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/processes/${id}/assign-me`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
       if (response.ok) {
-        toast.success(data.message || "Atribuído com sucesso");
-        fetchData();
-      } else {
-        toast.error(data.detail || "Erro ao atribuir");
+        const users = await response.json();
+        setAppUsers(users.filter(u => u.is_active !== false));
       }
     } catch (error) {
-      console.error("Erro ao atribuir:", error);
-      toast.error("Erro ao atribuir-se ao processo");
+      console.error("Erro ao buscar utilizadores:", error);
     }
   };
 
-  // Função para remover-se do processo
-  const handleUnassignMe = async () => {
+  // Abrir dialog de atribuição
+  const openAssignDialog = () => {
+    if (process) {
+      setSelectedConsultor(process.assigned_consultor_id || "");
+      setSelectedMediador(process.assigned_mediador_id || "");
+      setShowAssignDialog(true);
+      if (appUsers.length === 0) {
+        fetchUsers();
+      }
+    }
+  };
+
+  // Guardar atribuições
+  const handleSaveAssignment = async () => {
+    setSavingAssignment(true);
     try {
-      const response = await fetch(`${API_URL}/api/processes/${id}/unassign-me`, {
+      const params = new URLSearchParams();
+      params.append("consultor_id", selectedConsultor || "");
+      params.append("mediador_id", selectedMediador || "");
+      
+      const response = await fetch(`${API_URL}/api/processes/${id}/assign?${params.toString()}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await response.json();
+      
       if (response.ok) {
-        toast.success(data.message || "Removido com sucesso");
+        toast.success("Atribuições actualizadas com sucesso");
+        setShowAssignDialog(false);
         fetchData();
       } else {
-        toast.error(data.detail || "Erro ao remover");
+        const data = await response.json();
+        toast.error(data.detail || "Erro ao actualizar atribuições");
       }
     } catch (error) {
-      console.error("Erro ao remover:", error);
-      toast.error("Erro ao remover-se do processo");
+      console.error("Erro ao guardar atribuições:", error);
+      toast.error("Erro ao guardar atribuições");
+    } finally {
+      setSavingAssignment(false);
     }
   };
 
