@@ -46,6 +46,7 @@ const TrelloIntegration = () => {
   const [syncing, setSyncing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [importingComments, setImportingComments] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [webhooks, setWebhooks] = useState([]);
   const [settingUpWebhook, setSettingUpWebhook] = useState(false);
