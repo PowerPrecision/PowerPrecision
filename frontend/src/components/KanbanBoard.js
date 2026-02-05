@@ -114,45 +114,64 @@ const KanbanBoard = ({ token, user }) => {
     }
   };
 
-  // Função para atribuir-se a um processo
-  const handleAssignMe = async (processId, e) => {
-    if (e) e.stopPropagation();
+  // Buscar utilizadores da aplicação
+  const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/processes/${processId}/assign-me`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
       if (response.ok) {
-        toast.success(data.message || "Atribuído com sucesso");
-        fetchKanbanData();
-      } else {
-        toast.error(data.detail || "Erro ao atribuir");
+        const users = await response.json();
+        setAppUsers(users.filter(u => u.is_active !== false));
       }
     } catch (error) {
-      console.error("Erro ao atribuir:", error);
-      toast.error("Erro ao atribuir-se ao processo");
+      console.error("Erro ao buscar utilizadores:", error);
     }
   };
 
-  // Função para remover-se de um processo
-  const handleUnassignMe = async (processId, e) => {
+  // Abrir dialog de atribuição
+  const openAssignDialog = (process, e) => {
     if (e) e.stopPropagation();
+    setAssigningProcess(process);
+    setSelectedConsultor(process.assigned_consultor_id || "");
+    setSelectedMediador(process.assigned_mediador_id || "");
+    setShowAssignDialog(true);
+    if (appUsers.length === 0) {
+      fetchUsers();
+    }
+  };
+
+  // Guardar atribuições
+  const handleSaveAssignment = async () => {
+    if (!assigningProcess) return;
+    
+    setSavingAssignment(true);
     try {
-      const response = await fetch(`${API_URL}/api/processes/${processId}/unassign-me`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch(`${API_URL}/api/processes/${assigningProcess.id}`, {
+        method: "PUT",
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          assigned_consultor_id: selectedConsultor || null,
+          assigned_mediador_id: selectedMediador || null
+        })
       });
-      const data = await response.json();
+      
       if (response.ok) {
-        toast.success(data.message || "Removido com sucesso");
+        toast.success("Atribuições actualizadas com sucesso");
+        setShowAssignDialog(false);
         fetchKanbanData();
       } else {
-        toast.error(data.detail || "Erro ao remover");
+        const data = await response.json();
+        toast.error(data.detail || "Erro ao actualizar atribuições");
       }
     } catch (error) {
-      console.error("Erro ao remover:", error);
-      toast.error("Erro ao remover-se do processo");
+      console.error("Erro ao guardar atribuições:", error);
+      toast.error("Erro ao guardar atribuições");
+    } finally {
+      setSavingAssignment(false);
     }
   };
 
