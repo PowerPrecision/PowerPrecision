@@ -83,6 +83,102 @@ def extract_text_from_pdf(pdf_content: bytes) -> str:
         return ""
 
 
+def convert_pdf_to_image(pdf_content: bytes, page_num: int = 0, dpi: int = 150) -> Tuple[Optional[bytes], str]:
+    """
+    Converter uma página de PDF para imagem usando PyMuPDF.
+    Útil para PDFs que são scans/imagens e não têm texto extraível.
+    
+    Args:
+        pdf_content: Conteúdo do PDF em bytes
+        page_num: Número da página a converter (0 = primeira)
+        dpi: Resolução da imagem (150 é bom equilíbrio qualidade/tamanho)
+    
+    Returns:
+        Tuple (bytes da imagem PNG, mime_type) ou (None, "") se falhar
+    """
+    try:
+        import fitz  # PyMuPDF
+        
+        # Abrir PDF
+        doc = fitz.open(stream=pdf_content, filetype="pdf")
+        
+        if page_num >= len(doc):
+            page_num = 0
+        
+        page = doc[page_num]
+        
+        # Converter para imagem com resolução especificada
+        # Matrix para controlar DPI (default é 72)
+        zoom = dpi / 72
+        mat = fitz.Matrix(zoom, zoom)
+        
+        # Renderizar página como pixmap
+        pix = page.get_pixmap(matrix=mat)
+        
+        # Converter para PNG
+        img_bytes = pix.tobytes("png")
+        
+        doc.close()
+        
+        logger.info(f"PDF convertido para imagem: página {page_num}, {len(img_bytes)} bytes")
+        return img_bytes, "image/png"
+        
+    except Exception as e:
+        logger.error(f"Erro ao converter PDF para imagem: {e}")
+        return None, ""
+
+
+def merge_images_to_pdf(images_data: List[Tuple[bytes, str]]) -> Optional[bytes]:
+    """
+    Juntar múltiplas imagens num único PDF.
+    Útil para juntar CC frente e verso.
+    
+    Args:
+        images_data: Lista de tuples (bytes da imagem, mime_type)
+    
+    Returns:
+        Bytes do PDF resultante ou None se falhar
+    """
+    try:
+        import img2pdf
+        from PIL import Image
+        
+        # Converter todas as imagens para formato compatível
+        image_bytes_list = []
+        
+        for img_bytes, mime_type in images_data:
+            # Abrir imagem com PIL para garantir formato correcto
+            img = Image.open(io.BytesIO(img_bytes))
+            
+            # Converter para RGB se necessário (img2pdf não suporta RGBA)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                if img.mode == 'RGBA':
+                    background.paste(img, mask=img.split()[-1])
+                else:
+                    background.paste(img)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Guardar como JPEG em memória
+            output = io.BytesIO()
+            img.save(output, format='JPEG', quality=90)
+            image_bytes_list.append(output.getvalue())
+        
+        # Criar PDF com todas as imagens
+        pdf_bytes = img2pdf.convert(image_bytes_list)
+        
+        logger.info(f"Criado PDF com {len(images_data)} imagens: {len(pdf_bytes)} bytes")
+        return pdf_bytes
+        
+    except Exception as e:
+        logger.error(f"Erro ao criar PDF a partir de imagens: {e}")
+        return None
+
+
 def resize_image_base64(base64_content: str, mime_type: str, max_size: int = MAX_IMAGE_SIZE) -> Tuple[str, str]:
     """
     Redimensionar imagem para ter no máximo max_size pixels no lado maior.
