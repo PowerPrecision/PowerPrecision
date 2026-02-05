@@ -1,107 +1,45 @@
 """
-OneDrive Shared Routes - Acesso via link partilhado
+OneDrive Routes - Acesso via link partilhado
+Como a API Graph requer autenticação mesmo para links públicos de contas empresariais,
+esta implementação fornece URLs diretos para o OneDrive web.
 """
+import os
 import logging
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from urllib.parse import quote
+from fastapi import APIRouter, Depends, HTTPException
 
 from database import db
 from services.auth import get_current_user
-from services.onedrive_shared import onedrive_shared_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/onedrive", tags=["OneDrive"])
+
+# Configurações
+ONEDRIVE_SHARED_LINK = os.environ.get('ONEDRIVE_SHARED_LINK', '')
+ONEDRIVE_WEB_URL = os.environ.get('ONEDRIVE_WEB_URL', '')
 
 
 @router.get("/status")
 async def get_onedrive_status(user: dict = Depends(get_current_user)):
     """Verificar estado da integração OneDrive."""
     return {
-        "configured": onedrive_shared_service.is_configured(),
-        "method": "shared_link",
-        "authenticated": True  # Não precisa de auth com link partilhado
+        "configured": bool(ONEDRIVE_SHARED_LINK),
+        "method": "direct_link",
+        "shared_link": ONEDRIVE_SHARED_LINK,
+        "web_url": ONEDRIVE_WEB_URL
     }
 
 
-@router.get("/folders")
-async def list_client_folders(
-    refresh: bool = Query(False, description="Forçar refresh do cache"),
-    user: dict = Depends(get_current_user)
-):
-    """Listar todas as pastas de clientes."""
-    if not onedrive_shared_service.is_configured():
-        raise HTTPException(status_code=400, detail="OneDrive não configurado")
-    
-    try:
-        folders = await onedrive_shared_service.list_client_folders(force_refresh=refresh)
-        return {
-            "folders": folders,
-            "count": len(folders)
-        }
-    except Exception as e:
-        logger.error(f"Erro ao listar pastas: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/find-folder")
-async def find_client_folder(
-    client_name: str = Query(..., description="Nome do cliente"),
-    threshold: int = Query(65, description="Limiar de correspondência (0-100)"),
-    user: dict = Depends(get_current_user)
-):
-    """Encontrar pasta do cliente por nome."""
-    if not onedrive_shared_service.is_configured():
-        raise HTTPException(status_code=400, detail="OneDrive não configurado")
-    
-    try:
-        folder = await onedrive_shared_service.find_client_folder(client_name, threshold)
-        
-        if not folder:
-            return {
-                "found": False,
-                "client_name": client_name,
-                "message": f"Pasta não encontrada para '{client_name}'"
-            }
-        
-        return {
-            "found": True,
-            **folder
-        }
-    except Exception as e:
-        logger.error(f"Erro ao procurar pasta: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/folder/{folder_id}/files")
-async def list_folder_files(
-    folder_id: str,
-    user: dict = Depends(get_current_user)
-):
-    """Listar ficheiros de uma pasta."""
-    if not onedrive_shared_service.is_configured():
-        raise HTTPException(status_code=400, detail="OneDrive não configurado")
-    
-    try:
-        files = await onedrive_shared_service.list_folder_files(folder_id)
-        return {
-            "files": files,
-            "count": len(files)
-        }
-    except Exception as e:
-        logger.error(f"Erro ao listar ficheiros: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/process/{process_id}/documents")
-async def get_process_documents(
+@router.get("/process/{process_id}/folder-url")
+async def get_process_folder_url(
     process_id: str,
     user: dict = Depends(get_current_user)
 ):
     """
-    Obter documentos do OneDrive para um processo.
-    Procura automaticamente a pasta pelo nome do cliente.
+    Obter URL para abrir a pasta do cliente no OneDrive.
+    Retorna o link da pasta principal com sugestão de pesquisa.
     """
-    if not onedrive_shared_service.is_configured():
+    if not ONEDRIVE_SHARED_LINK:
         raise HTTPException(status_code=400, detail="OneDrive não configurado")
     
     # Obter processo
@@ -110,40 +48,74 @@ async def get_process_documents(
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
-    client_name = process.get("client_name")
+    client_name = process.get("client_name", "")
     
-    if not client_name:
-        raise HTTPException(status_code=400, detail="Processo sem nome de cliente")
+    # Verificar se o processo tem um link de pasta guardado
+    saved_folder_url = process.get("onedrive_folder_url")
     
-    try:
-        # Procurar pasta do cliente
-        folder = await onedrive_shared_service.find_client_folder(client_name)
-        
-        if not folder:
-            return {
-                "found": False,
-                "client_name": client_name,
-                "message": f"Pasta não encontrada para '{client_name}'",
-                "files": []
-            }
-        
-        # Listar ficheiros
-        files = await onedrive_shared_service.list_folder_files(folder["id"])
-        
-        # Obter URL web da pasta
-        web_url = await onedrive_shared_service.get_folder_web_url(folder["id"])
-        
+    if saved_folder_url:
         return {
-            "found": True,
+            "url": saved_folder_url,
             "client_name": client_name,
-            "folder": {
-                **folder,
-                "web_url": web_url or folder.get("web_url")
-            },
-            "files": files,
-            "count": len(files)
+            "type": "saved",
+            "message": "Link guardado no processo"
         }
-        
-    except Exception as e:
-        logger.error(f"Erro ao obter documentos: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    
+    # Retornar link da pasta principal
+    # O utilizador pode navegar manualmente para encontrar a pasta do cliente
+    return {
+        "url": ONEDRIVE_SHARED_LINK,
+        "web_url": ONEDRIVE_WEB_URL,
+        "client_name": client_name,
+        "type": "main_folder",
+        "message": f"Abrir pasta principal e procurar por '{client_name}'"
+    }
+
+
+@router.put("/process/{process_id}/folder-url")
+async def save_process_folder_url(
+    process_id: str,
+    folder_url: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Guardar o link da pasta do cliente no processo.
+    Permite ao utilizador guardar o link específico da pasta após encontrá-la.
+    """
+    # Verificar se processo existe
+    process = await db.processes.find_one({"id": process_id})
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Validar URL (deve ser do OneDrive)
+    if not folder_url.startswith(("https://1drv.ms/", "https://onedrive.live.com/", "https://onedrive.sharepoint.com/")):
+        raise HTTPException(status_code=400, detail="URL inválido. Deve ser um link do OneDrive.")
+    
+    # Guardar no processo
+    await db.processes.update_one(
+        {"id": process_id},
+        {"$set": {"onedrive_folder_url": folder_url}}
+    )
+    
+    return {
+        "success": True,
+        "message": "Link da pasta guardado com sucesso"
+    }
+
+
+@router.delete("/process/{process_id}/folder-url")
+async def remove_process_folder_url(
+    process_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Remover o link da pasta do processo."""
+    result = await db.processes.update_one(
+        {"id": process_id},
+        {"$unset": {"onedrive_folder_url": ""}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Processo não encontrado ou link já removido")
+    
+    return {"success": True, "message": "Link removido"}
