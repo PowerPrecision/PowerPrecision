@@ -333,22 +333,6 @@ async def analyze_single_file(
         logger.error(f"Erro ao processar {filename}: {e}")
     
     return result
-                document_type
-            )
-            result.updated = updated
-            
-            logger.info(f"Analisado {doc_filename} para {client_name}: {len(result.fields_extracted)} campos extraídos")
-        else:
-            result.error = analysis_result.get("error", "Erro na análise")
-            logger.warning(f"Falha ao analisar {doc_filename}: {result.error}")
-        
-    except ValueError as e:
-        result.error = str(e)
-    except Exception as e:
-        result.error = f"Erro inesperado: {str(e)}"
-        logger.error(f"Erro ao processar {filename}: {e}")
-    
-    return result
 
 
 @router.get("/clients-list")
