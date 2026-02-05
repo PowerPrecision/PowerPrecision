@@ -118,7 +118,7 @@ class OneDriveService:
         """
         Usar refresh token para obter novo access token.
         """
-        token_url = f"{AUTH_ENDPOINT}/consumers/oauth2/v2.0/token"
+        token_url = f"{AUTH_ENDPOINT}/{self.tenant_id}/oauth2/v2.0/token"
         
         data = {
             "client_id": self.client_id,
