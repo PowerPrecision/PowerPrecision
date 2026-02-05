@@ -67,6 +67,14 @@ const KanbanBoard = ({ token, user }) => {
     process_type: "credito_habitacao"
   });
   
+  // Estado para atribuição de processos
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [assigningProcess, setAssigningProcess] = useState(null);
+  const [appUsers, setAppUsers] = useState([]);
+  const [selectedConsultor, setSelectedConsultor] = useState("");
+  const [selectedMediador, setSelectedMediador] = useState("");
+  const [savingAssignment, setSavingAssignment] = useState(false);
+  
   // Verificar se o utilizador pode criar clientes
   const canCreateClient = user && ["intermediario", "mediador"].includes(user.role);
   
