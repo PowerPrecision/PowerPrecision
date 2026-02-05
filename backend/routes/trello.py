@@ -635,7 +635,7 @@ async def sync_from_trello(
                     new_process = {
                         "id": str(uuid.uuid4()),
                         "client_name": card["name"],
-                        "client_email": card_data.get("email", ""),
+                        "client_email": clean_email(card_data.get("email", "")),
                         "client_phone": card_data.get("telefone", ""),
                         "status": status,
                         "trello_card_id": card["id"],
