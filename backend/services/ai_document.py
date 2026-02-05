@@ -261,10 +261,58 @@ def resize_image_base64(base64_content: str, mime_type: str, max_size: int = MAX
         return base64_content, mime_type
 
 
+@retry(
+    stop=stop_after_attempt(RETRY_MAX_ATTEMPTS),
+    wait=wait_exponential(multiplier=1, min=RETRY_MIN_WAIT, max=RETRY_MAX_WAIT),
+    retry=retry_if_exception_type(RateLimitError),
+    before_sleep=before_sleep_log(logger, logging.WARNING)
+)
+async def call_openai_api(payload: dict, timeout: float = 60.0) -> dict:
+    """
+    Chamar API do OpenAI com retry automático para erros 429.
+    
+    Usa exponential backoff: 2s, 4s, 8s, 16s, 32s
+    Máximo 5 tentativas antes de desistir.
+    
+    Args:
+        payload: Payload JSON para enviar
+        timeout: Timeout em segundos
+    
+    Returns:
+        Resposta JSON da API
+    
+    Raises:
+        RateLimitError: Se receber 429 (será tentado novamente)
+        Exception: Outros erros
+    """
+    headers = {
+        "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers=headers,
+            json=payload
+        )
+        
+        # Verificar rate limit
+        if response.status_code == 429:
+            retry_after = response.headers.get("Retry-After", "2")
+            logger.warning(f"Rate limit atingido (429). Retry-After: {retry_after}s")
+            raise RateLimitError(f"Rate limit atingido. Retry-After: {retry_after}s")
+        
+        response.raise_for_status()
+        return response.json()
+
+
 async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
     """
     Analisar documento usando apenas texto (sem visão).
     Mais rápido e barato que usar modelo de visão.
+    
+    Inclui retry automático para erros 429 (rate limit).
     
     Args:
         text: Texto extraído do documento
@@ -276,13 +324,6 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
     system_prompt, user_prompt = get_extraction_prompts(document_type)
     
     try:
-        import httpx
-        
-        headers = {
-            "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
-            "Content-Type": "application/json"
-        }
-        
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -295,17 +336,10 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
             "model": AI_MODEL,
             "messages": messages,
             "max_tokens": 2000,
-            "temperature": 0.1  # Baixa temperatura para respostas mais consistentes
+            "temperature": 0.1
         }
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=payload
-            )
-            response.raise_for_status()
-            result = response.json()
+        result = await call_openai_api(payload, timeout=60.0)
         
         ai_response = result["choices"][0]["message"]["content"]
         extracted_data = parse_ai_response(ai_response, document_type)
@@ -319,6 +353,13 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
             "raw_response": ai_response
         }
         
+    except RateLimitError as e:
+        logger.error(f"Rate limit excedido após {RETRY_MAX_ATTEMPTS} tentativas: {e}")
+        return {
+            "success": False,
+            "error": f"Limite de pedidos excedido. Tente novamente mais tarde.",
+            "extracted_data": {}
+        }
     except Exception as e:
         logger.error(f"Erro na análise de texto: {e}")
         return {
@@ -326,6 +367,7 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
             "error": str(e),
             "extracted_data": {}
         }
+
 
 
 async def analyze_with_vision(base64_content: str, mime_type: str, document_type: str) -> Dict[str, Any]:
