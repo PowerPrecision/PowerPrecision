@@ -261,6 +261,36 @@ const TrelloIntegration = () => {
     }
   };
 
+  // Importar comentários do Trello
+  const handleImportComments = async () => {
+    setImportingComments(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/sync/comments`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      setSyncResult({
+        success: data.success,
+        message: `Importados ${data.total_comments_imported} comentários de ${data.processes_with_comments} processos`
+      });
+      toast({
+        title: data.success ? "Comentários importados" : "Erro na importação",
+        description: `${data.total_comments_imported} comentários de ${data.processes_with_comments} processos`,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível importar os comentários.",
+        variant: "destructive",
+      });
+    } finally {
+      setImportingComments(false);
+    }
+  };
+
   // Handler para alteração no dropdown de mapeamento
   const handleMappingChange = (trelloUsername, userId) => {
     setPendingMappings(prev => ({
