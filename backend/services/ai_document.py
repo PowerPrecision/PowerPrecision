@@ -25,10 +25,18 @@ import json
 import logging
 import base64
 import asyncio
+import httpx
 from typing import Optional, Dict, Any, Tuple, List
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log
+)
 
 load_dotenv()
 
@@ -50,6 +58,16 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 
 # Número máximo de ficheiros a processar em paralelo
 MAX_CONCURRENT_ANALYSIS = 5
+
+# Configuração de retry para erros 429 (rate limit)
+RETRY_MAX_ATTEMPTS = 5
+RETRY_MIN_WAIT = 2  # segundos
+RETRY_MAX_WAIT = 32  # segundos
+
+
+class RateLimitError(Exception):
+    """Excepção para erros de rate limit (429)."""
+    pass
 
 
 def extract_text_from_pdf(pdf_content: bytes) -> str:
