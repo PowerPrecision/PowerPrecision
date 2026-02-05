@@ -612,22 +612,22 @@ const KanbanBoard = ({ token, user }) => {
                                   </div>
                                 </div>
                                 
-                                <div className="flex gap-1">
+                                <div className="flex flex-col gap-1 flex-shrink-0">
                                   {/* Botão para Atribuir/Gerir Utilizadores */}
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 flex-shrink-0 hover:bg-purple-50"
+                                    className="h-7 w-7 flex-shrink-0 hover:bg-purple-50"
                                     onClick={(e) => openAssignDialog(process, e)}
                                     title="Gerir atribuições"
                                     data-testid={`assign-btn-${process.id}`}
                                   >
-                                    <Users className="h-4 w-4 text-purple-600" />
+                                    <Users className="h-3.5 w-3.5 text-purple-600" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 flex-shrink-0 hover:bg-blue-50"
+                                    className="h-7 w-7 flex-shrink-0 hover:bg-blue-50"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openEmailClient(process.client_email, process.client_name);
@@ -635,12 +635,12 @@ const KanbanBoard = ({ token, user }) => {
                                     title="Enviar Email"
                                     data-testid={`email-btn-${process.id}`}
                                   >
-                                    <Mail className="h-4 w-4 text-blue-600" />
+                                    <Mail className="h-3.5 w-3.5 text-blue-600" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 flex-shrink-0"
+                                    className="h-7 w-7 flex-shrink-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       navigate(`/process/${process.id}`);
