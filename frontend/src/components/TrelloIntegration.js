@@ -567,10 +567,10 @@ const TrelloIntegration = () => {
         )}
 
         {/* Botões de Sincronização */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
           <Button
             onClick={handleSyncFromTrello}
-            disabled={syncing || resetting || assigning || !status?.connected}
+            disabled={syncing || resetting || assigning || importingComments || !status?.connected}
             className="bg-teal-600 hover:bg-teal-700"
           >
             {syncing ? (
@@ -583,7 +583,7 @@ const TrelloIntegration = () => {
           
           <Button
             onClick={handleSyncToTrello}
-            disabled={syncing || resetting || assigning || !status?.connected}
+            disabled={syncing || resetting || assigning || importingComments || !status?.connected}
             variant="outline"
           >
             {syncing ? (
@@ -596,7 +596,7 @@ const TrelloIntegration = () => {
 
           <Button
             onClick={handleAssignExisting}
-            disabled={syncing || resetting || assigning || !status?.connected}
+            disabled={syncing || resetting || assigning || importingComments || !status?.connected}
             className="bg-amber-500 hover:bg-amber-600"
             title="Atribuir processos existentes a utilizadores"
           >
@@ -609,9 +609,23 @@ const TrelloIntegration = () => {
           </Button>
 
           <Button
+            onClick={handleImportComments}
+            disabled={syncing || resetting || assigning || importingComments || !status?.connected}
+            className="bg-purple-500 hover:bg-purple-600"
+            title="Importar comentários e atividades do Trello"
+          >
+            {importingComments ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Comentários
+          </Button>
+
+          <Button
             onClick={fetchStatus}
             variant="outline"
-            disabled={syncing || resetting || assigning}
+            disabled={syncing || resetting || assigning || importingComments}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
