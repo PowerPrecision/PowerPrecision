@@ -106,6 +106,48 @@ const KanbanBoard = ({ token, user }) => {
     }
   };
 
+  // Função para atribuir-se a um processo
+  const handleAssignMe = async (processId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      const response = await fetch(`${API_URL}/api/processes/${processId}/assign-me`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || "Atribuído com sucesso");
+        fetchKanbanData();
+      } else {
+        toast.error(data.detail || "Erro ao atribuir");
+      }
+    } catch (error) {
+      console.error("Erro ao atribuir:", error);
+      toast.error("Erro ao atribuir-se ao processo");
+    }
+  };
+
+  // Função para remover-se de um processo
+  const handleUnassignMe = async (processId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      const response = await fetch(`${API_URL}/api/processes/${processId}/unassign-me`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || "Removido com sucesso");
+        fetchKanbanData();
+      } else {
+        toast.error(data.detail || "Erro ao remover");
+      }
+    } catch (error) {
+      console.error("Erro ao remover:", error);
+      toast.error("Erro ao remover-se do processo");
+    }
+  };
+
   const fetchKanbanData = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/api/processes/kanban`, {
