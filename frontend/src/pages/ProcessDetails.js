@@ -1175,12 +1175,12 @@ const ProcessDetails = () => {
             <div className="space-y-3">
               <div>
                 <Label className="text-sm font-medium">Consultor</Label>
-                <Select value={selectedConsultor} onValueChange={setSelectedConsultor}>
+                <Select value={selectedConsultor || "none"} onValueChange={(v) => setSelectedConsultor(v === "none" ? "" : v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Seleccionar consultor..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {appUsers
                       .filter(u => ["consultor", "diretor", "admin", "ceo"].includes(u.role))
                       .map(u => (
@@ -1195,12 +1195,12 @@ const ProcessDetails = () => {
               
               <div>
                 <Label className="text-sm font-medium">Intermediário / Mediador</Label>
-                <Select value={selectedMediador} onValueChange={setSelectedMediador}>
+                <Select value={selectedMediador || "none"} onValueChange={(v) => setSelectedMediador(v === "none" ? "" : v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Seleccionar intermediário..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {appUsers
                       .filter(u => ["mediador", "intermediario", "intermediario_credito", "diretor"].includes(u.role))
                       .map(u => (
