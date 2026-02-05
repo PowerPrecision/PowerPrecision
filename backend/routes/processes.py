@@ -363,6 +363,7 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
     Admin/CEO see all, others see only their assigned processes.
     """
     role = user["role"]
+    user_id = user["id"]
     query = {}
     
     # Filter by role
@@ -392,15 +393,22 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
     for status in statuses:
         status_processes = [p for p in processes if p.get("status") == status["name"]]
         
-        # Enrich with user names
+        # Enrich with user names and assignment info
         enriched_processes = []
         for p in status_processes:
             consultor = user_map.get(p.get("assigned_consultor_id"), {})
             mediador = user_map.get(p.get("assigned_mediador_id"), {})
+            
+            # Verificar se o utilizador actual está atribuído
+            is_my_consultor = p.get("assigned_consultor_id") == user_id
+            is_my_mediador = p.get("assigned_mediador_id") == user_id
+            
             enriched_processes.append({
                 **p,
                 "consultor_name": consultor.get("name", ""),
                 "mediador_name": mediador.get("name", ""),
+                "is_assigned_to_me": is_my_consultor or is_my_mediador,
+                "my_role_in_process": "consultor" if is_my_consultor else ("mediador" if is_my_mediador else None)
             })
         
         kanban.append({
@@ -416,7 +424,8 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
     return {
         "columns": kanban,
         "total_processes": len(processes),
-        "user_role": role
+        "user_role": role,
+        "current_user_id": user_id
     }
 
 
