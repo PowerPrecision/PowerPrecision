@@ -34,9 +34,9 @@ async def find_matching_user(trello_members: list) -> dict:
     Encontrar utilizador da aplicação correspondente aos membros do Trello.
     
     Procura por (ordem de prioridade):
-    1. Email do membro Trello (prioridade máxima)
-    2. Username do Trello como email
-    3. Nome exato (case-insensitive)
+    1. Username do Trello corresponde à parte local do email (ex: pedroborges249 ~ pedroborges@...)
+    2. Email exacto
+    3. Nome exacto (case-insensitive)
     
     Retorna dict com assigned_consultor_id e/ou assigned_mediador_id
     """
@@ -57,9 +57,15 @@ async def find_matching_user(trello_members: list) -> dict:
         {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
     ).to_list(500)
     
-    # Criar mapas para busca rápida - EMAIL tem prioridade
+    # Criar mapas para busca rápida
     users_by_email = {u.get("email", "").lower().strip(): u for u in users if u.get("email")}
     users_by_name = {u["name"].lower().strip(): u for u in users}
+    # Mapa por parte local do email (antes do @)
+    users_by_email_local = {}
+    for u in users:
+        if u.get("email") and "@" in u["email"]:
+            local_part = u["email"].split("@")[0].lower().strip()
+            users_by_email_local[local_part] = u
     
     for member in trello_members:
         member_name = member.get("fullName", "").lower().strip()
@@ -69,24 +75,27 @@ async def find_matching_user(trello_members: list) -> dict:
         matched_user = None
         match_method = None
         
-        # 1. PRIORIDADE: Tentar encontrar por email do Trello
-        if member_email and member_email in users_by_email:
-            matched_user = users_by_email[member_email]
-            match_method = "email"
+        # 1. PRIORIDADE: Username do Trello começa com parte local do email
+        # Ex: pedroborges249 começa com "pedroborges" (de pedroborges@powerealestate.pt)
+        if member_username:
+            for local_part, user in users_by_email_local.items():
+                # Verificar se username começa com a parte local do email
+                # ou se a parte local começa com o username (sem números)
+                username_clean = ''.join(c for c in member_username if not c.isdigit())
+                if member_username.startswith(local_part) or local_part.startswith(username_clean):
+                    matched_user = user
+                    match_method = "email_local"
+                    break
         
-        # 2. Tentar username do Trello como email (ex: pedroborges@gmail.com)
-        elif member_username and member_username in users_by_email:
+        # 2. Email exacto do Trello
+        if not matched_user and member_email and member_email in users_by_email:
+            matched_user = users_by_email[member_email]
+            match_method = "email_exact"
+        
+        # 3. Username como email direto
+        if not matched_user and member_username and member_username in users_by_email:
             matched_user = users_by_email[member_username]
             match_method = "username_as_email"
-        
-        # 3. Tentar username@dominio comum
-        elif member_username:
-            for domain in ["@gmail.com", "@hotmail.com", "@outlook.com", "@precisioncredito.pt", "@powerealestate.pt"]:
-                test_email = member_username + domain
-                if test_email in users_by_email:
-                    matched_user = users_by_email[test_email]
-                    match_method = "username_with_domain"
-                    break
         
         # 4. Fallback: Tentar encontrar por nome
         if not matched_user and member_name and member_name in users_by_name:
