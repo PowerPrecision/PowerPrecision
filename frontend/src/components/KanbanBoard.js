@@ -586,6 +586,30 @@ const KanbanBoard = ({ token, user }) => {
                                 </div>
                                 
                                 <div className="flex gap-1">
+                                  {/* Botão Atribuir-me ou Sair */}
+                                  {process.is_assigned_to_me ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 flex-shrink-0 hover:bg-red-50"
+                                      onClick={(e) => handleUnassignMe(process.id, e)}
+                                      title="Sair deste processo"
+                                      data-testid={`unassign-btn-${process.id}`}
+                                    >
+                                      <UserMinus className="h-4 w-4 text-red-600" />
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 flex-shrink-0 hover:bg-green-50"
+                                      onClick={(e) => handleAssignMe(process.id, e)}
+                                      title="Ficar com este processo"
+                                      data-testid={`assign-btn-${process.id}`}
+                                    >
+                                      <UserPlus className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="ghost"
                                     size="icon"
