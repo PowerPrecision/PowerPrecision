@@ -74,15 +74,15 @@ class OneDriveService:
             "state": state
         }
         
-        # Para contas pessoais, usar "consumers" em vez do tenant_id
-        auth_url = f"{AUTH_ENDPOINT}/consumers/oauth2/v2.0/authorize?{urlencode(params)}"
+        # Usar tenant_id para contas de trabalho/escola
+        auth_url = f"{AUTH_ENDPOINT}/{self.tenant_id}/oauth2/v2.0/authorize?{urlencode(params)}"
         return auth_url
     
     async def exchange_code_for_tokens(self, code: str) -> Dict:
         """
         Trocar código de autorização por tokens de acesso e refresh.
         """
-        token_url = f"{AUTH_ENDPOINT}/consumers/oauth2/v2.0/token"
+        token_url = f"{AUTH_ENDPOINT}/{self.tenant_id}/oauth2/v2.0/token"
         
         data = {
             "client_id": self.client_id,
