@@ -4,11 +4,17 @@ Upload de documentos para análise com IA e preenchimento automático das fichas
 
 IMPORTANTE: Os ficheiros são processados um a um pelo frontend.
 O endpoint /analyze-single recebe e processa um ficheiro de cada vez.
+
+FUNCIONALIDADES:
+- Normalização de nomes de ficheiros
+- Junção de CC frente+verso num único PDF para análise
+- Conversão de PDFs scan para imagem
 """
 import os
 import uuid
+import base64
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -22,7 +28,9 @@ from services.ai_document import (
     get_mime_type,
     validate_file_size,
     analyze_single_document,
-    build_update_data_from_extraction
+    build_update_data_from_extraction,
+    merge_images_to_pdf,
+    analyze_document_from_base64
 )
 
 logger = logging.getLogger(__name__)
@@ -30,6 +38,50 @@ router = APIRouter(prefix="/ai/bulk", tags=["AI Bulk Analysis"])
 
 # Tamanho do chunk para leitura (64KB)
 CHUNK_SIZE = 64 * 1024
+
+# Nomes normalizados de documentos
+NORMALIZED_NAMES = {
+    "cc": "CC.pdf",
+    "recibo_vencimento": "Recibo_Vencimento.pdf",
+    "irs": "IRS.pdf",
+    "contrato_trabalho": "Contrato_Trabalho.pdf",
+    "caderneta_predial": "Caderneta_Predial.pdf",
+    "extrato_bancario": "Extrato_Bancario.pdf",
+    "outro": "Documento.pdf"
+}
+
+# Cache temporário para CC frente/verso por cliente
+# Estrutura: {process_id: {"frente": (bytes, mime), "verso": (bytes, mime)}}
+cc_cache: Dict[str, Dict[str, Tuple[bytes, str]]] = {}
+
+
+def is_cc_frente_or_verso(filename: str) -> Optional[str]:
+    """
+    Verificar se o ficheiro é frente ou verso do CC.
+    
+    Returns:
+        "frente", "verso" ou None
+    """
+    filename_lower = filename.lower()
+    
+    # Padrões para frente
+    frente_patterns = ["frente", "front", "_f.", "_f_", "cc_1", "cc1", "ccf"]
+    for p in frente_patterns:
+        if p in filename_lower:
+            return "frente"
+    
+    # Padrões para verso
+    verso_patterns = ["verso", "back", "tras", "_v.", "_v_", "cc_2", "cc2", "ccv"]
+    for p in verso_patterns:
+        if p in filename_lower:
+            return "verso"
+    
+    return None
+
+
+def get_normalized_filename(document_type: str) -> str:
+    """Obter nome normalizado para o tipo de documento."""
+    return NORMALIZED_NAMES.get(document_type, NORMALIZED_NAMES["outro"])
 
 
 class SingleAnalysisResult(BaseModel):
