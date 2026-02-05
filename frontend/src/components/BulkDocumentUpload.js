@@ -298,10 +298,17 @@ const BulkDocumentUpload = () => {
       processed,
       updated_clients: updatedClients,
       errors_count: errors,
+      skipped_clients: skippedClients,
     });
 
     if (processed > 0) {
-      toast.success(`Concluído! ${processed}/${selectedFiles.length} processados, ${updatedClients} fichas actualizadas.`);
+      let msg = `Concluído! ${processed}/${selectedFiles.length} processados, ${updatedClients} fichas actualizadas.`;
+      if (skippedClients > 0) {
+        msg += ` (${skippedClients} clientes não encontrados)`;
+      }
+      toast.success(msg);
+    } else if (skippedClients > 0) {
+      toast.error(`Nenhum documento processado. ${skippedClients} clientes não encontrados.`);
     } else {
       toast.error("Nenhum documento foi processado com sucesso.");
     }
