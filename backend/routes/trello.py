@@ -20,7 +20,7 @@ from services.trello import (
     trello_service, TrelloService,
     trello_list_to_status, status_to_trello_list,
     build_card_description, parse_card_description,
-    TRELLO_TO_STATUS
+    clean_email, TRELLO_TO_STATUS
 )
 
 logger = logging.getLogger(__name__)
