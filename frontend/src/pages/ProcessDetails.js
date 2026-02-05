@@ -468,6 +468,13 @@ const ProcessDetails = () => {
               {currentStatusInfo.label}
             </Badge>
             
+            {/* Botão para Análise com IA */}
+            <AIDocumentAnalyzer
+              processId={id}
+              clientName={process.client_name}
+              onDataExtracted={handleAIDataExtracted}
+            />
+            
             {/* Botão para Gerir Atribuições */}
             <Button
               variant="outline"
