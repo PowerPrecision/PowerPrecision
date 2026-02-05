@@ -1,72 +1,78 @@
 <analysis>**original_problem_statement:**
 O utilizador iniciou o projeto para reativar uma integração Trello, espelhando um quadro Trello na aplicação. Ao longo do tempo, os requisitos expandiram-se para incluir:
--   Sincronização completa de dados do Trello (descrição, atividades, etiquetas, membros, prazos).
--   Substituição de IDs de processo por números sequenciais (ex: #1, #2).
--   Um sistema robusto de visualização de emails, que procura por nome do cliente (em assunto e corpo), em subpastas IMAP, e agora também com base nos dados do proprietário do imóvel (email, CC, domínio).
--   Associação automática de processos Trello a utilizadores da aplicação.
--   Correções de UI/UX, incluindo um novo tema de cores (teal e dourado), um novo visualizador de emails em popup com navegação, e melhorias no layout.
--   Ajustes de permissões, como impedir a criação de utilizadores cliente e restringir a criação de novos processos apenas a intermediários de crédito.
--   Suporte ao deployment do utilizador em Vercel/Render, incluindo a criação de scripts de  e depuração de problemas de conexão.
--   Correção de múltiplos bugs, incluindo a impossibilidade de desativar utilizadores e a associação incorreta de emails a processos.
+- Sincronização completa de dados do Trello (descrição, atividades, etiquetas, membros, prazos).
+- Substituição de IDs de processo por números sequenciais (ex: #1, #2).
+- Um sistema robusto de visualização de emails.
+- Associação automática de processos Trello a utilizadores da aplicação.
+- Implementação de um sistema de atribuição manual de processos a diferentes utilizadores (consultores/intermediários).
+- Implementação de uma integração com o OneDrive para visualizar documentos associados a um processo/cliente.
+- Várias correções de UI/UX e bugs.
 
 **User's preferred language**: Portuguese (Portugal). O próximo agente DEVE comunicar exclusivamente em português de Portugal.
 
 **what currently exists?**
 Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho de um quadro Trello. As funcionalidades atuais incluem:
--   Autenticação de utilizadores com diferentes papéis (admin, consultor, intermediario).
--   Um Kanban que exibe processos com numeração sequencial.
--   Uma página de detalhes de processo com múltiplos separadores (Dados Pessoais, Imobiliário, Crédito, etc.).
--   Um painel de histórico de emails avançado que:
-    -   Sincroniza emails de múltiplas contas (Power e Precision).
-    -   Busca emails por nome do cliente, email do cliente, e email do proprietário (incluindo TO, CC, FROM e corpo do email).
-    -   Apresenta os emails numa lista compacta e num visualizador em popup com navegação e barras de scroll personalizadas.
--   Funcionalidade para intermediários de crédito criarem novos clientes/processos diretamente do Kanban.
--   Gestão manual de links para pastas do OneDrive.
--   O código está sincronizado com o repositório GitHub do utilizador.
--   A IU está otimizada para visualização em mobile.
+- Autenticação de utilizadores com papéis (admin, consultor, intermediario).
+- Um Kanban que exibe processos com numeração sequencial. A visibilidade dos processos está corretamente implementada de acordo com o papel e atribuições do utilizador.
+- Funcionalidade para atribuir/desatribuir processos a consultores e intermediários através de um dialog.
+- Uma página de detalhes do processo com múltiplos separadores.
+- Um painel de histórico de emails avançado.
+- Uma página de definições com uma secção de integração Trello detalhada, que permite o mapeamento manual de membros Trello para utilizadores da aplicação.
+- Uma integração com o OneDrive (backend) que, devido a bloqueios de permissões, utiliza um método de workaround: armazena um link de partilha da pasta principal e gera um URL de pesquisa para a pasta de um cliente específico.
 
 **Last working item**:
-    - Last item agent was working: O agente estava a investigar dois problemas levantados pelo utilizador:
-        1.  **Processos não visíveis para não-admins:** O agente diagnosticou que os utilizadores com papéis de  ou  só veem processos que lhes estão explicitamente atribuídos (), e os processos importados do Trello não estão a ser atribuídos automaticamente.
-        2.  **Melhorar a página de integração Trello:** O utilizador pediu mais informações de diagnóstico na página de Definições -> Integração Trello para perceber porque a sincronização pode falhar. O agente localizou o ficheiro a ser modificado.
+    - Last item agent was working: O agente estava a implementar uma solução alternativa para a integração com o OneDrive. Como a autenticação via OAuth2 foi bloqueada por falta de permissões de administrador na conta Microsoft 365 do utilizador, a abordagem foi alterada para usar um link de partilha da pasta geral de documentos. O backend foi implementado para construir um URL que abre o OneDrive e pesquisa pelo nome do cliente dentro dessa pasta partilhada. O agente estava prestes a adicionar o botão no frontend para acionar esta funcionalidade.
     - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? Backend testing agent (para validar a lógica de visibilidade de processos) e screenshot tool (para mostrar a nova página de definições do Trello).
+    - Agent Testing Done: Y (Apenas para o backend via )
+    - Which testing method agent to use? screenshot tool. O próximo agente deve adicionar o botão no frontend e usar a ferramenta de screenshot para verificar se o clique no botão abre o link correto do OneDrive.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1:  (P0) Processos não são visíveis para utilizadores não-admin (consultor, intermediario).
+  - Issue 1:  (P0) Os botões de ação nos cartões do Kanban não são visíveis para processos com nomes muito longos.
+  - Issue 2:  (P1) A funcionalidade de atribuição de processos pode não estar a funcionar corretamente.
   
   Issues Detail:
   - Issue 1: 
-     - **Descrição:** Utilizadores com os papéis consultor ou intermediario_credito não conseguem ver nenhum processo no Kanban, apesar de os processos existirem e serem visíveis para o admin.
-     - **Causa Raiz:** A API () filtra os processos com base nos campos  e . Os processos importados do Trello não têm estes campos preenchidos, resultando numa lista vazia para estes utilizadores.
+     - **Descrição:** O utilizador reportou que os botões de ação (atribuir, ver detalhes, etc.) desaparecem ou ficam cortados em cartões do Kanban quando o nome do processo é longo e quebra para várias linhas.
+     - **Attempted fixes:** O agente anterior tentou corrigir o problema ajustando as propriedades do flexbox no CSS do cartão (), mas a mensagem do utilizador os botoes do kabhan dos nomes dos processos mais extensos nao aparecem indica que a correção não foi eficaz.
      - **Next debug checklist**:
-         1.  **Analisar a lógica de importação do Trello:** Verificar  e .
-         2.  **Implementar a atribuição automática:** Ao importar/sincronizar um cartão do Trello, verificar se o membro do Trello corresponde a um utilizador existente na aplicação (por nome ou email). Se sim, preencher o campo  ou  do processo com o ID do utilizador correspondente.
-         3.  **Testar:** Efetuar login como  ou  e confirmar que os processos atribuídos aparecem.
-     - **Why fix this issue and what will be achieved with the fix?** Esta é uma funcionalidade central da aplicação. Sem esta correção, a aplicação é inutilizável para todos os utilizadores que não são administradores.
-     - Status:  IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on other issue: Não
+         1.  Revisitar .
+         2.  Inspecionar o CSS do contentor do cartão e do contentor dos botões.
+         3.  Aplicar uma solução mais robusta, como  ao contentor dos botões e garantir que o contentor do título do processo não empurra os botões para fora do cartão. Considerar usar  nos botões ou reestruturar o layout do cartão para ter uma coluna dedicada para os botões.
+         4.  Testar com nomes de processos extremamente longos para garantir que a solução funciona em todos os casos.
+     - **Why fix this issue and what will be achieved with the fix?** É um bug crítico de usabilidade que impede os utilizadores de interagir com os processos diretamente a partir do Kanban.
+     - **Status:** IN PROGRESS
+     - **Is recurring issue?** Y
+     - **Should Test frontend/backend/both after fix?** Frontend (screenshot tool)
+     - **Blocked on other issue:** Não.
+
+  - Issue 2:
+     - **Descrição:** O utilizador mencionou nao terminaste a implementacao anterior. verifica e corrigi, referindo-se provavelmente à funcionalidade de atribuir utilizadores. O agente anterior corrigiu um erro de crash relacionado com , mas pode haver outros problemas de lógica ou usabilidade.
+     - **Next debug checklist**:
+         1.  Testar exaustivamente o dialog de atribuição em  e .
+         2.  Verificar se a lista de utilizadores é carregada corretamente nos dropdowns.
+         3.  Confirmar que a atribuição e desatribuição (selecionando Nenhum) de  e  funciona.
+         4.  Verificar o endpoint  para garantir que a lógica no backend () está correta e permite as permissões adequadas.
+     - **Why fix this issue and what will be achieved with the fix?** Garante que uma funcionalidade central da aplicação, a gestão de atribuições, está a funcionar como esperado.
+     - **Status:** USER VERIFICATION PENDING
+     - **Is recurring issue?** N
+     - **Should Test frontend/backend/both after fix?** Both
+     - **Blocked on other issue:** Não.
 
 **In progress Task List**:
-  - Task 1:  (P1) Melhorar a página de definições da integração Trello com mais informação de diagnóstico.
-
+  - Task 1:  (P0) Finalizar a integração com o OneDrive no Frontend.
+ 
  Task Detail:
   - Task 1: 
-     - **Descrição:** A página atual de integração Trello é muito básica. O utilizador pediu para adicionar mais detalhes para ajudar a diagnosticar problemas de conexão.
-     - **Where to resume**: Modificar o componente .
-     - **Implementação Sugerida**:
-        - Adicionar um estado para mostrar o status da conexão (ex: Conectado, Credenciais em falta, Erro).
-        - Exibir o nome e ID do quadro Trello ao qual está conectado.
-        - Adicionar um botão Testar Conexão para verificar ativamente as credenciais.
-        - Mostrar a data/hora da última sincronização bem-sucedida e eventuais mensagens de erro.
-     - **What will be achieved with this?** O utilizador terá mais autonomia para identificar e resolver problemas com a sincronização do Trello sem precisar de intervenção do agente.
-     - Status:  IN PROGRESS
-     - Should Test frontend/backend/both after fix? Frontend (screenshot)
-     - Blocked on something: Não
+     - **Where to resume**:
+         1. Editar .
+         2. Adicionar um botão Ver Documentos no OneDrive (ou similar) no cabeçalho da página ou num local proeminente.
+         3. Ao clicar, o botão deve chamar um novo endpoint da API, .
+         4. A API retornará um URL. Abra esse URL numa nova aba do browser ().
+     - **What will be achieved with this?** Os utilizadores poderão aceder facilmente à pasta de documentos de um cliente no OneDrive diretamente a partir da aplicação, finalizando o workaround para a integração.
+     - **Status:** IN PROGRESS
+     - **Should Test frontend/backend/both after fix?** Frontend (screenshot)
+     - **Blocked on something:** Não.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks (P1):
@@ -79,20 +85,14 @@ Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho 
     - **Testar Análise com IA:** Testar a análise de documentos com IA usando ficheiros reais.
 
 **Completed work in this session**
-- **Correção de Bug: Desativar Utilizador:** Corrigido o endpoint da API no frontend para permitir a ativação/desativação de utilizadores.
-- **UI/UX: Visualizador de Emails:** Implementado um novo layout para a lista de emails e um popup modal para visualização de emails em detalhe, com navegação entre emails e barras de scroll personalizadas.
-- **Permissões: Criação de Clientes:** A funcionalidade de criar um novo cliente/processo foi restringida para ser visível e utilizável apenas por utilizadores com o papel intermediario_credito.
-- **Sincronização de Código:** O código local da aplicação foi comparado e totalmente sincronizado com o repositório GitHub fornecido pelo utilizador ().
-- **Correção de Bug: Serviço OneDrive:** O serviço  foi modificado para não causar um erro no arranque do backend caso as credenciais do OneDrive não estejam configuradas.
-- **Suporte à Produção:** Foram dadas instruções ao utilizador sobre como configurar as variáveis de ambiente e usar o script  para popular a base de dados em produção (Render/Vercel).
-- **Correção de Bug: Associação de Emails:** Resolvido um problema complexo onde emails eram associados a processos errados. A lógica foi refinada para lidar com múltiplos processos para o mesmo cliente e evitar duplicados.
-- **Melhoria de Funcionalidade: Busca de Emails:** A lógica de busca de emails foi significativamente melhorada para incluir o campo , o domínio do email do proprietário, e fazer buscas mais abrangentes (, , ).
-- **Melhoria de Funcionalidade: Dados do Cliente/Proprietário:** Adicionados campos de contacto (email, telefone) para o cliente e para o proprietário do imóvel nos formulários e na base de dados.
-- **Correção de Bug: ID CreditoIMO:** O ID interno foi completamente removido da aplicação, incluindo a limpeza de dados existentes na base de dados.
-- **Verificação Mobile:** A responsividade da aplicação em dispositivos móveis foi verificada e confirmada.
+- **Visibilidade de Processos (Bug P0 Corrigido):** Implementada a atribuição automática de processos durante a sincronização com o Trello. A lógica evoluiu de correspondência por nome para email e, finalmente, para um sistema de mapeamento manual, que é agora a prioridade máxima. Utilizadores não-admin (consultor, intermediario) agora veem os processos que lhes são atribuídos.
+- **Página de Integração Trello (Melhoria P1):** A página de definições da integração Trello foi completamente refeita. Agora exibe estatísticas detalhadas de sincronização, estado da ligação, e, mais importante, uma interface para mapear manualmente membros do Trello a utilizadores da aplicação através de dropdowns.
+- **Atribuição de Processos (Nova Funcionalidade):** A funcionalidade de atribuir a si mesmo foi substituída por um dialog completo que permite a utilizadores com permissão atribuir/remover um  e um  a um processo a partir de uma lista de todos os utilizadores. Esta funcionalidade foi adicionada tanto no Kanban como na página de detalhes do processo.
+- **Eliminar Utilizador (Bug Corrigido):** Resolvido o erro Method Not Allowed que ocorria em produção. O problema foi diagnosticado como sendo de CORS, e a configuração no  e  foi tornada mais robusta.
+- **Formato de Email (Bug Corrigido):** A lógica de importação do Trello foi corrigida para remover a formatação markdown dos emails, garantindo que apenas o endereço de email puro seja guardado na base de dados.
 
 **Earlier issues found/mentioned but not fixed**
-   - Nenhuma.
+   - Nenhum que não esteja listado em All Pending/In progress Issue list.
 
 **Known issue recurrence from previous fork**
   - Nenhuma.
@@ -103,67 +103,58 @@ Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho 
 **Key Technical Concepts**
 - Backend: FastAPI, Pydantic, Motor (MongoDB)
 - Frontend: React, Tailwind CSS, Shadcn UI
-- Integrações: Trello API, IMAP/SMTP
-- Deployment: O utilizador está a usar Vercel, Render, e MongoDB Atlas.
+- Integrações: Trello API, IMAP/SMTP, Microsoft Graph API (tentativa falhada, agora usa workaround com link direto do OneDrive).
+- Padrões: Implementado um workaround para uma integração API bloqueada, focando em fornecer valor ao utilizador através de uma solução alternativa (links de pesquisa no OneDrive).
 
 **key DB schema**
-  - **processes**:
-    - 
-    - 
-    - 
-    - 
-    - 
-  - **users**:
-    - 
+  - **trello_member_mappings**:  (Armazena a associação manual entre um membro do Trello e um utilizador da aplicação).
 
 **changes in tech stack**
-  - Nenhuma.
+  - Novas dependências Python instaladas: , ,  para a tentativa de fuzzy matching no OneDrive, que ainda podem estar no .
 
 **All files of reference**
-- : Ficheiro central para o bug de visibilidade de processos.
-- : Onde a lógica de atribuição automática de processos deve ser implementada.
-- : Componente a ser melhorado para a tarefa de diagnóstico do Trello.
-- : Contém a lógica de permissão para a criação de clientes.
-- : Contém a complexa lógica de sincronização de emails.
-- : Novo componente para o visualizador de emails.
+- : Ficheiro principal para a próxima tarefa (adicionar botão do OneDrive).
+- : Ficheiro a ser corrigido para o bug de layout dos botões.
+- : Contém o endpoint  a ser consumido pelo frontend.
+- : Contém a lógica de atribuição de processos que precisa ser verificada.
 
 **Areas that need refactoring**:
-- A lógica de importação do Trello precisa ser refatorada para incluir a atribuição automática de processos a utilizadores, que é a causa do principal bug pendente.
+-  foi criado mas a sua lógica foi abandonada. O ficheiro pode ser redundante e deveria ser eliminado para evitar confusão.
+- A correção de CSS no  precisa ser refeita de forma mais robusta.
 
 **key api endpoints**
-- : Endpoint principal do Kanban, cuja lógica de filtro precisa de ser compatível com a forma como os processos são importados.
-- : Novo endpoint que permite a criação de processos por intermediários.
-- : Endpoint corrigido para a atualização (incluindo desativação) de utilizadores.
+- : Atualiza o  e  de um processo.
+- : Guarda as associações manuais entre membros Trello e utilizadores da app.
+- : Gera e retorna um URL para pesquisar no OneDrive pela pasta de um cliente.
 
 **Critical Info for New Agent**
-- **Prioridade Máxima:** A prioridade número um é corrigir o bug que impede utilizadores não-administradores de verem os processos. A causa já foi diagnosticada (falta de  nos processos importados), a solução passa por atribuir automaticamente os processos durante a sincronização com o Trello.
-- **Ambiente de Produção do Utilizador:** O utilizador está a gerir o seu próprio ambiente de produção (Vercel/Render/MongoDB Atlas). Esteja preparado para dar suporte a problemas de configuração de ambiente, como variáveis de ambiente em falta.
-- **Sincronização com GitHub:** O utilizador modifica o seu código no GitHub (). É uma boa prática verificar se há alterações no repositório antes de iniciar novas tarefas para evitar conflitos.
+- **Prioridades:** A ordem de trabalho deve ser: 1. Corrigir o bug dos botões no Kanban (Issue 1). 2. Finalizar a integração do OneDrive no frontend (Task 1). 3. Testar exaustivamente a funcionalidade de atribuição de processos (Issue 2).
+- **OneDrive:** Não tente re-implementar a autenticação OAuth2. A abordagem atual é um workaround devido a limitações de permissões na conta Microsoft do utilizador. Siga a implementação do link de pesquisa.
+- **Atribuição de Processos:** A funcionalidade correta é um dialog com dropdowns para selecionar o  e o , não botões de atribuir a mim. O utilizador já corrigiu o agente uma vez sobre isto.
 
 **documents and test reports created in this job**
   -  (Atualizado).
-  - Múltiplos screenshots ao longo da sessão para depuração e verificação de funcionalidades.
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - 10.  - **[Em Progresso]** O utilizador reporta o principal bug pendente (processos não visíveis para não-admins) e solicita a melhoria da página de integração Trello.
- - 9.  - **[Resolvido Parcialmente]** O bug de desativar utilizador foi corrigido. A importação do Trello funciona, mas não atribui os processos, causando o problema de visibilidade.
- - 8.  - **[Resolvido]** O utilizador confirma que o GitHub é a fonte da verdade e pede para sincronizar o código.
- - 7.  - **[Resolvido]** Pedido para apagar o script .
- - 6.  - **[Resolvido]** O utilizador pede uma verificação de sincronia com o GitHub.
- - 5.  - **[Informativo]** O utilizador partilha uma mensagem de erro do seu ambiente de produção.
- - 4.  - **[Informativo]** Reporte inicial do bug principal de visibilidade de processos.
- - 3.  - **[Resolvido]** O utilizador pede esclarecimentos sobre o script de seed.
- - 2.  - **[Resolvido Parcialmente]** O utilizador pede ajuda com o seu ambiente de produção. O agente forneceu instruções.
- - 1.  - **[Resolvido]** O utilizador questiona o comportamento do serviço OneDrive, que foi corrigido para não falhar no arranque.
+ - 10.  - **[Em Progresso]** O utilizador reportou o bug dos botões do Kanban, mencionou que a implementação anterior de atribuição não está terminada e iniciou o pedido para a integração do OneDrive.
+ - 9.  - **[Resolvido]** O utilizador reportou o bug do formato de email e forneceu as credenciais iniciais do OneDrive.
+ - 8.  - **[Informativo]** O utilizador forneceu mais detalhes para a integração do OneDrive.
+ - 7.  - **[Resolvido]** O utilizador pediu instruções para testar a autenticação do OneDrive.
+ - 6.  - **[Resolvido]** O utilizador reportou o primeiro erro de autenticação do OneDrive. O agente diagnosticou o tipo de conta incorreto.
+ - 5.  - **[Bloqueado]** O utilizador reportou o segundo erro de autenticação. O agente diagnosticou a falta de permissões de administrador.
+ - 4.  - **[Resolvido]** O utilizador explorou uma alternativa que o agente desaconselhou.
+ - 3.  - **[Resolvido]** O utilizador perguntou sobre uma alternativa, que foi descartada por bloqueio técnico.
+ - 2.  - **[Resolvido]** O utilizador propôs a solução de workaround que está a ser implementada.
+ - 1.  - **[Informativo]** O utilizador forneceu um dos links de partilha para o agente testar.
 
 **Project Health Check:**
-- **Broken:** A visibilidade de processos para utilizadores  e  está quebrada.
-- **Mocked:** Nenhum.
+- **Broken:** O layout dos botões nos cartões do Kanban para processos com nomes longos. A funcionalidade de atribuição de processos pode ter bugs.
+- **Mocked:** Nenhuma.
 
 **3rd Party Integrations**
-- **OpenAI:** Utilizado para análise de documentos (a ser testado com ficheiros reais no futuro).
-- **Trello:** Integração ativa e central para a aplicação, mas a necessitar de ajustes na lógica de importação.
-- **Servidores de Email (IMAP/SMTP):** Integração ativa e complexa para a funcionalidade de histórico de emails.
+- **Trello:** Integração ativa e central, com mapeamento manual de utilizadores.
+- **Servidores de Email (IMAP/SMTP):** Integração ativa.
+- **OneDrive:** A integração via API Graph está **bloqueada**. A solução atual é um **workaround** que usa um link de partilha público da pasta principal para construir um URL de pesquisa.
 
 **Testing status**
   - Testing agent used after significant changes: NO
@@ -173,7 +164,8 @@ Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho 
 
 **Credentials to test flow:**
 - **Admin:**  / (obter de  env var, default: )
-- **Outros Utilizadores:** Existem (ex: ), mas para testar a visibilidade de processos, será necessário primeiro implementar a atribuição automática ou atribuir manualmente um processo a um destes utilizadores na base de dados.
+- **Outros Utilizadores:** Utilizadores como  ou  podem ser criados para testar a visibilidade de processos e a funcionalidade de atribuição.
 
 **What agent forgot to execute**
-- O agente não se esqueceu de nada; o problema da atribuição automática de processos é um requisito que emergiu como consequência da implementação do filtro de visibilidade e da importação do Trello. Não era um requisito explícito até o bug ser descoberto.</analysis>
+- O agente não validou corretamente a correção do bug de layout do Kanban. Uma verificação superficial com screenshot não foi suficiente, e o utilizador reportou que o problema persiste. Uma depuração mais aprofundada do CSS é necessária.
+- O agente não testou exaustivamente a funcionalidade de atribuir utilizador após a última correção de bug, o que levou à incerteza sobre se a funcionalidade está completa e correta.</analysis>
