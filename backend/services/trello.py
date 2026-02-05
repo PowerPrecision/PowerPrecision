@@ -259,6 +259,21 @@ def clean_email(value: str) -> str:
     return value.strip()
 
 
+def clean_markdown_emails_in_text(text: str) -> str:
+    """
+    Limpar todos os emails em formato markdown dentro de um texto.
+    [email@example.com](mailto:email@example.com "‌") -> email@example.com
+    Mantém o resto do texto intacto.
+    """
+    import re
+    if not text:
+        return text
+    
+    # Padrão: [email](mailto:email "...") ou [email](mailto:email)
+    pattern = r'\[([^\]]+@[^\]]+)\]\(mailto:[^\)]+\)'
+    return re.sub(pattern, r'\1', text)
+
+
 def parse_card_description(desc: str) -> Dict[str, str]:
     """Extrair dados estruturados da descrição do card."""
     data = {}
