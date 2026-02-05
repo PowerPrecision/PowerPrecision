@@ -33,9 +33,10 @@ async def find_matching_user(trello_members: list) -> dict:
     """
     Encontrar utilizador da aplicação correspondente aos membros do Trello.
     
-    Procura por:
-    1. Nome exato (case-insensitive)
-    2. Email do membro Trello
+    Procura por (ordem de prioridade):
+    1. Email do membro Trello (prioridade máxima)
+    2. Username do Trello como email
+    3. Nome exato (case-insensitive)
     
     Retorna dict com assigned_consultor_id e/ou assigned_mediador_id
     """
@@ -56,29 +57,41 @@ async def find_matching_user(trello_members: list) -> dict:
         {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
     ).to_list(500)
     
-    # Criar mapas para busca rápida
-    users_by_name = {u["name"].lower().strip(): u for u in users}
+    # Criar mapas para busca rápida - EMAIL tem prioridade
     users_by_email = {u.get("email", "").lower().strip(): u for u in users if u.get("email")}
+    users_by_name = {u["name"].lower().strip(): u for u in users}
     
     for member in trello_members:
         member_name = member.get("fullName", "").lower().strip()
-        member_email = member.get("email", member.get("username", "")).lower().strip()
+        member_username = member.get("username", "").lower().strip()
+        member_email = member.get("email", "").lower().strip()
         
         matched_user = None
+        match_method = None
         
-        # Tentar encontrar por nome
-        if member_name and member_name in users_by_name:
-            matched_user = users_by_name[member_name]
-        # Tentar encontrar por email/username
-        elif member_email and member_email in users_by_email:
+        # 1. PRIORIDADE: Tentar encontrar por email do Trello
+        if member_email and member_email in users_by_email:
             matched_user = users_by_email[member_email]
-        # Tentar busca parcial por nome (primeiro nome + último nome)
-        elif member_name:
-            for user_name, user in users_by_name.items():
-                # Verificar se o nome do membro contém o nome do utilizador ou vice-versa
-                if member_name in user_name or user_name in member_name:
-                    matched_user = user
+            match_method = "email"
+        
+        # 2. Tentar username do Trello como email (ex: pedroborges@gmail.com)
+        elif member_username and member_username in users_by_email:
+            matched_user = users_by_email[member_username]
+            match_method = "username_as_email"
+        
+        # 3. Tentar username@dominio comum
+        elif member_username:
+            for domain in ["@gmail.com", "@hotmail.com", "@outlook.com", "@precisioncredito.pt", "@powerealestate.pt"]:
+                test_email = member_username + domain
+                if test_email in users_by_email:
+                    matched_user = users_by_email[test_email]
+                    match_method = "username_with_domain"
                     break
+        
+        # 4. Fallback: Tentar encontrar por nome
+        if not matched_user and member_name and member_name in users_by_name:
+            matched_user = users_by_name[member_name]
+            match_method = "name"
         
         if matched_user:
             result["matched_members"].append({
