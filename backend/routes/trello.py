@@ -196,17 +196,43 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
         # Verificar correspondência de membros com utilizadores da app
         app_users = await db.users.find(
             {"is_active": {"$ne": False}},
-            {"_id": 0, "id": 1, "name": 1, "role": 1}
+            {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
         ).to_list(100)
+        
+        # Criar mapa por email para matching
+        users_by_email = {u.get("email", "").lower().strip(): u for u in app_users if u.get("email")}
+        users_by_name = {u["name"].lower().strip(): u for u in app_users}
         
         member_mapping = []
         for member in board_members:
-            matched = next(
-                (u for u in app_users if u["name"].lower().strip() == member["name"].lower().strip()),
-                None
-            )
+            member_username = member.get("username", "").lower().strip()
+            member_name = member.get("name", "").lower().strip()
+            
+            # Tentar match por email/username primeiro
+            matched = None
+            match_method = None
+            
+            # 1. Username como email direto
+            if member_username and member_username in users_by_email:
+                matched = users_by_email[member_username]
+                match_method = "email"
+            
+            # 2. Username com domínios comuns
+            if not matched and member_username:
+                for domain in ["@gmail.com", "@hotmail.com", "@outlook.com", "@precisioncredito.pt", "@powerealestate.pt"]:
+                    test_email = member_username + domain
+                    if test_email in users_by_email:
+                        matched = users_by_email[test_email]
+                        match_method = "email_domain"
+                        break
+            
+            # 3. Fallback para nome
+            if not matched and member_name in users_by_name:
+                matched = users_by_name[member_name]
+                match_method = "name"
+            
             member_mapping.append({
-                "trello_name": member["name"],
+                "trello_name": member.get("name"),
                 "trello_username": member.get("username"),
                 "app_user": matched["name"] if matched else None,
                 "app_role": matched["role"] if matched else None,
