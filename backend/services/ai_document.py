@@ -9,6 +9,8 @@ OPTIMIZAÇÕES:
 2. Se conseguir texto suficiente, envia apenas texto (mais barato/rápido)
 3. Só usa modelo de visão se extracção de texto falhar
 4. Redimensiona imagens para max 1024px antes de enviar
+5. Processamento paralelo com asyncio.gather para bulk analysis
+6. Validação de tamanho de ficheiro antes de carregar para memória
 
 Tipos de documentos suportados:
 - CC (Cartão de Cidadão)
@@ -22,8 +24,9 @@ import io
 import json
 import logging
 import base64
-from typing import Optional, Dict, Any, Tuple
-from datetime import datetime
+import asyncio
+from typing import Optional, Dict, Any, Tuple, List
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
@@ -41,6 +44,12 @@ MIN_TEXT_LENGTH = 100
 
 # Tamanho máximo de imagem (lado maior)
 MAX_IMAGE_SIZE = 1024
+
+# Tamanho máximo de ficheiro (10MB)
+MAX_FILE_SIZE = 10 * 1024 * 1024
+
+# Número máximo de ficheiros a processar em paralelo
+MAX_CONCURRENT_ANALYSIS = 5
 
 
 def extract_text_from_pdf(pdf_content: bytes) -> str:
