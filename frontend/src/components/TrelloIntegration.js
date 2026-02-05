@@ -424,7 +424,7 @@ const TrelloIntegration = () => {
                 ))}
                 {status.member_mapping.some(m => !m.matched) && (
                   <p className="text-xs text-amber-700 mt-2 p-2 bg-amber-50 rounded">
-                    💡 Para mapear membros não correspondidos, crie utilizadores na aplicação com o mesmo nome exacto do Trello.
+                    💡 Para mapear membros não correspondidos, crie utilizadores na aplicação com o <strong>mesmo email</strong> que o username do Trello (ex: @pedroborges → pedroborges@gmail.com)
                   </p>
                 )}
               </div>
