@@ -541,8 +541,10 @@ const KanbanBoard = ({ token, user }) => {
                             }}
                           >
                             <CardContent className="p-3">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0 overflow-hidden">
+                              {/* Layout principal: grid com 2 colunas - conteúdo flexível + botões fixos */}
+                              <div className="grid grid-cols-[1fr_auto] gap-2">
+                                {/* Coluna do conteúdo - pode crescer e encolher */}
+                                <div className="min-w-0">
                                   <div className="flex items-center gap-2">
                                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                     <p className="font-medium text-sm truncate" title={process.client_name}>
@@ -556,41 +558,43 @@ const KanbanBoard = ({ token, user }) => {
                                   </p>
                                   
                                   {/* Labels */}
-                                  {process.has_property && (
-                                    <Badge variant="outline" className="mt-1 text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
-                                      <Home className="h-3 w-3 mr-1" />
-                                      Tem Imóvel
-                                    </Badge>
-                                  )}
-                                  {process.prioridade && (
-                                    <Badge variant="destructive" className="mt-1 ml-1 text-xs">
-                                      <AlertCircle className="h-3 w-3 mr-1" />
-                                      Prioridade
-                                    </Badge>
-                                  )}
-                                  {process.idade_menos_35 && (
-                                    <Badge variant="outline" className="mt-1 ml-1 text-xs bg-yellow-50">
-                                      &lt;35 anos
-                                    </Badge>
-                                  )}
+                                  <div className="flex flex-wrap gap-1 mt-1 ml-6">
+                                    {process.has_property && (
+                                      <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
+                                        <Home className="h-3 w-3 mr-1" />
+                                        Imóvel
+                                      </Badge>
+                                    )}
+                                    {process.prioridade && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        <AlertCircle className="h-3 w-3 mr-1" />
+                                        Prioritário
+                                      </Badge>
+                                    )}
+                                    {process.idade_menos_35 && (
+                                      <Badge variant="outline" className="text-xs bg-yellow-50">
+                                        &lt;35
+                                      </Badge>
+                                    )}
+                                  </div>
                                   
                                   {/* Contact Info */}
                                   {process.client_phone && (
-                                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                                      <Phone className="h-3 w-3" />
+                                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground ml-6">
+                                      <Phone className="h-3 w-3 flex-shrink-0" />
                                       <span className="truncate">{process.client_phone}</span>
                                     </div>
                                   )}
                                   
                                   {/* Value */}
                                   {process.valor_financiado && (
-                                    <p className="text-xs text-emerald-600 font-medium mt-1">
+                                    <p className="text-xs text-emerald-600 font-medium mt-1 ml-6">
                                       {process.valor_financiado}
                                     </p>
                                   )}
                                   
                                   {/* Assigned Staff */}
-                                  <div className="flex flex-wrap gap-1 mt-2">
+                                  <div className="flex flex-wrap gap-1 mt-2 ml-6">
                                     {process.trello_card_id && (
                                       <Badge variant="outline" className="text-xs bg-sky-50 border-sky-200 text-sky-700">
                                         <ExternalLink className="h-3 w-3 mr-1" />
@@ -612,12 +616,12 @@ const KanbanBoard = ({ token, user }) => {
                                   </div>
                                 </div>
                                 
-                                <div className="flex flex-col gap-1 flex-shrink-0">
-                                  {/* Botão para Atribuir/Gerir Utilizadores */}
+                                {/* Coluna dos botões - largura fixa, nunca encolhe */}
+                                <div className="flex flex-col gap-1 w-8">
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 flex-shrink-0 hover:bg-purple-50"
+                                    className="h-7 w-7 hover:bg-purple-50"
                                     onClick={(e) => openAssignDialog(process, e)}
                                     title="Gerir atribuições"
                                     data-testid={`assign-btn-${process.id}`}
@@ -627,7 +631,7 @@ const KanbanBoard = ({ token, user }) => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 flex-shrink-0 hover:bg-blue-50"
+                                    className="h-7 w-7 hover:bg-blue-50"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openEmailClient(process.client_email, process.client_name);
@@ -640,7 +644,7 @@ const KanbanBoard = ({ token, user }) => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 flex-shrink-0"
+                                    className="h-7 w-7"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       navigate(`/process/${process.id}`);

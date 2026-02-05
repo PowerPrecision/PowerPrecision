@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
+import { ScrollArea } from "./ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -12,15 +13,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { FolderOpen, Plus, Trash2, ExternalLink, Loader2, Link as LinkIcon } from "lucide-react";
+import { FolderOpen, Plus, Trash2, ExternalLink, Loader2, Link as LinkIcon, Search, Save } from "lucide-react";
 import { toast } from "sonner";
 import { getProcessOneDriveLinks, addProcessOneDriveLink, deleteProcessOneDriveLink } from "../services/api";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || "";
 
 const OneDriveLinks = ({ processId, clientName }) => {
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mainFolderUrl, setMainFolderUrl] = useState(null);
+  const [savedFolderUrl, setSavedFolderUrl] = useState(null);
+  const [loadingFolder, setLoadingFolder] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     url: "",
