@@ -699,3 +699,102 @@ async def assign_process(
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
     return {"message": "Processo atribuído com sucesso"}
+
+
+@router.post("/{process_id}/assign-me")
+async def assign_me_to_process(
+    process_id: str,
+    user: dict = Depends(require_staff())
+):
+    """
+    Permite ao utilizador atribuir-se a um processo.
+    O utilizador será atribuído como consultor ou mediador dependendo do seu papel.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    user_role = user.get("role", "")
+    user_id = user["id"]
+    user_name = user["name"]
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    assignment_type = None
+    
+    # Determinar tipo de atribuição baseado no papel
+    if UserRole.can_act_as_consultor(user_role):
+        # Verificar se já tem consultor atribuído
+        if process.get("assigned_consultor_id") and process["assigned_consultor_id"] != user_id:
+            # Já tem outro consultor, mas pode adicionar como mediador se aplicável
+            if UserRole.can_act_as_mediador(user_role) and not process.get("assigned_mediador_id"):
+                update_data["assigned_mediador_id"] = user_id
+                update_data["mediador_name"] = user_name
+                assignment_type = "mediador"
+            else:
+                raise HTTPException(status_code=400, detail="Este processo já tem um consultor atribuído")
+        else:
+            update_data["assigned_consultor_id"] = user_id
+            update_data["consultor_name"] = user_name
+            assignment_type = "consultor"
+    elif UserRole.can_act_as_mediador(user_role):
+        if process.get("assigned_mediador_id") and process["assigned_mediador_id"] != user_id:
+            raise HTTPException(status_code=400, detail="Este processo já tem um mediador atribuído")
+        update_data["assigned_mediador_id"] = user_id
+        update_data["mediador_name"] = user_name
+        assignment_type = "mediador"
+    else:
+        raise HTTPException(status_code=403, detail="O seu papel não permite atribuir-se a processos")
+    
+    await db.processes.update_one({"id": process_id}, {"$set": update_data})
+    await log_history(process_id, user, f"Atribuiu-se como {assignment_type}", f"assigned_{assignment_type}_id", None, user_name)
+    
+    return {
+        "success": True,
+        "message": f"Atribuído como {assignment_type}",
+        "assignment_type": assignment_type
+    }
+
+
+@router.post("/{process_id}/unassign-me")
+async def unassign_me_from_process(
+    process_id: str,
+    user: dict = Depends(require_staff())
+):
+    """
+    Permite ao utilizador remover-se de um processo.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    user_id = user["id"]
+    user_name = user["name"]
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    removed_from = []
+    
+    # Verificar se está atribuído como consultor
+    if process.get("assigned_consultor_id") == user_id:
+        update_data["assigned_consultor_id"] = None
+        update_data["consultor_name"] = None
+        removed_from.append("consultor")
+        await log_history(process_id, user, "Removeu-se como consultor", "assigned_consultor_id", user_name, None)
+    
+    # Verificar se está atribuído como mediador
+    if process.get("assigned_mediador_id") == user_id:
+        update_data["assigned_mediador_id"] = None
+        update_data["mediador_name"] = None
+        removed_from.append("mediador")
+        await log_history(process_id, user, "Removeu-se como mediador", "assigned_mediador_id", user_name, None)
+    
+    if not removed_from:
+        raise HTTPException(status_code=400, detail="Não está atribuído a este processo")
+    
+    await db.processes.update_one({"id": process_id}, {"$set": update_data})
+    
+    return {
+        "success": True,
+        "message": f"Removido como {', '.join(removed_from)}",
+        "removed_from": removed_from
+    }
+
