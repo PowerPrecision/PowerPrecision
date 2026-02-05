@@ -881,7 +881,139 @@ async def full_sync(
     )
 
 
-# === Webhook para sincronização em tempo real ===
+# === Importar comentários e atividades do Trello ===
+
+class ImportCommentsResult(BaseModel):
+    success: bool
+    total_processes: int
+    processes_with_comments: int
+    total_comments_imported: int
+    errors: List[str] = []
+
+
+@router.post("/sync/comments", response_model=ImportCommentsResult)
+async def import_trello_comments(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Importar comentários e atividades do Trello para os processos.
+    Apenas importa comentários que ainda não existem na aplicação.
+    """
+    result = ImportCommentsResult(
+        success=True,
+        total_processes=0,
+        processes_with_comments=0,
+        total_comments_imported=0,
+        errors=[]
+    )
+    
+    try:
+        # Obter todos os processos com trello_card_id
+        processes = await db.processes.find(
+            {"trello_card_id": {"$exists": True, "$ne": ""}},
+            {"_id": 0, "id": 1, "client_name": 1, "trello_card_id": 1}
+        ).to_list(None)
+        
+        result.total_processes = len(processes)
+        
+        for process in processes:
+            try:
+                card_id = process.get("trello_card_id")
+                process_id = process.get("id")
+                
+                if not card_id:
+                    continue
+                
+                # Obter comentários do Trello
+                comments = await trello_service.get_card_actions(card_id, "commentCard")
+                
+                if not comments:
+                    continue
+                
+                result.processes_with_comments += 1
+                
+                # Obter comentários já existentes para este processo
+                existing_activities = await db.activities.find(
+                    {"process_id": process_id, "source": "trello"},
+                    {"_id": 0, "trello_action_id": 1}
+                ).to_list(None)
+                
+                existing_action_ids = {a.get("trello_action_id") for a in existing_activities if a.get("trello_action_id")}
+                
+                # Importar novos comentários
+                for comment in comments:
+                    action_id = comment.get("id")
+                    
+                    # Verificar se já foi importado
+                    if action_id in existing_action_ids:
+                        continue
+                    
+                    # Extrair dados do comentário
+                    comment_text = comment.get("data", {}).get("text", "")
+                    member_creator = comment.get("memberCreator", {})
+                    creator_name = member_creator.get("fullName", member_creator.get("username", "Trello"))
+                    created_at = comment.get("date", datetime.now(timezone.utc).isoformat())
+                    
+                    # Limpar markdown do comentário
+                    comment_text = clean_markdown_emails_in_text(comment_text)
+                    
+                    if not comment_text:
+                        continue
+                    
+                    # Criar atividade
+                    activity_doc = {
+                        "id": str(uuid.uuid4()),
+                        "process_id": process_id,
+                        "user_id": "trello",
+                        "user_name": f"📋 {creator_name}",
+                        "user_role": "trello",
+                        "comment": comment_text,
+                        "created_at": created_at,
+                        "source": "trello",
+                        "trello_action_id": action_id
+                    }
+                    
+                    await db.activities.insert_one(activity_doc)
+                    result.total_comments_imported += 1
+                
+            except Exception as e:
+                error_msg = f"Erro ao importar comentários de {process.get('client_name', '?')}: {str(e)}"
+                logger.error(error_msg)
+                result.errors.append(error_msg)
+        
+        logger.info(f"Importados {result.total_comments_imported} comentários do Trello")
+        
+    except Exception as e:
+        result.success = False
+        result.errors.append(f"Erro geral: {str(e)}")
+        logger.error(f"Erro ao importar comentários do Trello: {e}")
+    
+    return result
+
+
+@router.get("/card/{card_id}/comments")
+async def get_trello_card_comments(
+    card_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Obter comentários de um card específico do Trello."""
+    try:
+        comments = await trello_service.get_card_actions(card_id, "commentCard")
+        return {
+            "card_id": card_id,
+            "comments_count": len(comments),
+            "comments": [
+                {
+                    "id": c.get("id"),
+                    "text": clean_markdown_emails_in_text(c.get("data", {}).get("text", "")),
+                    "author": c.get("memberCreator", {}).get("fullName", "?"),
+                    "date": c.get("date")
+                }
+                for c in comments
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter comentários: {str(e)}")
 
 @router.post("/webhook")
 async def trello_webhook(request: Request, background_tasks: BackgroundTasks):
