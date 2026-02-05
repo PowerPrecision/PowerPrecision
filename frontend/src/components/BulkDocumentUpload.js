@@ -95,12 +95,19 @@ const BulkDocumentUpload = () => {
   };
 
   // Agrupar ficheiros por cliente (apenas para visualização)
+  // A pasta do cliente é a PRIMEIRA pasta após a pasta raiz selecionada
+  // Subpastas dentro da pasta do cliente também pertencem ao mesmo cliente
   const getFilesByClient = () => {
     const grouped = {};
     selectedFiles.forEach((file) => {
       const path = file.webkitRelativePath || file.name;
       const parts = path.split("/");
-      const clientName = parts.length >= 2 ? parts[parts.length - 2] : "Desconhecido";
+      
+      // parts[0] = pasta raiz selecionada
+      // parts[1] = pasta do cliente
+      // parts[2+] = subpastas ou ficheiro
+      const clientName = parts.length >= 2 ? parts[1] : "Desconhecido";
+      
       if (!grouped[clientName]) {
         grouped[clientName] = [];
       }
