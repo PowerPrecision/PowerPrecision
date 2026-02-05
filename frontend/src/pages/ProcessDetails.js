@@ -467,30 +467,17 @@ const ProcessDetails = () => {
               {currentStatusInfo.label}
             </Badge>
             
-            {/* Botões Atribuir/Sair */}
-            {isAssignedToMe ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-red-600 border-red-200 hover:bg-red-50"
-                onClick={handleUnassignMe}
-                data-testid="unassign-me-btn"
-              >
-                <UserMinus className="h-4 w-4 mr-2" />
-                Sair do Processo
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-green-600 border-green-200 hover:bg-green-50"
-                onClick={handleAssignMe}
-                data-testid="assign-me-btn"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Ficar com Processo
-              </Button>
-            )}
+            {/* Botão para Gerir Atribuições */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-purple-600 border-purple-200 hover:bg-purple-50"
+              onClick={openAssignDialog}
+              data-testid="assign-users-btn"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Atribuições
+            </Button>
             
             {canChangeStatus && (
               <Select value={status} onValueChange={setStatus}>
