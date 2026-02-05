@@ -465,7 +465,7 @@ async def reset_and_sync_from_trello(
                     "id": process_id,
                     "process_number": process_number,
                     "client_name": card["name"],
-                    "client_email": card_data.get("email", card_data.get("📧_email", "")),
+                    "client_email": clean_email(card_data.get("email", card_data.get("📧_email", ""))),
                     "client_phone": card_data.get("telefone", card_data.get("phone", card_data.get("📱_telefone", ""))),
                     "client_nif": card_data.get("nif", card_data.get("🆔_nif", "")),
                     "status": status,
