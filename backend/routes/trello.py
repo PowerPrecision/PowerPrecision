@@ -235,8 +235,10 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
                 "trello_name": member.get("name"),
                 "trello_username": member.get("username"),
                 "app_user": matched["name"] if matched else None,
+                "app_email": matched.get("email") if matched else None,
                 "app_role": matched["role"] if matched else None,
-                "matched": matched is not None
+                "matched": matched is not None,
+                "match_method": match_method
             })
         
         return {
