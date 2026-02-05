@@ -77,6 +77,8 @@ import { toast } from "sonner";
 import { format, parseISO, isAfter } from "date-fns";
 import { pt } from "date-fns/locale";
 
+const API_URL = window.REACT_APP_BACKEND_URL || "";
+
 const statusColors = {
   yellow: "bg-yellow-100 text-yellow-800 border-yellow-200",
   blue: "bg-blue-100 text-blue-800 border-blue-200",
