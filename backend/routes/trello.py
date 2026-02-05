@@ -27,6 +27,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trello", tags=["Trello Integration"])
 
 
+# === Modelos para mapeamento manual ===
+
+class MemberMapping(BaseModel):
+    trello_username: str
+    user_id: str
+
+
+class MemberMappingList(BaseModel):
+    mappings: List[MemberMapping]
+
+
 # === Função auxiliar para atribuição automática ===
 
 async def find_matching_user(trello_members: list) -> dict:
@@ -34,8 +45,8 @@ async def find_matching_user(trello_members: list) -> dict:
     Encontrar utilizador da aplicação correspondente aos membros do Trello.
     
     Procura por (ordem de prioridade):
-    1. Username do Trello corresponde à parte local do email (ex: pedroborges249 ~ pedroborges@...)
-    2. Email exacto
+    1. MAPEAMENTO MANUAL (guardado na base de dados)
+    2. Username do Trello corresponde à parte local do email
     3. Nome exacto (case-insensitive)
     
     Retorna dict com assigned_consultor_id e/ou assigned_mediador_id
@@ -51,16 +62,19 @@ async def find_matching_user(trello_members: list) -> dict:
     if not trello_members:
         return result
     
+    # Obter mapeamentos manuais
+    manual_mappings = await db.trello_member_mappings.find({}, {"_id": 0}).to_list(100)
+    manual_map = {m["trello_username"].lower(): m["user_id"] for m in manual_mappings}
+    
     # Obter todos os utilizadores ativos da aplicação
     users = await db.users.find(
         {"is_active": {"$ne": False}},
         {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
     ).to_list(500)
     
-    # Criar mapas para busca rápida
+    users_by_id = {u["id"]: u for u in users}
     users_by_email = {u.get("email", "").lower().strip(): u for u in users if u.get("email")}
     users_by_name = {u["name"].lower().strip(): u for u in users}
-    # Mapa por parte local do email (antes do @)
     users_by_email_local = {}
     for u in users:
         if u.get("email") and "@" in u["email"]:
@@ -75,29 +89,28 @@ async def find_matching_user(trello_members: list) -> dict:
         matched_user = None
         match_method = None
         
-        # 1. PRIORIDADE: Username do Trello começa com parte local do email
-        # Ex: pedroborges249 começa com "pedroborges" (de pedroborges@powerealestate.pt)
-        if member_username:
+        # 1. PRIORIDADE MÁXIMA: Mapeamento manual
+        if member_username in manual_map:
+            user_id = manual_map[member_username]
+            if user_id in users_by_id:
+                matched_user = users_by_id[user_id]
+                match_method = "manual"
+        
+        # 2. Username do Trello corresponde à parte local do email
+        if not matched_user and member_username:
             for local_part, user in users_by_email_local.items():
-                # Verificar se username começa com a parte local do email
-                # ou se a parte local começa com o username (sem números)
                 username_clean = ''.join(c for c in member_username if not c.isdigit())
                 if member_username.startswith(local_part) or local_part.startswith(username_clean):
                     matched_user = user
                     match_method = "email_local"
                     break
         
-        # 2. Email exacto do Trello
+        # 3. Email exacto do Trello
         if not matched_user and member_email and member_email in users_by_email:
             matched_user = users_by_email[member_email]
             match_method = "email_exact"
         
-        # 3. Username como email direto
-        if not matched_user and member_username and member_username in users_by_email:
-            matched_user = users_by_email[member_username]
-            match_method = "username_as_email"
-        
-        # 4. Fallback: Tentar encontrar por nome
+        # 4. Fallback: Nome exacto
         if not matched_user and member_name and member_name in users_by_name:
             matched_user = users_by_name[member_name]
             match_method = "name"
