@@ -542,10 +542,10 @@ const KanbanBoard = ({ token, user }) => {
                           >
                             <CardContent className="p-3">
                               <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 overflow-hidden">
                                   <div className="flex items-center gap-2">
                                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <p className="font-medium text-sm truncate">
+                                    <p className="font-medium text-sm truncate" title={process.client_name}>
                                       {process.client_name}
                                     </p>
                                   </div>
