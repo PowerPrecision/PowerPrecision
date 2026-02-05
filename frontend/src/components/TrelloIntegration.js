@@ -50,6 +50,9 @@ const TrelloIntegration = () => {
   const [webhooks, setWebhooks] = useState([]);
   const [settingUpWebhook, setSettingUpWebhook] = useState(false);
   const [showMemberMapping, setShowMemberMapping] = useState(false);
+  const [appUsers, setAppUsers] = useState([]);
+  const [savingMapping, setSavingMapping] = useState(false);
+  const [pendingMappings, setPendingMappings] = useState({});
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -68,6 +71,15 @@ const TrelloIntegration = () => {
       if (webhookResponse.ok) {
         const webhookData = await webhookResponse.json();
         setWebhooks(webhookData.webhooks || []);
+      }
+      
+      // Buscar utilizadores da app para o dropdown
+      const usersResponse = await fetch(`${API_URL}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json();
+        setAppUsers(usersData.filter(u => u.is_active !== false));
       }
     } catch (error) {
       console.error("Erro ao verificar Trello:", error);
