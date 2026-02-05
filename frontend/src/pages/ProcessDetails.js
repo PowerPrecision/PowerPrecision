@@ -95,7 +95,7 @@ const typeLabels = {
 const ProcessDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [process, setProcess] = useState(null);
   const [deadlines, setDeadlines] = useState([]);
   const [activities, setActivities] = useState([]);
