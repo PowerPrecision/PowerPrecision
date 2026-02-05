@@ -523,3 +523,279 @@ def map_irs_to_financial_data(irs_data: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "renda_habitacao_atual": round(monthly_income, 2) if monthly_income else None,
     }
+
+
+# ====================================================================
+# BULK ANALYSIS SERVICE FUNCTIONS
+# ====================================================================
+
+def detect_document_type(filename: str) -> str:
+    """Detectar tipo de documento pelo nome do ficheiro."""
+    filename_lower = filename.lower()
+    
+    if any(x in filename_lower for x in ['cc', 'cartao', 'cidadao', 'identificacao', 'bi']):
+        return 'cc'
+    elif any(x in filename_lower for x in ['recibo', 'vencimento', 'salario', 'ordenado']):
+        return 'recibo_vencimento'
+    elif any(x in filename_lower for x in ['irs', 'declaracao', 'imposto']):
+        return 'irs'
+    elif any(x in filename_lower for x in ['contrato', 'trabalho']):
+        return 'contrato_trabalho'
+    elif any(x in filename_lower for x in ['caderneta', 'predial', 'imovel']):
+        return 'caderneta_predial'
+    elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco']):
+        return 'extrato_bancario'
+    else:
+        return 'outro'
+
+
+def get_mime_type(filename: str) -> str:
+    """Obter MIME type pelo nome do ficheiro."""
+    ext = filename.lower().split('.')[-1]
+    mime_types = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'webp': 'image/webp',
+    }
+    return mime_types.get(ext, 'application/octet-stream')
+
+
+def validate_file_size(content: bytes, filename: str) -> Tuple[bool, str]:
+    """
+    Validar tamanho do ficheiro.
+    
+    Returns:
+        Tuple (is_valid, error_message)
+    """
+    size = len(content)
+    if size > MAX_FILE_SIZE:
+        size_mb = size / (1024 * 1024)
+        max_mb = MAX_FILE_SIZE / (1024 * 1024)
+        return False, f"Ficheiro {filename} excede o limite de {max_mb}MB ({size_mb:.1f}MB)"
+    return True, ""
+
+
+async def analyze_single_document(
+    content: bytes,
+    filename: str,
+    client_name: str,
+    process_id: str
+) -> Dict[str, Any]:
+    """
+    Analisar um único documento e retornar resultado.
+    
+    Args:
+        content: Conteúdo do ficheiro em bytes
+        filename: Nome do ficheiro
+        client_name: Nome do cliente
+        process_id: ID do processo
+    
+    Returns:
+        Dict com resultado da análise
+    """
+    result = {
+        "client_name": client_name,
+        "filename": filename,
+        "process_id": process_id,
+        "success": False,
+        "extracted_data": {},
+        "document_type": "",
+        "error": None,
+        "updated": False
+    }
+    
+    try:
+        # Validar tamanho
+        is_valid, error_msg = validate_file_size(content, filename)
+        if not is_valid:
+            result["error"] = error_msg
+            return result
+        
+        # Detectar tipo de documento e MIME type
+        document_type = detect_document_type(filename)
+        mime_type = get_mime_type(filename)
+        result["document_type"] = document_type
+        
+        # Converter para base64
+        base64_content = base64.b64encode(content).decode('utf-8')
+        
+        logger.info(f"Analisando {filename} ({document_type}) para {client_name}")
+        
+        # Analisar com IA
+        analysis_result = await analyze_document_from_base64(
+            base64_content,
+            mime_type,
+            document_type
+        )
+        
+        if analysis_result.get("success") and analysis_result.get("extracted_data"):
+            result["success"] = True
+            result["extracted_data"] = analysis_result["extracted_data"]
+            result["fields_extracted"] = list(analysis_result["extracted_data"].keys())
+        else:
+            result["error"] = analysis_result.get("error", "Erro desconhecido na análise")
+            
+    except Exception as e:
+        logger.error(f"Erro ao analisar {filename}: {e}")
+        result["error"] = str(e)
+    
+    return result
+
+
+async def process_bulk_documents(
+    files_data: List[Dict[str, Any]],
+    progress_callback: Optional[callable] = None
+) -> Dict[str, Any]:
+    """
+    Processar múltiplos documentos em paralelo.
+    
+    Args:
+        files_data: Lista de dicts com {content, filename, client_name, process_id}
+        progress_callback: Função opcional para reportar progresso
+    
+    Returns:
+        Dict com resultados agregados
+    """
+    total_files = len(files_data)
+    results = []
+    errors = []
+    processed = 0
+    
+    # Criar semáforo para limitar concorrência
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_ANALYSIS)
+    
+    async def analyze_with_semaphore(file_data: Dict) -> Dict:
+        async with semaphore:
+            result = await analyze_single_document(
+                content=file_data["content"],
+                filename=file_data["filename"],
+                client_name=file_data["client_name"],
+                process_id=file_data["process_id"]
+            )
+            
+            # Reportar progresso se callback fornecido
+            if progress_callback:
+                await progress_callback(file_data["filename"], result["success"])
+            
+            return result
+    
+    # Processar todos em paralelo (limitado pelo semáforo)
+    tasks = [analyze_with_semaphore(fd) for fd in files_data]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Processar resultados
+    successful_results = []
+    for r in results:
+        if isinstance(r, Exception):
+            errors.append(str(r))
+        elif isinstance(r, dict):
+            successful_results.append(r)
+            if r.get("success"):
+                processed += 1
+            if r.get("error"):
+                errors.append(f"{r.get('client_name', '?')}/{r.get('filename', '?')}: {r['error']}")
+    
+    return {
+        "success": processed > 0,
+        "total_files": total_files,
+        "processed": processed,
+        "errors": errors,
+        "results": successful_results
+    }
+
+
+def build_update_data_from_extraction(
+    extracted_data: Dict[str, Any],
+    document_type: str,
+    existing_data: Dict[str, Any] = None
+) -> Dict[str, Any]:
+    """
+    Construir dados de actualização a partir dos dados extraídos.
+    
+    Args:
+        extracted_data: Dados extraídos pela IA
+        document_type: Tipo de documento
+        existing_data: Dados existentes do processo (para merge)
+    
+    Returns:
+        Dict com campos a actualizar no processo
+    """
+    if existing_data is None:
+        existing_data = {}
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if document_type == 'cc':
+        # Dados pessoais
+        personal_update = {}
+        field_mapping = {
+            'nif': 'nif',
+            'numero_documento': 'documento_id',
+            'data_nascimento': 'data_nascimento',
+            'naturalidade': 'naturalidade',
+            'nacionalidade': 'nacionalidade',
+            'sexo': 'sexo',
+            'morada': 'morada',
+            'codigo_postal': 'codigo_postal',
+            'pai': 'nome_pai',
+            'mae': 'nome_mae',
+        }
+        
+        for src_key, dest_key in field_mapping.items():
+            if extracted_data.get(src_key):
+                personal_update[dest_key] = extracted_data[src_key]
+        
+        if personal_update:
+            existing_personal = existing_data.get("personal_data", {})
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
+        
+        if extracted_data.get('email'):
+            update_data["client_email"] = extracted_data['email']
+            
+    elif document_type in ['recibo_vencimento', 'irs']:
+        # Dados financeiros
+        financial_update = {}
+        field_mapping = {
+            'salario_liquido': 'rendimento_mensal',
+            'rendimento_liquido_mensal': 'rendimento_mensal',
+            'salario_bruto': 'rendimento_bruto',
+            'empresa': 'empresa',
+            'tipo_contrato': 'tipo_contrato',
+            'categoria_profissional': 'categoria_profissional',
+            'rendimento_liquido_anual': 'rendimento_anual',
+        }
+        
+        for src_key, dest_key in field_mapping.items():
+            if extracted_data.get(src_key):
+                financial_update[dest_key] = extracted_data[src_key]
+        
+        if financial_update:
+            existing_financial = existing_data.get("financial_data", {})
+            existing_financial.update(financial_update)
+            update_data["financial_data"] = existing_financial
+            
+    elif document_type == 'caderneta_predial':
+        # Dados do imóvel
+        real_estate_update = {}
+        field_mapping = {
+            'artigo_matricial': 'artigo_matricial',
+            'valor_patrimonial_tributario': 'valor_patrimonial',
+            'area_bruta': 'area',
+            'localizacao': 'localizacao',
+            'tipologia': 'tipologia',
+        }
+        
+        for src_key, dest_key in field_mapping.items():
+            if extracted_data.get(src_key):
+                real_estate_update[dest_key] = extracted_data[src_key]
+        
+        if real_estate_update:
+            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate.update(real_estate_update)
+            update_data["real_estate_data"] = existing_real_estate
+    
+    return update_data
+
