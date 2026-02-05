@@ -1093,3 +1093,106 @@ async def delete_webhook(
         return {"success": True, "message": "Webhook eliminado"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# === Mapeamento Manual de Membros ===
+
+@router.get("/member-mappings")
+async def get_member_mappings(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Obter todos os mapeamentos manuais de membros Trello → Utilizadores."""
+    mappings = await db.trello_member_mappings.find({}, {"_id": 0}).to_list(100)
+    return {"mappings": mappings}
+
+
+@router.post("/member-mappings")
+async def save_member_mapping(
+    mapping: MemberMapping,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Guardar um mapeamento manual de membro Trello → Utilizador."""
+    trello_username = mapping.trello_username.lower().strip()
+    
+    # Verificar se o utilizador existe
+    target_user = await db.users.find_one({"id": mapping.user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # Upsert do mapeamento
+    await db.trello_member_mappings.update_one(
+        {"trello_username": trello_username},
+        {"$set": {
+            "trello_username": trello_username,
+            "user_id": mapping.user_id,
+            "user_name": target_user["name"],
+            "user_email": target_user.get("email"),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": user["name"]
+        }},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "message": f"Mapeamento guardado: @{trello_username} → {target_user['name']}"
+    }
+
+
+@router.post("/member-mappings/bulk")
+async def save_member_mappings_bulk(
+    data: MemberMappingList,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Guardar múltiplos mapeamentos de uma vez."""
+    saved = 0
+    errors = []
+    
+    for mapping in data.mappings:
+        try:
+            trello_username = mapping.trello_username.lower().strip()
+            
+            # Se user_id estiver vazio, remover mapeamento
+            if not mapping.user_id:
+                await db.trello_member_mappings.delete_one({"trello_username": trello_username})
+                continue
+            
+            target_user = await db.users.find_one({"id": mapping.user_id}, {"_id": 0})
+            if not target_user:
+                errors.append(f"Utilizador {mapping.user_id} não encontrado")
+                continue
+            
+            await db.trello_member_mappings.update_one(
+                {"trello_username": trello_username},
+                {"$set": {
+                    "trello_username": trello_username,
+                    "user_id": mapping.user_id,
+                    "user_name": target_user["name"],
+                    "user_email": target_user.get("email"),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_by": user["name"]
+                }},
+                upsert=True
+            )
+            saved += 1
+        except Exception as e:
+            errors.append(f"Erro em @{mapping.trello_username}: {str(e)}")
+    
+    return {
+        "success": len(errors) == 0,
+        "saved": saved,
+        "errors": errors,
+        "message": f"{saved} mapeamentos guardados"
+    }
+
+
+@router.delete("/member-mappings/{trello_username}")
+async def delete_member_mapping(
+    trello_username: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Remover um mapeamento manual."""
+    result = await db.trello_member_mappings.delete_one(
+        {"trello_username": trello_username.lower().strip()}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Mapeamento não encontrado")
+    return {"success": True, "message": "Mapeamento removido"}
