@@ -131,7 +131,7 @@ const ProcessDetails = () => {
   });
   const [selectedDate, setSelectedDate] = useState(null);
 
-  const API_URL = window.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "";
+  const API_URL = process?.env?.REACT_APP_BACKEND_URL || window.REACT_APP_BACKEND_URL || "";
 
   // Verificar se o utilizador está atribuído a este processo
   const isAssignedToMe = process && user && (
