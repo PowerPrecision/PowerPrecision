@@ -449,6 +449,32 @@ const ProcessDetails = () => {
             <Badge className={`${statusColors[currentStatusInfo.color]} border`}>
               {currentStatusInfo.label}
             </Badge>
+            
+            {/* Botões Atribuir/Sair */}
+            {isAssignedToMe ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                onClick={handleUnassignMe}
+                data-testid="unassign-me-btn"
+              >
+                <UserMinus className="h-4 w-4 mr-2" />
+                Sair do Processo
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-green-600 border-green-200 hover:bg-green-50"
+                onClick={handleAssignMe}
+                data-testid="assign-me-btn"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Ficar com Processo
+              </Button>
+            )}
+            
             {canChangeStatus && (
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="w-48" data-testid="status-select">
