@@ -129,11 +129,14 @@ const BulkDocumentUpload = () => {
     const path = file.webkitRelativePath || file.name;
     
     // Extrair nome do cliente do path
+    // Estrutura: PastaRaiz/NomeCliente/[subpastas/]ficheiro.pdf
+    // O cliente é sempre a SEGUNDA pasta (índice 1)
     const parts = path.replace("\\", "/").split("/");
     let clientName, docFilename;
     
     if (parts.length >= 2) {
-      clientName = parts[parts.length - 2];
+      // parts[0] = pasta raiz, parts[1] = cliente, parts[last] = ficheiro
+      clientName = parts[1];
       docFilename = parts[parts.length - 1];
     } else {
       docFilename = parts[0];
