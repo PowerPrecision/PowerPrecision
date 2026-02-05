@@ -33,6 +33,21 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - ✅ Botão "Atribuir Auto" para corrigir processos existentes
 - ✅ Informação de diagnóstico detalhada (credenciais, erros)
 
+### Importação de Comentários do Trello (Fev 2026)
+- ✅ Endpoint `POST /api/trello/sync/comments` para importar comentários
+- ✅ Botão "Comentários" na página de Integração Trello
+- ✅ Comentários aparecem na secção "Atividade" de cada processo
+- ✅ Identificados com ícone 📋 e badge "trello"
+- ✅ Importação idempotente (não duplica ao re-executar)
+
+### Análise de Documentos com IA (Fev 2026)
+- ✅ Botão "✨ Analisar com IA" na página de detalhes do processo
+- ✅ Upload de ficheiros (PDF, JPG, PNG, WebP)
+- ✅ Análise via URL/link do OneDrive
+- ✅ Suporta: CC, Recibo Vencimento, IRS, Contrato Trabalho, Caderneta Predial
+- ✅ Preenche automaticamente os campos da ficha do cliente
+- ✅ Usa GPT-4o-mini via Emergent LLM Key
+
 ### Integração OneDrive (Fev 2026)
 - ✅ **Workaround via link partilhado** - utiliza link de partilha da pasta principal
 - ✅ Botão "Abrir no OneDrive" na página de detalhes do processo
