@@ -39,7 +39,7 @@ async def get_onedrive_status(user: dict = Depends(get_current_user)):
 
 
 @router.get("/auth/login")
-async def initiate_onedrive_login(user: dict = Depends(require_staff())):
+async def initiate_onedrive_login(user: dict = Depends(get_current_user)):
     """
     Iniciar fluxo de autenticação OAuth2 com Microsoft.
     Retorna URL para redirecionar o utilizador.
@@ -177,7 +177,7 @@ async def get_valid_access_token(user_id: str) -> Optional[str]:
 @router.get("/folders")
 async def list_onedrive_folders(
     path: Optional[str] = None,
-    user: dict = Depends(require_staff())
+    user: dict = Depends(get_current_user)
 ):
     """Listar pastas no OneDrive."""
     access_token = await get_valid_access_token(user["id"])
@@ -197,7 +197,7 @@ async def list_onedrive_folders(
 async def find_client_folder(
     client_name: str = Query(..., description="Nome do cliente"),
     threshold: int = Query(70, description="Limiar de correspondência (0-100)"),
-    user: dict = Depends(require_staff())
+    user: dict = Depends(get_current_user)
 ):
     """
     Encontrar pasta do cliente usando fuzzy matching.
@@ -233,7 +233,7 @@ async def find_client_folder(
 @router.get("/folder/{folder_id}/files")
 async def list_folder_files(
     folder_id: str,
-    user: dict = Depends(require_staff())
+    user: dict = Depends(get_current_user)
 ):
     """Listar ficheiros dentro de uma pasta."""
     access_token = await get_valid_access_token(user["id"])
@@ -252,7 +252,7 @@ async def list_folder_files(
 @router.get("/file/{file_id}/download-url")
 async def get_file_download_url(
     file_id: str,
-    user: dict = Depends(require_staff())
+    user: dict = Depends(get_current_user)
 ):
     """Obter URL de download pré-autenticado para um ficheiro."""
     access_token = await get_valid_access_token(user["id"])
@@ -278,7 +278,7 @@ async def get_file_download_url(
 @router.get("/process/{process_id}/documents")
 async def get_process_documents(
     process_id: str,
-    user: dict = Depends(require_staff())
+    user: dict = Depends(get_current_user)
 ):
     """
     Obter documentos do OneDrive para um processo específico.
@@ -327,7 +327,7 @@ async def get_process_documents(
 
 
 @router.delete("/auth/logout")
-async def logout_onedrive(user: dict = Depends(require_staff())):
+async def logout_onedrive(user: dict = Depends(get_current_user)):
     """Remover autenticação OneDrive do utilizador."""
     await db.onedrive_tokens.delete_one({"user_id": user["id"]})
     return {"success": True, "message": "OneDrive desconectado"}
