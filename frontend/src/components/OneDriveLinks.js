@@ -175,23 +175,64 @@ const OneDriveLinks = ({ processId, clientName }) => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 text-blue-500" />
-              Documentos OneDrive
-            </CardTitle>
-            <CardDescription>
-              Links para pastas partilhadas de {clientName}
-            </CardDescription>
+    <div className="space-y-4">
+      {/* Botão principal para abrir pasta do OneDrive */}
+      {mainFolderUrl && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-blue-600" />
+                Pasta OneDrive: {clientName}
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                {savedFolderUrl ? "Link específico guardado" : "Pasta principal - pesquisar pelo nome do cliente"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                onClick={handleOpenFolder}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="open-onedrive-btn"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Abrir
+              </Button>
+              {savedFolderUrl ? (
+                <Button
+                  onClick={handleRemoveFolderUrl}
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSaveFolderUrl}
+                  size="sm"
+                  variant="outline"
+                  disabled={loadingFolder}
+                  title="Guardar link específico da pasta do cliente"
+                >
+                  {loadingFolder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                </Button>
+              )}
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Links adicionais */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-medium text-sm">Links Adicionais</h4>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" variant="outline">
                 <Plus className="h-4 w-4 mr-1" />
-                Adicionar Link
+                Adicionar
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -237,69 +278,64 @@ const OneDriveLinks = ({ processId, clientName }) => {
             </DialogContent>
           </Dialog>
         </div>
-      </CardHeader>
-      <CardContent>
+
         {links.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Nenhum link adicionado</p>
-            <p className="text-sm mt-1">Clique em "Adicionar Link" para associar pastas do OneDrive</p>
+          <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+            <LinkIcon className="h-8 w-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Nenhum link adicional</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {links.map((link) => (
-              <div
-                key={link.id}
-                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="p-2 bg-blue-100 dark:bg-teal-600/30 rounded-lg">
-                    <LinkIcon className="h-4 w-4 text-blue-600" />
+          <ScrollArea className="max-h-[200px]">
+            <div className="space-y-2">
+              {links.map((link) => (
+                <div
+                  key={link.id}
+                  className="flex items-center justify-between p-2 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <LinkIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{link.name}</p>
+                      {link.description && (
+                        <p className="text-xs text-muted-foreground truncate">{link.description}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{link.name}</p>
-                    {link.description && (
-                      <p className="text-sm text-muted-foreground truncate">{link.description}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Adicionado por {link.added_by}
-                    </p>
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => window.open(link.url, "_blank")}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleDeleteLink(link.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 ml-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(link.url, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Abrir
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteLink(link.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
+      </div>
 
-        {/* Instructions */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-          <h4 className="font-medium text-sm mb-2">📁 Como adicionar links do OneDrive:</h4>
-          <ol className="text-sm text-muted-foreground space-y-1">
-            <li>1. Abra o OneDrive e navegue até à pasta do cliente</li>
-            <li>2. Clique com o botão direito na pasta → "Partilhar"</li>
-            <li>3. Configure as permissões (ver ou editar)</li>
-            <li>4. Copie o link e cole aqui</li>
-          </ol>
+      {/* Instruções - mais compactas */}
+      {!mainFolderUrl && (
+        <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg text-sm">
+          <p className="font-medium text-yellow-800 dark:text-yellow-200">⚠️ OneDrive não configurado</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Configure o link de partilha nas definições do sistema.
+          </p>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 
