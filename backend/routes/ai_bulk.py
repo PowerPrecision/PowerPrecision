@@ -1,30 +1,40 @@
 """
 Bulk AI Document Analysis Routes
 Upload múltiplo de documentos para análise com IA e preenchimento automático das fichas de clientes.
+
+NOTA: A lógica de negócio está em services/ai_document.py
+Esta rota apenas recebe pedidos e devolve respostas.
 """
 import os
-import io
 import uuid
-import base64
 import logging
 import asyncio
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import json
 
 from database import db
 from models.auth import UserRole
 from services.auth import require_roles
 from services.ai_document import (
-    analyze_document_from_base64,
-    map_cc_to_personal_data,
-    map_recibo_to_financial_data,
-    map_irs_to_financial_data
+    MAX_FILE_SIZE,
+    MAX_CONCURRENT_ANALYSIS,
+    detect_document_type,
+    get_mime_type,
+    validate_file_size,
+    analyze_single_document,
+    process_bulk_documents,
+    build_update_data_from_extraction
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ai/bulk", tags=["AI Bulk Analysis"])
+
+# Tamanho do chunk para leitura de ficheiros (64KB)
+CHUNK_SIZE = 64 * 1024
 
 
 class BulkAnalysisResult(BaseModel):
@@ -36,45 +46,11 @@ class BulkAnalysisResult(BaseModel):
     results: List[dict] = []
 
 
-def detect_document_type(filename: str) -> str:
-    """Detectar tipo de documento pelo nome do ficheiro."""
-    filename_lower = filename.lower()
-    
-    if any(x in filename_lower for x in ['cc', 'cartao', 'cidadao', 'identificacao', 'bi']):
-        return 'cc'
-    elif any(x in filename_lower for x in ['recibo', 'vencimento', 'salario', 'ordenado']):
-        return 'recibo_vencimento'
-    elif any(x in filename_lower for x in ['irs', 'declaracao', 'imposto']):
-        return 'irs'
-    elif any(x in filename_lower for x in ['contrato', 'trabalho']):
-        return 'contrato_trabalho'
-    elif any(x in filename_lower for x in ['caderneta', 'predial', 'imovel']):
-        return 'caderneta_predial'
-    elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco']):
-        return 'extrato_bancario'
-    else:
-        return 'outro'
-
-
-def get_mime_type(filename: str) -> str:
-    """Obter MIME type pelo nome do ficheiro."""
-    ext = filename.lower().split('.')[-1]
-    mime_types = {
-        'pdf': 'application/pdf',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'webp': 'image/webp',
-    }
-    return mime_types.get(ext, 'application/octet-stream')
-
-
 async def find_client_by_name(client_name: str) -> Optional[dict]:
     """Encontrar cliente pelo nome (busca flexível)."""
     if not client_name:
         return None
     
-    # Limpar nome
     client_name = client_name.strip()
     
     # Busca exacta primeiro
@@ -101,81 +77,49 @@ async def find_client_by_name(client_name: str) -> Optional[dict]:
     return process
 
 
-async def update_client_with_extracted_data(process_id: str, extracted_data: dict, document_type: str) -> bool:
+async def read_file_in_chunks(file: UploadFile) -> bytes:
+    """
+    Ler ficheiro em chunks para evitar problemas de memória.
+    Valida o tamanho durante a leitura.
+    """
+    chunks = []
+    total_size = 0
+    
+    while True:
+        chunk = await file.read(CHUNK_SIZE)
+        if not chunk:
+            break
+        
+        total_size += len(chunk)
+        
+        # Validar tamanho durante leitura
+        if total_size > MAX_FILE_SIZE:
+            raise ValueError(f"Ficheiro excede o limite de {MAX_FILE_SIZE / (1024*1024):.0f}MB")
+        
+        chunks.append(chunk)
+    
+    return b''.join(chunks)
+
+
+async def update_client_with_extracted_data(
+    process_id: str,
+    extracted_data: dict,
+    document_type: str
+) -> bool:
     """Actualizar ficha do cliente com dados extraídos."""
     try:
-        update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+        # Obter dados existentes
+        process = await db.processes.find_one(
+            {"id": process_id},
+            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1}
+        )
         
-        if document_type == 'cc':
-            # Dados pessoais
-            personal_update = {}
-            if extracted_data.get('nif'):
-                personal_update['nif'] = extracted_data['nif']
-            if extracted_data.get('numero_documento'):
-                personal_update['documento_id'] = extracted_data['numero_documento']
-            if extracted_data.get('data_nascimento'):
-                personal_update['data_nascimento'] = extracted_data['data_nascimento']
-            if extracted_data.get('naturalidade'):
-                personal_update['naturalidade'] = extracted_data['naturalidade']
-            if extracted_data.get('nacionalidade'):
-                personal_update['nacionalidade'] = extracted_data['nacionalidade']
-            if extracted_data.get('sexo'):
-                personal_update['sexo'] = extracted_data['sexo']
-            if extracted_data.get('morada'):
-                personal_update['morada'] = extracted_data['morada']
-            if extracted_data.get('codigo_postal'):
-                personal_update['codigo_postal'] = extracted_data['codigo_postal']
-            
-            if personal_update:
-                # Merge com dados existentes
-                process = await db.processes.find_one({"id": process_id}, {"_id": 0, "personal_data": 1})
-                existing = process.get("personal_data", {}) if process else {}
-                existing.update(personal_update)
-                update_data["personal_data"] = existing
-                
-            # Actualizar email se extraído
-            if extracted_data.get('email'):
-                update_data["client_email"] = extracted_data['email']
-                
-        elif document_type in ['recibo_vencimento', 'irs']:
-            # Dados financeiros
-            financial_update = {}
-            if extracted_data.get('salario_liquido'):
-                financial_update['rendimento_mensal'] = extracted_data['salario_liquido']
-            if extracted_data.get('salario_bruto'):
-                financial_update['rendimento_bruto'] = extracted_data['salario_bruto']
-            if extracted_data.get('empresa'):
-                financial_update['empresa'] = extracted_data['empresa']
-            if extracted_data.get('tipo_contrato'):
-                financial_update['tipo_contrato'] = extracted_data['tipo_contrato']
-            if extracted_data.get('categoria_profissional'):
-                financial_update['categoria_profissional'] = extracted_data['categoria_profissional']
-            if extracted_data.get('rendimento_liquido_anual'):
-                financial_update['rendimento_anual'] = extracted_data['rendimento_liquido_anual']
-                
-            if financial_update:
-                process = await db.processes.find_one({"id": process_id}, {"_id": 0, "financial_data": 1})
-                existing = process.get("financial_data", {}) if process else {}
-                existing.update(financial_update)
-                update_data["financial_data"] = existing
-                
-        elif document_type == 'caderneta_predial':
-            # Dados do imóvel
-            real_estate_update = {}
-            if extracted_data.get('artigo_matricial'):
-                real_estate_update['artigo_matricial'] = extracted_data['artigo_matricial']
-            if extracted_data.get('valor_patrimonial_tributario'):
-                real_estate_update['valor_patrimonial'] = extracted_data['valor_patrimonial_tributario']
-            if extracted_data.get('area_bruta'):
-                real_estate_update['area'] = extracted_data['area_bruta']
-            if extracted_data.get('localizacao'):
-                real_estate_update['localizacao'] = extracted_data['localizacao']
-                
-            if real_estate_update:
-                process = await db.processes.find_one({"id": process_id}, {"_id": 0, "real_estate_data": 1})
-                existing = process.get("real_estate_data", {}) if process else {}
-                existing.update(real_estate_update)
-                update_data["real_estate_data"] = existing
+        # Construir dados de actualização usando função do serviço
+        update_data = build_update_data_from_extraction(
+            extracted_data,
+            document_type,
+            process or {}
+        )
         
         # Aplicar actualização
         if len(update_data) > 1:  # Mais do que só updated_at
@@ -184,7 +128,7 @@ async def update_client_with_extracted_data(process_id: str, extracted_data: dic
                 {"$set": update_data}
             )
             return result.modified_count > 0
-            
+        
         return False
         
     except Exception as e:
@@ -217,120 +161,201 @@ async def bulk_analyze_documents(
         results=[]
     )
     
-    # Agrupar ficheiros por cliente
-    clients_files = {}
+    # Fase 1: Agrupar ficheiros por cliente e preparar dados
+    clients_data = {}  # client_name -> {process_id, files: [(content, filename)]}
     
     for file in files:
-        # Extrair nome do cliente do path (pasta)
-        # Formato esperado: "NomeCliente/ficheiro.pdf" ou "NomeCliente\ficheiro.pdf"
         filename = file.filename or ""
         parts = filename.replace("\\", "/").split("/")
         
         if len(parts) >= 2:
-            client_name = parts[-2]  # Pasta pai
-            doc_filename = parts[-1]  # Nome do ficheiro
+            client_name = parts[-2]
+            doc_filename = parts[-1]
         else:
-            # Se não tiver pasta, tentar extrair do nome do ficheiro
-            # Formato: "NomeCliente_CC.pdf"
             doc_filename = parts[0]
             if "_" in doc_filename:
                 client_name = doc_filename.rsplit("_", 1)[0]
             else:
                 client_name = "Desconhecido"
         
-        if client_name not in clients_files:
-            clients_files[client_name] = []
-        clients_files[client_name].append((file, doc_filename))
-    
-    logger.info(f"Bulk analysis: {len(files)} ficheiros de {len(clients_files)} clientes")
-    
-    # Processar cada cliente
-    for client_name, client_files in clients_files.items():
-        # Encontrar cliente na base de dados
-        process = await find_client_by_name(client_name)
-        
-        if not process:
-            error_msg = f"Cliente não encontrado: {client_name}"
-            result.errors.append(error_msg)
-            logger.warning(error_msg)
+        # Ler ficheiro em chunks (com validação de tamanho)
+        try:
+            content = await read_file_in_chunks(file)
+        except ValueError as e:
+            result.errors.append(f"{client_name}/{doc_filename}: {str(e)}")
+            continue
+        except Exception as e:
+            result.errors.append(f"{client_name}/{doc_filename}: Erro ao ler ficheiro - {str(e)}")
             continue
         
-        process_id = process.get("id")
-        client_updated = False
+        if client_name not in clients_data:
+            # Procurar cliente na BD
+            process = await find_client_by_name(client_name)
+            if not process:
+                result.errors.append(f"Cliente não encontrado: {client_name}")
+                continue
+            
+            clients_data[client_name] = {
+                "process_id": process.get("id"),
+                "files": []
+            }
         
-        # Processar cada ficheiro do cliente
-        for file, doc_filename in client_files:
-            try:
-                # Ler conteúdo do ficheiro
-                content = await file.read()
-                base64_content = base64.b64encode(content).decode('utf-8')
-                
-                # Detectar tipo de documento
-                document_type = detect_document_type(doc_filename)
-                mime_type = get_mime_type(doc_filename)
-                
-                logger.info(f"Analisando {doc_filename} ({document_type}) para {client_name}")
-                
-                # Analisar com IA
-                analysis_result = await analyze_document_from_base64(
-                    base64_content,
-                    mime_type,
-                    document_type
+        clients_data[client_name]["files"].append({
+            "content": content,
+            "filename": doc_filename
+        })
+    
+    logger.info(f"Bulk analysis: {len(files)} ficheiros de {len(clients_data)} clientes")
+    
+    # Fase 2: Preparar lista de ficheiros para processamento paralelo
+    files_to_process = []
+    for client_name, data in clients_data.items():
+        for file_info in data["files"]:
+            files_to_process.append({
+                "content": file_info["content"],
+                "filename": file_info["filename"],
+                "client_name": client_name,
+                "process_id": data["process_id"]
+            })
+    
+    # Fase 3: Processar todos em paralelo usando o serviço
+    if files_to_process:
+        bulk_result = await process_bulk_documents(files_to_process)
+        
+        # Fase 4: Actualizar fichas dos clientes com resultados
+        updated_clients = set()
+        
+        for r in bulk_result.get("results", []):
+            result.results.append(r)
+            
+            if r.get("success") and r.get("extracted_data"):
+                # Actualizar ficha do cliente
+                updated = await update_client_with_extracted_data(
+                    r["process_id"],
+                    r["extracted_data"],
+                    r["document_type"]
                 )
+                r["updated"] = updated
                 
-                if analysis_result.get("success") and analysis_result.get("extracted_data"):
-                    extracted_data = analysis_result["extracted_data"]
-                    
-                    # Actualizar ficha do cliente
-                    updated = await update_client_with_extracted_data(
-                        process_id,
-                        extracted_data,
-                        document_type
-                    )
-                    
-                    if updated:
-                        client_updated = True
-                    
-                    result.results.append({
-                        "client_name": client_name,
-                        "filename": doc_filename,
-                        "document_type": document_type,
-                        "success": True,
-                        "fields_extracted": list(extracted_data.keys()),
-                        "updated": updated
-                    })
-                    result.processed += 1
-                    
-                else:
-                    error_msg = analysis_result.get("error", "Erro desconhecido")
-                    result.results.append({
-                        "client_name": client_name,
-                        "filename": doc_filename,
-                        "document_type": document_type,
-                        "success": False,
-                        "error": error_msg
-                    })
-                    result.errors.append(f"{client_name}/{doc_filename}: {error_msg}")
-                    
-            except Exception as e:
-                error_msg = f"Erro ao processar {doc_filename}: {str(e)}"
-                result.errors.append(error_msg)
-                logger.error(error_msg)
-                result.results.append({
-                    "client_name": client_name,
-                    "filename": doc_filename,
-                    "success": False,
-                    "error": str(e)
-                })
+                if updated:
+                    updated_clients.add(r["process_id"])
         
-        if client_updated:
-            result.updated_clients += 1
+        result.processed = bulk_result.get("processed", 0)
+        result.updated_clients = len(updated_clients)
+        result.errors.extend(bulk_result.get("errors", []))
     
     result.success = result.processed > 0
     
-    logger.info(f"Bulk analysis complete: {result.processed}/{result.total_files} processados, {result.updated_clients} clientes actualizados")
+    logger.info(
+        f"Bulk analysis complete: {result.processed}/{result.total_files} processados, "
+        f"{result.updated_clients} clientes actualizados"
+    )
     
     return result
+
+
+@router.post("/analyze-stream")
+async def bulk_analyze_documents_stream(
+    files: List[UploadFile] = File(...),
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Análise em lote com streaming de progresso.
+    Retorna Server-Sent Events (SSE) com o progresso de cada ficheiro.
+    """
+    
+    async def generate_progress():
+        total_files = len(files)
+        processed = 0
+        errors = []
+        results = []
+        updated_clients = set()
+        
+        # Enviar início
+        yield f"data: {json.dumps({'type': 'start', 'total': total_files})}\n\n"
+        
+        # Agrupar ficheiros por cliente
+        clients_data = {}
+        
+        for file in files:
+            filename = file.filename or ""
+            parts = filename.replace("\\", "/").split("/")
+            
+            if len(parts) >= 2:
+                client_name = parts[-2]
+                doc_filename = parts[-1]
+            else:
+                doc_filename = parts[0]
+                client_name = doc_filename.rsplit("_", 1)[0] if "_" in doc_filename else "Desconhecido"
+            
+            try:
+                content = await read_file_in_chunks(file)
+            except Exception as e:
+                error_msg = f"{client_name}/{doc_filename}: {str(e)}"
+                errors.append(error_msg)
+                yield f"data: {json.dumps({'type': 'error', 'file': doc_filename, 'client': client_name, 'error': str(e)})}\n\n"
+                continue
+            
+            if client_name not in clients_data:
+                process = await find_client_by_name(client_name)
+                if not process:
+                    error_msg = f"Cliente não encontrado: {client_name}"
+                    errors.append(error_msg)
+                    yield f"data: {json.dumps({'type': 'error', 'file': doc_filename, 'client': client_name, 'error': 'Cliente não encontrado'})}\n\n"
+                    continue
+                
+                clients_data[client_name] = {"process_id": process.get("id"), "files": []}
+            
+            clients_data[client_name]["files"].append({"content": content, "filename": doc_filename})
+        
+        # Processar cada ficheiro e enviar progresso
+        for client_name, data in clients_data.items():
+            for file_info in data["files"]:
+                filename = file_info["filename"]
+                
+                # Enviar início de processamento
+                yield f"data: {json.dumps({'type': 'processing', 'file': filename, 'client': client_name})}\n\n"
+                
+                # Analisar documento
+                result = await analyze_single_document(
+                    content=file_info["content"],
+                    filename=filename,
+                    client_name=client_name,
+                    process_id=data["process_id"]
+                )
+                
+                if result.get("success"):
+                    # Actualizar ficha do cliente
+                    updated = await update_client_with_extracted_data(
+                        data["process_id"],
+                        result["extracted_data"],
+                        result["document_type"]
+                    )
+                    result["updated"] = updated
+                    
+                    if updated:
+                        updated_clients.add(data["process_id"])
+                    
+                    processed += 1
+                    
+                    yield f"data: {json.dumps({'type': 'success', 'file': filename, 'client': client_name, 'fields': result.get('fields_extracted', []), 'updated': updated})}\n\n"
+                else:
+                    errors.append(f"{client_name}/{filename}: {result.get('error', 'Erro desconhecido')}")
+                    yield f"data: {json.dumps({'type': 'error', 'file': filename, 'client': client_name, 'error': result.get('error', 'Erro desconhecido')})}\n\n"
+                
+                results.append(result)
+        
+        # Enviar resumo final
+        yield f"data: {json.dumps({'type': 'complete', 'total': total_files, 'processed': processed, 'updated_clients': len(updated_clients), 'errors_count': len(errors)})}\n\n"
+    
+    return StreamingResponse(
+        generate_progress(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
 
 
 @router.get("/clients-list")
