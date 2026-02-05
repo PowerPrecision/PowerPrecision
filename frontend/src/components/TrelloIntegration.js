@@ -458,46 +458,77 @@ const TrelloIntegration = () => {
             </button>
             
             {showMemberMapping && (
-              <div className="border-t p-3 space-y-2">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Os membros do Trello são automaticamente associados aos utilizadores da aplicação pelo nome.
-                  Para que a atribuição automática funcione, os nomes devem coincidir.
+              <div className="border-t p-3 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Associe cada membro do Trello ao utilizador correspondente na aplicação.
+                  Depois de associar, clique em "Guardar Mapeamentos" e em seguida "Atribuir Auto".
                 </p>
+                
                 {status.member_mapping.map((mapping, idx) => (
                   <div 
                     key={idx}
-                    className={`flex items-center justify-between p-2 rounded text-sm ${
-                      mapping.matched ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+                    className={`flex items-center justify-between p-3 rounded text-sm ${
+                      mapping.matched ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {mapping.matched ? (
-                        <UserCheck className="h-4 w-4 text-green-600" />
+                        <UserCheck className="h-4 w-4 text-green-600 flex-shrink-0" />
                       ) : (
-                        <UserX className="h-4 w-4 text-red-600" />
+                        <UserX className="h-4 w-4 text-amber-600 flex-shrink-0" />
                       )}
-                      <div>
-                        <p className="font-medium">{mapping.trello_name}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{mapping.trello_name}</p>
                         <p className="text-xs text-muted-foreground">@{mapping.trello_username}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      {mapping.matched ? (
-                        <>
-                          <p className="text-green-700">{mapping.app_user}</p>
-                          <p className="text-xs text-green-600">{mapping.app_email}</p>
-                          <p className="text-xs text-muted-foreground">{mapping.app_role} • via {mapping.match_method}</p>
-                        </>
-                      ) : (
-                        <p className="text-red-600 text-xs">Sem correspondência</p>
+                    
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="text-sm border rounded px-2 py-1 bg-white min-w-[200px]"
+                        value={
+                          pendingMappings[mapping.trello_username] !== undefined 
+                            ? pendingMappings[mapping.trello_username] 
+                            : (mapping.app_user_id || "")
+                        }
+                        onChange={(e) => handleMappingChange(mapping.trello_username, e.target.value)}
+                      >
+                        <option value="">-- Seleccionar utilizador --</option>
+                        {appUsers.map(user => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} ({user.email}) - {user.role}
+                          </option>
+                        ))}
+                      </select>
+                      
+                      {mapping.matched && mapping.match_method && (
+                        <span className="text-xs text-green-600 whitespace-nowrap">
+                          via {mapping.match_method}
+                        </span>
                       )}
                     </div>
                   </div>
                 ))}
-                {status.member_mapping.some(m => !m.matched) && (
-                  <p className="text-xs text-amber-700 mt-2 p-2 bg-amber-50 rounded">
-                    💡 Para mapear membros não correspondidos, crie utilizadores na aplicação com o <strong>mesmo email</strong> que o username do Trello (ex: @pedroborges → pedroborges@gmail.com)
-                  </p>
+                
+                {/* Botão para guardar mapeamentos */}
+                {Object.keys(pendingMappings).length > 0 && (
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <Button
+                      onClick={handleSaveMappings}
+                      disabled={savingMapping}
+                      className="bg-teal-600 hover:bg-teal-700"
+                    >
+                      {savingMapping ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <UserCheck className="h-4 w-4 mr-2" />
+                      )}
+                      Guardar Mapeamentos ({Object.keys(pendingMappings).length})
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Depois de guardar, clique em "Atribuir Auto" para aplicar aos processos existentes.
+                    </span>
+                  </div>
                 )}
               </div>
             )}
