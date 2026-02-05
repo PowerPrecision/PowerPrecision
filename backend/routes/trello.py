@@ -221,7 +221,12 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
             {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
         ).to_list(100)
         
+        # Obter mapeamentos manuais
+        manual_mappings = await db.trello_member_mappings.find({}, {"_id": 0}).to_list(100)
+        manual_map = {m["trello_username"].lower(): m for m in manual_mappings}
+        
         # Criar mapas para busca
+        users_by_id = {u["id"]: u for u in app_users}
         users_by_email = {u.get("email", "").lower().strip(): u for u in app_users if u.get("email")}
         users_by_name = {u["name"].lower().strip(): u for u in app_users}
         users_by_email_local = {}
@@ -237,9 +242,19 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
             
             matched = None
             match_method = None
+            mapped_user_id = None
             
-            # 1. PRIORIDADE: Username começa com parte local do email
-            if member_username:
+            # 1. PRIORIDADE MÁXIMA: Mapeamento manual
+            if member_username in manual_map:
+                manual_entry = manual_map[member_username]
+                user_id = manual_entry.get("user_id")
+                if user_id and user_id in users_by_id:
+                    matched = users_by_id[user_id]
+                    match_method = "manual"
+                    mapped_user_id = user_id
+            
+            # 2. Username começa com parte local do email
+            if not matched and member_username:
                 for local_part, user in users_by_email_local.items():
                     username_clean = ''.join(c for c in member_username if not c.isdigit())
                     if member_username.startswith(local_part) or local_part.startswith(username_clean):
@@ -247,7 +262,7 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
                         match_method = "email"
                         break
             
-            # 2. Nome exacto
+            # 3. Nome exacto
             if not matched and member_name in users_by_name:
                 matched = users_by_name[member_name]
                 match_method = "name"
@@ -256,6 +271,7 @@ async def get_trello_status(user: dict = Depends(require_roles([UserRole.ADMIN, 
                 "trello_name": member.get("name"),
                 "trello_username": member.get("username"),
                 "app_user": matched["name"] if matched else None,
+                "app_user_id": matched["id"] if matched else mapped_user_id,
                 "app_email": matched.get("email") if matched else None,
                 "app_role": matched["role"] if matched else None,
                 "matched": matched is not None,
