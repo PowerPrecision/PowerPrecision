@@ -517,6 +517,30 @@ const SettingsPage = () => {
           {user?.role === "admin" && (
             <TabsContent value="sistema">
               <div className="space-y-6">
+                {/* Análise de Documentos com IA */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-purple-500" />
+                      Análise de Documentos com IA
+                    </CardTitle>
+                    <CardDescription>
+                      Upload massivo de documentos para preenchimento automático das fichas de clientes
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-100">
+                      <div>
+                        <p className="font-medium">Upload Massivo</p>
+                        <p className="text-sm text-muted-foreground">
+                          Selecione uma pasta com subpastas de clientes. A IA analisa CC, recibos, IRS e outros documentos.
+                        </p>
+                      </div>
+                      <BulkDocumentUpload />
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Integração Trello */}
                 <TrelloIntegration />
                 
