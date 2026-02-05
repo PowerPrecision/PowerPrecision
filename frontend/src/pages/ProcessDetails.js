@@ -49,6 +49,7 @@ import ProcessAlerts from "../components/ProcessAlerts";
 import TasksPanel from "../components/TasksPanel";
 import ProcessSummaryCard from "../components/ProcessSummaryCard";
 import EmailHistoryPanel from "../components/EmailHistoryPanel";
+import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
 import {
   ArrowLeft,
   User,
