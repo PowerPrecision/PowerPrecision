@@ -375,6 +375,8 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
     Analisar documento usando modelo de visão.
     Usado quando extracção de texto não é possível.
     
+    Inclui retry automático para erros 429 (rate limit).
+    
     Args:
         base64_content: Imagem em base64
         mime_type: Tipo MIME
@@ -389,13 +391,6 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
     resized_base64, new_mime_type = resize_image_base64(base64_content, mime_type)
     
     try:
-        import httpx
-        
-        headers = {
-            "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
-            "Content-Type": "application/json"
-        }
-        
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -406,7 +401,7 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:{new_mime_type};base64,{resized_base64}",
-                            "detail": "low"  # Usar detalhe baixo para reduzir custos
+                            "detail": "low"
                         }
                     }
                 ]
@@ -420,14 +415,7 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
             "temperature": 0.1
         }
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=payload
-            )
-            response.raise_for_status()
-            result = response.json()
+        result = await call_openai_api(payload, timeout=90.0)
         
         ai_response = result["choices"][0]["message"]["content"]
         extracted_data = parse_ai_response(ai_response, document_type)
@@ -441,6 +429,13 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
             "raw_response": ai_response
         }
         
+    except RateLimitError as e:
+        logger.error(f"Rate limit excedido após {RETRY_MAX_ATTEMPTS} tentativas: {e}")
+        return {
+            "success": False,
+            "error": f"Limite de pedidos excedido. Tente novamente mais tarde.",
+            "extracted_data": {}
+        }
     except Exception as e:
         logger.error(f"Erro na análise com visão: {e}")
         return {
