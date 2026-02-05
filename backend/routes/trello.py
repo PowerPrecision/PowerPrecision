@@ -96,8 +96,11 @@ async def find_matching_user(trello_members: list) -> dict:
         if matched_user:
             result["matched_members"].append({
                 "trello_member": member.get("fullName"),
+                "trello_email": member_email or member_username,
                 "matched_user": matched_user["name"],
-                "role": matched_user["role"]
+                "matched_email": matched_user.get("email"),
+                "role": matched_user["role"],
+                "match_method": match_method
             })
             
             # Atribuir baseado no papel do utilizador
