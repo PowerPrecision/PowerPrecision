@@ -228,6 +228,37 @@ def status_to_trello_list(status: str) -> Optional[str]:
     return STATUS_TO_TRELLO.get(status)
 
 
+def clean_email(value: str) -> str:
+    """
+    Limpar email que pode estar em formato markdown.
+    Ex: [email@example.com](mailto:email@example.com "‌") -> email@example.com
+    """
+    import re
+    if not value:
+        return ""
+    
+    # Padrão 1: [email](mailto:email "...")
+    match = re.search(r'\[([^\]]+@[^\]]+)\]\(mailto:', value)
+    if match:
+        return match.group(1).strip()
+    
+    # Padrão 2: [email](mailto:email)
+    match = re.search(r'\[([^\]]+@[^\]]+)\]', value)
+    if match:
+        return match.group(1).strip()
+    
+    # Padrão 3: mailto:email
+    if 'mailto:' in value:
+        return value.split('mailto:')[1].split()[0].strip('"\'<>()')
+    
+    # Extrair email simples de qualquer texto
+    match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', value)
+    if match:
+        return match.group(0)
+    
+    return value.strip()
+
+
 def parse_card_description(desc: str) -> Dict[str, str]:
     """Extrair dados estruturados da descrição do card."""
     data = {}
@@ -239,7 +270,13 @@ def parse_card_description(desc: str) -> Dict[str, str]:
         if ":" in line:
             key, value = line.split(":", 1)
             key = key.strip().lower().replace(" ", "_")
-            data[key] = value.strip()
+            value = value.strip()
+            
+            # Limpar emails
+            if 'email' in key.lower() or '@' in value:
+                value = clean_email(value)
+            
+            data[key] = value
     
     return data
 
