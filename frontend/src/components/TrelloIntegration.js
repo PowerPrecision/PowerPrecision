@@ -260,6 +260,66 @@ const TrelloIntegration = () => {
     }
   };
 
+  // Handler para alteração no dropdown de mapeamento
+  const handleMappingChange = (trelloUsername, userId) => {
+    setPendingMappings(prev => ({
+      ...prev,
+      [trelloUsername]: userId
+    }));
+  };
+
+  // Guardar mapeamentos pendentes
+  const handleSaveMappings = async () => {
+    const mappingsToSave = Object.entries(pendingMappings).map(([trello_username, user_id]) => ({
+      trello_username,
+      user_id: user_id || ""
+    }));
+
+    if (mappingsToSave.length === 0) {
+      toast({
+        title: "Nada para guardar",
+        description: "Não há alterações pendentes.",
+      });
+      return;
+    }
+
+    setSavingMapping(true);
+    try {
+      const response = await fetch(`${API_URL}/api/trello/member-mappings/bulk`, {
+        method: "POST",
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ mappings: mappingsToSave })
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Mapeamentos guardados",
+          description: `${data.saved} mapeamentos actualizados.`,
+        });
+        setPendingMappings({});
+        fetchStatus();
+      } else {
+        toast({
+          title: "Erro ao guardar",
+          description: data.errors?.join(", ") || "Erro desconhecido",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível guardar os mapeamentos.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingMapping(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
