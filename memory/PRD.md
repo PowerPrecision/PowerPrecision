@@ -7,7 +7,7 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Frontend**: React, Tailwind CSS, Shadcn UI
 - **Backend**: FastAPI, Pydantic, Motor (MongoDB async)
 - **Base de Dados**: MongoDB (DB_NAME: test_database)
-- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails)
+- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado)
 
 ## Funcionalidades Implementadas
 
@@ -24,6 +24,7 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - ✅ Endpoint `/api/trello/assign-existing` para atribuir processos já existentes
 - ✅ Visibilidade de processos por papel (consultor vê só os seus, mediador idem)
 - ✅ Interface de diagnóstico com estatísticas de sincronização
+- ✅ **Dialog de atribuição manual** - permite atribuir consultor e intermediário via UI
 
 ### Página de Integração Trello Melhorada (Fev 2026)
 - ✅ Estatísticas de sincronização (total, do Trello, com/sem atribuição)
@@ -31,6 +32,13 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - ✅ Avisos quando existem processos sem atribuição
 - ✅ Botão "Atribuir Auto" para corrigir processos existentes
 - ✅ Informação de diagnóstico detalhada (credenciais, erros)
+
+### Integração OneDrive (Fev 2026)
+- ✅ **Workaround via link partilhado** - utiliza link de partilha da pasta principal
+- ✅ Botão "Abrir no OneDrive" na página de detalhes do processo
+- ✅ Possibilidade de guardar link específico da pasta do cliente
+- ✅ Separador "Ficheiros" com links adicionais do OneDrive
+- ✅ Configuração via variáveis de ambiente (ONEDRIVE_SHARED_LINK)
 
 ### Sistema de Emails (Jan 2026)
 - ✅ Visualização de emails por processo
@@ -45,13 +53,15 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - ✅ Migração de processos existentes
 - ✅ Exibição no Kanban e detalhes
 
-### UI/UX (Jan 2026)
+### UI/UX (Jan-Fev 2026)
 - ✅ Tema de cores teal/dourado (Precision/Power branding)
 - ✅ Painel de emails sempre visível na página de detalhes
 - ✅ Scroll corrigido no histórico de emails
 - ✅ ID interno "CreditoIMO" oculto da interface
+- ✅ **Layout Kanban corrigido** - botões de ação sempre visíveis (grid layout)
 
 ### Correções de Bugs
+- ✅ (Fev 2026) **Botões Kanban** - Layout reestruturado com CSS Grid para garantir visibilidade
 - ✅ (Fev 2026) Processos não visíveis para não-admins - CORRIGIDO
 - ✅ (Jan 2026) Removido ID CreditoIMO das notas (151 processos limpos)
 - ✅ (Jan 2026) Corrigido erro de validação em atividades incompletas
@@ -70,8 +80,8 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Credenciais de Teste
 - Admin: `admin@sistema.pt` / `admin2026`
-- Consultor: `carina@sistema.pt` / `test1234`
-- Mediador: `pedro@sistema.pt` / `test1234`
+- Consultor: criar via painel admin
+- Mediador: criar via painel admin
 
 ## Arquitetura de Ficheiros Principais
 ```
@@ -80,8 +90,9 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 │   ├── email_service.py     # Sincronização IMAP
 │   └── trello.py            # Integração Trello
 ├── routes/
-│   ├── processes.py         # CRUD processos, Kanban
+│   ├── processes.py         # CRUD processos, Kanban, Atribuição
 │   ├── trello.py            # Webhooks Trello, Atribuição Auto
+│   ├── onedrive.py          # Integração OneDrive (link partilhado)
 │   └── activities.py        # Comentários/atividades
 └── models/
     └── process.py           # Modelo de dados
@@ -90,7 +101,8 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 ├── components/
 │   ├── TrelloIntegration.js # Painel Trello melhorado
 │   ├── EmailHistoryPanel.js # Painel de emails
-│   └── KanbanBoard.js       # Quadro Kanban
+│   ├── OneDriveLinks.js     # Componente de ficheiros OneDrive
+│   └── KanbanBoard.js       # Quadro Kanban (layout corrigido)
 ├── pages/
 │   └── ProcessDetails.js    # Detalhes do processo
 └── index.css                # Variáveis de tema
@@ -100,8 +112,24 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **OpenAI**: gpt-4o-mini para análise de documentos
 - **Trello**: Sincronização bidirecional via API e webhooks
 - **Email**: IMAP/SMTP (geral@precisioncredito.pt, geral@powerealestate.pt)
+- **OneDrive**: Via link partilhado (workaround - não usa OAuth)
+
+## Endpoints da API Principais
+- `POST /api/processes/{process_id}/assign` - Atribuir consultor/intermediário
+- `GET /api/onedrive/process/{process_id}/folder-url` - URL da pasta OneDrive
+- `PUT /api/onedrive/process/{process_id}/folder-url` - Guardar link específico
+- `GET /api/processes/kanban` - Dados do quadro Kanban
+- `POST /api/trello/sync` - Sincronizar com Trello
 
 ## Notas Importantes para Deployment
 - Os utilizadores da aplicação devem ter o **mesmo nome** que os membros do Trello para que a atribuição automática funcione
 - A sincronização pode ser feita manualmente via botão "Trello → App" ou automaticamente via webhook
 - Processos existentes sem atribuição podem ser corrigidos com "Atribuir Auto"
+- OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
+
+## Última Actualização
+**5 Fevereiro 2026**
+- Corrigido bug de layout dos botões no Kanban (CSS Grid)
+- Implementado botão "Abrir no OneDrive" na página de detalhes
+- Limpeza de código (removido onedrive_shared.py redundante)
+- Testada funcionalidade de atribuição de processos via API
