@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
 from database import db
-from routes.auth import require_staff
+from services.auth import get_current_user, require_roles
+from models.user import UserRole
 from services.onedrive import onedrive_service
 
 logger = logging.getLogger(__name__)
