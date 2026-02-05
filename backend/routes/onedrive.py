@@ -22,7 +22,7 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://process-hub-25.preview.em
 
 
 @router.get("/status")
-async def get_onedrive_status(user: dict = Depends(require_staff())):
+async def get_onedrive_status(user: dict = Depends(get_current_user)):
     """Verificar estado da integração OneDrive."""
     # Verificar se há tokens guardados para este utilizador
     stored_tokens = await db.onedrive_tokens.find_one(
