@@ -137,15 +137,19 @@ async def analyze_single_file(
     O frontend envia um ficheiro de cada vez, evitando problemas de memória
     e ficheiros fechados prematuramente pelo browser.
     
-    O path do ficheiro deve ter o formato: NomeCliente/documento.pdf
+    Estrutura do path: PastaRaiz/NomeCliente/[subpastas/]documento.pdf
+    O cliente é sempre a SEGUNDA pasta (índice 1 após split).
+    Subpastas dentro da pasta do cliente também pertencem ao mesmo cliente.
     """
     filename = file.filename or "documento.pdf"
     
     # Extrair nome do cliente do path
+    # Estrutura: PastaRaiz/NomeCliente/[subpastas/]ficheiro.pdf
     parts = filename.replace("\\", "/").split("/")
     
     if len(parts) >= 2:
-        client_name = parts[-2]
+        # parts[0] = pasta raiz, parts[1] = cliente, parts[-1] = ficheiro
+        client_name = parts[1]
         doc_filename = parts[-1]
     else:
         doc_filename = parts[0]
