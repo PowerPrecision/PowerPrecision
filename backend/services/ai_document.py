@@ -959,5 +959,80 @@ def build_update_data_from_extraction(
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
+    else:
+        # Tipo "outro" - tentar extrair dados genéricos de qualquer estrutura
+        personal_update = {}
+        financial_update = {}
+        real_estate_update = {}
+        
+        # Função auxiliar para extrair valores de estruturas aninhadas
+        def extract_nested(data, keys_to_find):
+            results = {}
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    key_lower = key.lower().replace('_', ' ')
+                    for search_key, dest_key in keys_to_find.items():
+                        if search_key in key_lower:
+                            if isinstance(value, (str, int, float)) and value:
+                                results[dest_key] = value
+                    # Recursão para valores aninhados
+                    if isinstance(value, dict):
+                        results.update(extract_nested(value, keys_to_find))
+            return results
+        
+        # Mapeamentos para dados pessoais
+        personal_keys = {
+            'nif': 'nif',
+            'numero contribuinte': 'nif',
+            'data nascimento': 'data_nascimento',
+            'morada': 'morada',
+            'endereco': 'morada',
+            'codigo postal': 'codigo_postal',
+            'nome': 'nome_completo',
+        }
+        
+        # Mapeamentos para dados financeiros
+        financial_keys = {
+            'salario': 'rendimento_mensal',
+            'rendimento': 'rendimento_mensal',
+            'vencimento': 'rendimento_mensal',
+            'empresa': 'empresa',
+            'entidade empregadora': 'empresa',
+            'valor financiamento': 'valor_pretendido',
+            'montante financiamento': 'valor_pretendido',
+            'financiamento total': 'valor_pretendido',
+            'prestacao': 'prestacao_estimada',
+            'prestacao mensal': 'prestacao_estimada',
+        }
+        
+        # Mapeamentos para dados imobiliários
+        real_estate_keys = {
+            'valor imovel': 'valor_imovel',
+            'valor aquisicao': 'valor_imovel',
+            'valor estimado': 'valor_imovel',
+            'area': 'area',
+            'tipologia': 'tipologia',
+            'localizacao': 'localizacao',
+        }
+        
+        personal_update = extract_nested(extracted_data, personal_keys)
+        financial_update = extract_nested(extracted_data, financial_keys)
+        real_estate_update = extract_nested(extracted_data, real_estate_keys)
+        
+        if personal_update:
+            existing_personal = existing_data.get("personal_data", {})
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
+        
+        if financial_update:
+            existing_financial = existing_data.get("financial_data", {})
+            existing_financial.update(financial_update)
+            update_data["financial_data"] = existing_financial
+            
+        if real_estate_update:
+            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate.update(real_estate_update)
+            update_data["real_estate_data"] = existing_real_estate
+    
     return update_data
 
