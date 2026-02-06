@@ -963,6 +963,80 @@ def build_update_data_from_extraction(
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
+    elif document_type == 'certidao':
+        # Certidão de domicílio fiscal - dados pessoais
+        personal_update = {}
+        
+        # Tentar extrair de estrutura aninhada (certidao.domicilio_fiscal, etc.)
+        certidao = extracted_data.get('certidao', {})
+        domicilio = certidao.get('domicilio_fiscal', {})
+        contribuinte = certidao.get('contribuinte', {})
+        
+        if domicilio.get('endereco'):
+            personal_update['morada'] = domicilio['endereco']
+        if domicilio.get('codigo_postal'):
+            personal_update['codigo_postal'] = domicilio['codigo_postal']
+        if contribuinte.get('nif') or contribuinte.get('numero_contribuinte'):
+            personal_update['nif'] = contribuinte.get('nif') or contribuinte.get('numero_contribuinte')
+        
+        # Também verificar campos de nível superior
+        if extracted_data.get('nif'):
+            personal_update['nif'] = extracted_data['nif']
+        if extracted_data.get('morada'):
+            personal_update['morada'] = extracted_data['morada']
+            
+        if personal_update:
+            existing_personal = existing_data.get("personal_data", {})
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
+            
+    elif document_type == 'simulacao_credito':
+        # Simulação de crédito - dados financeiros e imobiliários
+        financial_update = {}
+        real_estate_update = {}
+        
+        # Extrair de estrutura aninhada
+        simulacao = extracted_data.get('simulacao_credito_habitacao', extracted_data)
+        dados_imovel = simulacao.get('dados_imovel', {})
+        resumo = simulacao.get('resumo_simulacao', {})
+        proponente = simulacao.get('dados_proponente', {})
+        
+        # Dados financeiros
+        if resumo.get('financiamento_total'):
+            financial_update['valor_pretendido'] = resumo['financiamento_total']
+        if resumo.get('prestacao_mensal'):
+            financial_update['prestacao_estimada'] = resumo['prestacao_mensal']
+        if extracted_data.get('montante_financiamento'):
+            financial_update['valor_pretendido'] = extracted_data['montante_financiamento']
+            
+        # Dados do imóvel
+        if dados_imovel.get('valor_aquisicao_imovel'):
+            real_estate_update['valor_imovel'] = dados_imovel['valor_aquisicao_imovel']
+        if dados_imovel.get('localizacao_imovel'):
+            real_estate_update['localizacao'] = dados_imovel['localizacao_imovel']
+            
+        # Dados pessoais do proponente
+        personal_update = {}
+        if proponente.get('nif'):
+            personal_update['nif'] = proponente['nif']
+        if proponente.get('data_nascimento'):
+            personal_update['data_nascimento'] = proponente['data_nascimento']
+            
+        if personal_update:
+            existing_personal = existing_data.get("personal_data", {})
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
+            
+        if financial_update:
+            existing_financial = existing_data.get("financial_data", {})
+            existing_financial.update(financial_update)
+            update_data["financial_data"] = existing_financial
+            
+        if real_estate_update:
+            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate.update(real_estate_update)
+            update_data["real_estate_data"] = existing_real_estate
+    
     else:
         # Tipo "outro" - tentar extrair dados genéricos de qualquer estrutura
         personal_update = {}
