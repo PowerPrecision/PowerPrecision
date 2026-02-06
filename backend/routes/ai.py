@@ -191,3 +191,64 @@ async def get_supported_documents(user: dict = Depends(get_current_user)):
             }
         ]
     }
+
+
+class ResetClientDataRequest(BaseModel):
+    """Request to reset client extracted data."""
+    process_id: str
+    reset_personal: bool = True
+    reset_financial: bool = True
+    reset_real_estate: bool = True
+
+
+@router.post("/reset-client-data")
+async def reset_client_data(
+    request: ResetClientDataRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Reset/clear extracted AI data for a specific client.
+    Only admins can perform this action.
+    
+    Useful for:
+    - Clearing incorrect data from failed AI extractions
+    - Starting fresh with a client's data
+    - Testing purposes
+    """
+    from database import db
+    
+    update_fields = {}
+    
+    if request.reset_personal:
+        update_fields["personal_data"] = {}
+    if request.reset_financial:
+        update_fields["financial_data"] = {}
+    if request.reset_real_estate:
+        update_fields["real_estate_data"] = {}
+    
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="Nenhum campo selecionado para limpar")
+    
+    # Verificar se processo existe
+    process = await db.processes.find_one({"id": request.process_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    result = await db.processes.update_one(
+        {"id": request.process_id},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count > 0:
+        logger.info(f"Dados do cliente {request.process_id} limpos por {user.get('email')}")
+        return {
+            "success": True,
+            "message": f"Dados limpos com sucesso para o processo {request.process_id}",
+            "fields_reset": list(update_fields.keys())
+        }
+    else:
+        return {
+            "success": True,
+            "message": "Nenhuma alteração necessária (dados já estavam vazios)",
+            "fields_reset": []
+        }
