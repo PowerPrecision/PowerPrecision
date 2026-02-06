@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 class AdditionalTester:
-    def __init__(self, base_url="https://trello-sync-1.preview.emergentagent.com"):
+    def __init__(self, base_url="https://doc-analyzer-hub.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
 

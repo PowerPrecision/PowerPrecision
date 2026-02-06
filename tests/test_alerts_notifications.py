@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://trello-sync-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://doc-analyzer-hub.preview.emergentagent.com')
 
 # Test credentials from review request
 ADMIN_CREDENTIALS = {"email": "admin@sistema.pt", "password": "admin2026"}

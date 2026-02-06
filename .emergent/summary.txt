@@ -1,78 +1,63 @@
 <analysis>**original_problem_statement:**
-O utilizador iniciou o projeto para reativar uma integração Trello, espelhando um quadro Trello na aplicação. Ao longo do tempo, os requisitos expandiram-se para incluir:
-- Sincronização completa de dados do Trello (descrição, atividades, etiquetas, membros, prazos).
-- Substituição de IDs de processo por números sequenciais (ex: #1, #2).
-- Um sistema robusto de visualização de emails.
-- Associação automática de processos Trello a utilizadores da aplicação.
-- Implementação de um sistema de atribuição manual de processos a diferentes utilizadores (consultores/intermediários).
-- Implementação de uma integração com o OneDrive para visualizar documentos associados a um processo/cliente.
-- Várias correções de UI/UX e bugs.
+O utilizador iniciou o projeto para reativar uma integração Trello. Ao longo do tempo, os requisitos expandiram-se para incluir:
+- Sincronização de dados do Trello (descrição, atividades, etiquetas, membros, prazos).
+- Um sistema de visualização de emails.
+- Atribuição manual de processos a utilizadores.
+- Integração com o OneDrive para visualização de documentos.
+- Funcionalidade de análise de documentos com IA para preencher automaticamente as fichas dos clientes, incluindo um modo de upload massivo.
+- O requisito mais recente é alinhar o ambiente de desenvolvimento com um repositório GitHub e uma base de dados MongoDB de produção, em preparação para o deployment.
+
+PRODUCT REQUIREMENTS:
+- A aplicação deve funcionar como um espelho de um quadro Trello, com funcionalidades adicionais de gestão.
+- A visibilidade dos processos deve ser controlada por papéis de utilizador (admin, consultor, intermediario) e atribuições.
+- A integração com o OneDrive deve permitir o acesso aos documentos dos clientes.
+- A análise de documentos com IA deve ser robusta, suportando uploads massivos, processamento em fila, tratamento de erros, e ser capaz de lidar com vários tipos de documentos (incluindo PDFs digitalizados e junção de ficheiros como CC frente/verso).
+- O sistema deve ser resiliente a erros de API (ex: rate limits) e otimizado para não sobrecarregar o browser do utilizador.
+- O ambiente final deve estar sincronizado com o repositório GitHub do utilizador e a base de dados de produção.
 
 **User's preferred language**: Portuguese (Portugal). O próximo agente DEVE comunicar exclusivamente em português de Portugal.
 
 **what currently exists?**
-Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho de um quadro Trello. As funcionalidades atuais incluem:
-- Autenticação de utilizadores com papéis (admin, consultor, intermediario).
-- Um Kanban que exibe processos com numeração sequencial. A visibilidade dos processos está corretamente implementada de acordo com o papel e atribuições do utilizador.
-- Funcionalidade para atribuir/desatribuir processos a consultores e intermediários através de um dialog.
-- Uma página de detalhes do processo com múltiplos separadores.
-- Um painel de histórico de emails avançado.
-- Uma página de definições com uma secção de integração Trello detalhada, que permite o mapeamento manual de membros Trello para utilizadores da aplicação.
-- Uma integração com o OneDrive (backend) que, devido a bloqueios de permissões, utiliza um método de workaround: armazena um link de partilha da pasta principal e gera um URL de pesquisa para a pasta de um cliente específico.
+Uma aplicação full-stack (React/FastAPI/MongoDB) que espelha um quadro Trello com funcionalidades de gestão avançadas.
+- **Funcionalidades Principais:** Autenticação de utilizadores, Kanban com visibilidade por papel/atribuição, dialog de atribuição de processos, página de detalhes do processo, e um painel de histórico de emails.
+- **Integração Trello:** Sincronização de dados, mapeamento manual de membros e importação de comentários/atividades.
+- **Integração OneDrive:** Utiliza um workaround com um link de partilha para gerar URLs de pesquisa para as pastas dos clientes, devido a restrições de permissão da API Graph.
+- **Análise de Documentos com IA:**
+    - Uma funcionalidade na ficha do cliente para upload de um único documento (via ficheiro ou URL) que a IA analisa para preencher dados.
+    - Uma funcionalidade de **upload massivo** para administradores, que processa uma estrutura de pastas (uma por cliente), analisa todos os documentos e atualiza as fichas dos clientes.
+- **Melhorias Recentes (Robustez e Performance):**
+    - O upload massivo foi refatorizado para processar ficheiros em fila (um de cada vez) para evitar sobrecarregar o browser.
+    - O frontend exibe uma barra de progresso individual por ficheiro usando Server-Sent Events (SSE).
+    - O backend suporta subpastas dentro da pasta de um cliente.
+    - Foi implementada uma verificação prévia para ignorar ficheiros de clientes não existentes no sistema, otimizando o processo.
+    - O sistema junta automaticamente ficheiros de Cartão de Cidadão (frente e verso) num único PDF antes da análise.
+    - PDFs sem texto (digitalizados) são convertidos em imagens usando  para análise via API de visão.
+    - Foi adicionado um mecanismo de retry com  para gerir erros de rate limit (429) da API da IA.
 
 **Last working item**:
-    - Last item agent was working: O agente estava a implementar uma solução alternativa para a integração com o OneDrive. Como a autenticação via OAuth2 foi bloqueada por falta de permissões de administrador na conta Microsoft 365 do utilizador, a abordagem foi alterada para usar um link de partilha da pasta geral de documentos. O backend foi implementado para construir um URL que abre o OneDrive e pesquisa pelo nome do cliente dentro dessa pasta partilhada. O agente estava prestes a adicionar o botão no frontend para acionar esta funcionalidade.
+    - Last item agent was working: O agente foi encarregado de sincronizar a aplicação com um repositório GitHub e uma base de dados MongoDB de produção fornecidos pelo utilizador. O agente clonou o repositório para  e começou a comparar os ficheiros, identificando diferenças significativas entre o código local (com as funcionalidades de IA mais recentes) e o código no GitHub. A tarefa foi interrompida antes de decidir como reconciliar estas diferenças ou de ligar à nova base de dados.
     - Status: IN PROGRESS
-    - Agent Testing Done: Y (Apenas para o backend via )
-    - Which testing method agent to use? screenshot tool. O próximo agente deve adicionar o botão no frontend e usar a ferramenta de screenshot para verificar se o clique no botão abre o link correto do OneDrive.
+    - Agent Testing Done: N
+    - Which testing method agent to use? Manual verification and regression testing. Após a sincronização, o agente deve verificar se a aplicação funciona com a nova base de dados e o código reconciliado. Recomenda-se chamar o  para um teste completo, dado o risco da operação.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1:  (P0) Os botões de ação nos cartões do Kanban não são visíveis para processos com nomes muito longos.
-  - Issue 2:  (P1) A funcionalidade de atribuição de processos pode não estar a funcionar corretamente.
-  
-  Issues Detail:
-  - Issue 1: 
-     - **Descrição:** O utilizador reportou que os botões de ação (atribuir, ver detalhes, etc.) desaparecem ou ficam cortados em cartões do Kanban quando o nome do processo é longo e quebra para várias linhas.
-     - **Attempted fixes:** O agente anterior tentou corrigir o problema ajustando as propriedades do flexbox no CSS do cartão (), mas a mensagem do utilizador os botoes do kabhan dos nomes dos processos mais extensos nao aparecem indica que a correção não foi eficaz.
-     - **Next debug checklist**:
-         1.  Revisitar .
-         2.  Inspecionar o CSS do contentor do cartão e do contentor dos botões.
-         3.  Aplicar uma solução mais robusta, como  ao contentor dos botões e garantir que o contentor do título do processo não empurra os botões para fora do cartão. Considerar usar  nos botões ou reestruturar o layout do cartão para ter uma coluna dedicada para os botões.
-         4.  Testar com nomes de processos extremamente longos para garantir que a solução funciona em todos os casos.
-     - **Why fix this issue and what will be achieved with the fix?** É um bug crítico de usabilidade que impede os utilizadores de interagir com os processos diretamente a partir do Kanban.
-     - **Status:** IN PROGRESS
-     - **Is recurring issue?** Y
-     - **Should Test frontend/backend/both after fix?** Frontend (screenshot tool)
-     - **Blocked on other issue:** Não.
-
-  - Issue 2:
-     - **Descrição:** O utilizador mencionou nao terminaste a implementacao anterior. verifica e corrigi, referindo-se provavelmente à funcionalidade de atribuir utilizadores. O agente anterior corrigiu um erro de crash relacionado com , mas pode haver outros problemas de lógica ou usabilidade.
-     - **Next debug checklist**:
-         1.  Testar exaustivamente o dialog de atribuição em  e .
-         2.  Verificar se a lista de utilizadores é carregada corretamente nos dropdowns.
-         3.  Confirmar que a atribuição e desatribuição (selecionando Nenhum) de  e  funciona.
-         4.  Verificar o endpoint  para garantir que a lógica no backend () está correta e permite as permissões adequadas.
-     - **Why fix this issue and what will be achieved with the fix?** Garante que uma funcionalidade central da aplicação, a gestão de atribuições, está a funcionar como esperado.
-     - **Status:** USER VERIFICATION PENDING
-     - **Is recurring issue?** N
-     - **Should Test frontend/backend/both after fix?** Both
-     - **Blocked on other issue:** Não.
+  - Todas as issues mencionadas em forks anteriores (bugs de UI no Kanban, formato de email, funcionalidade de atribuição) foram resolvidas e verificadas nesta sessão. Não há issues pendentes conhecidas para além da tarefa em progresso.
 
 **In progress Task List**:
-  - Task 1:  (P0) Finalizar a integração com o OneDrive no Frontend.
- 
+  - Task 1:  (P0) Sincronizar a aplicação com o repositório GitHub e a base de dados de produção.
+
  Task Detail:
   - Task 1: 
-     - **Where to resume**:
-         1. Editar .
-         2. Adicionar um botão Ver Documentos no OneDrive (ou similar) no cabeçalho da página ou num local proeminente.
-         3. Ao clicar, o botão deve chamar um novo endpoint da API, .
-         4. A API retornará um URL. Abra esse URL numa nova aba do browser ().
-     - **What will be achieved with this?** Os utilizadores poderão aceder facilmente à pasta de documentos de um cliente no OneDrive diretamente a partir da aplicação, finalizando o workaround para a integração.
+     - **Where to resume**: O agente já clonou o repositório e identificou discrepâncias (o código local está mais avançado). O próximo passo é apresentar estas diferenças ao utilizador e perguntar como proceder. As opções são:
+         1.  **Ignorar o GitHub:** Manter o código local atual e apenas mudar a ligação da base de dados.
+         2.  **Sobrescrever com GitHub:** Perder todas as melhorias recentes de IA.
+         3.  **Sugerir ao utilizador que atualize o GitHub:** A opção mais segura.
+         Após a decisão sobre o código, o agente deve atualizar a variável  no ficheiro  com a string de ligação fornecida pelo utilizador e reiniciar o backend.
+     - **What will be achieved with this?** A aplicação no ambiente de desenvolvimento estará a correr com o código desejado e ligada à base de dados de produção, preparando-a para o deployment final.
      - **Status:** IN PROGRESS
-     - **Should Test frontend/backend/both after fix?** Frontend (screenshot)
-     - **Blocked on something:** Não.
+     - **Should Test frontend/backend/both after fix?** Both
+     - **Blocked on something:** Decisão do utilizador sobre como reconciliar as diferenças entre o código local e o do repositório GitHub.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks (P1):
@@ -80,22 +65,21 @@ Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho 
     - **Relatórios PDF:** Implementar a funcionalidade de exportar um resumo do processo para um ficheiro PDF.
 
     Future Tasks (P2 - Backlog):
-    - **Melhorias no Sistema de Documentos:** Conversão para PDF, verificação de validade e alertas para documentos antigos.
+    - **Melhorias no Sistema de Documentos:** Verificação de validade e alertas para documentos antigos.
     - **Faturação:** Preparar a aplicação para funcionalidades de faturação.
-    - **Testar Análise com IA:** Testar a análise de documentos com IA usando ficheiros reais.
 
 **Completed work in this session**
-- **Visibilidade de Processos (Bug P0 Corrigido):** Implementada a atribuição automática de processos durante a sincronização com o Trello. A lógica evoluiu de correspondência por nome para email e, finalmente, para um sistema de mapeamento manual, que é agora a prioridade máxima. Utilizadores não-admin (consultor, intermediario) agora veem os processos que lhes são atribuídos.
-- **Página de Integração Trello (Melhoria P1):** A página de definições da integração Trello foi completamente refeita. Agora exibe estatísticas detalhadas de sincronização, estado da ligação, e, mais importante, uma interface para mapear manualmente membros do Trello a utilizadores da aplicação através de dropdowns.
-- **Atribuição de Processos (Nova Funcionalidade):** A funcionalidade de atribuir a si mesmo foi substituída por um dialog completo que permite a utilizadores com permissão atribuir/remover um  e um  a um processo a partir de uma lista de todos os utilizadores. Esta funcionalidade foi adicionada tanto no Kanban como na página de detalhes do processo.
-- **Eliminar Utilizador (Bug Corrigido):** Resolvido o erro Method Not Allowed que ocorria em produção. O problema foi diagnosticado como sendo de CORS, e a configuração no  e  foi tornada mais robusta.
-- **Formato de Email (Bug Corrigido):** A lógica de importação do Trello foi corrigida para remover a formatação markdown dos emails, garantindo que apenas o endereço de email puro seja guardado na base de dados.
-
-**Earlier issues found/mentioned but not fixed**
-   - Nenhum que não esteja listado em All Pending/In progress Issue list.
-
-**Known issue recurrence from previous fork**
-  - Nenhuma.
+- **Correção de Bug de UI no Kanban:** Resolvido o problema dos botões de ação que desapareciam em cartões com nomes longos.
+- **Finalização da Integração OneDrive (Frontend):** Adicionado o botão para aceder à pasta do cliente no OneDrive.
+- **Correção de Bug de Formato de Email:** Corrigido o problema de emails guardados com formatação markdown na base de dados (tanto no campo de email como nas notas).
+- **Nova Funcionalidade: Importação de Comentários do Trello:** Implementado um endpoint e um botão na UI para importar todas as atividades e comentários do Trello para a aplicação.
+- **Nova Funcionalidade: Análise de Documentos com IA:** Implementado um analisador de documentos (CC, Recibo, IRS, etc.) na ficha do cliente para extrair e preencher dados automaticamente.
+- **Nova Funcionalidade: Upload Massivo com IA:** Criada uma ferramenta para administradores que processa em lote uma pasta de documentos de vários clientes, preenchendo as suas fichas automaticamente.
+- **Melhorias de Robustez e Performance:**
+    - Otimizado o upload massivo para usar uma fila sequencial e feedback em tempo real com SSE.
+    - Adicionado suporte para subpastas, junção de ficheiros de CC (frente/verso), conversão de PDF para imagem () e retentativas de API ().
+    - Implementada uma verificação para ignorar ficheiros de clientes não existentes.
+- **Refatoração:** Eliminado o ficheiro de serviço obsoleto  e movida a lógica de negócio das rotas para os serviços de IA.
 
 **Code Architecture**
 
@@ -103,58 +87,66 @@ Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho 
 **Key Technical Concepts**
 - Backend: FastAPI, Pydantic, Motor (MongoDB)
 - Frontend: React, Tailwind CSS, Shadcn UI
-- Integrações: Trello API, IMAP/SMTP, Microsoft Graph API (tentativa falhada, agora usa workaround com link direto do OneDrive).
-- Padrões: Implementado um workaround para uma integração API bloqueada, focando em fornecer valor ao utilizador através de uma solução alternativa (links de pesquisa no OneDrive).
+- **Novas Tecnologias/Padrões:**
+    - Server-Sent Events (SSE) para comunicação em tempo real do backend para o frontend.
+    -  para manipulação de PDFs (conversão para imagem).
+    -  para combinar imagens num único PDF.
+    -  para implementar uma política de retentativas (retry) com exponential backoff em chamadas de API.
+    - Processamento de ficheiros em fila no frontend para evitar sobrecarga do browser.
+    - Fuzzy string matching () para identificar tipos de ficheiros (ex: CC frente, CC verso).
 
 **key DB schema**
-  - **trello_member_mappings**:  (Armazena a associação manual entre um membro do Trello e um utilizador da aplicação).
+  - **processes**: Não foram criadas novas coleções, mas o schema desta coleção foi enriquecido com múltiplos campos sob as chaves , , e , preenchidos pela análise de IA.
 
 **changes in tech stack**
-  - Novas dependências Python instaladas: , ,  para a tentativa de fuzzy matching no OneDrive, que ainda podem estar no .
+  - Novas dependências Python: , , , .
 
 **All files of reference**
-- : Ficheiro principal para a próxima tarefa (adicionar botão do OneDrive).
-- : Ficheiro a ser corrigido para o bug de layout dos botões.
-- : Contém o endpoint  a ser consumido pelo frontend.
-- : Contém a lógica de atribuição de processos que precisa ser verificada.
+- : Precisa de ser atualizado com a nova .
+- : O repositório GitHub clonado para comparação.
+- : Ficheiro central para a funcionalidade de upload massivo.
+- : Componente de frontend para a funcionalidade de upload massivo.
+- : Contém a lógica principal da análise de IA.
 
 **Areas that need refactoring**:
--  foi criado mas a sua lógica foi abandonada. O ficheiro pode ser redundante e deveria ser eliminado para evitar confusão.
-- A correção de CSS no  precisa ser refeita de forma mais robusta.
+- O código foi significativamente refatorado durante a sessão, movendo a lógica das rotas para os serviços. A principal tarefa pendente não é de refatoração, mas de sincronização.
 
 **key api endpoints**
-- : Atualiza o  e  de um processo.
-- : Guarda as associações manuais entre membros Trello e utilizadores da app.
-- : Gera e retorna um URL para pesquisar no OneDrive pela pasta de um cliente.
+- : Importa comentários do Trello.
+- : Analisa um único documento enviado via upload.
+- : Processa um único ficheiro da fila de upload massivo.
+- : Verifica se um cliente existe antes do processamento.
+- : Endpoint SSE que envia atualizações de progresso do upload massivo.
 
 **Critical Info for New Agent**
-- **Prioridades:** A ordem de trabalho deve ser: 1. Corrigir o bug dos botões no Kanban (Issue 1). 2. Finalizar a integração do OneDrive no frontend (Task 1). 3. Testar exaustivamente a funcionalidade de atribuição de processos (Issue 2).
-- **OneDrive:** Não tente re-implementar a autenticação OAuth2. A abordagem atual é um workaround devido a limitações de permissões na conta Microsoft do utilizador. Siga a implementação do link de pesquisa.
-- **Atribuição de Processos:** A funcionalidade correta é um dialog com dropdowns para selecionar o  e o , não botões de atribuir a mim. O utilizador já corrigiu o agente uma vez sobre isto.
+- **Tarefa Imediata:** A prioridade máxima é a sincronização com o GitHub e a base de dados de produção. O código local é **mais recente e avançado** que o do repositório GitHub. **NÃO sobrescreva o código local sem a confirmação explícita do utilizador.** A abordagem mais segura é apresentar as diferenças e perguntar como proceder.
+- **Credenciais:** O utilizador forneceu a URL do repositório () e a string de ligação da MongoDB ().
+- **Deployment:** O utilizador mencionou que pretende colocar a aplicação online após esta sincronização, o que torna a estabilidade e a escolha correta do código ainda mais críticas.
 
 **documents and test reports created in this job**
   -  (Atualizado).
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - 10.  - **[Em Progresso]** O utilizador reportou o bug dos botões do Kanban, mencionou que a implementação anterior de atribuição não está terminada e iniciou o pedido para a integração do OneDrive.
- - 9.  - **[Resolvido]** O utilizador reportou o bug do formato de email e forneceu as credenciais iniciais do OneDrive.
- - 8.  - **[Informativo]** O utilizador forneceu mais detalhes para a integração do OneDrive.
- - 7.  - **[Resolvido]** O utilizador pediu instruções para testar a autenticação do OneDrive.
- - 6.  - **[Resolvido]** O utilizador reportou o primeiro erro de autenticação do OneDrive. O agente diagnosticou o tipo de conta incorreto.
- - 5.  - **[Bloqueado]** O utilizador reportou o segundo erro de autenticação. O agente diagnosticou a falta de permissões de administrador.
- - 4.  - **[Resolvido]** O utilizador explorou uma alternativa que o agente desaconselhou.
- - 3.  - **[Resolvido]** O utilizador perguntou sobre uma alternativa, que foi descartada por bloqueio técnico.
- - 2.  - **[Resolvido]** O utilizador propôs a solução de workaround que está a ser implementada.
- - 1.  - **[Informativo]** O utilizador forneceu um dos links de partilha para o agente testar.
+- **10. Pedido de Sincronização:** O utilizador pediu para atualizar a aplicação com o código de um repositório GitHub e ligar a uma base de dados MongoDB de produção, fornecendo as URLs.
+- **9. Pedido de Otimização:** Sugeriu otimizar o upload massivo, verificando se o cliente existe antes de ler os seus documentos para poupar tempo. (Implementado)
+- **8. Pergunta sobre Persistência de Dados:** Perguntou se os dados extraídos pela IA são guardados na base de dados. (Confirmado que sim)
+- **7. Pedido de Melhorias na Análise IA:** Solicitou a junção de ficheiros de CC (frente/verso) e a capacidade de processar PDFs digitalizados (sem texto). (Implementado)
+- **6. Pedido de Melhoria de Robustez:** Sugeriu adicionar um mecanismo de retry () para lidar com erros de rate limit (429) da API de IA. (Implementado)
+- **5. Confirmação e Pedido de Deployment:** Confirmou a estrutura de pastas para o upload massivo, o requisito de ser admin, e perguntou o que precisa de fazer para colocar a aplicação online.
+- **4. Pergunta sobre Upload Massivo:** Perguntou se era possível fazer um upload massivo de documentos. (Implementado)
+- **3. Pedido de Análise Automática do OneDrive:** Pediu para a IA ler os documentos diretamente do OneDrive. Após o agente explicar as limitações técnicas, o utilizador optou por uma solução de upload manual.
+- **2. Correção de Bug:** Reportou que o link do OneDrive estava errado e forneceu o link correto. (Corrigido)
+- **1. Correção de Bug:** Reportou que o formato do email continuava errado noutros campos, como nas notas. (Corrigido)
 
 **Project Health Check:**
-- **Broken:** O layout dos botões nos cartões do Kanban para processos com nomes longos. A funcionalidade de atribuição de processos pode ter bugs.
+- **Broken:** Nada está funcionalmente quebrado, mas a aplicação está num estado de transição, aguardando a sincronização com o código-fonte final e a base de dados de produção.
 - **Mocked:** Nenhuma.
 
 **3rd Party Integrations**
-- **Trello:** Integração ativa e central, com mapeamento manual de utilizadores.
+- **Trello:** Sincronização de quadros, cartões e comentários.
 - **Servidores de Email (IMAP/SMTP):** Integração ativa.
-- **OneDrive:** A integração via API Graph está **bloqueada**. A solução atual é um **workaround** que usa um link de partilha público da pasta principal para construir um URL de pesquisa.
+- **OneDrive:** Integração via workaround (link de partilha para gerar URLs de pesquisa), pois a autenticação OAuth completa foi bloqueada por falta de permissões.
+- **Emergent LLM Key:** Usada para aceder à API do  para a análise de documentos.
 
 **Testing status**
   - Testing agent used after significant changes: NO
@@ -164,8 +156,7 @@ Uma aplicação full-stack (React/FastAPI/MongoDB) que funciona como um espelho 
 
 **Credentials to test flow:**
 - **Admin:**  / (obter de  env var, default: )
-- **Outros Utilizadores:** Utilizadores como  ou  podem ser criados para testar a visibilidade de processos e a funcionalidade de atribuição.
+- **MongoDB de Produção:**  (Fornecida pelo utilizador)
 
 **What agent forgot to execute**
-- O agente não validou corretamente a correção do bug de layout do Kanban. Uma verificação superficial com screenshot não foi suficiente, e o utilizador reportou que o problema persiste. Uma depuração mais aprofundada do CSS é necessária.
-- O agente não testou exaustivamente a funcionalidade de atribuir utilizador após a última correção de bug, o que levou à incerteza sobre se a funcionalidade está completa e correta.</analysis>
+- O agente não concluiu a tarefa de sincronização com o GitHub e MongoDB. Ele iniciou a análise, mas não apresentou as descobertas (diferenças de código) ao utilizador para obter uma decisão sobre como proceder.</analysis>
