@@ -924,8 +924,11 @@ def build_update_data_from_extraction(
             update_data["client_email"] = extracted_data['email']
             
     elif document_type in ['recibo_vencimento', 'irs']:
-        # Dados financeiros
+        # Dados financeiros (PT e UK)
         financial_update = {}
+        personal_update = {}
+        
+        # Mapeamento direto de campos
         field_mapping = {
             'salario_liquido': 'rendimento_mensal',
             'rendimento_liquido_mensal': 'rendimento_mensal',
@@ -934,16 +937,103 @@ def build_update_data_from_extraction(
             'tipo_contrato': 'tipo_contrato',
             'categoria_profissional': 'categoria_profissional',
             'rendimento_liquido_anual': 'rendimento_anual',
+            # UK fields
+            'net_pay': 'rendimento_liquido',
+            'total_payments': 'rendimento_bruto',
+            'gross_pay': 'rendimento_bruto',
         }
         
         for src_key, dest_key in field_mapping.items():
             if extracted_data.get(src_key):
                 financial_update[dest_key] = extracted_data[src_key]
         
+        # Tentar extrair de estruturas aninhadas (recibos PT e UK)
+        funcionario = extracted_data.get('funcionario', {})
+        employee = extracted_data.get('employee', {})
+        payment = extracted_data.get('payment', extracted_data.get('payment_details', {}))
+        recibo = extracted_data.get('recibo', {})
+        empresa = extracted_data.get('empresa', {})
+        employer = extracted_data.get('employer', {})
+        
+        # Dados do funcionário/employee
+        if funcionario.get('nif'):
+            personal_update['nif'] = funcionario['nif']
+        if funcionario.get('niss'):
+            personal_update['niss'] = funcionario['niss']
+        if funcionario.get('categoria'):
+            financial_update['categoria_profissional'] = funcionario['categoria']
+        if funcionario.get('retribuicao_mensal'):
+            financial_update['rendimento_mensal'] = funcionario['retribuicao_mensal']
+            
+        # UK employee
+        if employee.get('national_insurance_number'):
+            personal_update['ni_number'] = employee['national_insurance_number']
+            
+        # Pagamentos
+        if payment.get('net_pay'):
+            financial_update['rendimento_liquido'] = payment['net_pay']
+        if payment.get('total_payments'):
+            financial_update['rendimento_bruto'] = payment['total_payments']
+        if recibo.get('total_liquido') or recibo.get('valor_total'):
+            financial_update['rendimento_liquido'] = recibo.get('total_liquido') or recibo.get('valor_total')
+            
+        # Empresa/Employer
+        if empresa.get('nome'):
+            financial_update['empresa'] = empresa['nome']
+        if employer.get('name'):
+            financial_update['empresa'] = employer['name']
+        
         if financial_update:
             existing_financial = existing_data.get("financial_data", {})
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
+            
+        if personal_update:
+            existing_personal = existing_data.get("personal_data", {})
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
+            
+    elif document_type == 'contrato_trabalho':
+        # Declaração de efetividade / Contrato de trabalho
+        financial_update = {}
+        personal_update = {}
+        
+        colaboradora = extracted_data.get('colaboradora', extracted_data.get('funcionario', {}))
+        empresa = extracted_data.get('empresa', {})
+        
+        if colaboradora.get('tipo_contrato'):
+            financial_update['tipo_contrato'] = colaboradora['tipo_contrato']
+        if colaboradora.get('data_inicio'):
+            financial_update['data_inicio_trabalho'] = colaboradora['data_inicio']
+        if colaboradora.get('CC'):
+            personal_update['documento_id'] = colaboradora['CC']
+        if colaboradora.get('nif'):
+            personal_update['nif'] = colaboradora['nif']
+            
+        if empresa.get('nome'):
+            financial_update['empresa'] = empresa['nome']
+            
+        # UK employment confirmation
+        content = extracted_data.get('content', {})
+        employment = content.get('employment_status', {})
+        if employment.get('establishment'):
+            financial_update['empresa'] = employment['establishment']
+        if employment.get('start_date'):
+            financial_update['data_inicio_trabalho'] = employment['start_date']
+        if employment.get('hourly_rate'):
+            financial_update['valor_hora'] = employment['hourly_rate']
+        if employment.get('hours_per_week'):
+            financial_update['horas_semanais'] = employment['hours_per_week']
+            
+        if financial_update:
+            existing_financial = existing_data.get("financial_data", {})
+            existing_financial.update(financial_update)
+            update_data["financial_data"] = existing_financial
+            
+        if personal_update:
+            existing_personal = existing_data.get("personal_data", {})
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
             
     elif document_type == 'caderneta_predial':
         # Dados do imóvel
