@@ -697,20 +697,22 @@ def detect_document_type(filename: str) -> str:
     
     if any(x in filename_lower for x in ['cc', 'cartao', 'cidadao', 'identificacao', 'bi ']):
         return 'cc'
-    elif any(x in filename_lower for x in ['recibo', 'vencimento', 'salario', 'ordenado']):
+    elif any(x in filename_lower for x in ['recibo', 'vencimento', 'salario', 'ordenado', 'payslip', 'wage']):
         return 'recibo_vencimento'
-    elif any(x in filename_lower for x in ['irs', 'declaracao', 'imposto']):
+    elif any(x in filename_lower for x in ['irs', 'p60', 'p45', 'tax return', 'hmrc']):
         return 'irs'
-    elif any(x in filename_lower for x in ['contrato', 'trabalho', 'vinculo']):
+    elif any(x in filename_lower for x in ['contrato', 'trabalho', 'vinculo', 'efetividade', 'employment']):
         return 'contrato_trabalho'
     elif any(x in filename_lower for x in ['caderneta', 'predial', 'imovel']):
         return 'caderneta_predial'
-    elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco']):
+    elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco', 'ext_']):
         return 'extrato_bancario'
     elif any(x in filename_lower for x in ['simulacao', 'simulação', 'proposta', 'credito', 'crédito', 'financiamento']):
         return 'simulacao_credito'
-    elif any(x in filename_lower for x in ['certidao', 'certidão', 'domicilio', 'domicílio', 'fiscal']):
+    elif any(x in filename_lower for x in ['certidao', 'certidão', 'domicilio', 'domicílio', 'fiscal', 'morada']):
         return 'certidao'
+    elif any(x in filename_lower for x in ['crc', 'responsabilidade', 'mapa_crc', 'central']):
+        return 'mapa_crc'
     else:
         return 'outro'
 
