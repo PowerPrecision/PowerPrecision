@@ -150,6 +150,9 @@ async def read_file_with_limit(file: UploadFile) -> bytes:
 async def update_client_data(process_id: str, extracted_data: dict, document_type: str) -> bool:
     """Actualizar ficha do cliente com dados extraídos."""
     try:
+        logger.info(f"update_client_data chamado: process_id={process_id}, document_type={document_type}")
+        logger.info(f"extracted_data recebido: {extracted_data}")
+        
         # Obter dados existentes
         process = await db.processes.find_one(
             {"id": process_id},
@@ -163,13 +166,18 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
             process or {}
         )
         
+        logger.info(f"update_data construído: {update_data}")
+        
         # Aplicar actualização
         if len(update_data) > 1:
             result = await db.processes.update_one(
                 {"id": process_id},
                 {"$set": update_data}
             )
+            logger.info(f"Update result: modified_count={result.modified_count}")
             return result.modified_count > 0
+        else:
+            logger.warning(f"update_data tem apenas {len(update_data)} campos, não actualizado")
         
         return False
         
