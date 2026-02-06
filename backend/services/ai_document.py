@@ -695,18 +695,22 @@ def detect_document_type(filename: str) -> str:
     """Detectar tipo de documento pelo nome do ficheiro."""
     filename_lower = filename.lower()
     
-    if any(x in filename_lower for x in ['cc', 'cartao', 'cidadao', 'identificacao', 'bi']):
+    if any(x in filename_lower for x in ['cc', 'cartao', 'cidadao', 'identificacao', 'bi ']):
         return 'cc'
     elif any(x in filename_lower for x in ['recibo', 'vencimento', 'salario', 'ordenado']):
         return 'recibo_vencimento'
     elif any(x in filename_lower for x in ['irs', 'declaracao', 'imposto']):
         return 'irs'
-    elif any(x in filename_lower for x in ['contrato', 'trabalho']):
+    elif any(x in filename_lower for x in ['contrato', 'trabalho', 'vinculo']):
         return 'contrato_trabalho'
     elif any(x in filename_lower for x in ['caderneta', 'predial', 'imovel']):
         return 'caderneta_predial'
     elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco']):
         return 'extrato_bancario'
+    elif any(x in filename_lower for x in ['simulacao', 'simulação', 'proposta', 'credito', 'crédito', 'financiamento']):
+        return 'simulacao_credito'
+    elif any(x in filename_lower for x in ['certidao', 'certidão', 'domicilio', 'domicílio', 'fiscal']):
+        return 'certidao'
     else:
         return 'outro'
 
