@@ -1039,50 +1039,120 @@ def build_update_data_from_extraction(
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
+    elif document_type == 'mapa_crc':
+        # Mapa Central de Responsabilidades de Crédito
+        financial_update = {}
+        
+        # Extrair resumo de responsabilidades
+        resumo = extracted_data.get('resumo_responsabilidades_credito', {})
+        montante = resumo.get('montante_em_divida', {})
+        
+        if montante.get('total'):
+            financial_update['divida_total'] = montante['total']
+        if montante.get('em_incumprimento'):
+            financial_update['divida_incumprimento'] = montante['em_incumprimento']
+            
+        # Extrair detalhes dos créditos
+        responsabilidades = extracted_data.get('responsabilidades_credito', [])
+        if responsabilidades:
+            # Procurar crédito habitação existente
+            for resp in responsabilidades:
+                if 'habitação' in resp.get('produto_financeiro', '').lower():
+                    financial_update['credito_habitacao_existente'] = resp.get('montantes', {}).get('total_em_divida', 0)
+                    financial_update['prestacao_ch_atual'] = resp.get('prestacao', {}).get('valor', None)
+                    
+        if financial_update:
+            existing_financial = existing_data.get("financial_data", {})
+            existing_financial.update(financial_update)
+            update_data["financial_data"] = existing_financial
+    
     else:
         # Tipo "outro" - tentar extrair dados genéricos de qualquer estrutura
         personal_update = {}
         financial_update = {}
         real_estate_update = {}
         
-        # Função auxiliar para extrair valores de estruturas aninhadas
-        def extract_nested(data, keys_to_find):
+        # Função auxiliar para extrair valores de estruturas aninhadas (mais robusta)
+        def extract_nested(data, keys_to_find, depth=0):
+            if depth > 5:  # Limitar profundidade de recursão
+                return {}
             results = {}
             if isinstance(data, dict):
                 for key, value in data.items():
-                    key_lower = key.lower().replace('_', ' ')
+                    key_lower = key.lower().replace('_', ' ').replace('-', ' ')
                     for search_key, dest_key in keys_to_find.items():
                         if search_key in key_lower:
                             if isinstance(value, (str, int, float)) and value:
-                                results[dest_key] = value
+                                # Não sobrescrever se já temos um valor
+                                if dest_key not in results:
+                                    results[dest_key] = value
                     # Recursão para valores aninhados
                     if isinstance(value, dict):
-                        results.update(extract_nested(value, keys_to_find))
+                        nested = extract_nested(value, keys_to_find, depth + 1)
+                        for k, v in nested.items():
+                            if k not in results:
+                                results[k] = v
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                nested = extract_nested(item, keys_to_find, depth + 1)
+                                for k, v in nested.items():
+                                    if k not in results:
+                                        results[k] = v
             return results
         
-        # Mapeamentos para dados pessoais
+        # Mapeamentos para dados pessoais (mais completo)
         personal_keys = {
             'nif': 'nif',
             'numero contribuinte': 'nif',
+            'national insurance': 'ni_number',
+            'ni number': 'ni_number',
             'data nascimento': 'data_nascimento',
+            'date of birth': 'data_nascimento',
             'morada': 'morada',
             'endereco': 'morada',
+            'address': 'morada',
+            'street': 'morada',
             'codigo postal': 'codigo_postal',
+            'postcode': 'codigo_postal',
             'nome': 'nome_completo',
+            'name': 'nome_completo',
+            'cc': 'documento_id',
         }
         
-        # Mapeamentos para dados financeiros
+        # Mapeamentos para dados financeiros (mais completo - inclui UK)
         financial_keys = {
             'salario': 'rendimento_mensal',
             'rendimento': 'rendimento_mensal',
             'vencimento': 'rendimento_mensal',
+            'valor total': 'rendimento_mensal',
+            'total payments': 'rendimento_mensal',
+            'gross pay': 'rendimento_bruto',
+            'total gross': 'rendimento_bruto',
+            'net pay': 'rendimento_liquido',
+            'total liquido': 'rendimento_liquido',
+            'valor liquido': 'rendimento_liquido',
+            'valor pago': 'rendimento_liquido',
+            'total a receber': 'rendimento_liquido',
+            'hourly rate': 'valor_hora',
+            'valor horario': 'valor_hora',
+            'hours': 'horas_trabalho',
             'empresa': 'empresa',
+            'employer': 'empresa',
+            'organization': 'empresa',
             'entidade empregadora': 'empresa',
             'valor financiamento': 'valor_pretendido',
             'montante financiamento': 'valor_pretendido',
             'financiamento total': 'valor_pretendido',
             'prestacao': 'prestacao_estimada',
             'prestacao mensal': 'prestacao_estimada',
+            'tipo contrato': 'tipo_contrato',
+            'contract type': 'tipo_contrato',
+            'categoria': 'categoria_profissional',
+            'position': 'categoria_profissional',
+            'cargo': 'categoria_profissional',
+            'start date': 'data_inicio_trabalho',
+            'data inicio': 'data_inicio_trabalho',
         }
         
         # Mapeamentos para dados imobiliários
