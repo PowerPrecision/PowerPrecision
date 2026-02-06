@@ -145,6 +145,12 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**6 Fevereiro 2026**
+- ✅ Sincronizado ambiente de desenvolvimento com MongoDB Atlas de produção
+- ✅ Configurada separação de dados: `powerprecision_dev` (testes) vs `powerprecision` (produção)
+- ✅ Código local mantido (inclui otimização de verificação de cliente no upload massivo)
+- ✅ Comparadas diferenças com repositório GitHub - código local mais avançado
+
 **5 Fevereiro 2026**
 - Corrigido bug de layout dos botões no Kanban (CSS Grid)
 - Implementado botão "Abrir no OneDrive" na página de detalhes
