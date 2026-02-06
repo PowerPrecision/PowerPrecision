@@ -6,7 +6,9 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 ## Stack Técnica
 - **Frontend**: React, Tailwind CSS, Shadcn UI
 - **Backend**: FastAPI, Pydantic, Motor (MongoDB async)
-- **Base de Dados**: MongoDB (DB_NAME: test_database)
+- **Base de Dados**: MongoDB Atlas (Cluster: cluster0.c8livu.mongodb.net)
+  - **Desenvolvimento/Testes**: `powerprecision_dev`
+  - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado)
 
 ## Funcionalidades Implementadas
