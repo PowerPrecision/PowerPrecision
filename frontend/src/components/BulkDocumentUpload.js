@@ -261,7 +261,7 @@ const BulkDocumentUpload = () => {
           updateFileStatus(path, FILE_STATUS.ERROR, `Cliente "${clientName}" não encontrado`);
           errors++;
         }
-        logger.warn?.(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
+        console.warn(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
         continue;
       }
 
