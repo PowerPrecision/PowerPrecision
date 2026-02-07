@@ -35,6 +35,7 @@ import {
   Link,
   AlertCircle,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
