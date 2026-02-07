@@ -268,28 +268,29 @@ const AIDocumentAnalyzer = ({ processId, clientName, onDataExtracted }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-          data-testid="ai-analyze-btn"
-        >
-          <Sparkles className="h-4 w-4 mr-1" />
-          Analisar com IA
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            Análise de Documentos com IA
-          </DialogTitle>
-          <DialogDescription>
-            Extraia automaticamente dados de documentos para preencher a ficha de {clientName || "cliente"}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+            data-testid="ai-analyze-btn"
+          >
+            <Sparkles className="h-4 w-4 mr-1" />
+            Analisar com IA
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              Análise de Documentos com IA
+            </DialogTitle>
+            <DialogDescription>
+              Extraia automaticamente dados de documentos para preencher a ficha de {clientName || "cliente"}
+            </DialogDescription>
+          </DialogHeader>
 
         <div className="flex-1 overflow-y-auto py-4 space-y-4">
           {/* Tipo de documento */}
