@@ -449,6 +449,26 @@ const AIDocumentAnalyzer = ({ processId, clientName, onDataExtracted }) => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    
+    {/* Botão de Reset - só visível para admin */}
+    {user?.role === "admin" && (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+        onClick={handleResetData}
+        disabled={resetting}
+        data-testid="ai-reset-btn"
+        title="Limpar dados extraídos pela IA"
+      >
+        {resetting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <RotateCcw className="h-4 w-4" />
+        )}
+      </Button>
+    )}
+    </>
   );
 };
 
