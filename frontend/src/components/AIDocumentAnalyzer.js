@@ -75,17 +75,63 @@ const FIELD_LABELS = {
 };
 
 const AIDocumentAnalyzer = ({ processId, clientName, onDataExtracted }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const fileInputRef = useRef(null);
   
   const [isOpen, setIsOpen] = useState(false);
   const [activeMethod, setActiveMethod] = useState("upload");
   const [documentType, setDocumentType] = useState("cc");
   const [analyzing, setAnalyzing] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [documentUrl, setDocumentUrl] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+
+  // Reset dos dados extraídos pela IA
+  const handleResetData = async () => {
+    if (!window.confirm("Tem a certeza que deseja limpar todos os dados extraídos pela IA para este cliente?")) {
+      return;
+    }
+    
+    setResetting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/ai/reset-client-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          process_id: processId,
+          reset_personal: true,
+          reset_financial: true,
+          reset_real_estate: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Erro ao limpar dados");
+      }
+
+      const data = await response.json();
+      toast.success(data.message);
+      
+      // Notificar o componente pai para atualizar os dados
+      if (onDataExtracted) {
+        onDataExtracted({
+          personal_data: {},
+          financial_data: {},
+          real_estate_data: {},
+        }, "reset");
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // Analisar documento via upload
   const handleAnalyzeUpload = async () => {
