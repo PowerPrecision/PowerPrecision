@@ -1160,6 +1160,106 @@ def build_update_data_from_extraction(
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
     
+    elif document_type == 'cpcv':
+        # Contrato Promessa Compra e Venda - dados do negócio
+        financial_update = {}
+        real_estate_update = {}
+        
+        # Extrair de estrutura aninhada
+        cpcv = extracted_data.get('cpcv', extracted_data)
+        imovel = cpcv.get('imovel', cpcv.get('dados_imovel', {}))
+        valores = cpcv.get('valores', cpcv.get('condicoes_financeiras', {}))
+        
+        # Dados financeiros do negócio
+        if valores.get('preco_total') or valores.get('valor_venda'):
+            real_estate_update['valor_imovel'] = valores.get('preco_total') or valores.get('valor_venda')
+        if valores.get('sinal') or valores.get('valor_sinal'):
+            financial_update['valor_entrada'] = valores.get('sinal') or valores.get('valor_sinal')
+        if valores.get('valor_restante'):
+            financial_update['valor_financiar'] = valores.get('valor_restante')
+            
+        # Campos de nível superior
+        if extracted_data.get('valor_venda'):
+            real_estate_update['valor_imovel'] = extracted_data['valor_venda']
+        if extracted_data.get('sinal'):
+            financial_update['valor_entrada'] = extracted_data['sinal']
+        if extracted_data.get('valor_imovel'):
+            real_estate_update['valor_imovel'] = extracted_data['valor_imovel']
+        if extracted_data.get('entrada') or extracted_data.get('valor_entrada'):
+            financial_update['valor_entrada'] = extracted_data.get('entrada') or extracted_data.get('valor_entrada')
+            
+        # Dados do imóvel
+        if imovel.get('localizacao') or imovel.get('morada'):
+            real_estate_update['localizacao'] = imovel.get('localizacao') or imovel.get('morada')
+        if imovel.get('tipologia'):
+            real_estate_update['tipologia'] = imovel['tipologia']
+        if imovel.get('area'):
+            real_estate_update['area'] = imovel['area']
+        if imovel.get('fracao') or imovel.get('artigo'):
+            real_estate_update['fracao'] = imovel.get('fracao') or imovel.get('artigo')
+            
+        if financial_update:
+            existing_financial = existing_data.get("financial_data", {})
+            existing_financial.update(financial_update)
+            update_data["financial_data"] = existing_financial
+            
+        if real_estate_update:
+            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate.update(real_estate_update)
+            update_data["real_estate_data"] = existing_real_estate
+            
+    elif document_type == 'dados_imovel':
+        # Ficheiros relacionados com o imóvel (fotos, plantas, documentos do imóvel)
+        real_estate_update = {}
+        
+        # Extrair de qualquer estrutura
+        imovel = extracted_data.get('imovel', extracted_data.get('dados_imovel', extracted_data))
+        
+        # Mapeamentos de campos
+        field_mapping = {
+            'localizacao': 'localizacao',
+            'morada': 'localizacao',
+            'endereco': 'localizacao',
+            'address': 'localizacao',
+            'tipologia': 'tipologia',
+            'tipo': 'tipologia',
+            'area': 'area',
+            'area_bruta': 'area',
+            'm2': 'area',
+            'valor': 'valor_imovel',
+            'preco': 'valor_imovel',
+            'valor_imovel': 'valor_imovel',
+            'valor_aquisicao': 'valor_imovel',
+            'artigo': 'artigo_matricial',
+            'fracao': 'fracao',
+            'andar': 'andar',
+            'piso': 'andar',
+            'quartos': 'quartos',
+            'wc': 'casas_banho',
+            'garagem': 'garagem',
+            'ano_construcao': 'ano_construcao',
+        }
+        
+        # Procurar campos no objecto imovel
+        if isinstance(imovel, dict):
+            for src_key, dest_key in field_mapping.items():
+                for data_key, data_value in imovel.items():
+                    if src_key in data_key.lower() and data_value:
+                        real_estate_update[dest_key] = data_value
+                        break
+        
+        # Procurar campos de nível superior
+        for src_key, dest_key in field_mapping.items():
+            for data_key, data_value in extracted_data.items():
+                if src_key in data_key.lower() and data_value and dest_key not in real_estate_update:
+                    real_estate_update[dest_key] = data_value
+                    break
+                    
+        if real_estate_update:
+            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate.update(real_estate_update)
+            update_data["real_estate_data"] = existing_real_estate
+    
     else:
         # Tipo "outro" - tentar extrair dados genéricos de qualquer estrutura
         personal_update = {}
