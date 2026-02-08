@@ -1290,35 +1290,98 @@ def build_update_data_from_extraction(
             
     elif document_type == 'simulacao_credito':
         # Simulação de crédito - dados financeiros e imobiliários
+        # SUPORTA MÚLTIPLOS PROPONENTES
         financial_update = {}
         real_estate_update = {}
+        personal_update = {}
         
         # Extrair de estrutura aninhada
         simulacao = extracted_data.get('simulacao_credito_habitacao', extracted_data)
-        dados_imovel = simulacao.get('dados_imovel', {})
-        resumo = simulacao.get('resumo_simulacao', {})
+        dados_imovel = simulacao.get('dados_imovel', simulacao.get('imovel', {}))
+        resumo = simulacao.get('resumo_simulacao', simulacao.get('credito', {}))
         proponente = simulacao.get('dados_proponente', {})
         
-        # Dados financeiros
-        if resumo.get('financiamento_total'):
-            financial_update['valor_pretendido'] = resumo['financiamento_total']
+        # === PROCESSAR MÚLTIPLOS PROPONENTES ===
+        proponentes = extracted_data.get('proponentes', [])
+        if not proponentes and simulacao.get('proponentes'):
+            proponentes = simulacao.get('proponentes', [])
+        
+        # Array para guardar dados de todos os proponentes
+        co_applicants = []
+        rendimento_total = 0
+        
+        for i, prop in enumerate(proponentes):
+            if not prop or not isinstance(prop, dict):
+                continue
+            
+            applicant_data = {
+                "nome": prop.get('nome'),
+                "nif": prop.get('nif'),
+                "data_nascimento": prop.get('data_nascimento'),
+                "rendimento_mensal": prop.get('rendimento_mensal'),
+                "entidade_patronal": prop.get('entidade_patronal')
+            }
+            
+            # Remover campos vazios
+            applicant_data = {k: v for k, v in applicant_data.items() if v}
+            
+            if applicant_data.get('nome') or applicant_data.get('nif'):
+                co_applicants.append(applicant_data)
+                
+                # Somar rendimentos
+                if applicant_data.get('rendimento_mensal'):
+                    try:
+                        rendimento_total += float(applicant_data['rendimento_mensal'])
+                    except (ValueError, TypeError):
+                        pass
+                
+                # O primeiro proponente vai para personal_data principal
+                if i == 0:
+                    if applicant_data.get('nif'):
+                        personal_update['nif'] = applicant_data['nif']
+                    if applicant_data.get('data_nascimento'):
+                        personal_update['data_nascimento'] = applicant_data['data_nascimento']
+                    if applicant_data.get('rendimento_mensal'):
+                        financial_update['rendimento_mensal'] = applicant_data['rendimento_mensal']
+        
+        # Guardar array de co-proponentes se houver mais de 1
+        if len(co_applicants) > 1:
+            update_data["co_applicants"] = co_applicants
+            # Guardar rendimento agregado
+            if rendimento_total > 0:
+                financial_update['rendimento_agregado'] = rendimento_total
+            logger.info(f"Simulação com {len(co_applicants)} proponentes detectados, rendimento total: {rendimento_total}")
+        
+        # Dados financeiros do crédito
+        if resumo.get('financiamento_total') or resumo.get('montante_financiamento'):
+            financial_update['valor_pretendido'] = resumo.get('financiamento_total') or resumo.get('montante_financiamento')
         if resumo.get('prestacao_mensal'):
             financial_update['prestacao_estimada'] = resumo['prestacao_mensal']
+        if resumo.get('prazo_anos'):
+            financial_update['prazo_anos'] = resumo['prazo_anos']
+        if resumo.get('taxa_juro'):
+            financial_update['taxa_juro'] = resumo['taxa_juro']
+        if resumo.get('spread'):
+            financial_update['spread'] = resumo['spread']
+        if resumo.get('taeg'):
+            financial_update['taeg'] = resumo['taeg']
         if extracted_data.get('montante_financiamento'):
             financial_update['valor_pretendido'] = extracted_data['montante_financiamento']
+        if extracted_data.get('banco'):
+            financial_update['banco'] = extracted_data['banco']
             
         # Dados do imóvel
-        if dados_imovel.get('valor_aquisicao_imovel'):
-            real_estate_update['valor_imovel'] = dados_imovel['valor_aquisicao_imovel']
-        if dados_imovel.get('localizacao_imovel'):
-            real_estate_update['localizacao'] = dados_imovel['localizacao_imovel']
+        if dados_imovel.get('valor_aquisicao_imovel') or dados_imovel.get('valor_aquisicao'):
+            real_estate_update['valor_imovel'] = dados_imovel.get('valor_aquisicao_imovel') or dados_imovel.get('valor_aquisicao')
+        if dados_imovel.get('localizacao_imovel') or dados_imovel.get('localizacao'):
+            real_estate_update['localizacao'] = dados_imovel.get('localizacao_imovel') or dados_imovel.get('localizacao')
             
-        # Dados pessoais do proponente
-        personal_update = {}
-        if proponente.get('nif'):
-            personal_update['nif'] = proponente['nif']
-        if proponente.get('data_nascimento'):
-            personal_update['data_nascimento'] = proponente['data_nascimento']
+        # Dados pessoais do proponente único (fallback)
+        if not proponentes and proponente:
+            if proponente.get('nif'):
+                personal_update['nif'] = proponente['nif']
+            if proponente.get('data_nascimento'):
+                personal_update['data_nascimento'] = proponente['data_nascimento']
             
         if personal_update:
             existing_personal = existing_data.get("personal_data") or {}
