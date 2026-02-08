@@ -399,8 +399,10 @@ async def find_matching_clients_for_lead(lead_id: str) -> List[Dict[str, Any]]:
             except:
                 pass
         
-        client_location = (real_estate.get("localizacao") or "").lower()
-        client_typology = (real_estate.get("tipologia") or "").upper()
+        client_location_raw = real_estate.get("localizacao") or ""
+        client_location = client_location_raw.lower() if isinstance(client_location_raw, str) else ""
+        client_typology_raw = real_estate.get("tipologia") or ""
+        client_typology = client_typology_raw.upper() if isinstance(client_typology_raw, str) else ""
         
         # Match por preço
         if lead_price and client_budget:
