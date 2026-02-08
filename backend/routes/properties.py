@@ -394,3 +394,62 @@ async def register_visit(
     )
     
     return {"success": True, "message": "Visita registada"}
+
+
+
+@router.post("/{property_id}/upload-photo")
+async def upload_property_photo(
+    property_id: str,
+    photo_url: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Adicionar foto a um imóvel.
+    Aceita URL de foto (pode ser do OneDrive, Dropbox, etc.)
+    """
+    prop = await db.properties.find_one({"id": property_id})
+    if not prop:
+        raise HTTPException(status_code=404, detail="Imóvel não encontrado")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.properties.update_one(
+        {"id": property_id},
+        {
+            "$addToSet": {"photos": photo_url},
+            "$set": {"updated_at": now},
+            "$push": {
+                "history": PropertyHistory(
+                    timestamp=now,
+                    event="Foto adicionada",
+                    user=user.get("email")
+                ).model_dump()
+            }
+        }
+    )
+    
+    return {"success": True, "message": "Foto adicionada", "photo_url": photo_url}
+
+
+@router.delete("/{property_id}/photo")
+async def remove_property_photo(
+    property_id: str,
+    photo_url: str,
+    user: dict = Depends(get_current_user)
+):
+    """Remover foto de um imóvel."""
+    prop = await db.properties.find_one({"id": property_id})
+    if not prop:
+        raise HTTPException(status_code=404, detail="Imóvel não encontrado")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.properties.update_one(
+        {"id": property_id},
+        {
+            "$pull": {"photos": photo_url},
+            "$set": {"updated_at": now}
+        }
+    )
+    
+    return {"success": True, "message": "Foto removida"}
