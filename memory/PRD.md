@@ -146,16 +146,19 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização
 **8 Fevereiro 2026**
+- ✅ **Módulo Imóveis Angariados (P0 Completo)**:
+  - Backend: Modelo `Property` com dados completos (endereço, financeiro, proprietário, características)
+  - API CRUD: `/api/properties` com filtros, estatísticas, gestão de clientes interessados
+  - Frontend: Página `/imoveis` com cards, filtros, formulário de criação/edição
+  - Menu lateral actualizado para admin e staff
+  - Referências internas automáticas (IMO-001, IMO-002...)
 - ✅ **ScraperAPI Integrado**: Adicionada integração com ScraperAPI para contornar bloqueios
   - Funciona para: Casa SAPO, RE/MAX, ERA, Century21, e outros portais
-  - **NOTA**: Idealista requer plano ScraperAPI pago (ultra_premium) - plano gratuito não suporta
-- ✅ **Deep Scraping Service**: Integrado serviço avançado de scraping (`scraper.py`) no fluxo de extração de leads
-- ✅ **Sanitização de Emails**: Implementada função `sanitize_email()` em 3 locais críticos:
-  - `routes/processes.py` (criação e actualização de processos)
-  - `routes/public.py` (registo público de clientes)
-  - `services/ai_document.py` (extracção de dados via IA)
-- ✅ **Script de Limpeza**: Criado `scripts/cleanup_emails.py` para corrigir emails com markdown na BD
-- ✅ **Kanban de Leads**: Funcional com drag-and-drop, extracção de URLs, e gestão de estados
+  - **NOTA**: Idealista requer plano ScraperAPI pago (ultra_premium)
+- ✅ **Deep Scraping Service**: Integrado serviço avançado de scraping
+- ✅ **Sanitização de Emails**: Implementada função `sanitize_email()` em 3 locais críticos
+- ✅ **Script de Limpeza**: Criado `scripts/cleanup_emails.py`
+- ✅ **Kanban de Leads**: Funcional com drag-and-drop
 
 **6 Fevereiro 2026**
 - ✅ Sincronizado ambiente de desenvolvimento com MongoDB Atlas de produção
