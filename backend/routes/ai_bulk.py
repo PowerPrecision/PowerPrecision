@@ -366,17 +366,35 @@ async def read_file_with_limit(file: UploadFile) -> bytes:
     return b''.join(chunks)
 
 
-async def update_client_data(process_id: str, extracted_data: dict, document_type: str) -> bool:
-    """Actualizar ficha do cliente com dados extraídos."""
+async def update_client_data(process_id: str, extracted_data: dict, document_type: str) -> Tuple[bool, List[str]]:
+    """
+    Actualizar ficha do cliente com dados extraídos.
+    
+    Returns:
+        Tuple de (success, list of updated fields)
+    """
+    updated_fields = []
+    
     try:
-        logger.info(f"update_client_data chamado: process_id={process_id}, document_type={document_type}")
-        logger.info(f"extracted_data recebido: {extracted_data}")
+        logger.info(f"update_client_data: process_id={process_id}, document_type={document_type}")
+        logger.info(f"extracted_data: {list(extracted_data.keys())}")
+        
+        # Validar NIF antes de guardar
+        nif = extracted_data.get('nif') or extracted_data.get('NIF')
+        if nif and not validate_nif(nif):
+            logger.warning(f"NIF inválido rejeitado: {nif}")
+            del extracted_data['nif'] if 'nif' in extracted_data else None
+            del extracted_data['NIF'] if 'NIF' in extracted_data else None
         
         # Obter dados existentes
         process = await db.processes.find_one(
             {"id": process_id},
-            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1, "ai_extracted_notes": 1}
+            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1, "ai_extracted_notes": 1, "client_name": 1}
         )
+        
+        if not process:
+            logger.error(f"Processo não encontrado: {process_id}")
+            return False, []
         
         # Construir dados de actualização
         update_data = build_update_data_from_extraction(
@@ -385,7 +403,17 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
             process or {}
         )
         
-        logger.info(f"update_data construído: {update_data}")
+        # Identificar campos que serão actualizados
+        for key, value in update_data.items():
+            if key != "updated_at" and value:
+                if isinstance(value, dict):
+                    for subkey, subvalue in value.items():
+                        if subvalue:
+                            updated_fields.append(f"{key}.{subkey}")
+                else:
+                    updated_fields.append(key)
+        
+        logger.info(f"Campos a actualizar: {updated_fields}")
         
         # Aplicar actualização
         if len(update_data) > 1:
@@ -393,16 +421,22 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
                 {"id": process_id},
                 {"$set": update_data}
             )
-            logger.info(f"Update result: modified_count={result.modified_count}")
-            return result.modified_count > 0
+            
+            if result.modified_count > 0:
+                logger.info(f"✅ Cliente '{process.get('client_name')}' actualizado com sucesso! Campos: {updated_fields}")
+                return True, updated_fields
+            else:
+                # Verificar se os dados já eram iguais
+                logger.info(f"Nenhuma alteração necessária (dados já existentes)")
+                return True, updated_fields
         else:
-            logger.warning(f"update_data tem apenas {len(update_data)} campos, não actualizado")
+            logger.warning(f"Nenhum dado para actualizar (update_data tem apenas {len(update_data)} campos)")
         
-        return False
+        return False, []
         
     except Exception as e:
-        logger.error(f"Erro ao actualizar cliente {process_id}: {e}")
-        return False
+        logger.error(f"Erro ao actualizar cliente {process_id}: {e}", exc_info=True)
+        return False, []
 
 
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
