@@ -623,84 +623,110 @@ const ProcessDetails = () => {
                   </TabsList>
 
                   {/* Personal Data Tab */}
-                  <TabsContent value="personal" className="space-y-4 mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Contactos do Cliente */}
-                      <div className="md:col-span-2 pb-4 border-b">
-                        <h4 className="font-medium text-sm text-muted-foreground mb-4">Contactos do Cliente</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Email</Label>
+                  <TabsContent value="personal" className="mt-4">
+                    <div className="space-y-6">
+                      {/* Contactos */}
+                      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          Contactos
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Email</Label>
                             <Input
                               type="email"
                               value={process?.client_email || ""}
                               onChange={(e) => setProcess({ ...process, client_email: e.target.value })}
                               disabled={!canEditPersonal}
                               placeholder="email@exemplo.com"
+                              className="h-9"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label>Telefone</Label>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Telefone</Label>
                             <Input
                               value={process?.client_phone || ""}
                               onChange={(e) => setProcess({ ...process, client_phone: e.target.value })}
                               disabled={!canEditPersonal}
                               placeholder="+351 000 000 000"
+                              className="h-9"
                             />
                           </div>
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label>NIF</Label>
-                        <Input
-                          value={personalData.nif || ""}
-                          onChange={(e) => setPersonalData({ ...personalData, nif: e.target.value })}
-                          disabled={!canEditPersonal}
-                          data-testid="personal-nif"
-                        />
+                      {/* Identificação */}
+                      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          Identificação
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">NIF</Label>
+                            <Input
+                              value={personalData.nif || ""}
+                              onChange={(e) => setPersonalData({ ...personalData, nif: e.target.value })}
+                              disabled={!canEditPersonal}
+                              data-testid="personal-nif"
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Data de Nascimento</Label>
+                            <Input
+                              type="date"
+                              value={personalData.birth_date || ""}
+                              onChange={(e) => setPersonalData({ ...personalData, birth_date: e.target.value })}
+                              disabled={!canEditPersonal}
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Nacionalidade</Label>
+                            <Input
+                              value={personalData.nacionalidade || personalData.nationality || ""}
+                              onChange={(e) => setPersonalData({ ...personalData, nacionalidade: e.target.value })}
+                              disabled={!canEditPersonal}
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Estado Civil</Label>
+                            <Select
+                              value={personalData.estado_civil || personalData.marital_status || ""}
+                              onValueChange={(value) => setPersonalData({ ...personalData, estado_civil: value })}
+                              disabled={!canEditPersonal}
+                            >
+                              <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                                <SelectItem value="casado">Casado(a)</SelectItem>
+                                <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                                <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                                <SelectItem value="uniao_facto">União de Facto</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Data de Nascimento</Label>
-                        <Input
-                          type="date"
-                          value={personalData.birth_date || ""}
-                          onChange={(e) => setPersonalData({ ...personalData, birth_date: e.target.value })}
-                          disabled={!canEditPersonal}
-                        />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Morada Fiscal</Label>
-                        <Input
-                          value={personalData.morada_fiscal || personalData.address || ""}
-                          onChange={(e) => setPersonalData({ ...personalData, morada_fiscal: e.target.value })}
-                          disabled={!canEditPersonal}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Estado Civil</Label>
-                        <Select
-                          value={personalData.estado_civil || personalData.marital_status || ""}
-                          onValueChange={(value) => setPersonalData({ ...personalData, estado_civil: value })}
-                          disabled={!canEditPersonal}
-                        >
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="solteiro">Solteiro(a)</SelectItem>
-                            <SelectItem value="casado">Casado(a)</SelectItem>
-                            <SelectItem value="divorciado">Divorciado(a)</SelectItem>
-                            <SelectItem value="viuvo">Viúvo(a)</SelectItem>
-                            <SelectItem value="uniao_facto">União de Facto</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Nacionalidade</Label>
-                        <Input
-                          value={personalData.nacionalidade || personalData.nationality || ""}
-                          onChange={(e) => setPersonalData({ ...personalData, nacionalidade: e.target.value })}
-                          disabled={!canEditPersonal}
-                        />
+                      
+                      {/* Morada */}
+                      <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Morada
+                        </h4>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Morada Fiscal</Label>
+                          <Input
+                            value={personalData.morada_fiscal || personalData.address || ""}
+                            onChange={(e) => setPersonalData({ ...personalData, morada_fiscal: e.target.value })}
+                            disabled={!canEditPersonal}
+                            className="h-9"
+                          />
+                        </div>
                       </div>
                     </div>
                   </TabsContent>
