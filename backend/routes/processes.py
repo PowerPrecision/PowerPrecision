@@ -562,7 +562,7 @@ async def move_process_kanban(
         status_label = status_doc.get("label", new_status) if status_doc else new_status
         await send_email_notification(
             process["client_email"],
-            f"Atualização do seu processo",
+            "Atualização do seu processo",
             f"O estado do seu processo foi atualizado para: {status_label}"
         )
     
