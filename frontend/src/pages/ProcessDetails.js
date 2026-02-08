@@ -76,6 +76,8 @@ import {
   ExternalLink,
   Users,
   Sparkles,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isAfter } from "date-fns";
