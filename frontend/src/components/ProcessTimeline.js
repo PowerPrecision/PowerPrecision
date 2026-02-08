@@ -230,9 +230,9 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
         )}
       </CardHeader>
 
-      <CardContent className="pt-2">
+      <CardContent className="pt-0 pb-2 px-3">
         <ScrollArea className="w-full">
-          <div className="flex items-start py-4 px-2">
+          <div className="flex items-start py-2 px-1">
             {timelineData.map((item, index) => (
               <React.Fragment key={item.phase}>
                 <TimelineNode
@@ -251,18 +251,18 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        {/* Legenda */}
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t text-xs text-muted-foreground">
+        {/* Legenda compacta */}
+        <div className="flex items-center gap-3 pt-2 border-t text-[10px] text-muted-foreground">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
+            <div className="w-2 h-2 rounded-full bg-green-500" />
             <span>Concluído</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-50" />
+            <div className="w-2 h-2 rounded-full border border-blue-500 bg-blue-50" />
             <span>Atual</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full border-2 border-gray-300" />
+            <div className="w-2 h-2 rounded-full border border-gray-300" />
             <span>Pendente</span>
           </div>
         </div>
