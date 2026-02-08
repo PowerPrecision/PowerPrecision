@@ -199,7 +199,7 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
         # Obter dados existentes
         process = await db.processes.find_one(
             {"id": process_id},
-            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1}
+            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1, "ai_extracted_notes": 1}
         )
         
         # Construir dados de actualização
