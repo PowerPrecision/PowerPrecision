@@ -112,10 +112,16 @@ class DeepScraper:
     PT_MOBILE_PREFIXES = ['91', '92', '93', '96']
     PT_LANDLINE_PREFIXES = ['21', '22', '23', '24', '25', '26', '27', '28', '29']
     
-    def __init__(self, timeout: float = 15.0, max_retries: int = 2):
+    def __init__(self, timeout: float = 30.0, max_retries: int = 2, use_scraperapi: bool = True):
         self.timeout = timeout
         self.max_retries = max_retries
+        self.use_scraperapi = use_scraperapi and bool(SCRAPERAPI_KEY)
         self._client = None
+        
+        if self.use_scraperapi:
+            logger.info("ScraperAPI activado para contornar bloqueios")
+        else:
+            logger.warning("ScraperAPI não configurado - usando acesso directo")
     
     def _get_headers(self) -> Dict[str, str]:
         """Gera headers realistas para evitar bloqueios."""
@@ -131,17 +137,67 @@ class DeepScraper:
             'DNT': '1',
         }
     
-    async def _fetch_page(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+    async def _fetch_with_scraperapi(self, url: str) -> Tuple[Optional[str], Optional[str]]:
         """
-        Faz fetch de uma página com retry e tratamento de erros.
-        Retorna (html_content, error_message).
+        Faz fetch usando ScraperAPI (proxy rotativo).
+        Contorna bloqueios de sites como Idealista.
+        """
+        # Construir URL do ScraperAPI
+        params = {
+            'api_key': SCRAPERAPI_KEY,
+            'url': url,
+            'render': 'false',  # Não precisamos de JS rendering para HTML estático
+            'country_code': 'pt',  # Usar proxies portugueses
+        }
+        
+        # Para Idealista, activar premium proxies
+        if 'idealista' in url.lower():
+            params['premium'] = 'true'
+            params['render'] = 'true'  # Idealista pode precisar de JS
+        
+        scraper_url = f"{SCRAPERAPI_BASE_URL}?api_key={params['api_key']}&url={quote(url)}"
+        if params.get('render') == 'true':
+            scraper_url += "&render=true"
+        if params.get('premium') == 'true':
+            scraper_url += "&premium=true"
+        if params.get('country_code'):
+            scraper_url += f"&country_code={params['country_code']}"
+        
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                logger.info(f"ScraperAPI: Fetching {url}")
+                response = await client.get(scraper_url)
+                
+                if response.status_code == 200:
+                    logger.info(f"ScraperAPI: Sucesso ao aceder {url}")
+                    return response.text, None
+                elif response.status_code == 403:
+                    logger.warning(f"ScraperAPI: Ainda bloqueado (403) em {url}")
+                    return None, "Site continua a bloquear mesmo com proxy"
+                elif response.status_code == 500:
+                    logger.warning(f"ScraperAPI: Erro interno (500) - site pode estar protegido")
+                    return None, "Site com proteção avançada"
+                else:
+                    logger.warning(f"ScraperAPI: Status {response.status_code} em {url}")
+                    return None, f"Erro HTTP {response.status_code}"
+                    
+        except httpx.TimeoutException:
+            logger.warning(f"ScraperAPI: Timeout ao aceder {url}")
+            return None, "Timeout - página demorou muito a responder"
+        except Exception as e:
+            logger.error(f"ScraperAPI: Erro ao aceder {url}: {e}")
+            return None, str(e)
+    
+    async def _fetch_direct(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Faz fetch directo sem proxy (fallback).
         """
         for attempt in range(self.max_retries):
             try:
                 async with httpx.AsyncClient(
                     follow_redirects=True, 
                     timeout=self.timeout,
-                    verify=False  # Alguns sites têm certificados inválidos
+                    verify=False
                 ) as client:
                     response = await client.get(url, headers=self._get_headers())
                     
@@ -160,11 +216,25 @@ class DeepScraper:
             except Exception as e:
                 logger.error(f"Erro ao aceder {url}: {e}")
                 
-            # Aguardar antes de retry
             if attempt < self.max_retries - 1:
                 await asyncio.sleep(1 + attempt)
         
         return None, "Não foi possível aceder à página"
+    
+    async def _fetch_page(self, url: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Faz fetch de uma página.
+        Usa ScraperAPI se disponível, senão faz acesso directo.
+        """
+        # Usar ScraperAPI para sites conhecidos por bloquear
+        if self.use_scraperapi and ('idealista' in url.lower() or 'imovirtual' in url.lower()):
+            html, error = await self._fetch_with_scraperapi(url)
+            if html:
+                return html, None
+            # Se ScraperAPI falhar, tentar acesso directo como fallback
+            logger.info(f"ScraperAPI falhou, tentando acesso directo para {url}")
+        
+        return await self._fetch_direct(url)
     
     def _extract_phone_numbers(self, text: str) -> List[str]:
         """
