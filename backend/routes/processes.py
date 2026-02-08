@@ -688,7 +688,7 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
         
         # Atualizar email e telefone do cliente
         if data.client_email is not None:
-            update_data["client_email"] = data.client_email
+            update_data["client_email"] = sanitize_email(data.client_email)
         if data.client_phone is not None:
             update_data["client_phone"] = data.client_phone
         
