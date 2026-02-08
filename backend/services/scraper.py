@@ -142,42 +142,54 @@ class DeepScraper:
         Faz fetch usando ScraperAPI (proxy rotativo).
         Contorna bloqueios de sites como Idealista.
         """
-        # Construir URL do ScraperAPI
-        params = {
-            'api_key': SCRAPERAPI_KEY,
-            'url': url,
-            'render': 'false',  # Não precisamos de JS rendering para HTML estático
-            'country_code': 'pt',  # Usar proxies portugueses
-        }
+        # Para Idealista, usar configuração especial
+        is_idealista = 'idealista' in url.lower()
         
-        # Para Idealista, activar premium proxies
-        if 'idealista' in url.lower():
-            params['premium'] = 'true'
-            params['render'] = 'true'  # Idealista pode precisar de JS
+        # Construir URL do ScraperAPI com parâmetros
+        base_params = f"api_key={SCRAPERAPI_KEY}&url={quote(url)}"
         
-        scraper_url = f"{SCRAPERAPI_BASE_URL}?api_key={params['api_key']}&url={quote(url)}"
-        if params.get('render') == 'true':
-            scraper_url += "&render=true"
-        if params.get('premium') == 'true':
-            scraper_url += "&premium=true"
-        if params.get('country_code'):
-            scraper_url += f"&country_code={params['country_code']}"
+        if is_idealista:
+            # Idealista precisa de browser headless completo
+            # Usar autoparse=false para obter HTML raw
+            scraper_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&render=true&premium=true&country_code=es&device_type=desktop"
+        else:
+            scraper_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&country_code=pt"
         
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                logger.info(f"ScraperAPI: Fetching {url}")
+            # Timeout maior para páginas com JS rendering
+            timeout = 60.0 if is_idealista else self.timeout
+            
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                logger.info(f"ScraperAPI: Fetching {url} (premium={is_idealista})")
                 response = await client.get(scraper_url)
                 
                 if response.status_code == 200:
-                    logger.info(f"ScraperAPI: Sucesso ao aceder {url}")
-                    return response.text, None
+                    html = response.text
+                    # Verificar se recebemos HTML válido
+                    if '<html' in html.lower() or '<body' in html.lower():
+                        logger.info(f"ScraperAPI: Sucesso ao aceder {url} ({len(html)} bytes)")
+                        return html, None
+                    else:
+                        logger.warning(f"ScraperAPI: Resposta não parece ser HTML válido")
+                        return html, None  # Retornar mesmo assim
+                        
                 elif response.status_code == 403:
                     logger.warning(f"ScraperAPI: Ainda bloqueado (403) em {url}")
                     return None, "Site continua a bloquear mesmo com proxy"
                 elif response.status_code == 500:
-                    logger.warning(f"ScraperAPI: Erro interno (500) - site pode estar protegido")
+                    # Tentar novamente sem premium (pode ser problema de quota)
+                    logger.warning(f"ScraperAPI: Erro 500, tentando sem premium...")
+                    fallback_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&render=true"
+                    response2 = await client.get(fallback_url, timeout=45.0)
+                    if response2.status_code == 200:
+                        return response2.text, None
                     return None, "Site com proteção avançada"
+                elif response.status_code == 429:
+                    logger.warning(f"ScraperAPI: Rate limit atingido")
+                    return None, "Limite de requisições atingido"
                 else:
+                    logger.warning(f"ScraperAPI: Status {response.status_code} em {url}")
+                    return None, f"Erro HTTP {response.status_code}"
                     logger.warning(f"ScraperAPI: Status {response.status_code} em {url}")
                     return None, f"Erro HTTP {response.status_code}"
                     
