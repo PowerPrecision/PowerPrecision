@@ -589,3 +589,106 @@ async def get_process_alerts(process: dict) -> List[Dict[str, Any]]:
             alerts.append(property_alert)
     
     return alerts
+
+
+# ====================================================================
+# NOTIFICAÇÕES DE MATCH CLIENTE-IMÓVEL
+# ====================================================================
+
+async def notify_property_match(
+    property_id: str,
+    property_title: str,
+    matching_clients: list,
+    agent_email: str = None
+):
+    """
+    Notifica sobre matches perfeitos entre um imóvel e clientes.
+    Chamada quando um novo imóvel é adicionado ou quando há matches de alta pontuação.
+    """
+    if not matching_clients:
+        return
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    for match in matching_clients:
+        if match.get("score", 0) < MATCH_SCORE_THRESHOLD:
+            continue
+        
+        client_name = match.get("process", {}).get("client_name", "Cliente")
+        process_id = match.get("process", {}).get("id")
+        score = match.get("score", 0)
+        reasons = match.get("match_reasons", [])
+        
+        # Criar notificação no sistema
+        notification = {
+            "id": str(uuid.uuid4()),
+            "type": ALERT_TYPES["PROPERTY_MATCH"],
+            "title": f"Match Encontrado: {client_name}",
+            "message": f"O cliente {client_name} tem {score}% de compatibilidade com o imóvel '{property_title}'",
+            "details": {
+                "property_id": property_id,
+                "property_title": property_title,
+                "process_id": process_id,
+                "client_name": client_name,
+                "score": score,
+                "reasons": reasons
+            },
+            "process_id": process_id,
+            "property_id": property_id,
+            "read": False,
+            "created_at": now
+        }
+        
+        await db.notifications.insert_one(notification)
+    
+    # Se há agente responsável, enviar email
+    if agent_email and matching_clients:
+        top_matches = [m for m in matching_clients if m.get("score", 0) >= MATCH_SCORE_THRESHOLD][:3]
+        if top_matches:
+            match_list = "\n".join([
+                f"- {m['process']['client_name']}: {m['score']}% compatível"
+                for m in top_matches
+            ])
+            
+            try:
+                await send_email_notification(
+                    agent_email,
+                    f"Novos Matches para {property_title}",
+                    f"Foram encontrados {len(top_matches)} clientes com alta compatibilidade:\n\n{match_list}\n\nAceda ao sistema para ver mais detalhes."
+                )
+            except Exception as e:
+                pass  # Não falhar se email não enviar
+
+
+async def check_and_notify_matches_for_new_property(property_id: str):
+    """
+    Verifica e notifica matches quando um novo imóvel é adicionado.
+    Deve ser chamada após criar um imóvel.
+    """
+    from services.client_match import find_matching_clients_for_property
+    
+    prop = await db.properties.find_one({"id": property_id}, {"_id": 0})
+    if not prop:
+        return
+    
+    matches = await find_matching_clients_for_property(property_id)
+    
+    if matches:
+        agent_email = None
+        if prop.get("assigned_agent_id"):
+            agent = await db.users.find_one(
+                {"id": prop["assigned_agent_id"]}, 
+                {"email": 1}
+            )
+            if agent:
+                agent_email = agent.get("email")
+        
+        await notify_property_match(
+            property_id=property_id,
+            property_title=prop.get("title", "Imóvel"),
+            matching_clients=matches,
+            agent_email=agent_email
+        )
+    
+    return {"matches_found": len(matches)}
+
