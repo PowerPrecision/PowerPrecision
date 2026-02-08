@@ -295,7 +295,8 @@ async def find_matching_clients_for_property(property_id: str) -> List[Dict[str,
                 except:
                     pass
         
-        client_district = (real_estate.get("distrito") or real_estate.get("localizacao") or "").lower()
+        client_district_raw = real_estate.get("distrito") or real_estate.get("localizacao") or ""
+        client_district = client_district_raw.lower() if isinstance(client_district_raw, str) else ""
         client_typology = real_estate.get("tipologia", "")
         client_bedrooms = None
         if client_typology:
