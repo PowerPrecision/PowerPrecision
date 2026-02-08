@@ -119,3 +119,75 @@ async def remove_process_folder_url(
         raise HTTPException(status_code=404, detail="Processo não encontrado ou link já removido")
     
     return {"success": True, "message": "Link removido"}
+
+
+@router.post("/process/{process_id}/checklist")
+async def generate_document_checklist(
+    process_id: str,
+    files: list[str],  # Lista de nomes de ficheiros da pasta
+    user: dict = Depends(get_current_user)
+):
+    """
+    Gerar checklist de documentos baseada nos ficheiros fornecidos.
+    
+    O frontend envia a lista de ficheiros que estão na pasta do cliente
+    (obtidos via interface do OneDrive ou upload manual).
+    
+    Returns:
+        Checklist com status de cada documento esperado.
+    """
+    from services.document_checklist import generate_checklist
+    
+    # Obter processo
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Determinar tipo de processo (por agora, todos são crédito habitação)
+    tipo_processo = "credito_habitacao"
+    
+    # Gerar checklist
+    result = generate_checklist(files, tipo_processo)
+    result["client_name"] = process.get("client_name", "")
+    result["process_id"] = process_id
+    
+    # Guardar resultado no processo
+    await db.processes.update_one(
+        {"id": process_id},
+        {"$set": {"document_checklist": result}}
+    )
+    
+    return result
+
+
+@router.get("/process/{process_id}/checklist")
+async def get_document_checklist(
+    process_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Obter checklist de documentos guardada para um processo.
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"document_checklist": 1, "client_name": 1, "_id": 0}
+    )
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    checklist = process.get("document_checklist")
+    
+    if not checklist:
+        return {
+            "checklist": [],
+            "resumo": {
+                "total_documentos": 0,
+                "percentagem_conclusao": 0,
+            },
+            "message": "Checklist ainda não gerada. Envie a lista de ficheiros para gerar."
+        }
+    
+    return checklist
+
