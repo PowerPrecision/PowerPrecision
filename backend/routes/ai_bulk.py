@@ -64,7 +64,15 @@ cc_cache: Dict[str, Dict[str, Tuple[bytes, str]]] = {}
 document_hash_cache: Dict[str, Dict[str, Dict[str, dict]]] = {}
 
 # Tipos de documentos que tipicamente vêm em múltiplas cópias idênticas
-DUPLICATE_PRONE_TYPES = {"recibo_vencimento", "extrato_bancario", "recibo"}
+# Expandido para incluir mais tipos comuns
+DUPLICATE_PRONE_TYPES = {
+    "recibo_vencimento",  # Recibos de vencimento mensais
+    "extrato_bancario",   # Extratos bancários
+    "recibo",             # Recibos genéricos
+    "irs",                # Declarações IRS (mesmo ano)
+    "contrato_trabalho",  # Contratos de trabalho
+    "certidao",           # Certidões
+}
 
 
 def normalize_text_for_matching(text: str) -> str:
