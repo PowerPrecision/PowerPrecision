@@ -37,7 +37,7 @@ const normalizeStatus = (status) => {
   return statusMap[status] || status;
 };
 
-// Componente de nó da timeline
+// Componente de nó da timeline (compacto)
 const TimelineNode = ({ phase, isCompleted, isCurrent, date, daysInPhase }) => {
   const phaseInfo = PROCESS_PHASES.find(p => p.id === phase) || { 
     label: phase, 
@@ -45,10 +45,10 @@ const TimelineNode = ({ phase, isCompleted, isCurrent, date, daysInPhase }) => {
   };
 
   return (
-    <div className="flex flex-col items-center min-w-[120px]">
+    <div className="flex flex-col items-center min-w-[80px]">
       {/* Nó */}
       <div
-        className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+        className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
           isCompleted
             ? "bg-green-500 border-green-500 text-white"
             : isCurrent
@@ -58,22 +58,22 @@ const TimelineNode = ({ phase, isCompleted, isCurrent, date, daysInPhase }) => {
         style={isCurrent ? { borderColor: phaseInfo.color } : {}}
       >
         {isCompleted ? (
-          <CheckCircle className="h-5 w-5" />
+          <CheckCircle className="h-3 w-3" />
         ) : isCurrent ? (
-          <Circle className="h-5 w-5" style={{ color: phaseInfo.color }} />
+          <Circle className="h-3 w-3" style={{ color: phaseInfo.color }} />
         ) : (
-          <Circle className="h-5 w-5 text-gray-300" />
+          <Circle className="h-3 w-3 text-gray-300" />
         )}
       </div>
 
       {/* Label */}
-      <div className="mt-2 text-center">
-        <p className={`text-xs font-medium ${isCurrent ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-500"}`}>
+      <div className="mt-1 text-center max-w-[80px]">
+        <p className={`text-[10px] font-medium leading-tight ${isCurrent ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-500"}`}>
           {phaseInfo.label}
         </p>
         {date && (
-          <p className="text-[10px] text-muted-foreground mt-1">
-            {format(parseISO(date), "dd/MM/yy", { locale: pt })}
+          <p className="text-[9px] text-muted-foreground">
+            {format(parseISO(date), "dd/MM", { locale: pt })}
           </p>
         )}
         {daysInPhase !== undefined && daysInPhase > 0 && (
