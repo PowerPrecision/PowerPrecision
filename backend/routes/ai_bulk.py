@@ -784,6 +784,7 @@ async def diagnose_client_data(
     """
     Diagnóstico de dados de um cliente.
     Mostra quais campos estão preenchidos e quais estão vazios.
+    Inclui co-compradores/co-proponentes se existirem.
     """
     process = await find_client_by_name(client_name)
     
@@ -808,7 +809,11 @@ async def diagnose_client_data(
     financial_filled, financial_total, financial_fields = count_filled(financial)
     real_estate_filled, real_estate_total, real_estate_fields = count_filled(real_estate)
     
-    return {
+    # Verificar co-compradores/co-proponentes
+    co_buyers = process.get("co_buyers", [])
+    co_applicants = process.get("co_applicants", [])
+    
+    result = {
         "found": True,
         "client_name": process.get("client_name"),
         "process_id": process.get("id"),
@@ -830,6 +835,17 @@ async def diagnose_client_data(
         },
         "analyzed_documents": process.get("analyzed_documents", [])
     }
+    
+    # Adicionar co-compradores se existirem
+    if co_buyers:
+        result["co_buyers"] = co_buyers
+        result["summary"]["co_buyers"] = f"{len(co_buyers)} pessoa(s)"
+    
+    if co_applicants:
+        result["co_applicants"] = co_applicants
+        result["summary"]["co_applicants"] = f"{len(co_applicants)} pessoa(s)"
+    
+    return result
 
 
 @router.get("/analyzed-documents/{process_id}")
