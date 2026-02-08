@@ -14,7 +14,7 @@ from models.lead import (
 )
 from services.property_scraper import extract_property_data
 from services.auth import get_current_user, require_roles
-from models.user import UserRole
+from models.auth import UserRole
 
 router = APIRouter(prefix="/leads", tags=["Property Leads"])
 logger = logging.getLogger(__name__)
