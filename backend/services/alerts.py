@@ -34,12 +34,14 @@ ALERT_TYPES = {
     "PROPERTY_DOCS_CHECK": "property_docs_check",  # Verificar docs do imóvel
     "DEED_REMINDER": "deed_reminder",            # 15 dias antes da escritura
     "NEW_CLIENT_REGISTRATION": "new_registration",  # Novo registo de cliente
+    "PROPERTY_MATCH": "property_match",          # Match perfeito cliente-imóvel
 }
 
 # Dias para alertas
 DAYS_PRE_APPROVAL_COUNTDOWN = 90
 DAYS_DOCUMENT_EXPIRY_WARNING = 15
 DAYS_DEED_REMINDER = 15
+MATCH_SCORE_THRESHOLD = 70  # Score mínimo para notificação de match
 
 
 # ====================================================================
