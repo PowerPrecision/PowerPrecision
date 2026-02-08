@@ -1,49 +1,59 @@
-# --- Core ---
+# --- Core Framework ---
 fastapi
 uvicorn
 python-dotenv
 python-multipart
-pydantic
-pydantic-settings
-email-validator
+jinja2
+
+# --- Base de Dados ---
 motor
 dnspython
 
-# --- Segurança & Auth ---
-python-jose
+# --- Validação de Dados ---
+pydantic
+pydantic-settings
+email-validator
+
+# --- Autenticação e Segurança ---
 passlib[bcrypt]
 bcrypt
 PyJWT
+python-jose
 
-# --- Utilitários ---
+# --- Utilitários e HTTP ---
 requests
 httpx
-jinja2
+tenacity
 python-dateutil
 pytz
-tenacity
 
-# --- IA & LLMs ---
+# --- Processamento de Texto e Comparação (O erro atual) ---
+thefuzz
+python-Levenshtein
+
+# --- IA e LLMs ---
 openai
 litellm
 tiktoken
 
-# --- Google / OneDrive / Email ---
+# --- Integrações Cloud (Google, AWS, Email) ---
 google-api-python-client
 google-auth-httplib2
 google-auth
+boto3
 resend
 
-# --- Pagamentos & AWS ---
+# --- Pagamentos ---
 stripe
-boto3
 
-# --- PDF & Imagens ---
+# --- Processamento de Ficheiros (PDFs e Imagens) ---
 PyMuPDF
 img2pdf
 pillow
+pandas
+openpyxl
 
-# --- NOVO: Scraping (Para o Idealista) ---
+# --- Web Scraping (Idealista) ---
 beautifulsoup4
 fake-useragent
 phonenumbers
