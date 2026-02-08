@@ -703,16 +703,20 @@ def detect_document_type(filename: str) -> str:
         return 'irs'
     elif any(x in filename_lower for x in ['contrato', 'trabalho', 'vinculo', 'efetividade', 'employment']):
         return 'contrato_trabalho'
-    elif any(x in filename_lower for x in ['caderneta', 'predial', 'imovel']):
+    elif any(x in filename_lower for x in ['caderneta', 'predial']):
         return 'caderneta_predial'
     elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco', 'ext_']):
         return 'extrato_bancario'
-    elif any(x in filename_lower for x in ['simulacao', 'simulação', 'proposta', 'credito', 'crédito', 'financiamento']):
+    elif any(x in filename_lower for x in ['simulacao', 'simulação', 'proposta financ', 'credito', 'crédito', 'financiamento']):
         return 'simulacao_credito'
-    elif any(x in filename_lower for x in ['certidao', 'certidão', 'domicilio', 'domicílio', 'fiscal', 'morada']):
+    elif any(x in filename_lower for x in ['certidao', 'certidão', 'domicilio', 'domicílio', 'fiscal']):
         return 'certidao'
     elif any(x in filename_lower for x in ['crc', 'responsabilidade', 'mapa_crc', 'central']):
         return 'mapa_crc'
+    elif any(x in filename_lower for x in ['cpcv', 'promessa', 'compra e venda', 'sinal']):
+        return 'cpcv'
+    elif any(x in filename_lower for x in ['imovel', 'imóvel', 'casa', 'apartamento', 'moradia', 'fracao', 'fração']):
+        return 'dados_imovel'
     else:
         return 'outro'
 
