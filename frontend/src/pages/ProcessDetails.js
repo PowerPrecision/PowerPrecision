@@ -30,6 +30,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Separator } from "../components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
+import {
   getProcess,
   updateProcess,
   getDeadlines,
