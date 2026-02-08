@@ -52,6 +52,7 @@ import EmailHistoryPanel from "../components/EmailHistoryPanel";
 import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
 import DocumentChecklist from "../components/DocumentChecklist";
 import ProcessTimeline from "../components/ProcessTimeline";
+import ClientPropertyMatch from "../components/ClientPropertyMatch";
 import {
   ArrowLeft,
   User,
