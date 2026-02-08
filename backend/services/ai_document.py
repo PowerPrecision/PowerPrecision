@@ -963,7 +963,7 @@ def build_update_data_from_extraction(
             update_data["personal_data"] = existing_personal
         
         if extracted_data.get('email'):
-            update_data["client_email"] = extracted_data['email']
+            update_data["client_email"] = sanitize_email(extracted_data['email'])
             
     elif document_type in ['recibo_vencimento', 'irs']:
         # Dados financeiros (PT e UK)
