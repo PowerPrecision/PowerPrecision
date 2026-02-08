@@ -692,14 +692,17 @@ Retorna APENAS o JSON, sem texto adicional."""
         
 Extrai os dados fiscais principais visíveis no documento.
 Valores monetários devem ser números decimais.
-Se algum campo não for legível ou não existir, usa null."""
+Se algum campo não for legível ou não existir, usa null.
+IMPORTANTE: Se for uma declaração conjunta (casados/unidos de facto), extrai dados de AMBOS os titulares."""
         
         user_prompt = """Analisa esta declaração de IRS e extrai os seguintes dados em formato JSON:
 
 {
     "ano_fiscal": 2024,
-    "nif_titular": "NIF do titular",
-    "nome_titular": "Nome do titular",
+    "nif_titular": "NIF do titular 1 (sujeito passivo A)",
+    "nome_titular": "Nome do titular 1",
+    "nif_titular_2": "NIF do titular 2/cônjuge (sujeito passivo B) ou null se individual",
+    "nome_titular_2": "Nome do titular 2/cônjuge ou null se individual",
     "estado_civil_fiscal": "Solteiro/Casado/União de facto",
     "rendimento_bruto_anual": 0.00,
     "rendimento_liquido_anual": 0.00,
@@ -712,12 +715,113 @@ Se algum campo não for legível ou não existir, usa null."""
 
 Retorna APENAS o JSON, sem texto adicional."""
 
+    elif document_type == "cpcv":
+        system_prompt = """És um assistente especializado em extrair dados de Contratos Promessa de Compra e Venda (CPCV) portugueses.
+
+IMPORTANTE: 
+- Podem existir MÚLTIPLOS COMPRADORES (proponentes) - extrai dados de TODOS
+- Identifica: Primeiro Outorgante (vendedor), Segundo Outorgante (comprador/proponente)
+- Se houver casal/parceiros a comprar, extrai dados de ambos
+- Valores monetários devem ser números decimais."""
+        
+        user_prompt = """Analisa este CPCV (Contrato Promessa Compra e Venda) e extrai os seguintes dados em formato JSON:
+
+{
+    "compradores": [
+        {
+            "nome_completo": "Nome do comprador/proponente 1",
+            "nif": "NIF do comprador 1",
+            "estado_civil": "Estado civil",
+            "morada": "Morada",
+            "email": "Email se disponível",
+            "telefone": "Telefone se disponível"
+        },
+        {
+            "nome_completo": "Nome do comprador/proponente 2 (cônjuge/parceiro) ou null se só um",
+            "nif": "NIF do comprador 2 ou null",
+            "estado_civil": "Estado civil",
+            "morada": "Morada",
+            "email": "Email se disponível",
+            "telefone": "Telefone se disponível"
+        }
+    ],
+    "vendedor": {
+        "nome": "Nome do vendedor/promitente vendedor",
+        "nif": "NIF do vendedor"
+    },
+    "imovel": {
+        "morada": "Morada completa do imóvel",
+        "tipologia": "T0/T1/T2/T3/etc",
+        "fracao": "Fração/Artigo matricial",
+        "area": "Área em m2"
+    },
+    "valores": {
+        "preco_total": 0.00,
+        "sinal": 0.00,
+        "valor_restante": 0.00
+    },
+    "datas": {
+        "data_cpcv": "Data do contrato (YYYY-MM-DD)",
+        "data_escritura_prevista": "Data prevista para escritura (YYYY-MM-DD)"
+    }
+}
+
+Se houver apenas 1 comprador, o array "compradores" deve ter apenas 1 elemento.
+Retorna APENAS o JSON, sem texto adicional."""
+
+    elif document_type == "simulacao_credito":
+        system_prompt = """És um assistente especializado em extrair dados de simulações de crédito habitação portuguesas.
+
+IMPORTANTE: 
+- Podem existir MÚLTIPLOS PROPONENTES (casal a pedir crédito junto) - extrai dados de TODOS
+- Identifica Proponente 1, Proponente 2, Cônjuge, etc.
+- Valores monetários devem ser números decimais."""
+        
+        user_prompt = """Analisa esta simulação de crédito habitação e extrai os seguintes dados em formato JSON:
+
+{
+    "proponentes": [
+        {
+            "nome": "Nome do proponente 1",
+            "nif": "NIF",
+            "data_nascimento": "Data nascimento (YYYY-MM-DD)",
+            "rendimento_mensal": 0.00,
+            "entidade_patronal": "Empresa onde trabalha"
+        },
+        {
+            "nome": "Nome do proponente 2 (cônjuge) ou null se individual",
+            "nif": "NIF ou null",
+            "data_nascimento": "Data nascimento ou null",
+            "rendimento_mensal": 0.00,
+            "entidade_patronal": "Empresa"
+        }
+    ],
+    "credito": {
+        "montante_financiamento": 0.00,
+        "prazo_anos": 0,
+        "taxa_juro": 0.00,
+        "spread": 0.00,
+        "prestacao_mensal": 0.00,
+        "taeg": 0.00
+    },
+    "imovel": {
+        "valor_aquisicao": 0.00,
+        "localizacao": "Localização do imóvel"
+    },
+    "banco": "Nome do banco"
+}
+
+Se houver apenas 1 proponente, o array deve ter apenas 1 elemento.
+Retorna APENAS o JSON, sem texto adicional."""
+
     else:
         system_prompt = """És um assistente especializado em extrair dados de documentos.
-Extrai todos os dados relevantes que encontrares no documento."""
+Extrai todos os dados relevantes que encontrares no documento.
+IMPORTANTE: Se o documento mencionar múltiplas pessoas (compradores, proponentes, cônjuges), extrai dados de TODAS."""
         
         user_prompt = """Analisa este documento e extrai todos os dados relevantes em formato JSON estruturado.
 Inclui nomes, datas, valores, números de identificação, e qualquer outra informação importante.
+Se existirem múltiplas pessoas mencionadas (compradores, proponentes, cônjuges), cria um array "pessoas" com os dados de cada uma.
 Retorna APENAS o JSON, sem texto adicional."""
 
     return system_prompt, user_prompt
