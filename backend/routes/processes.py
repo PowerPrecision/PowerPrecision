@@ -31,6 +31,7 @@ WORKFLOW DE 14 FASES:
 Autor: CreditoIMO Development Team
 ====================================================================
 """
+import re
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -56,6 +57,42 @@ from services.realtime_notifications import notify_process_status_change
 from services.trello import trello_service, status_to_trello_list, build_card_description
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_email(email: str) -> str:
+    """
+    Limpa emails com formatação markdown ou outros artefactos.
+    Extrai o email puro de strings como '[email](mailto:email)' ou 'mailto:email'.
+    """
+    if not email:
+        return ""
+    
+    email = email.strip()
+    
+    # Padrão: [texto](mailto:email) ou [email](mailto:email)
+    markdown_link = re.search(r'\[.*?\]\(mailto:([^)]+)\)', email)
+    if markdown_link:
+        email = markdown_link.group(1)
+    
+    # Padrão: mailto:email
+    if email.startswith('mailto:'):
+        email = email.replace('mailto:', '')
+    
+    # Padrão: <email>
+    angle_brackets = re.search(r'<([^>]+@[^>]+)>', email)
+    if angle_brackets:
+        email = angle_brackets.group(1)
+    
+    # Remover quaisquer caracteres markdown restantes
+    email = re.sub(r'[\[\]\(\)]', '', email)
+    
+    # Validar formato básico de email
+    email = email.strip().lower()
+    if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email, re.IGNORECASE):
+        logger.warning(f"Email inválido após sanitização: {email}")
+        return ""
+    
+    return email
 
 
 async def get_next_process_number() -> int:
