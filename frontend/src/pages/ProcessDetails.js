@@ -1037,6 +1037,12 @@ const ProcessDetails = () => {
               </CardContent>
             </Card>
 
+            {/* Document Checklist */}
+            <DocumentChecklist 
+              processId={id}
+              clientName={process?.client_name}
+            />
+
             {/* Tasks Panel */}
             <TasksPanel 
               processId={id} 
