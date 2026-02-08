@@ -309,6 +309,11 @@ const AdminDashboard = () => {
           <TabsContent value="tasks" className="mt-6">
             <TasksPanel showCreateButton={true} maxHeight="600px" />
           </TabsContent>
+
+          {/* Leads Tab */}
+          <TabsContent value="leads" className="mt-6">
+            <LeadsKanban />
+          </TabsContent>
         </Tabs>
 
         {/* Create Event Dialog */}
