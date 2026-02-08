@@ -595,9 +595,9 @@ async def analyze_single_file(
         document_type = detect_document_type(doc_filename)
         result.document_type = document_type
         
-        # Verificar se é documento duplicado (recibos, extratos, etc.)
-        cached_data = is_duplicate_document(process_id, document_type, content)
-        if cached_data:
+        # Verificar se é documento duplicado (cache + DB)
+        duplicate_data = await check_duplicate_comprehensive(process_id, document_type, content)
+        if duplicate_data:
             logger.info(f"Documento duplicado detectado para {actual_client_name}: {document_type}")
             result.success = True
             result.error = "Documento idêntico já analisado anteriormente (ignorado)"
