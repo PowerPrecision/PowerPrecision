@@ -899,6 +899,13 @@ def build_update_data_from_extraction(
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
+    # Conjunto para rastrear campos já mapeados
+    mapped_fields = set()
+    
+    def track_mapped(field):
+        """Marcar campo como mapeado"""
+        mapped_fields.add(field.lower())
+    
     if document_type == 'cc':
         # Dados pessoais
         personal_update = {}
@@ -918,6 +925,7 @@ def build_update_data_from_extraction(
         for src_key, dest_key in field_mapping.items():
             if extracted_data.get(src_key):
                 personal_update[dest_key] = extracted_data[src_key]
+                track_mapped(src_key)
         
         if personal_update:
             existing_personal = existing_data.get("personal_data", {})
