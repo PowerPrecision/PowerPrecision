@@ -13,6 +13,7 @@ import ProcessesPage from "./pages/ProcessesPage";
 import SettingsPage from "./pages/SettingsPage";
 import FilteredProcessList from "./pages/FilteredProcessList";
 import PendingItemsList from "./pages/PendingItemsList";
+import SystemConfigPage from "./pages/SystemConfigPage";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
