@@ -113,7 +113,7 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
   // Processar histórico para construir timeline
   const buildTimeline = useCallback(() => {
     // Encontrar a fase atual
-    const currentPhaseInfo = PROCESS_PHASES.find(p => p.id === currentStatus);
+    const currentPhaseInfo = PROCESS_PHASES.find(p => p.id === normalizedCurrentStatus);
     const currentOrder = currentPhaseInfo?.order || 0;
 
     // Se não há histórico, mostrar todas as fases até a atual
