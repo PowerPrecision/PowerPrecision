@@ -106,6 +106,9 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
   const { token } = useAuth();
   const [timelineData, setTimelineData] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Normalizar o status atual
+  const normalizedCurrentStatus = normalizeStatus(currentStatus);
 
   // Processar histórico para construir timeline
   const buildTimeline = useCallback(() => {
