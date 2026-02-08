@@ -585,6 +585,13 @@ const ProcessDetails = () => {
           mediadorName={process.assigned_mediador_name}
         />
 
+        {/* Timeline do Processo */}
+        <ProcessTimeline 
+          processId={id}
+          currentStatus={process.status}
+          history={process.status_history || activities.filter(a => a.type === 'status_change')}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
