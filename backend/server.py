@@ -24,6 +24,7 @@ from routes.ai_bulk import router as ai_bulk_router
 from routes.leads import router as leads_router
 from routes.match import router as match_router
 from routes.system_config import router as system_config_router
+from routes.properties import router as properties_router
 
 
 # Configure logging
