@@ -383,8 +383,10 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
         nif = extracted_data.get('nif') or extracted_data.get('NIF')
         if nif and not validate_nif(nif):
             logger.warning(f"NIF inválido rejeitado: {nif}")
-            del extracted_data['nif'] if 'nif' in extracted_data else None
-            del extracted_data['NIF'] if 'NIF' in extracted_data else None
+            if 'nif' in extracted_data:
+                del extracted_data['nif']
+            if 'NIF' in extracted_data:
+                del extracted_data['NIF']
         
         # Obter dados existentes
         process = await db.processes.find_one(
