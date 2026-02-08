@@ -222,7 +222,7 @@ async def check_duplicate_comprehensive(process_id: str, document_type: str, con
 
 
 def cache_document_analysis(process_id: str, document_type: str, content: bytes, extracted_data: dict):
-    """Guardar resultado da análise em cache para detectar duplicados futuros."""
+    """Guardar resultado da análise em cache de memória para detectar duplicados futuros."""
     if document_type not in DUPLICATE_PRONE_TYPES:
         return
     
@@ -234,6 +234,37 @@ def cache_document_analysis(process_id: str, document_type: str, content: bytes,
         document_hash_cache[process_id][document_type] = {}
     
     document_hash_cache[process_id][document_type][doc_hash] = extracted_data
+
+
+async def persist_document_analysis(process_id: str, document_type: str, content: bytes, extracted_data: dict, filename: str = ""):
+    """
+    Persistir registo de documento analisado na base de dados.
+    Evita re-análise mesmo após reinício do servidor.
+    """
+    doc_hash = calculate_document_hash(content)
+    
+    # Extrair mês de referência se disponível (para recibos/extratos)
+    mes_referencia = extracted_data.get("mes_referencia") or extracted_data.get("periodo") or ""
+    
+    doc_record = {
+        "hash": doc_hash,
+        "document_type": document_type,
+        "filename": filename,
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
+        "mes_referencia": mes_referencia,
+        "fields_extracted": list(extracted_data.keys()) if extracted_data else []
+    }
+    
+    # Adicionar ao array analyzed_documents do processo
+    await db.processes.update_one(
+        {"id": process_id},
+        {
+            "$push": {"analyzed_documents": doc_record},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    logger.info(f"Documento persistido: {document_type} (hash={doc_hash[:8]}...) para {process_id}")
 
 
 def validate_nif(nif: str) -> bool:
