@@ -183,7 +183,7 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
 
     setTimelineData(timeline);
     setLoading(false);
-  }, [history, currentStatus]);
+  }, [history, normalizedCurrentStatus]);
 
   useEffect(() => {
     buildTimeline();
