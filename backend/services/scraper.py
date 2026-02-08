@@ -239,15 +239,20 @@ class DeepScraper:
     async def _fetch_page(self, url: str) -> Tuple[Optional[str], Optional[str]]:
         """
         Faz fetch de uma página.
-        Usa ScraperAPI se disponível, senão faz acesso directo.
+        Usa ScraperAPI se disponível para todos os sites imobiliários.
         """
-        # Usar ScraperAPI para sites conhecidos por bloquear
-        if self.use_scraperapi and ('idealista' in url.lower() or 'imovirtual' in url.lower()):
+        # Usar ScraperAPI para qualquer site imobiliário
+        immobiliary_domains = ['idealista', 'imovirtual', 'casa.sapo', 'remax', 'era', 'century21']
+        should_use_proxy = self.use_scraperapi and any(d in url.lower() for d in immobiliary_domains)
+        
+        if should_use_proxy:
             html, error = await self._fetch_with_scraperapi(url)
             if html:
                 return html, None
             # Se ScraperAPI falhar, tentar acesso directo como fallback
-            logger.info(f"ScraperAPI falhou, tentando acesso directo para {url}")
+            logger.info(f"ScraperAPI falhou ({error}), tentando acesso directo para {url}")
+        
+        return await self._fetch_direct(url)
         
         return await self._fetch_direct(url)
     
