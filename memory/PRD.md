@@ -147,6 +147,12 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 ## Última Actualização
 **8 Fevereiro 2026** (noite)
 - ✅ **Bug Fix Crítico - Análise de Documentos**: Corrigido bug onde dados extraídos de documentos não eram guardados quando `personal_data`, `financial_data` ou `real_estate_data` eram `None` (em vez de `{}`). O problema estava na função `build_update_data_from_extraction` em `services/ai_document.py` que usava `.get("key", {})` que retorna `None` quando a chave existe mas tem valor `None`, causando erro `NoneType.update()`. Corrigido para usar `.get("key") or {}`.
+- ✅ **Deteção de Documentos Duplicados (P1)**: Implementada persistência de hashes de documentos na base de dados para evitar re-análise de documentos idênticos, mesmo após reinício do servidor:
+  - Novos campos `analyzed_documents` array em cada processo
+  - Função `check_duplicate_comprehensive()` verifica cache + DB
+  - Função `persist_document_analysis()` guarda hash, tipo, data, campos extraídos
+  - Novo endpoint `GET /api/ai/bulk/analyzed-documents/{process_id}` lista documentos analisados
+  - Expandido para mais tipos: recibo_vencimento, extrato_bancario, irs, contrato_trabalho, certidao
 
 **8 Fevereiro 2026**
 - ✅ **Upload de Fotos para Imóveis**: Novos endpoints `/api/properties/{id}/upload-photo` e `DELETE /photo`
