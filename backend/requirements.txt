@@ -13,6 +13,7 @@ dnspython
 python-jose
 passlib[bcrypt]
 bcrypt
+PyJWT
 
 # --- Utilitários ---
 requests
