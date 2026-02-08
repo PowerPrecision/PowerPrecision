@@ -660,3 +660,73 @@ async def get_clients_list(
             for c in clients
         ]
     }
+
+
+
+@router.get("/diagnose-client/{client_name}")
+async def diagnose_client_data(
+    client_name: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Diagnóstico de dados de um cliente.
+    Mostra quais campos estão preenchidos e quais estão vazios.
+    """
+    process = await find_client_by_name(client_name)
+    
+    if not process:
+        return {
+            "found": False,
+            "error": f"Cliente '{client_name}' não encontrado"
+        }
+    
+    # Verificar campos preenchidos
+    personal = process.get("personal_data", {})
+    financial = process.get("financial_data", {})
+    real_estate = process.get("real_estate_data", {})
+    
+    def count_filled(data: dict) -> Tuple[int, int, list]:
+        if not data:
+            return 0, 0, []
+        filled = [(k, v) for k, v in data.items() if v is not None and v != ""]
+        return len(filled), len(data), [k for k, _ in filled]
+    
+    personal_filled, personal_total, personal_fields = count_filled(personal)
+    financial_filled, financial_total, financial_fields = count_filled(financial)
+    real_estate_filled, real_estate_total, real_estate_fields = count_filled(real_estate)
+    
+    return {
+        "found": True,
+        "client_name": process.get("client_name"),
+        "process_id": process.get("id"),
+        "summary": {
+            "personal_data": f"{personal_filled}/{personal_total} campos",
+            "financial_data": f"{financial_filled}/{financial_total} campos",
+            "real_estate_data": f"{real_estate_filled}/{real_estate_total} campos",
+        },
+        "filled_fields": {
+            "personal": personal_fields,
+            "financial": financial_fields,
+            "real_estate": real_estate_fields,
+        },
+        "raw_data": {
+            "email": process.get("client_email"),
+            "phone": process.get("client_phone"),
+            "personal_data": personal,
+            "financial_data": financial,
+        }
+    }
+
+
+@router.post("/clear-duplicate-cache")
+async def clear_duplicate_cache(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Limpar cache de documentos duplicados."""
+    global document_hash_cache
+    count = sum(
+        sum(len(hashes) for hashes in types.values())
+        for types in document_hash_cache.values()
+    )
+    document_hash_cache = {}
+    return {"message": f"Cache limpo. {count} documentos removidos do cache."}
