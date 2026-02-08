@@ -182,6 +182,9 @@ async def create_property(
     
     logger.info(f"Imóvel criado: {property_doc.id} ({internal_ref}) por {user.get('email')}")
     
+    # Verificar matches em background (não bloqueia resposta)
+    asyncio.create_task(check_and_notify_matches_for_new_property(property_doc.id))
+    
     return property_doc
 
 
