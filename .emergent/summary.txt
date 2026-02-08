@@ -1,162 +1,211 @@
 <analysis>**original_problem_statement:**
-O utilizador iniciou o projeto para reativar uma integração Trello. Ao longo do tempo, os requisitos expandiram-se para incluir:
-- Sincronização de dados do Trello (descrição, atividades, etiquetas, membros, prazos).
-- Um sistema de visualização de emails.
-- Atribuição manual de processos a utilizadores.
-- Integração com o OneDrive para visualização de documentos.
-- Funcionalidade de análise de documentos com IA para preencher automaticamente as fichas dos clientes, incluindo um modo de upload massivo.
-- O requisito mais recente é alinhar o ambiente de desenvolvimento com um repositório GitHub e uma base de dados MongoDB de produção, em preparação para o deployment.
+The user's initial request was to separate production and test data by using different databases. The user then provided a comprehensive document () outlining a vision to evolve the current application from a credit process manager into a full-featured Real Estate CRM.
+
+The latest and most critical request from the user, acting as a Senior Software Architect, is to implement the foundational features for this CRM evolution.
 
 PRODUCT REQUIREMENTS:
-- A aplicação deve funcionar como um espelho de um quadro Trello, com funcionalidades adicionais de gestão.
-- A visibilidade dos processos deve ser controlada por papéis de utilizador (admin, consultor, intermediario) e atribuições.
-- A integração com o OneDrive deve permitir o acesso aos documentos dos clientes.
-- A análise de documentos com IA deve ser robusta, suportando uploads massivos, processamento em fila, tratamento de erros, e ser capaz de lidar com vários tipos de documentos (incluindo PDFs digitalizados e junção de ficheiros como CC frente/verso).
-- O sistema deve ser resiliente a erros de API (ex: rate limits) e otimizado para não sobrecarregar o browser do utilizador.
-- O ambiente final deve estar sincronizado com o repositório GitHub do utilizador e a base de dados de produção.
+1.  **Dependencies**: Add , , and  to .
+2.  **Backend Deep Scraping Service**: Create a new service  that can scrape a property listing from Idealista, find a link to the real estate agency's own website, navigate to it, and extract contact details (consultant name, phone number, agency name).
+3.  **Backend Data Models**: Create new MongoDB collections for  (for scraped listings) and  (for internal listings).
+4.  **Frontend Leads Panel**: Create a new Lead Management page with a Kanban board. It should have an input to paste an Idealista link, a button to trigger the scraping, and display the scraped data on a card that can be moved between columns (e.g., Link Recebido, Contactado, Visita).
 
-**User's preferred language**: Portuguese (Portugal). O próximo agente DEVE comunicar exclusivamente em português de Portugal.
+**User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-Uma aplicação full-stack (React/FastAPI/MongoDB) que espelha um quadro Trello com funcionalidades de gestão avançadas.
-- **Funcionalidades Principais:** Autenticação de utilizadores, Kanban com visibilidade por papel/atribuição, dialog de atribuição de processos, página de detalhes do processo, e um painel de histórico de emails.
-- **Integração Trello:** Sincronização de dados, mapeamento manual de membros e importação de comentários/atividades.
-- **Integração OneDrive:** Utiliza um workaround com um link de partilha para gerar URLs de pesquisa para as pastas dos clientes, devido a restrições de permissão da API Graph.
-- **Análise de Documentos com IA:**
-    - Uma funcionalidade na ficha do cliente para upload de um único documento (via ficheiro ou URL) que a IA analisa para preencher dados.
-    - Uma funcionalidade de **upload massivo** para administradores, que processa uma estrutura de pastas (uma por cliente), analisa todos os documentos e atualiza as fichas dos clientes.
-- **Melhorias Recentes (Robustez e Performance):**
-    - O upload massivo foi refatorizado para processar ficheiros em fila (um de cada vez) para evitar sobrecarregar o browser.
-    - O frontend exibe uma barra de progresso individual por ficheiro usando Server-Sent Events (SSE).
-    - O backend suporta subpastas dentro da pasta de um cliente.
-    - Foi implementada uma verificação prévia para ignorar ficheiros de clientes não existentes no sistema, otimizando o processo.
-    - O sistema junta automaticamente ficheiros de Cartão de Cidadão (frente e verso) num único PDF antes da análise.
-    - PDFs sem texto (digitalizados) são convertidos em imagens usando  para análise via API de visão.
-    - Foi adicionado um mecanismo de retry com  para gerir erros de rate limit (429) da API da IA.
+The project is a web application with a React frontend and a FastAPI backend, connected to a MongoDB Atlas database. The application is configured to use a  database for the development environment.
+
+The current application manages credit processes for clients on a Kanban board, supports user authentication, and uses an LLM to analyze uploaded documents and extract relevant data.
+
+In this session, several new features were added:
+- A System Settings page allowing an administrator to configure storage services (OneDrive) and other system variables from the UI.
+- A visual Process Timeline and a Document Checklist on the client detail page.
+- A Lead Management Kanban board (a basic version that will be enhanced by the new requirements).
+- A feature to find Compatible Properties for a client.
+- An endpoint and UI button to clear AI-extracted data for a specific client.
+- Various bug fixes, including a UI layout issue and improvements to the document data extraction logic.
 
 **Last working item**:
-    - Last item agent was working: O agente foi encarregado de sincronizar a aplicação com um repositório GitHub e uma base de dados MongoDB de produção fornecidos pelo utilizador. O agente clonou o repositório para  e começou a comparar os ficheiros, identificando diferenças significativas entre o código local (com as funcionalidades de IA mais recentes) e o código no GitHub. A tarefa foi interrompida antes de decidir como reconciliar estas diferenças ou de ligar à nova base de dados.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? Manual verification and regression testing. Após a sincronização, o agente deve verificar se a aplicação funciona com a nova base de dados e o código reconciliado. Recomenda-se chamar o  para um teste completo, dado o risco da operação.
-    - User Testing Done: N
+-   **Last item agent was working**: The agent was starting the implementation of the user's Senior Software Architect request to transform the application into a Real Estate CRM. The work began with the backend setup for the new Deep Scraping feature.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both. The new scraping service requires backend testing (e.g., with  or a Python script) to validate the data extraction from Idealista. The new Leads Kanban board will require frontend testing to ensure the UI works as expected and interacts correctly with the backend API.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  - Todas as issues mencionadas em forks anteriores (bugs de UI no Kanban, formato de email, funcionalidade de atribuição) foram resolvidas e verificadas nesta sessão. Não há issues pendentes conhecidas para além da tarefa em progresso.
+-   **Issue 1**: Data extraction from documents is still imperfect (P1).
+-   **Issue 2**: Emails are still being saved with markdown formatting (P2).
+-   **Issue 3**: The automatic OneDrive folder association is not fully functional (P3).
+
+**Issues Detail**:
+-   **Issue 1**:
+    -   **Description**: The AI-powered data extraction from uploaded documents sometimes populates fields with incorrect data (e.g., a client's name was extracted as Fidelidade, which is an insurance company). This happens when the generic catch-all extraction logic misinterprets the document's content.
+    -   **Attempted fixes**: The agent improved the data extraction logic by adding specific handlers for more document types (P60, CPCV) and a mechanism to save unmapped data into a general notes field. However, the generic fallback is still prone to errors.
+    -   **Next debug checklist**:
+        - Review the  function in .
+        - Add a rejection filter to the generic data extraction logic to ignore common, non-relevant entities (like insurance company names, bank names) when trying to fill critical fields like .
+        - Consider using more targeted prompts for the LLM based on the document type, even for outro (other) types, if a few keywords can be identified in the filename.
+    -   **Why fix this issue and what will be achieved with the fix?**: Fixing this will improve the reliability of the document analysis feature, which is a core part of the application's value proposition. It will reduce the need for manual data correction.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+
+-   **Issue 2**:
+    -   **Description**: The user reported that emails in the production database are still appearing in markdown format (e.g., ), despite previous fixes.
+    -   **Attempted fixes**: The agent has previously created scripts to clean the existing data in the database.
+    -   **Next debug checklist**:
+        - This is a data sanitization issue. The fix should be at the source.
+        - Identify every API endpoint where a client's  can be created or updated.
+        - In those endpoints, add a data validation/cleaning step *before* saving to the database to strip any markdown. A simple regex or a dedicated library can be used. Check  and  in .
+    -   **Why fix this issue and what will be achieved with the fix?**: Ensures data integrity and prevents display issues in the frontend or problems with external integrations that might use the email field.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+
+-   **Issue 3**:
+    -   **Description**: The user reported that the automatic association of client folders in OneDrive is not working automatically.
+    -   **Attempted fixes**: The agent improved the  function in  to better handle folder names containing one or two client names (e.g., Client A e Client B).
+    -   **Next debug checklist**:
+        - The feature needs end-to-end testing.
+        - Manually trigger the OneDrive sync/analysis feature and check the backend logs for errors.
+        - Verify if the  function is being called correctly and if the folder search logic is succeeding.
+        - Test with various folder naming conventions that the user employs.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is critical for the Document Checklist feature to work, as it relies on finding the correct client folder in OneDrive.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
 
 **In progress Task List**:
-  - Task 1:  (P0) Sincronizar a aplicação com o repositório GitHub e a base de dados de produção.
+-   **Task 1**: Implement the Real Estate CRM Core Features (P0).
 
- Task Detail:
-  - Task 1: 
-     - **Where to resume**: O agente já clonou o repositório e identificou discrepâncias (o código local está mais avançado). O próximo passo é apresentar estas diferenças ao utilizador e perguntar como proceder. As opções são:
-         1.  **Ignorar o GitHub:** Manter o código local atual e apenas mudar a ligação da base de dados.
-         2.  **Sobrescrever com GitHub:** Perder todas as melhorias recentes de IA.
-         3.  **Sugerir ao utilizador que atualize o GitHub:** A opção mais segura.
-         Após a decisão sobre o código, o agente deve atualizar a variável  no ficheiro  com a string de ligação fornecida pelo utilizador e reiniciar o backend.
-     - **What will be achieved with this?** A aplicação no ambiente de desenvolvimento estará a correr com o código desejado e ligada à base de dados de produção, preparando-a para o deployment final.
-     - **Status:** IN PROGRESS
-     - **Should Test frontend/backend/both after fix?** Both
-     - **Blocked on something:** Decisão do utilizador sobre como reconciliar as diferenças entre o código local e o do repositório GitHub.
+**Task Detail**:
+-   **Task 1**:
+    -   **Where to resume**: The agent has just created the file . The immediate next step is to write the Python code for the Deep Scraping service inside this file, using  and . The service should contain the logic described in the user's prompt.
+    -   **What will be achieved with this?**: This will create the backend foundation for the new lead generation and management workflow, replacing the user's manual Excel process.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: No.
 
-**Upcoming and Future Tasks**
-    Upcoming Tasks (P1):
-    - **Dashboard de Gestão:** Criar um dashboard com KPIs e métricas de desempenho.
-    - **Relatórios PDF:** Implementar a funcionalidade de exportar um resumo do processo para um ficheiro PDF.
-
-    Future Tasks (P2 - Backlog):
-    - **Melhorias no Sistema de Documentos:** Verificação de validade e alertas para documentos antigos.
-    - **Faturação:** Preparar a aplicação para funcionalidades de faturação.
+**Upcoming and Future Tasks**:
+-   **Upcoming Tasks**:
+    -   **P0**: **Módulo Imóveis Angariados (Internal Properties Module)**: Implement the backend models and APIs for managing properties listed directly by the user's agency, as requested in the Senior Architect prompt ( collection).
+    -   **P1**: **Minutas automáticas (Automatic Document Generation)**: Create a feature to automatically generate template documents (e.g., proposals) populated with client and property data.
+    -   **P2**: **Refine Match Automático Cliente ↔ Imóvel**: Enhance the existing property matching feature to use the more detailed data from the new  collection.
+-   **Future Tasks**:
+    -   **P0**: **Agente de Melhoria (AI Business Analyst)**: Implement an AI agent that analyzes application data (conversion rates, process bottlenecks) and provides actionable insights to the user.
+    -   **P1**: **HCPRO Integration**: Integrate with the HCPRO platform once the user obtains an API key.
 
 **Completed work in this session**
-- **Correção de Bug de UI no Kanban:** Resolvido o problema dos botões de ação que desapareciam em cartões com nomes longos.
-- **Finalização da Integração OneDrive (Frontend):** Adicionado o botão para aceder à pasta do cliente no OneDrive.
-- **Correção de Bug de Formato de Email:** Corrigido o problema de emails guardados com formatação markdown na base de dados (tanto no campo de email como nas notas).
-- **Nova Funcionalidade: Importação de Comentários do Trello:** Implementado um endpoint e um botão na UI para importar todas as atividades e comentários do Trello para a aplicação.
-- **Nova Funcionalidade: Análise de Documentos com IA:** Implementado um analisador de documentos (CC, Recibo, IRS, etc.) na ficha do cliente para extrair e preencher dados automaticamente.
-- **Nova Funcionalidade: Upload Massivo com IA:** Criada uma ferramenta para administradores que processa em lote uma pasta de documentos de vários clientes, preenchendo as suas fichas automaticamente.
-- **Melhorias de Robustez e Performance:**
-    - Otimizado o upload massivo para usar uma fila sequencial e feedback em tempo real com SSE.
-    - Adicionado suporte para subpastas, junção de ficheiros de CC (frente/verso), conversão de PDF para imagem () e retentativas de API ().
-    - Implementada uma verificação para ignorar ficheiros de clientes não existentes.
-- **Refatoração:** Eliminado o ficheiro de serviço obsoleto  e movida a lógica de negócio das rotas para os serviços de IA.
+- **System Configuration**:
+    - Implemented a System Settings page () for admins to configure API keys and storage options (e.g., OneDrive credentials) directly from the UI.
+    - Set up the environment to use a dedicated  database for development, separate from the  production database.
+    - Cleaned  to remove environment-specific dependencies, simplifying deployment.
+- **Feature: Lead Management (v1)**:
+    - Created the initial backend API () and a frontend Kanban board ( -> Leads tab) for managing property leads.
+- **Feature: Process Timeline**:
+    - Added a compact, visual timeline to the client detail page showing the progression of a process through its various stages.
+- **Feature: Document Checklist**:
+    - Implemented a component on the client detail page to check for the existence of required documents in the client's OneDrive folder.
+- **Feature: Data Reset**:
+    - Added a button and API endpoint () to allow resetting all AI-extracted data for a client.
+- **AI & Data Extraction Improvements**:
+    - Enhanced the AI document analysis to save any unmapped but extracted data into the client's notes field.
+    - Improved client name matching from OneDrive folder names to support folders named after two people.
+- **Bug Fixes**:
+    - Fixed a frontend crash ().
+    - Fixed a UI layout issue where the document upload status modal lacked a horizontal scrollbar.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1**: Email Markdown Formatting.
+    -   **Debug checklist**: The root cause needs to be addressed. Check all backend endpoints that create or update user/client data (, ) and add a server-side sanitization step to strip markdown from email fields before saving to the database.
+    -   **Why to solve this issue and what will be achieved with this?**: Ensures data integrity and prevents issues with display or mail-related features.
+    -   **Should Test frontend/backend/both after fix**: backend
+    -   **Is recurring issue?**: Y
+
+**Known issue recurrence from previous fork**
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- Backend: FastAPI, Pydantic, Motor (MongoDB)
-- Frontend: React, Tailwind CSS, Shadcn UI
-- **Novas Tecnologias/Padrões:**
-    - Server-Sent Events (SSE) para comunicação em tempo real do backend para o frontend.
-    -  para manipulação de PDFs (conversão para imagem).
-    -  para combinar imagens num único PDF.
-    -  para implementar uma política de retentativas (retry) com exponential backoff em chamadas de API.
-    - Processamento de ficheiros em fila no frontend para evitar sobrecarga do browser.
-    - Fuzzy string matching () para identificar tipos de ficheiros (ex: CC frente, CC verso).
+-   **Backend**: FastAPI, Python 3.11, Pydantic, Motor (async MongoDB driver), JWT for auth.
+-   **Frontend**: React, Vite, Shadcn/UI, Tailwind CSS,  for drag-and-drop.
+-   **Database**: MongoDB Atlas (NoSQL).
+-   **Core Logic**: AI-driven document analysis using an LLM, process management via a Kanban board, integration with external services (OneDrive, Trello).
 
 **key DB schema**
-  - **processes**: Não foram criadas novas coleções, mas o schema desta coleção foi enriquecido com múltiplos campos sob as chaves , , e , preenchidos pela análise de IA.
+-   **clients**: 
+-   **users**: 
+-   **leads**: 
+-   **settings**: 
 
 **changes in tech stack**
-  - Novas dependências Python: , , , .
+-   New Python libraries added for web scraping: , , .
 
 **All files of reference**
-- : Precisa de ser atualizado com a nova .
-- : O repositório GitHub clonado para comparação.
-- : Ficheiro central para a funcionalidade de upload massivo.
-- : Componente de frontend para a funcionalidade de upload massivo.
-- : Contém a lógica principal da análise de IA.
-
-**Areas that need refactoring**:
-- O código foi significativamente refatorado durante a sessão, movendo a lógica das rotas para os serviços. A principal tarefa pendente não é de refatoração, mas de sincronização.
+-   : New (empty) file for the Idealista scraping logic. **Primary focus for the next step.**
+-   : Updated to include new scraping dependencies and remove deployment-problematic ones.
+-   , : New files for the Leads API and data model.
+-   : New frontend component for the Leads Kanban board.
+-   , : New files for the admin settings feature.
+-   : New component for the visual process timeline.
+-   , : Heavily modified to improve AI data extraction and saving logic.
 
 **key api endpoints**
-- : Importa comentários do Trello.
-- : Analisa um único documento enviado via upload.
-- : Processa um único ficheiro da fila de upload massivo.
-- : Verifica se um cliente existe antes do processamento.
-- : Endpoint SSE que envia atualizações de progresso do upload massivo.
+-   : **(To be created)** Triggers the web scraping of a property link.
+-   : Retrieves all property leads for the Kanban board.
+-   : Updates a lead's status (e.g., when moved on the Kanban).
+-   , : Manage system-wide configurations.
+-   : Gets the status of required documents from OneDrive.
+-   : Resets AI-extracted data for a client.
 
 **Critical Info for New Agent**
-- **Tarefa Imediata:** A prioridade máxima é a sincronização com o GitHub e a base de dados de produção. O código local é **mais recente e avançado** que o do repositório GitHub. **NÃO sobrescreva o código local sem a confirmação explícita do utilizador.** A abordagem mais segura é apresentar as diferenças e perguntar como proceder.
-- **Credenciais:** O utilizador forneceu a URL do repositório () e a string de ligação da MongoDB ().
-- **Deployment:** O utilizador mencionou que pretende colocar a aplicação online após esta sincronização, o que torna a estabilidade e a escolha correta do código ainda mais críticas.
+-   The project's direction has pivoted towards becoming a Real Estate CRM. The user's last message, framed as a Senior Software Architect, is the master plan for the current phase of work. **You must prioritize implementing the features outlined in that prompt.**
+-   The immediate task is to build the Deep Scraping service in .
+-   The user wants the Emergent workspace to always use the development database (). The code committed to GitHub should be production-ready. The user was told to manually edit the  file in their production environment to set . Do not change this workflow unless requested.
+-   Pay attention to the recurring issue of emails being saved with markdown. A definitive, server-side fix is needed.
 
 **documents and test reports created in this job**
-  -  (Atualizado).
+-   : User-provided document containing feature ideas.
+-   : An example environment file for the repository.
+-   Uso: /app/backend/switch_env.sh {prod|dev|status}
 
-**Last 10 User Messages and any pending HUMAN messages** 
-- **10. Pedido de Sincronização:** O utilizador pediu para atualizar a aplicação com o código de um repositório GitHub e ligar a uma base de dados MongoDB de produção, fornecendo as URLs.
-- **9. Pedido de Otimização:** Sugeriu otimizar o upload massivo, verificando se o cliente existe antes de ler os seus documentos para poupar tempo. (Implementado)
-- **8. Pergunta sobre Persistência de Dados:** Perguntou se os dados extraídos pela IA são guardados na base de dados. (Confirmado que sim)
-- **7. Pedido de Melhorias na Análise IA:** Solicitou a junção de ficheiros de CC (frente/verso) e a capacidade de processar PDFs digitalizados (sem texto). (Implementado)
-- **6. Pedido de Melhoria de Robustez:** Sugeriu adicionar um mecanismo de retry () para lidar com erros de rate limit (429) da API de IA. (Implementado)
-- **5. Confirmação e Pedido de Deployment:** Confirmou a estrutura de pastas para o upload massivo, o requisito de ser admin, e perguntou o que precisa de fazer para colocar a aplicação online.
-- **4. Pergunta sobre Upload Massivo:** Perguntou se era possível fazer um upload massivo de documentos. (Implementado)
-- **3. Pedido de Análise Automática do OneDrive:** Pediu para a IA ler os documentos diretamente do OneDrive. Após o agente explicar as limitações técnicas, o utilizador optou por uma solução de upload manual.
-- **2. Correção de Bug:** Reportou que o link do OneDrive estava errado e forneceu o link correto. (Corrigido)
-- **1. Correção de Bug:** Reportou que o formato do email continuava errado noutros campos, como nas notas. (Corrigido)
+Exemplos:
+  /app/backend/switch_env.sh prod    - Muda para base de dados de produção
+  /app/backend/switch_env.sh dev     - Muda para base de dados de desenvolvimento
+  /app/backend/switch_env.sh status  - Mostra configuração atual: A shell script to toggle the  file between development and production settings.
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User (246):** Requested fixes for: handling multiple client names in folder paths, a missing scrollbar in a UI modal, and improving data extraction for property values from documents. (Partially addressed)
+2.  **User (293):** Reported that emails in production are still formatted incorrectly with markdown and asked for an easier way to deploy to production. (Partially addressed)
+3.  **User (310):** Agreed to the agent's plan for managing environment configurations. (Completed)
+4.  **User (316):** Asked for clarification on how to use the  script. (Completed)
+5.  **User (318):** Clarified that the Emergent environment must use the  database. (Completed)
+6.  **User (324):** Asked for the location of the  file and noted that certain  packages cause issues in production. (Completed, requirements were cleaned)
+7.  **User (330):** Asked about the  message when saving to GitHub. (Completed, explained)
+8.  **User (334):** Provided explicit approval/rejection for a list of proposed features, shaping the future roadmap. (Completed, roadmap updated)
+9.  **User (337):** Agreed to the agent's proposed implementation order for the new features. (Completed)
+10. **User (631):** **(PENDING/IN-PROGRESS)** Provided a detailed, high-priority prompt acting as a Senior Software Architect to build the core of a new Real Estate CRM, including a Deep Scraping service. This is the current main task.
 
 **Project Health Check:**
-- **Broken:** Nada está funcionalmente quebrado, mas a aplicação está num estado de transição, aguardando a sincronização com o código-fonte final e a base de dados de produção.
-- **Mocked:** Nenhuma.
+-   **Broken**: The AI data extraction can be unreliable, sometimes extracting incorrect information. The root cause of the markdown formatting in emails is not resolved.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
-- **Trello:** Sincronização de quadros, cartões e comentários.
-- **Servidores de Email (IMAP/SMTP):** Integração ativa.
-- **OneDrive:** Integração via workaround (link de partilha para gerar URLs de pesquisa), pois a autenticação OAuth completa foi bloqueada por falta de permissões.
-- **Emergent LLM Key:** Usada para aceder à API do  para a análise de documentos.
+-   **OpenAI GPT-4o**: Used for AI-powered document analysis. Uses Emergent LLM Key.
+-   **Microsoft Graph API (OneDrive)**: Used for file system operations. Requires User API Key (OAuth credentials configured via the new Settings page).
+-   **Trello API**: Used for card synchronization. Requires User API Key.
 
 **Testing status**
-  - Testing agent used after significant changes: NO
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: []
-  - Known regressions: Nenhuma.
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: []
+-   **Known regressions**: The persistence of markdown formatting in email fields is a known regression/unresolved bug.
 
 **Credentials to test flow:**
-- **Admin:**  / (obter de  env var, default: )
-- **MongoDB de Produção:**  (Fornecida pelo utilizador)
+-   **Username**: 
+-   **Password**: 
 
 **What agent forgot to execute**
-- O agente não concluiu a tarefa de sincronização com o GitHub e MongoDB. Ele iniciou a análise, mas não apresentou as descobertas (diferenças de código) ao utilizador para obter uma decisão sobre como proceder.</analysis>
+-   The agent has not yet implemented a definitive server-side fix for the recurring markdown in email issue. The approach has been to clean up data after the fact, which doesn't solve the root cause.
+-   The end-to-end functionality of the OneDrive Document Checklist has not been fully verified after the latest fixes to client name matching. It needs testing to confirm it works automatically as the user expects.</analysis>

@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://doc-analyzer-hub.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-core-3.preview.emergentagent.com')
 
 # Test credentials
 ADMIN_EMAIL = "admin@sistema.pt"
