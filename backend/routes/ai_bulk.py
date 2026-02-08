@@ -682,8 +682,17 @@ async def analyze_single_file(
             result.fields_extracted = list(analysis_result["extracted_data"].keys())
             result.filename = normalized_name  # Nome normalizado
             
-            # Guardar em cache para detectar duplicados futuros
+            # Guardar em cache (memória) para detectar duplicados durante a sessão
             cache_document_analysis(process_id, document_type, content, analysis_result["extracted_data"])
+            
+            # Persistir na DB para detectar duplicados após reinício
+            await persist_document_analysis(
+                process_id, 
+                document_type, 
+                content, 
+                analysis_result["extracted_data"],
+                doc_filename
+            )
             
             # Actualizar ficha do cliente
             updated, fields = await update_client_data(
