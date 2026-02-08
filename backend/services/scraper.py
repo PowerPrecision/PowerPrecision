@@ -6,12 +6,14 @@ Funcionalidades:
 1. Extração básica: Preço, Tipologia, Área, Foto
 2. Deep Scraping: Navega para sites de agências para encontrar contacto do consultor
 3. Extração de telemóveis com validação portuguesa
+4. ScraperAPI: Usa proxy rotativo para contornar bloqueios
 """
+import os
 import re
 import logging
 import asyncio
 from typing import Optional, Dict, Any, List, Tuple
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, quote
 from dataclasses import dataclass, asdict
 
 import httpx
@@ -21,6 +23,10 @@ import phonenumbers
 from phonenumbers import geocoder, carrier
 
 logger = logging.getLogger(__name__)
+
+# ScraperAPI configuration
+SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_API_KEY', '')
+SCRAPERAPI_BASE_URL = "http://api.scraperapi.com"
 
 # Inicializar UserAgent
 try:
