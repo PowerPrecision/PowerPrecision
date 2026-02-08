@@ -114,6 +114,11 @@ const DashboardLayout = ({ children, title }) => {
           icon: FileText,
           href: "/processos",
         },
+        {
+          label: "Imóveis",
+          icon: Building2,
+          href: "/imoveis",
+        },
         settingsItem,
         {
           label: "Configurações",
@@ -132,6 +137,11 @@ const DashboardLayout = ({ children, title }) => {
           label: "Todos os Processos",
           icon: FileText,
           href: "/processos",
+        },
+        {
+          label: "Imóveis",
+          icon: Building2,
+          href: "/imoveis",
         },
       ];
     }
