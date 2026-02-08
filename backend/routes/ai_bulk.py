@@ -11,6 +11,7 @@ FUNCIONALIDADES:
 - Conversão de PDFs scan para imagem
 """
 import os
+import re
 import uuid
 import base64
 import logging
