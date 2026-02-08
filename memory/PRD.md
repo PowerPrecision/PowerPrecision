@@ -145,6 +145,15 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**8 Fevereiro 2026**
+- ✅ **Deep Scraping Service**: Integrado serviço avançado de scraping (`scraper.py`) no fluxo de extração de leads
+- ✅ **Sanitização de Emails**: Implementada função `sanitize_email()` em 3 locais críticos:
+  - `routes/processes.py` (criação e actualização de processos)
+  - `routes/public.py` (registo público de clientes)
+  - `services/ai_document.py` (extracção de dados via IA)
+- ✅ **Script de Limpeza**: Criado `scripts/cleanup_emails.py` para corrigir emails com markdown na BD
+- ✅ **Kanban de Leads**: Funcional com drag-and-drop, extracção de URLs, e gestão de estados
+
 **6 Fevereiro 2026**
 - ✅ Sincronizado ambiente de desenvolvimento com MongoDB Atlas de produção
 - ✅ Configurada separação de dados: `powerprecision_dev` (testes) vs `powerprecision` (produção)
