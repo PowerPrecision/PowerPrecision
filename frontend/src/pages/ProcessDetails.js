@@ -210,23 +210,30 @@ const ProcessDetails = () => {
   };
 
   // Handler para dados extraídos pela IA
-  const handleAIDataExtracted = ({ extractedData, mappedData, documentType }) => {
+  const handleAIDataExtracted = async ({ extractedData, mappedData, documentType }) => {
     console.log("Dados extraídos pela IA:", { extractedData, mappedData, documentType });
+    
+    let newPersonalData = { ...personalData };
+    let newFinancialData = { ...financialData };
+    let newRealEstateData = { ...realEstateData };
     
     // Preencher campos com base no tipo de documento
     if (documentType === "cc") {
       // Dados pessoais do CC
-      setPersonalData(prev => ({
-        ...prev,
-        nif: extractedData.nif || prev.nif,
-        documento_id: extractedData.numero_documento || prev.documento_id,
-        data_nascimento: extractedData.data_nascimento || prev.data_nascimento,
-        naturalidade: extractedData.naturalidade || prev.naturalidade,
-        nacionalidade: extractedData.nacionalidade || prev.nacionalidade,
-        sexo: extractedData.sexo || prev.sexo,
-        nome_pai: extractedData.pai || prev.nome_pai,
-        nome_mae: extractedData.mae || prev.nome_mae,
-      }));
+      newPersonalData = {
+        ...newPersonalData,
+        nif: extractedData.nif || newPersonalData.nif,
+        documento_id: extractedData.numero_documento || newPersonalData.documento_id,
+        data_nascimento: extractedData.data_nascimento || newPersonalData.data_nascimento,
+        data_validade_cc: extractedData.data_validade || newPersonalData.data_validade_cc,
+        naturalidade: extractedData.naturalidade || newPersonalData.naturalidade,
+        nacionalidade: extractedData.nacionalidade || newPersonalData.nacionalidade,
+        sexo: extractedData.sexo || newPersonalData.sexo,
+        nome_pai: extractedData.pai || newPersonalData.nome_pai,
+        nome_mae: extractedData.mae || newPersonalData.nome_mae,
+        altura: extractedData.altura || newPersonalData.altura,
+      };
+      setPersonalData(newPersonalData);
       
       // Actualizar nome do cliente se extraído
       if (extractedData.nome_completo && !process.client_name) {
@@ -235,47 +242,63 @@ const ProcessDetails = () => {
       
       // Ir para o separador de dados pessoais
       setActiveTab("personal");
-      toast.info("Dados do CC preenchidos. Verifique e guarde as alterações.");
       
     } else if (documentType === "recibo_vencimento" || documentType === "irs") {
       // Dados financeiros
-      setFinancialData(prev => ({
-        ...prev,
-        rendimento_mensal: extractedData.salario_liquido || extractedData.rendimento_liquido_mensal || prev.rendimento_mensal,
-        rendimento_bruto: extractedData.salario_bruto || prev.rendimento_bruto,
-        empresa: extractedData.empresa || prev.empresa,
-        tipo_contrato: extractedData.tipo_contrato || prev.tipo_contrato,
-        categoria_profissional: extractedData.categoria_profissional || prev.categoria_profissional,
-      }));
+      newFinancialData = {
+        ...newFinancialData,
+        rendimento_mensal: extractedData.salario_liquido || extractedData.rendimento_liquido_mensal || newFinancialData.rendimento_mensal,
+        rendimento_bruto: extractedData.salario_bruto || newFinancialData.rendimento_bruto,
+        empresa: extractedData.empresa || newFinancialData.empresa,
+        tipo_contrato: extractedData.tipo_contrato || newFinancialData.tipo_contrato,
+        categoria_profissional: extractedData.categoria_profissional || newFinancialData.categoria_profissional,
+      };
+      setFinancialData(newFinancialData);
       
       // Ir para o separador financeiro
       setActiveTab("financial");
-      toast.info("Dados financeiros preenchidos. Verifique e guarde as alterações.");
       
     } else if (documentType === "caderneta_predial") {
       // Dados do imóvel
-      setRealEstateData(prev => ({
-        ...prev,
-        artigo_matricial: extractedData.artigo_matricial || prev.artigo_matricial,
-        valor_patrimonial: extractedData.valor_patrimonial_tributario || prev.valor_patrimonial,
-        area: extractedData.area_bruta || prev.area,
-        localizacao: extractedData.localizacao || prev.localizacao,
-        tipologia: extractedData.tipologia || prev.tipologia,
-      }));
+      newRealEstateData = {
+        ...newRealEstateData,
+        artigo_matricial: extractedData.artigo_matricial || newRealEstateData.artigo_matricial,
+        valor_patrimonial: extractedData.valor_patrimonial_tributario || newRealEstateData.valor_patrimonial,
+        area: extractedData.area_bruta || newRealEstateData.area,
+        localizacao: extractedData.localizacao || newRealEstateData.localizacao,
+        tipologia: extractedData.tipologia || newRealEstateData.tipologia,
+      };
+      setRealEstateData(newRealEstateData);
       
       // Ir para o separador do imóvel
       setActiveTab("real_estate");
-      toast.info("Dados do imóvel preenchidos. Verifique e guarde as alterações.");
       
     } else {
       // Documento genérico - tentar preencher o que conseguir
       if (extractedData.nif) {
-        setPersonalData(prev => ({ ...prev, nif: extractedData.nif }));
+        newPersonalData = { ...newPersonalData, nif: extractedData.nif };
+        setPersonalData(newPersonalData);
       }
       if (extractedData.nome_completo) {
-        setPersonalData(prev => ({ ...prev, nome: extractedData.nome_completo }));
+        newPersonalData = { ...newPersonalData, nome: extractedData.nome_completo };
+        setPersonalData(newPersonalData);
       }
-      toast.info("Dados extraídos. Verifique os campos preenchidos.");
+    }
+    
+    // GUARDAR AUTOMATICAMENTE no backend
+    try {
+      const updateData = {
+        personal_data: newPersonalData,
+        financial_data: newFinancialData,
+        real_estate_data: newRealEstateData,
+      };
+      
+      await updateProcess(id, updateData);
+      toast.success("Dados extraídos e guardados automaticamente!");
+      fetchData(); // Recarregar dados
+    } catch (error) {
+      console.error("Erro ao guardar dados extraídos:", error);
+      toast.error("Dados extraídos mas falhou a guardar. Clique em Guardar manualmente.");
     }
   };
 
