@@ -192,8 +192,8 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center py-4">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -205,16 +205,17 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
   const currentPhaseInfo = PROCESS_PHASES.find(p => p.id === normalizedCurrentStatus);
 
   return (
-    <Card data-testid="process-timeline">
-      <CardHeader className="pb-2">
+    <Card data-testid="process-timeline" className="overflow-hidden">
+      <CardHeader className="py-2 px-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Timeline do Processo
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            Timeline
           </CardTitle>
           <div className="flex items-center gap-2">
             {currentPhaseInfo && (
               <Badge 
+                className="text-[10px] px-1.5 py-0"
                 style={{ backgroundColor: currentPhaseInfo.color, color: '#fff' }}
               >
                 {currentPhaseInfo.label}
@@ -223,8 +224,8 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
           </div>
         </div>
         {totalDays > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {completedPhases} fases concluídas • {totalDays} dias no total
+          <p className="text-[10px] text-muted-foreground">
+            {completedPhases} fases • {totalDays} dias
           </p>
         )}
       </CardHeader>
