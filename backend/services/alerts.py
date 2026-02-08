@@ -41,7 +41,7 @@ ALERT_TYPES = {
 DAYS_PRE_APPROVAL_COUNTDOWN = 90
 DAYS_DOCUMENT_EXPIRY_WARNING = 15
 DAYS_DEED_REMINDER = 15
-MATCH_SCORE_THRESHOLD = 25  # Score mínimo para notificação de match
+MATCH_SCORE_THRESHOLD = 50  # Score mínimo para notificação de match
 
 
 # ====================================================================
