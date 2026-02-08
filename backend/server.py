@@ -51,6 +51,7 @@ app.include_router(tasks_router, prefix="/api")
 app.include_router(emails_router, prefix="/api")
 app.include_router(trello_router, prefix="/api")
 app.include_router(ai_bulk_router, prefix="/api")
+app.include_router(leads_router, prefix="/api")
 
 
 # Health check endpoint for Kubernetes
