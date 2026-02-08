@@ -146,18 +146,20 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização
 **8 Fevereiro 2026**
+- ✅ **Match Automático Cliente ↔ Imóvel (P1 Completo)**:
+  - Novo endpoint `/api/match/client/{id}/all` combina leads + imóveis angariados
+  - Novo endpoint `/api/match/property/{id}/clients` encontra clientes para imóvel angariado
+  - Score baseado em preço (40pts), localização (35pts), tipologia (25pts)
+  - Corrigidos bugs de tipos de dados nos campos de localização
 - ✅ **Módulo Imóveis Angariados (P0 Completo)**:
   - Backend: Modelo `Property` com dados completos (endereço, financeiro, proprietário, características)
   - API CRUD: `/api/properties` com filtros, estatísticas, gestão de clientes interessados
   - Frontend: Página `/imoveis` com cards, filtros, formulário de criação/edição
   - Menu lateral actualizado para admin e staff
   - Referências internas automáticas (IMO-001, IMO-002...)
-- ✅ **ScraperAPI Integrado**: Adicionada integração com ScraperAPI para contornar bloqueios
-  - Funciona para: Casa SAPO, RE/MAX, ERA, Century21, e outros portais
-  - **NOTA**: Idealista requer plano ScraperAPI pago (ultra_premium)
-- ✅ **Deep Scraping Service**: Integrado serviço avançado de scraping
-- ✅ **Sanitização de Emails**: Implementada função `sanitize_email()` em 3 locais críticos
-- ✅ **Script de Limpeza**: Criado `scripts/cleanup_emails.py`
+- ✅ **ScraperAPI Integrado**: Para contornar bloqueios de portais imobiliários
+- ✅ **Deep Scraping Service**: Serviço avançado de scraping
+- ✅ **Sanitização de Emails**: Função `sanitize_email()` em 3 locais críticos
 - ✅ **Kanban de Leads**: Funcional com drag-and-drop
 
 **6 Fevereiro 2026**
