@@ -187,7 +187,7 @@ async def public_client_registration(data: PublicClientRegistration):
     # ENVIAR EMAIL DE CONFIRMAÇÃO AO CLIENTE
     # =========================================
     await send_registration_confirmation(
-        client_email=data.email,
+        client_email=clean_email,
         client_name=data.name
     )
     
@@ -207,7 +207,7 @@ async def public_client_registration(data: PublicClientRegistration):
     for member in staff:
         await send_new_client_notification(
             client_name=data.name,
-            client_email=data.email,
+            client_email=clean_email,
             client_phone=data.phone,
             process_type=data.process_type,
             staff_email=member["email"],
