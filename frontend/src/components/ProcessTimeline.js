@@ -202,7 +202,7 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
   // Calcular estatísticas
   const completedPhases = timelineData.filter(t => t.isCompleted).length;
   const totalDays = timelineData.reduce((acc, t) => acc + (t.daysInPhase || 0), 0);
-  const currentPhaseInfo = PROCESS_PHASES.find(p => p.id === currentStatus);
+  const currentPhaseInfo = PROCESS_PHASES.find(p => p.id === normalizedCurrentStatus);
 
   return (
     <Card data-testid="process-timeline">
