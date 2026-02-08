@@ -146,6 +146,16 @@ function App() {
             }
           />
           
+          {/* System Configuration - Admin only */}
+          <Route
+            path="/configuracoes"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <SystemConfigPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
