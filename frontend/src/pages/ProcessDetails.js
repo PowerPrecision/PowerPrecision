@@ -742,6 +742,115 @@ const ProcessDetails = () => {
                           </div>
                         </CardContent>
                       </Card>
+                      
+                      {/* Co-Compradores / Co-Proponentes */}
+                      {(process?.co_buyers?.length > 0 || process?.co_applicants?.length > 0) && (
+                        <Card className="border-l-4 border-l-indigo-500">
+                          <CardContent className="pt-4">
+                            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                              <Users className="h-4 w-4 text-indigo-500" />
+                              Co-Compradores / Co-Proponentes
+                              <Badge variant="secondary" className="ml-2">
+                                {(process?.co_buyers?.length || 0) + (process?.co_applicants?.length || 0)} pessoa(s)
+                              </Badge>
+                            </h4>
+                            <div className="space-y-3">
+                              {/* Co-Buyers (do CPCV) */}
+                              {process?.co_buyers?.map((buyer, index) => (
+                                <div key={`buyer-${index}`} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      Comprador {index + 1}
+                                    </Badge>
+                                    {buyer.estado_civil && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {buyer.estado_civil}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
+                                    {buyer.nome && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Nome:</span>
+                                        <p className="font-medium">{buyer.nome}</p>
+                                      </div>
+                                    )}
+                                    {buyer.nif && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">NIF:</span>
+                                        <p className="font-medium">{buyer.nif}</p>
+                                      </div>
+                                    )}
+                                    {buyer.email && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Email:</span>
+                                        <p className="font-medium">{buyer.email}</p>
+                                      </div>
+                                    )}
+                                    {buyer.telefone && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Telefone:</span>
+                                        <p className="font-medium">{buyer.telefone}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {/* Co-Applicants (do IRS/Simulação) */}
+                              {process?.co_applicants?.map((applicant, index) => (
+                                <div key={`applicant-${index}`} className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {index === 0 ? "Titular" : "Cônjuge/Proponente " + (index + 1)}
+                                    </Badge>
+                                    {applicant.rendimento_mensal && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {applicant.rendimento_mensal}€/mês
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
+                                    {applicant.nome && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Nome:</span>
+                                        <p className="font-medium">{applicant.nome}</p>
+                                      </div>
+                                    )}
+                                    {applicant.nif && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">NIF:</span>
+                                        <p className="font-medium">{applicant.nif}</p>
+                                      </div>
+                                    )}
+                                    {applicant.data_nascimento && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Data Nascimento:</span>
+                                        <p className="font-medium">{applicant.data_nascimento}</p>
+                                      </div>
+                                    )}
+                                    {applicant.entidade_patronal && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Empresa:</span>
+                                        <p className="font-medium">{applicant.entidade_patronal}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {/* Rendimento Agregado */}
+                              {financialData?.rendimento_agregado && (
+                                <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                                    Rendimento Agregado: {financialData.rendimento_agregado.toLocaleString('pt-PT')}€/mês
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   </TabsContent>
 
