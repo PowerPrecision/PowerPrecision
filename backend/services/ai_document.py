@@ -77,6 +77,11 @@ def sanitize_email(email: str) -> str:
     
     return email.strip().lower()
 
+
+# ====================================================================
+# CONSTANTES E FILTROS
+# ====================================================================
+
 # Mínimo de caracteres para considerar extracção de texto bem sucedida
 MIN_TEXT_LENGTH = 100
 
@@ -88,6 +93,61 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 
 # Número máximo de ficheiros a processar em paralelo
 MAX_CONCURRENT_ANALYSIS = 5
+
+# Lista de palavras que NÃO devem ser extraídas como nomes de pessoas
+# (empresas, seguradoras, bancos, termos genéricos)
+INVALID_NAME_WORDS = {
+    # Seguradoras e Bancos
+    'fidelidade', 'ocidental', 'tranquilidade', 'allianz', 'generali',
+    'mapfre', 'ageas', 'logo', 'liberty', 'zurich', 'axa', 'real vida',
+    'santander', 'caixa', 'millennium', 'bcp', 'bpi', 'novo banco',
+    'montepio', 'bankinter', 'eurobic', 'activobank', 'best',
+    # Termos genéricos
+    'seguro', 'seguros', 'companhia', 'empresa', 'lda', 'sa', 'unipessoal',
+    'comercial', 'industrial', 'capital', 'investimentos', 'holding',
+    'portugal', 'portuguesa', 'ibérica', 'europeia', 'internacional',
+    # Documentos
+    'cartao', 'cidadao', 'identificacao', 'passaporte', 'carta',
+    'conducao', 'titulo', 'residencia', 'certificado', 'declaracao',
+    # Outros
+    'cliente', 'utilizador', 'proprietario', 'titular', 'beneficiario',
+    'contrato', 'apolice', 'recibo', 'factura', 'extrato', 'comprovativo',
+}
+
+
+def is_valid_person_name(name: str) -> bool:
+    """
+    Verifica se uma string parece ser um nome de pessoa válido.
+    Retorna False para nomes de empresas, seguradoras, etc.
+    """
+    if not name or len(name) < 3:
+        return False
+    
+    name_lower = name.lower().strip()
+    
+    # Verificar contra lista de palavras inválidas
+    words = set(name_lower.split())
+    if words & INVALID_NAME_WORDS:
+        return False
+    
+    # Verificar se contém palavras inválidas como substring
+    for invalid in INVALID_NAME_WORDS:
+        if invalid in name_lower:
+            return False
+    
+    # Verificar se parece nome de empresa (contém números, siglas típicas)
+    if re.search(r'\b(lda|ltd|sa|s\.a\.|unip|nif|nipc)\b', name_lower, re.IGNORECASE):
+        return False
+    
+    if re.search(r'\d{3,}', name):  # Contém 3+ dígitos seguidos
+        return False
+    
+    # Deve ter pelo menos 2 palavras para um nome completo
+    name_parts = [p for p in name_lower.split() if len(p) > 1]
+    if len(name_parts) < 2:
+        return False
+    
+    return True
 
 # Configuração de retry para erros 429 (rate limit)
 RETRY_MAX_ATTEMPTS = 5
