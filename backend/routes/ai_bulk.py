@@ -248,22 +248,29 @@ class SingleAnalysisResult(BaseModel):
 async def find_client_by_name(client_name: str) -> Optional[dict]:
     """
     Encontrar cliente pelo nome (busca flexível).
-    Suporta nomes compostos como:
-    - "João e Maria"
-    - "João (Maria)"
-    - "João / Maria"
+    
+    Suporta:
+    - Nomes com/sem acentos: "Cláudia" encontra "Claudia"
+    - Nomes compostos: "João e Maria", "João (Maria)", "João / Maria"
+    - Nomes parciais: pasta "João" encontra cliente "João e Maria"
+    - Nomes entre parênteses: "Claúdia Batista (Edson)" é encontrado por "Edson"
     """
     if not client_name:
         return None
     
     client_name = client_name.strip()
+    client_name_normalized = normalize_text_for_matching(client_name)
+    client_names = extract_all_names_from_string(client_name)
     
-    # 1. Busca exacta
+    logger.info(f"Procurando cliente: '{client_name}' | Normalizado: '{client_name_normalized}' | Nomes extraídos: {client_names}")
+    
+    # 1. Busca exacta (com acentos)
     process = await db.processes.find_one(
         {"client_name": client_name},
         {"_id": 0}
     )
     if process:
+        logger.info(f"Cliente encontrado (exacto): {process.get('client_name')}")
         return process
     
     # 2. Busca case-insensitive exacta
@@ -272,49 +279,68 @@ async def find_client_by_name(client_name: str) -> Optional[dict]:
         {"_id": 0}
     )
     if process:
+        logger.info(f"Cliente encontrado (case-insensitive): {process.get('client_name')}")
         return process
     
-    # 3. Busca parcial - nome da pasta está contido no nome do cliente
-    # Ex: pasta "João" encontra cliente "João e Maria" ou "João (Maria)"
-    process = await db.processes.find_one(
-        {"client_name": {"$regex": re.escape(client_name), "$options": "i"}},
-        {"_id": 0}
-    )
-    if process:
-        return process
-    
-    # 4. Busca inversa - nome do cliente está contido no nome da pasta
-    # Procurar clientes cujo primeiro nome está no nome da pasta
-    # Útil quando a pasta tem formato diferente
+    # 3. Buscar todos os processos e fazer matching flexível
     all_processes = await db.processes.find(
         {},
         {"_id": 0, "id": 1, "client_name": 1}
     ).to_list(length=None)
     
-    client_name_lower = client_name.lower()
-    for proc in all_processes:
-        proc_name = proc.get("client_name", "").lower()
-        # Extrair primeiro nome do cliente
-        first_name = proc_name.split()[0] if proc_name else ""
-        # Extrair nomes de dentro de parênteses
-        names_in_parens = re.findall(r'\(([^)]+)\)', proc_name)
-        # Extrair nomes após "e" ou "/"
-        names_after_sep = re.split(r'\s+e\s+|/|\(', proc_name)
-        
-        all_names = [first_name] + names_in_parens + [n.strip().split()[0].lower() for n in names_after_sep if n.strip()]
-        
-        for name in all_names:
-            name = name.strip().lower()
-            if name and len(name) > 2:  # Ignorar nomes muito curtos
-                if name in client_name_lower or client_name_lower in name:
-                    # Encontrado - buscar o documento completo
-                    full_process = await db.processes.find_one(
-                        {"id": proc["id"]},
-                        {"_id": 0}
-                    )
-                    if full_process:
-                        return full_process
+    best_match = None
+    best_score = 0
     
+    for proc in all_processes:
+        proc_name = proc.get("client_name", "")
+        proc_name_normalized = normalize_text_for_matching(proc_name)
+        proc_names = extract_all_names_from_string(proc_name)
+        
+        score = 0
+        
+        # Match exacto normalizado (sem acentos)
+        if client_name_normalized == proc_name_normalized:
+            score = 100
+        
+        # Match parcial - nome da pasta contido no nome do cliente
+        elif client_name_normalized in proc_name_normalized:
+            score = 80
+        
+        # Match parcial inverso - nome do cliente contido no nome da pasta
+        elif proc_name_normalized in client_name_normalized:
+            score = 75
+        
+        # Match de nomes individuais
+        else:
+            # Verificar se algum nome da pasta está no cliente
+            common_names = client_names & proc_names
+            if common_names:
+                # Quanto mais nomes em comum, maior o score
+                score = 50 + (len(common_names) * 10)
+            else:
+                # Verificar substrings (primeiro nome)
+                for cn in client_names:
+                    for pn in proc_names:
+                        if cn and pn and len(cn) > 2 and len(pn) > 2:
+                            if cn in pn or pn in cn:
+                                score = max(score, 40)
+        
+        if score > best_score:
+            best_score = score
+            best_match = proc
+            logger.debug(f"Novo melhor match: '{proc_name}' com score {score}")
+    
+    if best_match and best_score >= 40:
+        # Buscar documento completo
+        full_process = await db.processes.find_one(
+            {"id": best_match["id"]},
+            {"_id": 0}
+        )
+        if full_process:
+            logger.info(f"Cliente encontrado (fuzzy, score={best_score}): '{best_match.get('client_name')}' para '{client_name}'")
+            return full_process
+    
+    logger.warning(f"Cliente não encontrado: '{client_name}' (melhor score: {best_score})")
     return None
 
 
