@@ -475,13 +475,13 @@ const BulkDocumentUpload = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <ScrollArea className="h-[280px]">
-                  <div className="space-y-3">
+                  <div className="space-y-3 pr-4">
                     {Object.entries(filesByClient).map(([clientName, files]) => (
                       <div key={clientName} className="border rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium text-sm">{clientName}</span>
-                          <Badge variant="outline" className="text-xs">
+                          <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium text-sm truncate" title={clientName}>{clientName}</span>
+                          <Badge variant="outline" className="text-xs flex-shrink-0">
                             {files.length} docs
                           </Badge>
                         </div>
@@ -491,7 +491,7 @@ const BulkDocumentUpload = () => {
                             return (
                               <div
                                 key={idx}
-                                className={`flex items-center justify-between p-2 rounded text-sm ${
+                                className={`flex items-start gap-2 p-2 rounded text-sm ${
                                   status.status === FILE_STATUS.SUCCESS
                                     ? "bg-green-50"
                                     : status.status === FILE_STATUS.ERROR
@@ -501,22 +501,31 @@ const BulkDocumentUpload = () => {
                                     : "bg-gray-50"
                                 }`}
                               >
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="flex-shrink-0 mt-0.5">
                                   {getStatusIcon(status.status)}
-                                  <span className="truncate text-xs">{file.name}</span>
                                 </div>
-                                <div className="flex items-center gap-2 ml-2">
-                                  {status.fields?.length > 0 && (
-                                    <Badge variant="outline" className="text-xs bg-green-100">
-                                      {status.fields.length} campos
-                                    </Badge>
-                                  )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-medium truncate max-w-[200px]" title={file.name}>
+                                      {file.name}
+                                    </span>
+                                    {status.fields?.length > 0 && (
+                                      <Badge variant="outline" className="text-xs bg-green-100 flex-shrink-0">
+                                        {status.fields.length} campos
+                                      </Badge>
+                                    )}
+                                  </div>
                                   {status.message && (
-                                    <span className={`text-xs ${
+                                    <p className={`text-xs mt-1 break-words ${
                                       status.status === FILE_STATUS.ERROR ? "text-red-600" : "text-muted-foreground"
                                     }`}>
                                       {status.message}
-                                    </span>
+                                    </p>
+                                  )}
+                                  {status.fields?.length > 0 && (
+                                    <p className="text-xs text-green-600 mt-1 break-words">
+                                      Campos: {status.fields.join(", ")}
+                                    </p>
                                   )}
                                 </div>
                               </div>
