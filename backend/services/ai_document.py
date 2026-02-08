@@ -1461,6 +1461,13 @@ def build_update_data_from_extraction(
         financial_update = extract_nested(extracted_data, financial_keys)
         real_estate_update = extract_nested(extracted_data, real_estate_keys)
         
+        # Validar nome_completo antes de usar
+        if personal_update.get("nome_completo"):
+            if not is_valid_person_name(personal_update["nome_completo"]):
+                # Nome parece ser de empresa/seguradora, remover
+                logger.warning(f"Nome rejeitado (parece empresa): {personal_update['nome_completo']}")
+                del personal_update["nome_completo"]
+        
         if personal_update:
             existing_personal = existing_data.get("personal_data", {})
             existing_personal.update(personal_update)
