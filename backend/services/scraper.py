@@ -149,39 +149,44 @@ class DeepScraper:
         base_params = f"api_key={SCRAPERAPI_KEY}&url={quote(url)}"
         
         if is_idealista:
-            # Idealista precisa de browser headless completo
-            # Usar autoparse=false para obter HTML raw
-            scraper_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&render=true&premium=true&country_code=es&device_type=desktop"
+            # Idealista requer ultra_premium (protecção Cloudflare avançada)
+            scraper_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&render=true&ultra_premium=true&device_type=desktop"
         else:
             scraper_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&country_code=pt"
         
         try:
             # Timeout maior para páginas com JS rendering
-            timeout = 60.0 if is_idealista else self.timeout
+            timeout = 90.0 if is_idealista else self.timeout
             
             async with httpx.AsyncClient(timeout=timeout) as client:
-                logger.info(f"ScraperAPI: Fetching {url} (premium={is_idealista})")
+                logger.info(f"ScraperAPI: Fetching {url} (ultra_premium={is_idealista})")
                 response = await client.get(scraper_url)
                 
                 if response.status_code == 200:
                     html = response.text
+                    
+                    # Verificar se é uma mensagem de erro do ScraperAPI
+                    if 'Request failed' in html or 'You will not be charged' in html:
+                        logger.warning(f"ScraperAPI: Resposta de erro - {html[:200]}")
+                        return None, "Site protegido - ScraperAPI não conseguiu aceder"
+                    
                     # Verificar se recebemos HTML válido
                     if '<html' in html.lower() or '<body' in html.lower():
                         logger.info(f"ScraperAPI: Sucesso ao aceder {url} ({len(html)} bytes)")
                         return html, None
                     else:
                         logger.warning(f"ScraperAPI: Resposta não parece ser HTML válido")
-                        return html, None  # Retornar mesmo assim
+                        return None, "Resposta inválida do site"
                         
                 elif response.status_code == 403:
                     logger.warning(f"ScraperAPI: Ainda bloqueado (403) em {url}")
                     return None, "Site continua a bloquear mesmo com proxy"
                 elif response.status_code == 500:
-                    # Tentar novamente sem premium (pode ser problema de quota)
-                    logger.warning(f"ScraperAPI: Erro 500, tentando sem premium...")
-                    fallback_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&render=true"
-                    response2 = await client.get(fallback_url, timeout=45.0)
-                    if response2.status_code == 200:
+                    # Tentar novamente sem ultra_premium
+                    logger.warning(f"ScraperAPI: Erro 500, tentando com premium normal...")
+                    fallback_url = f"{SCRAPERAPI_BASE_URL}?{base_params}&render=true&premium=true"
+                    response2 = await client.get(fallback_url, timeout=60.0)
+                    if response2.status_code == 200 and 'Request failed' not in response2.text:
                         return response2.text, None
                     return None, "Site com proteção avançada"
                 elif response.status_code == 429:
