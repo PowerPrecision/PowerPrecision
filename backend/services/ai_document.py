@@ -1107,6 +1107,7 @@ def build_update_data_from_extraction(
             'nif': 'nif',
             'numero_documento': 'documento_id',
             'data_nascimento': 'data_nascimento',
+            'data_validade': 'data_validade_cc',
             'naturalidade': 'naturalidade',
             'nacionalidade': 'nacionalidade',
             'sexo': 'sexo',
@@ -1114,6 +1115,7 @@ def build_update_data_from_extraction(
             'codigo_postal': 'codigo_postal',
             'pai': 'nome_pai',
             'mae': 'nome_mae',
+            'altura': 'altura',
         }
         
         for src_key, dest_key in field_mapping.items():
