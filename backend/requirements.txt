@@ -135,3 +135,4 @@ tenacity==9.1.2
 beautifulsoup4==4.12.3
 fake-useragent==1.5.1
 phonenumbers==8.13.30
+scraperapi-sdk==1.6.0
