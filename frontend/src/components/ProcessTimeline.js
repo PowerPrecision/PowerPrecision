@@ -123,7 +123,7 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
         .map(p => ({
           phase: p.id,
           date: null,
-          isCurrent: p.id === currentStatus,
+          isCurrent: p.id === normalizedCurrentStatus,
           isCompleted: p.order < currentOrder,
         }));
       
