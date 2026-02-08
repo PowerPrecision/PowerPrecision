@@ -146,6 +146,9 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização
 **8 Fevereiro 2026**
+- ✅ **ScraperAPI Integrado**: Adicionada integração com ScraperAPI para contornar bloqueios
+  - Funciona para: Casa SAPO, RE/MAX, ERA, Century21, e outros portais
+  - **NOTA**: Idealista requer plano ScraperAPI pago (ultra_premium) - plano gratuito não suporta
 - ✅ **Deep Scraping Service**: Integrado serviço avançado de scraping (`scraper.py`) no fluxo de extração de leads
 - ✅ **Sanitização de Emails**: Implementada função `sanitize_email()` em 3 locais críticos:
   - `routes/processes.py` (criação e actualização de processos)
