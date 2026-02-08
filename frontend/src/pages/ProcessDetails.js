@@ -74,6 +74,7 @@ import {
   ChevronRight,
   ExternalLink,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isAfter } from "date-fns";
