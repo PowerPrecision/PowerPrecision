@@ -119,6 +119,13 @@ async def startup():
     await db.tasks.create_index("assigned_to")
     await db.tasks.create_index([("completed", 1), ("created_at", -1)])
     
+    # Indexes para clientes
+    await db.clients.create_index("id", unique=True)
+    await db.clients.create_index("nome")
+    await db.clients.create_index("contacto.email", sparse=True)
+    await db.clients.create_index("dados_pessoais.nif", sparse=True)
+    await db.clients.create_index("process_ids")
+    
     # Indexes para emails
     await db.emails.create_index("id", unique=True)
     await db.emails.create_index("process_id")
