@@ -153,6 +153,13 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Função `persist_document_analysis()` guarda hash, tipo, data, campos extraídos
   - Novo endpoint `GET /api/ai/bulk/analyzed-documents/{process_id}` lista documentos analisados
   - Expandido para mais tipos: recibo_vencimento, extrato_bancario, irs, contrato_trabalho, certidao
+- ✅ **Múltiplos Compradores/Proponentes (P2)**: Sistema detecta automaticamente múltiplas pessoas em documentos:
+  - **CPCV**: Extrai array `compradores` com dados de todos os compradores (casal/parceiros)
+  - **Simulação Crédito**: Extrai array `proponentes` e calcula `rendimento_agregado`
+  - **IRS Conjunto**: Detecta cônjuge (sujeito passivo B) e guarda em `co_applicants`
+  - Prompts da IA actualizados para identificar "Proponente 1", "Proponente 2", "Cônjuge"
+  - Novos campos no processo: `co_buyers`, `co_applicants`
+  - Endpoint de diagnóstico mostra co-compradores se existirem
 
 **8 Fevereiro 2026**
 - ✅ **Upload de Fotos para Imóveis**: Novos endpoints `/api/properties/{id}/upload-photo` e `DELETE /photo`
