@@ -1070,6 +1070,12 @@ const ProcessDetails = () => {
               clientName={process?.client_name}
             />
 
+            {/* Client Property Match */}
+            <ClientPropertyMatch 
+              processId={id}
+              clientName={process?.client_name}
+            />
+
             {/* Tasks Panel */}
             <TasksPanel 
               processId={id} 
