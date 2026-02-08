@@ -1,0 +1,85 @@
+{
+  "summary": "Tested bug fix for AI document data extraction when personal_data, financial_data, or real_estate_data fields are None. All 16 tests passed (12 unit tests + 4 integration tests). The fix using `.get('key') or {}` pattern in 17 locations is correctly implemented.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "test_cc_extraction_with_none_personal_data - CC document extracts correctly when personal_data is None (PASS)",
+    "test_recibo_extraction_with_none_financial_data - Recibo de Vencimento extracts correctly when financial_data is None (PASS)",
+    "test_irs_extraction_with_none_financial_data - IRS extracts correctly when financial_data is None (PASS)",
+    "test_caderneta_predial_with_none_real_estate_data - Caderneta Predial extracts correctly when real_estate_data is None (PASS)",
+    "test_all_none_with_other_document - Generic 'outro' document type works with all None values (PASS)",
+    "test_contrato_trabalho_with_none_data - Contrato Trabalho extracts correctly with None data (PASS)",
+    "test_certidao_with_none_personal_data - Certidão de Domicílio Fiscal extracts correctly with None personal_data (PASS)",
+    "test_simulacao_credito_with_none_data - Simulação de Crédito extracts correctly with None data (PASS)",
+    "test_mapa_crc_with_none_financial_data - Mapa CRC extracts correctly with None financial_data (PASS)",
+    "test_cpcv_with_none_data - CPCV extracts correctly with None data (PASS)",
+    "test_dados_imovel_with_none_real_estate_data - Dados Imóvel extracts correctly with None real_estate_data (PASS)",
+    "test_empty_dict_vs_none - Both empty dict and None existing_data handled correctly (PASS)",
+    "test_diagnose_client_endpoint_exists - /api/ai/bulk/diagnose-client/{client_name} returns proper structure (PASS)",
+    "test_diagnose_nonexistent_client - Diagnose endpoint handles non-existent client correctly (PASS)",
+    "test_check_client_endpoint - /api/ai/bulk/check-client works correctly (PASS)",
+    "test_clients_list_endpoint - /api/ai/bulk/clients-list works correctly (PASS)"
+  ],
+  
+  "failed_tests": [],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration15_none_data_fix.py",
+    "/app/test_reports/pytest/pytest_results_iteration15.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Bug fix correctly implemented: .get('key') or {} pattern used in 17 locations",
+    "Fix ensures fallback {} is used when value is None, not just when key is missing",
+    "All document types (CC, Recibo, IRS, Caderneta, etc.) now handle None values correctly",
+    "The build_update_data_from_extraction function is robust against None values in existing_data"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration15_none_data_fix.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "N/A (backend only testing requested)"
+  },
+  
+  "test_credentials": {
+    "admin": "admin@sistema.pt / admin2026"
+  },
+  
+  "seed_data_creation": "No seed data created - used existing 152 clients from previous iterations",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Bug fix for AI document extraction with None fields verified. The build_update_data_from_extraction function now correctly handles cases where personal_data, financial_data, or real_estate_data are None instead of empty dicts. The fix was applied in 17 locations using the pattern `.get('key') or {}`. All related API endpoints (/api/ai/bulk/diagnose-client, /api/ai/bulk/check-client, /api/ai/bulk/clients-list) working correctly.",
+  
+  "rca_of_the_issue": {
+    "root_cause": "When personal_data, financial_data, or real_estate_data were None (not just missing), the pattern `.get('key', {})` would return None because the key exists with value None. The fix changes to `.get('key') or {}` which correctly returns {} when the value is None.",
+    "reproduction_steps": [
+      "1. Create a process with personal_data=None",
+      "2. Analyze a CC document for that client",
+      "3. Call build_update_data_from_extraction with the extracted data",
+      "4. Before fix: TypeError when trying to call .update() on None",
+      "5. After fix: Empty dict is used and data is correctly populated"
+    ],
+    "mitigation": "Applied `.get('key') or {}` pattern in 17 locations in ai_document.py to ensure fallback {} is used when value is None"
+  },
+  
+  "mocked_apis": {
+    "note": "NO MOCKED APIs - Direct function testing and real API endpoints tested"
+  }
+}
