@@ -61,7 +61,7 @@ class TestBuildUpdateDataFromExtraction:
         extracted_data = {
             "salario_liquido": 1500.00,
             "salario_bruto": 2000.00,
-            "empresa": "Empresa Teste Lda",
+            "empresa": {"nome": "Empresa Teste Lda"},  # empresa must be a dict with 'nome' key
             "tipo_contrato": "Efetivo",
             "funcionario": {
                 "nif": "987654321"
