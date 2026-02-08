@@ -15,6 +15,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Fases do processo de crédito habitação
 const PROCESS_PHASES = [
+  { id: "clientes_espera", label: "Clientes em Espera", color: "#FCD34D", order: 1 },
   { id: "clientes_em_espera", label: "Clientes em Espera", color: "#FCD34D", order: 1 },
   { id: "fase_documental", label: "Fase Documental", color: "#60A5FA", order: 2 },
   { id: "entregue_aos_intermediarios", label: "Entregue aos Intermediários", color: "#A78BFA", order: 3 },
