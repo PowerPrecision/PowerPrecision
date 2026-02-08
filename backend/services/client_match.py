@@ -159,8 +159,10 @@ async def find_matching_leads_for_client(process_id: str) -> List[Dict[str, Any]
         except:
             pass
     
-    desired_location = real_estate.get("localizacao", "").lower() if real_estate.get("localizacao") else None
-    desired_typology = real_estate.get("tipologia", "").upper() if real_estate.get("tipologia") else None
+    desired_location_raw = real_estate.get("localizacao", "")
+    desired_location = desired_location_raw.lower() if isinstance(desired_location_raw, str) and desired_location_raw else None
+    desired_typology_raw = real_estate.get("tipologia", "")
+    desired_typology = desired_typology_raw.upper() if isinstance(desired_typology_raw, str) and desired_typology_raw else None
     
     # Construir query para leads
     query = {
