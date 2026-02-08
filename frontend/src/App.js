@@ -119,6 +119,16 @@ function App() {
             }
           />
           
+          {/* Properties Page - Staff and Admin */}
+          <Route
+            path="/imoveis"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <PropertiesPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Process Details - Staff and Admin */}
           <Route
             path="/processo/:id"
