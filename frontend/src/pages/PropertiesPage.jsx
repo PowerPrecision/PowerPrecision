@@ -809,133 +809,134 @@ const PropertiesPage = () => {
   };
 
   return (
-    <div className="p-6" data-testid="properties-page">
-      {/* Header com Stats */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Imóveis Angariados</h1>
-            <p className="text-gray-600">Gestão de imóveis listados pela agência</p>
+    <DashboardLayout title="Imóveis Angariados">
+      <div data-testid="properties-page">
+        {/* Header com Stats */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <p className="text-gray-600">Gestão de imóveis listados pela agência</p>
+            </div>
+            
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditingProperty(null)} data-testid="new-property-btn">
+                  <Plus size={18} className="mr-2" /> Novo Imóvel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProperty ? 'Editar Imóvel' : 'Novo Imóvel'}
+                  </DialogTitle>
+                </DialogHeader>
+                <PropertyForm
+                  property={editingProperty}
+                  onSave={handleSaveProperty}
+                  onCancel={() => setDialogOpen(false)}
+                  users={users}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
-          
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingProperty(null)} data-testid="new-property-btn">
-                <Plus size={18} className="mr-2" /> Novo Imóvel
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingProperty ? 'Editar Imóvel' : 'Novo Imóvel'}
-                </DialogTitle>
-              </DialogHeader>
-              <PropertyForm
-                property={editingProperty}
-                onSave={handleSaveProperty}
-                onCancel={() => setDialogOpen(false)}
-                users={users}
-              />
-            </DialogContent>
-          </Dialog>
+
+          {/* Stats Cards */}
+          {stats && (
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <div className="text-sm text-gray-600">Total de Imóveis</div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-green-600">{stats.disponivel?.count || 0}</div>
+                  <div className="text-sm text-gray-600">Disponíveis</div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-yellow-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-yellow-600">{stats.reservado?.count || 0}</div>
+                  <div className="text-sm text-gray-600">Reservados</div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-blue-500">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-blue-600">{stats.vendido?.count || 0}</div>
+                  <div className="text-sm text-gray-600">Vendidos</div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold">{stats.total}</div>
-                <div className="text-sm text-gray-600">Total de Imóveis</div>
-              </CardContent>
-            </Card>
-            <Card className="border-l-4 border-l-green-500">
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-green-600">{stats.disponivel?.count || 0}</div>
-                <div className="text-sm text-gray-600">Disponíveis</div>
-              </CardContent>
-            </Card>
-            <Card className="border-l-4 border-l-yellow-500">
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-yellow-600">{stats.reservado?.count || 0}</div>
-                <div className="text-sm text-gray-600">Reservados</div>
-              </CardContent>
-            </Card>
-            <Card className="border-l-4 border-l-blue-500">
-              <CardContent className="pt-4">
-                <div className="text-2xl font-bold text-blue-600">{stats.vendido?.count || 0}</div>
-                <div className="text-sm text-gray-600">Vendidos</div>
-              </CardContent>
-            </Card>
+        {/* Filters */}
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Input
+                placeholder="Pesquisar por título, referência ou localização..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="property-search-input"
+              />
+            </div>
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os estados</SelectItem>
+              {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {Object.entries(PROPERTY_TYPES).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Properties Grid */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Building2 size={48} className="mx-auto mb-4 opacity-50" />
+            <p>Nenhum imóvel encontrado</p>
+            <p className="text-sm">Clique em "Novo Imóvel" para adicionar</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {properties.map(property => (
+              <PropertyCard
+                key={property.id}
+                property={property}
+                onEdit={handleEditProperty}
+                onDelete={handleDeleteProperty}
+                onStatusChange={handleStatusChange}
+              />
+            ))}
           </div>
         )}
       </div>
-
-      {/* Filters */}
-      <div className="flex gap-4 mb-6">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <Input
-              placeholder="Pesquisar por título, referência ou localização..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-              data-testid="property-search-input"
-            />
-          </div>
-        </div>
-        
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os estados</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-              <SelectItem key={key} value={key}>{config.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            {Object.entries(PROPERTY_TYPES).map(([key, label]) => (
-              <SelectItem key={key} value={key}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Properties Grid */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : properties.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <Building2 size={48} className="mx-auto mb-4 opacity-50" />
-          <p>Nenhum imóvel encontrado</p>
-          <p className="text-sm">Clique em "Novo Imóvel" para adicionar</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {properties.map(property => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              onEdit={handleEditProperty}
-              onDelete={handleDeleteProperty}
-              onStatusChange={handleStatusChange}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    </DashboardLayout>
   );
 };
 
