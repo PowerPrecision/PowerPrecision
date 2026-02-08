@@ -95,13 +95,19 @@ class SingleAnalysisResult(BaseModel):
 
 
 async def find_client_by_name(client_name: str) -> Optional[dict]:
-    """Encontrar cliente pelo nome (busca flexível)."""
+    """
+    Encontrar cliente pelo nome (busca flexível).
+    Suporta nomes compostos como:
+    - "João e Maria"
+    - "João (Maria)"
+    - "João / Maria"
+    """
     if not client_name:
         return None
     
     client_name = client_name.strip()
     
-    # Busca exacta
+    # 1. Busca exacta
     process = await db.processes.find_one(
         {"client_name": client_name},
         {"_id": 0}
@@ -109,20 +115,56 @@ async def find_client_by_name(client_name: str) -> Optional[dict]:
     if process:
         return process
     
-    # Busca case-insensitive
+    # 2. Busca case-insensitive exacta
     process = await db.processes.find_one(
-        {"client_name": {"$regex": f"^{client_name}$", "$options": "i"}},
+        {"client_name": {"$regex": f"^{re.escape(client_name)}$", "$options": "i"}},
         {"_id": 0}
     )
     if process:
         return process
     
-    # Busca parcial
+    # 3. Busca parcial - nome da pasta está contido no nome do cliente
+    # Ex: pasta "João" encontra cliente "João e Maria" ou "João (Maria)"
     process = await db.processes.find_one(
-        {"client_name": {"$regex": client_name, "$options": "i"}},
+        {"client_name": {"$regex": re.escape(client_name), "$options": "i"}},
         {"_id": 0}
     )
-    return process
+    if process:
+        return process
+    
+    # 4. Busca inversa - nome do cliente está contido no nome da pasta
+    # Procurar clientes cujo primeiro nome está no nome da pasta
+    # Útil quando a pasta tem formato diferente
+    all_processes = await db.processes.find(
+        {},
+        {"_id": 0, "id": 1, "client_name": 1}
+    ).to_list(length=None)
+    
+    client_name_lower = client_name.lower()
+    for proc in all_processes:
+        proc_name = proc.get("client_name", "").lower()
+        # Extrair primeiro nome do cliente
+        first_name = proc_name.split()[0] if proc_name else ""
+        # Extrair nomes de dentro de parênteses
+        names_in_parens = re.findall(r'\(([^)]+)\)', proc_name)
+        # Extrair nomes após "e" ou "/"
+        names_after_sep = re.split(r'\s+e\s+|/|\(', proc_name)
+        
+        all_names = [first_name] + names_in_parens + [n.strip().split()[0].lower() for n in names_after_sep if n.strip()]
+        
+        for name in all_names:
+            name = name.strip().lower()
+            if name and len(name) > 2:  # Ignorar nomes muito curtos
+                if name in client_name_lower or client_name_lower in name:
+                    # Encontrado - buscar o documento completo
+                    full_process = await db.processes.find_one(
+                        {"id": proc["id"]},
+                        {"_id": 0}
+                    )
+                    if full_process:
+                        return full_process
+    
+    return None
 
 
 async def read_file_with_limit(file: UploadFile) -> bytes:
