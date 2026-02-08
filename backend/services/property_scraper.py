@@ -1,6 +1,7 @@
 """
 Serviço para extração de dados de anúncios de imóveis
 Suporta: Idealista, Imovirtual, e input manual
+Usa DeepScraper para extracção avançada com navegação para sites de agências
 """
 import re
 import logging
@@ -10,32 +11,86 @@ import httpx
 from bs4 import BeautifulSoup
 
 from models.lead import ScrapedData, ConsultantInfo
+from services.scraper import scraper as deep_scraper, ImovelScrapedData
 
 logger = logging.getLogger(__name__)
 
 
-async def extract_property_data(url: str) -> ScrapedData:
+async def extract_property_data(url: str, use_deep_scraping: bool = True) -> ScrapedData:
     """
     Extrai dados de um anúncio de imóvel a partir do URL.
     Detecta automaticamente a fonte (Idealista, Imovirtual, etc.)
+    
+    Args:
+        url: URL do anúncio
+        use_deep_scraping: Se True, usa o DeepScraper para encontrar contactos de consultores
     """
     parsed_url = urlparse(url)
     domain = parsed_url.netloc.lower()
     
     try:
-        if 'idealista' in domain:
+        # Usar Deep Scraper para Idealista (melhor extração)
+        if 'idealista' in domain and use_deep_scraping:
+            return await extract_with_deep_scraper(url)
+        elif 'idealista' in domain:
             return await scrape_idealista(url)
         elif 'imovirtual' in domain:
             return await scrape_imovirtual(url)
         elif 'casa.sapo' in domain:
             return await scrape_sapo(url)
         else:
-            # Tentar extração genérica
+            # Tentar extração genérica com deep scraper
+            if use_deep_scraping:
+                return await extract_with_deep_scraper(url)
             return await scrape_generic(url)
     except Exception as e:
         logger.warning(f"Erro ao extrair dados de {url}: {e}")
         # Retornar dados mínimos
         return ScrapedData(url=url, source="manual")
+
+
+async def extract_with_deep_scraper(url: str) -> ScrapedData:
+    """
+    Usa o DeepScraper avançado para extração completa.
+    Inclui navegação para sites de agências para encontrar contactos.
+    """
+    try:
+        result: ImovelScrapedData = await deep_scraper.scrape_url(url)
+        
+        # Converter para o modelo ScrapedData
+        consultant = None
+        if result.consultor:
+            consultant = ConsultantInfo(
+                name=result.consultor.nome,
+                phone=result.consultor.telefone,
+                email=result.consultor.email,
+                agency_name=result.consultor.agencia,
+                source_url=result.consultor.url_origem
+            )
+        
+        return ScrapedData(
+            url=url,
+            title=result.titulo,
+            price=result.preco,
+            location=result.localizacao,
+            typology=result.tipologia,
+            area=result.area,
+            photo_url=result.foto_principal,
+            consultant=consultant,
+            source=result.fonte,
+            raw_data={
+                "descricao": result.descricao,
+                "caracteristicas": result.caracteristicas,
+                "fotos": result.fotos,
+                "link_agencia": result.link_agencia,
+                "erros": result.erros,
+                "confianca_contacto": result.consultor.confianca if result.consultor else None
+            }
+        )
+    except Exception as e:
+        logger.error(f"Erro no Deep Scraper: {e}")
+        # Fallback para scraping básico
+        return await scrape_generic(url)
 
 
 async def scrape_idealista(url: str) -> ScrapedData:
