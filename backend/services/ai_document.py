@@ -1131,6 +1131,7 @@ def build_update_data_from_extraction(
             
     elif document_type in ['recibo_vencimento', 'irs']:
         # Dados financeiros (PT e UK)
+        # SUPORTA DADOS DE CÔNJUGE NO IRS
         financial_update = {}
         personal_update = {}
         
@@ -1153,6 +1154,23 @@ def build_update_data_from_extraction(
             if extracted_data.get(src_key):
                 financial_update[dest_key] = extracted_data[src_key]
         
+        # === PROCESSAR CÔNJUGE DO IRS (se existir) ===
+        if extracted_data.get('nif_titular_2') or extracted_data.get('nome_titular_2'):
+            co_spouse = {
+                "nome": extracted_data.get('nome_titular_2'),
+                "nif": extracted_data.get('nif_titular_2')
+            }
+            co_spouse = {k: v for k, v in co_spouse.items() if v}
+            if co_spouse:
+                update_data["co_applicants"] = [
+                    {
+                        "nome": extracted_data.get('nome_titular'),
+                        "nif": extracted_data.get('nif_titular')
+                    },
+                    co_spouse
+                ]
+                logger.info(f"IRS conjunto detectado: {extracted_data.get('nome_titular')} + {co_spouse.get('nome')}")
+        
         # Tentar extrair de estruturas aninhadas (recibos PT e UK)
         funcionario = extracted_data.get('funcionario', {})
         employee = extracted_data.get('employee', {})
@@ -1170,6 +1188,10 @@ def build_update_data_from_extraction(
             financial_update['categoria_profissional'] = funcionario['categoria']
         if funcionario.get('retribuicao_mensal'):
             financial_update['rendimento_mensal'] = funcionario['retribuicao_mensal']
+        
+        # NIF do titular (IRS)
+        if extracted_data.get('nif_titular'):
+            personal_update['nif'] = extracted_data['nif_titular']
             
         # UK employee
         if employee.get('national_insurance_number'):
