@@ -12,7 +12,7 @@ from models.lead import (
     PropertyLead, PropertyLeadCreate, PropertyLeadUpdate,
     LeadStatus, LeadHistory, ConsultantInfo
 )
-# CORRECÇÃO 1: Importar do scraper.py (o novo) e não do property_scraper.py
+# CORREÇÃO: Importar do novo scraper.py
 from services.scraper import scrape_property_url
 from services.auth import get_current_user, require_roles
 from models.auth import UserRole
@@ -93,20 +93,22 @@ async def extract_url_data(
     logger.info(f"A iniciar Deep Scraping de: {url}")
     
     try:
-        # CORRECÇÃO 2: Usar a função do scraper novo
+        # CORREÇÃO: Usar a função do scraper novo
         raw_data = await scrape_property_url(url)
         
-        # CORRECÇÃO 3: Mapeamento de dados (Scraper -> Modelo)
+        # CORREÇÃO: Mapeamento de dados (Scraper -> Modelo)
         # O scraper devolve 'url_origem', mas o modelo ConsultantInfo usa 'source_url'
         consultant_data = None
-        if raw_data.get('consultor'):
-            c = raw_data['consultor']
+        # raw_data é um dict, não um objeto, por causa do to_dict() no scraper
+        raw_consultor = raw_data.get('consultor')
+        
+        if raw_consultor:
             consultant_data = {
-                "name": c.get('nome'),
-                "phone": c.get('telefone'),
-                "email": c.get('email'),
-                "agency_name": c.get('agencia'),
-                "source_url": c.get('url_origem') # Mapear campo
+                "name": raw_consultor.get('nome'),
+                "phone": raw_consultor.get('telefone'),
+                "email": raw_consultor.get('email'),
+                "agency_name": raw_consultor.get('agencia'),
+                "source_url": raw_consultor.get('url_origem') # Mapear campo
             }
 
         cleaned_data = {
@@ -181,15 +183,18 @@ async def update_lead(
     
     # Registar mudança de estado no histórico
     if "status" in update_dict and update_dict["status"] != lead.get("status"):
-        update_dict.setdefault("history", lead.get("history", []))
-        update_dict["history"].append({
+        # Garantir que o histórico existe
+        history = lead.get("history", [])
+        history.append({
             "timestamp": now,
             "event": f"Status alterado para {update_dict['status']}",
             "user": user.get("email")
         })
+        update_dict["history"] = history
 
     await db.property_leads.update_one({"id": lead_id}, {"$set": update_dict})
     
+    # Retornar objeto atualizado (sem _id)
     return await db.property_leads.find_one({"id": lead_id}, {"_id": 0})
 
 @router.patch("/{lead_id}/status")
@@ -204,21 +209,25 @@ async def update_lead_status(
         raise HTTPException(status_code=404, detail="Lead não encontrado")
     
     # Validar se o status existe no Enum
+    # status vem como query param string, validar contra os valores do enum
     valid_statuses = [s.value for s in LeadStatus]
     if status not in valid_statuses:
          raise HTTPException(status_code=400, detail="Estado inválido")
 
     now = datetime.now(timezone.utc).isoformat()
     
+    # Preparar entrada de histórico
+    history_entry = {
+        "timestamp": now,
+        "event": f"Status alterado para {status}",
+        "user": user.get("email")
+    }
+
     await db.property_leads.update_one(
         {"id": lead_id},
         {
             "$set": {"status": status, "updated_at": now},
-            "$push": {"history": {
-                "timestamp": now,
-                "event": f"Status alterado para {status}",
-                "user": user.get("email")
-            }}
+            "$push": {"history": history_entry}
         }
     )
     return {"success": True, "status": status}
@@ -230,3 +239,42 @@ async def delete_lead(lead_id: str, user: dict = Depends(get_current_user)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lead não encontrado")
     return {"success": True}
+
+@router.post("/{lead_id}/associate-client")
+async def associate_client(
+    lead_id: str,
+    client_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Associar um lead a um cliente/processo."""
+    # Verificar se lead existe
+    lead = await db.property_leads.find_one({"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+    
+    # Verificar se cliente existe
+    process = await db.processes.find_one({"id": client_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Actualizar lead
+    await db.property_leads.update_one(
+        {"id": lead_id},
+        {
+            "$set": {"client_id": client_id, "updated_at": now},
+            "$push": {
+                "history": {
+                    "timestamp": now,
+                    "event": f"Associado ao cliente {process.get('client_name')}",
+                    "user": user.get("email")
+                }
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "message": f"Lead associado a {process.get('client_name')}"
+    }
