@@ -29,19 +29,18 @@ async def extract_property_data(url: str, use_deep_scraping: bool = True) -> Scr
     domain = parsed_url.netloc.lower()
     
     try:
-        # Usar Deep Scraper para Idealista (melhor extração)
-        if 'idealista' in domain and use_deep_scraping:
+        # Usar Deep Scraper para todos os sites (aproveitando ScraperAPI)
+        if use_deep_scraping:
             return await extract_with_deep_scraper(url)
-        elif 'idealista' in domain:
+        
+        # Fallback para scrapers específicos sem deep scraping
+        if 'idealista' in domain:
             return await scrape_idealista(url)
         elif 'imovirtual' in domain:
             return await scrape_imovirtual(url)
         elif 'casa.sapo' in domain:
-            return await scrape_sapo(url)
+            return await extract_with_deep_scraper(url)  # Sempre usar deep scraper
         else:
-            # Tentar extração genérica com deep scraper
-            if use_deep_scraping:
-                return await extract_with_deep_scraper(url)
             return await scrape_generic(url)
     except Exception as e:
         logger.warning(f"Erro ao extrair dados de {url}: {e}")
