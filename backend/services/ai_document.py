@@ -447,7 +447,7 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
         logger.error(f"Rate limit excedido após {RETRY_MAX_ATTEMPTS} tentativas: {e}")
         return {
             "success": False,
-            "error": f"Limite de pedidos excedido. Tente novamente mais tarde.",
+            "error": "Limite de pedidos excedido. Tente novamente mais tarde.",
             "extracted_data": {}
         }
     except Exception as e:
@@ -523,7 +523,7 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
         logger.error(f"Rate limit excedido após {RETRY_MAX_ATTEMPTS} tentativas: {e}")
         return {
             "success": False,
-            "error": f"Limite de pedidos excedido. Tente novamente mais tarde.",
+            "error": "Limite de pedidos excedido. Tente novamente mais tarde.",
             "extracted_data": {}
         }
     except Exception as e:
