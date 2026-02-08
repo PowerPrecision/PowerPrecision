@@ -115,6 +115,11 @@ const DashboardLayout = ({ children, title }) => {
           href: "/processos",
         },
         {
+          label: "Clientes",
+          icon: User,
+          href: "/clientes",
+        },
+        {
           label: "Imóveis",
           icon: Building2,
           href: "/imoveis",
@@ -137,6 +142,11 @@ const DashboardLayout = ({ children, title }) => {
           label: "Todos os Processos",
           icon: FileText,
           href: "/processos",
+        },
+        {
+          label: "Clientes",
+          icon: User,
+          href: "/clientes",
         },
         {
           label: "Imóveis",
