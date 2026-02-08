@@ -27,7 +27,7 @@ tenacity
 python-dateutil
 pytz
 
-# --- Processamento de Texto e Comparação (O erro atual) ---
+# --- Processamento de Texto e Comparação ---
 thefuzz
 python-Levenshtein
 
@@ -36,18 +36,20 @@ openai
 litellm
 tiktoken
 
-# --- Integrações Cloud (Google, AWS, Email) ---
+# --- Integrações Cloud (Google, AWS, Email, Push) ---
 google-api-python-client
 google-auth-httplib2
 google-auth
 boto3
 resend
+pywebpush
 
 # --- Pagamentos ---
 stripe
 
 # --- Processamento de Ficheiros (PDFs e Imagens) ---
 PyMuPDF
+pypdf
 img2pdf
 pillow
 pandas
