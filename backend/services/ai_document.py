@@ -1364,13 +1364,60 @@ def build_update_data_from_extraction(
     
     elif document_type == 'cpcv':
         # Contrato Promessa Compra e Venda - dados do negócio
+        # SUPORTA MÚLTIPLOS COMPRADORES
         financial_update = {}
         real_estate_update = {}
+        personal_update = {}
         
         # Extrair de estrutura aninhada
         cpcv = extracted_data.get('cpcv', extracted_data)
         imovel = cpcv.get('imovel', cpcv.get('dados_imovel', {}))
         valores = cpcv.get('valores', cpcv.get('condicoes_financeiras', {}))
+        datas = cpcv.get('datas', {})
+        
+        # === PROCESSAR MÚLTIPLOS COMPRADORES ===
+        compradores = extracted_data.get('compradores', [])
+        if not compradores and cpcv.get('compradores'):
+            compradores = cpcv.get('compradores', [])
+        
+        # Array para guardar dados de todos os compradores
+        co_buyers = []
+        
+        for i, comprador in enumerate(compradores):
+            if not comprador or not isinstance(comprador, dict):
+                continue
+            
+            buyer_data = {
+                "nome": comprador.get('nome_completo') or comprador.get('nome'),
+                "nif": comprador.get('nif'),
+                "estado_civil": comprador.get('estado_civil'),
+                "morada": comprador.get('morada'),
+                "email": comprador.get('email'),
+                "telefone": comprador.get('telefone')
+            }
+            
+            # Remover campos vazios
+            buyer_data = {k: v for k, v in buyer_data.items() if v}
+            
+            if buyer_data.get('nome') or buyer_data.get('nif'):
+                co_buyers.append(buyer_data)
+                
+                # O primeiro comprador vai para personal_data principal
+                if i == 0:
+                    if buyer_data.get('nif'):
+                        personal_update['nif'] = buyer_data['nif']
+                    if buyer_data.get('morada'):
+                        personal_update['morada'] = buyer_data['morada']
+                    if buyer_data.get('estado_civil'):
+                        personal_update['estado_civil'] = buyer_data['estado_civil']
+        
+        # Guardar array de co-compradores se houver mais de 1
+        if len(co_buyers) > 1:
+            update_data["co_buyers"] = co_buyers
+            logger.info(f"CPCV com {len(co_buyers)} compradores detectados")
+        elif len(co_buyers) == 1:
+            # Apenas 1 comprador, guardar dados normalmente
+            pass
         
         # Dados financeiros do negócio
         if valores.get('preco_total') or valores.get('valor_venda'):
@@ -1379,6 +1426,12 @@ def build_update_data_from_extraction(
             financial_update['valor_entrada'] = valores.get('sinal') or valores.get('valor_sinal')
         if valores.get('valor_restante'):
             financial_update['valor_financiar'] = valores.get('valor_restante')
+            
+        # Datas importantes
+        if datas.get('data_escritura_prevista'):
+            real_estate_update['data_escritura_prevista'] = datas['data_escritura_prevista']
+        if datas.get('data_cpcv'):
+            real_estate_update['data_cpcv'] = datas['data_cpcv']
             
         # Campos de nível superior
         if extracted_data.get('valor_venda'):
@@ -1399,6 +1452,11 @@ def build_update_data_from_extraction(
             real_estate_update['area'] = imovel['area']
         if imovel.get('fracao') or imovel.get('artigo'):
             real_estate_update['fracao'] = imovel.get('fracao') or imovel.get('artigo')
+        
+        if personal_update:
+            existing_personal = existing_data.get("personal_data") or {}
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
             
         if financial_update:
             existing_financial = existing_data.get("financial_data") or {}
