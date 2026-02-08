@@ -9,13 +9,17 @@ FUNCIONALIDADES:
 - Normalização de nomes de ficheiros
 - Junção de CC frente+verso num único PDF para análise
 - Conversão de PDFs scan para imagem
+- Detecção de documentos duplicados (evita reanalisar recibos/extratos iguais)
+- Matching flexível de nomes (suporta acentos, parênteses, nomes compostos)
 """
 import os
 import re
 import uuid
 import base64
 import logging
-from typing import List, Optional, Dict, Tuple
+import hashlib
+import unicodedata
+from typing import List, Optional, Dict, Tuple, Set
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -54,6 +58,152 @@ NORMALIZED_NAMES = {
 # Cache temporário para CC frente/verso por cliente
 # Estrutura: {process_id: {"frente": (bytes, mime), "verso": (bytes, mime)}}
 cc_cache: Dict[str, Dict[str, Tuple[bytes, str]]] = {}
+
+# Cache para hashes de documentos já analisados (evitar duplicados)
+# Estrutura: {process_id: {document_type: {hash: extracted_data}}}
+document_hash_cache: Dict[str, Dict[str, Dict[str, dict]]] = {}
+
+# Tipos de documentos que tipicamente vêm em múltiplas cópias idênticas
+DUPLICATE_PRONE_TYPES = {"recibo_vencimento", "extrato_bancario", "recibo"}
+
+
+def normalize_text_for_matching(text: str) -> str:
+    """
+    Normaliza texto para comparação de nomes.
+    Remove acentos, converte para minúsculas, remove caracteres especiais.
+    """
+    if not text:
+        return ""
+    
+    # Remover acentos
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(char for char in text if unicodedata.category(char) != 'Mn')
+    
+    # Converter para minúsculas
+    text = text.lower()
+    
+    # Remover caracteres especiais exceto espaços
+    text = re.sub(r'[^\w\s]', ' ', text)
+    
+    # Normalizar espaços
+    text = ' '.join(text.split())
+    
+    return text
+
+
+def extract_all_names_from_string(text: str) -> Set[str]:
+    """
+    Extrai todos os nomes possíveis de uma string.
+    Suporta formatos: "João e Maria", "João (Maria)", "João / Maria", "João, Maria"
+    """
+    names = set()
+    if not text:
+        return names
+    
+    # Normalizar
+    text_normalized = normalize_text_for_matching(text)
+    
+    # Extrair nomes de parênteses primeiro (ex: "Claúdia Batista (Edson)")
+    parens_names = re.findall(r'\(([^)]+)\)', text)
+    for name in parens_names:
+        names.add(normalize_text_for_matching(name))
+    
+    # Remover conteúdo dos parênteses para processar o resto
+    text_clean = re.sub(r'\([^)]+\)', '', text)
+    text_clean = normalize_text_for_matching(text_clean)
+    
+    # Separar por delimitadores comuns
+    separators = [' e ', ' / ', ', ', ' - ']
+    parts = [text_clean]
+    for sep in separators:
+        new_parts = []
+        for part in parts:
+            new_parts.extend(part.split(sep))
+        parts = new_parts
+    
+    for part in parts:
+        part = part.strip()
+        if part and len(part) > 2:
+            names.add(part)
+            # Adicionar também o primeiro nome
+            first_name = part.split()[0] if part.split() else ""
+            if first_name and len(first_name) > 2:
+                names.add(first_name)
+    
+    return names
+
+
+def calculate_document_hash(content: bytes) -> str:
+    """Calcular hash MD5 do conteúdo do documento."""
+    return hashlib.md5(content).hexdigest()
+
+
+def is_duplicate_document(process_id: str, document_type: str, content: bytes) -> Optional[dict]:
+    """
+    Verifica se o documento é duplicado de um já analisado.
+    
+    Returns:
+        Dados extraídos anteriormente se for duplicado, None caso contrário
+    """
+    if document_type not in DUPLICATE_PRONE_TYPES:
+        return None
+    
+    doc_hash = calculate_document_hash(content)
+    
+    if process_id in document_hash_cache:
+        if document_type in document_hash_cache[process_id]:
+            if doc_hash in document_hash_cache[process_id][document_type]:
+                logger.info(f"Documento duplicado detectado: {document_type} para {process_id}")
+                return document_hash_cache[process_id][document_type][doc_hash]
+    
+    return None
+
+
+def cache_document_analysis(process_id: str, document_type: str, content: bytes, extracted_data: dict):
+    """Guardar resultado da análise em cache para detectar duplicados futuros."""
+    if document_type not in DUPLICATE_PRONE_TYPES:
+        return
+    
+    doc_hash = calculate_document_hash(content)
+    
+    if process_id not in document_hash_cache:
+        document_hash_cache[process_id] = {}
+    if document_type not in document_hash_cache[process_id]:
+        document_hash_cache[process_id][document_type] = {}
+    
+    document_hash_cache[process_id][document_type][doc_hash] = extracted_data
+
+
+def validate_nif(nif: str) -> bool:
+    """
+    Valida se o NIF é válido.
+    NIFs portugueses não podem começar por 0, 3, 4, 7, 8 (pessoas singulares começam por 1, 2, 5, 6).
+    NIFs de empresas começam por 5.
+    """
+    if not nif:
+        return True  # Permitir vazio
+    
+    # Remover espaços e caracteres não numéricos
+    nif = re.sub(r'\D', '', str(nif))
+    
+    if len(nif) != 9:
+        return False
+    
+    # Para pessoas singulares, NIF deve começar por 1, 2 ou 6
+    # 5 é para empresas/colectividades
+    first_digit = nif[0]
+    
+    # NIFs de clientes (pessoas singulares) tipicamente começam por 1, 2 ou 6
+    # 5 é para entidades colectivas - provavelmente erro se aparecer como cliente
+    if first_digit == '5':
+        logger.warning(f"NIF {nif} começa por 5 (entidade colectiva) - possível erro")
+        return False
+    
+    if first_digit not in ['1', '2', '6', '9']:  # 9 é para entidades internacionais
+        logger.warning(f"NIF {nif} tem primeiro dígito inválido: {first_digit}")
+        return False
+    
+    return True
 
 
 def is_cc_frente_or_verso(filename: str) -> Optional[str]:
