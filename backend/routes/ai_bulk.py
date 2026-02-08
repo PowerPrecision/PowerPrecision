@@ -552,14 +552,14 @@ async def analyze_single_file(
                             result.filename = normalized_name
                             
                             # Actualizar ficha do cliente
-                            updated = await update_client_data(
+                            updated, fields = await update_client_data(
                                 process_id,
                                 analysis_result.get("extracted_data", {}),
                                 document_type
                             )
                             result.updated = updated
                             
-                            logger.info(f"CC (frente+verso) analisado para {client_name}: {len(result.fields_extracted)} campos")
+                            logger.info(f"CC (frente+verso) analisado para {actual_client_name}: {len(result.fields_extracted)} campos, actualizados: {fields}")
                         else:
                             result.error = analysis_result.get("error", "Erro na análise do CC combinado")
                     else:
@@ -570,7 +570,7 @@ async def analyze_single_file(
                     result.success = True
                     result.filename = f"CC_{cc_side} (a aguardar {'verso' if cc_side == 'frente' else 'frente'})"
                     result.fields_extracted = []
-                    logger.info(f"A aguardar {'verso' if cc_side == 'frente' else 'frente'} do CC para {client_name}")
+                    logger.info(f"A aguardar {'verso' if cc_side == 'frente' else 'frente'} do CC para {actual_client_name}")
                 
                 return result
         
@@ -578,7 +578,7 @@ async def analyze_single_file(
         analysis_result = await analyze_single_document(
             content=content,
             filename=doc_filename,
-            client_name=client_name,
+            client_name=actual_client_name,
             process_id=process_id
         )
         
@@ -587,24 +587,27 @@ async def analyze_single_file(
             result.fields_extracted = list(analysis_result["extracted_data"].keys())
             result.filename = normalized_name  # Nome normalizado
             
+            # Guardar em cache para detectar duplicados futuros
+            cache_document_analysis(process_id, document_type, content, analysis_result["extracted_data"])
+            
             # Actualizar ficha do cliente
-            updated = await update_client_data(
+            updated, fields = await update_client_data(
                 process_id,
                 analysis_result["extracted_data"],
                 document_type
             )
             result.updated = updated
             
-            logger.info(f"Analisado {doc_filename} -> {normalized_name} para {client_name}: {len(result.fields_extracted)} campos")
+            logger.info(f"✅ {doc_filename} -> {normalized_name} para '{actual_client_name}': {len(result.fields_extracted)} campos extraídos, {len(fields)} actualizados")
         else:
             result.error = analysis_result.get("error", "Erro na análise")
-            logger.warning(f"Falha ao analisar {doc_filename}: {result.error}")
+            logger.warning(f"❌ Falha ao analisar {doc_filename}: {result.error}")
         
     except ValueError as e:
         result.error = str(e)
     except Exception as e:
         result.error = f"Erro inesperado: {str(e)}"
-        logger.error(f"Erro ao processar {filename}: {e}")
+        logger.error(f"Erro ao processar {filename}: {e}", exc_info=True)
     
     return result
 
