@@ -114,6 +114,11 @@ const DashboardLayout = ({ children, title }) => {
           href: "/processos",
         },
         settingsItem,
+        {
+          label: "Configurações",
+          icon: Settings,
+          href: "/configuracoes",
+        },
       ];
     }
 
