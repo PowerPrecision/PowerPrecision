@@ -1018,7 +1018,7 @@ def build_update_data_from_extraction(
                 track_mapped(src_key)
         
         if personal_update:
-            existing_personal = existing_data.get("personal_data", {})
+            existing_personal = existing_data.get("personal_data") or {}
             existing_personal.update(personal_update)
             update_data["personal_data"] = existing_personal
         
@@ -1086,12 +1086,12 @@ def build_update_data_from_extraction(
             financial_update['empresa'] = employer['name']
         
         if financial_update:
-            existing_financial = existing_data.get("financial_data", {})
+            existing_financial = existing_data.get("financial_data") or {}
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
             
         if personal_update:
-            existing_personal = existing_data.get("personal_data", {})
+            existing_personal = existing_data.get("personal_data") or {}
             existing_personal.update(personal_update)
             update_data["personal_data"] = existing_personal
             
@@ -1128,12 +1128,12 @@ def build_update_data_from_extraction(
             financial_update['horas_semanais'] = employment['hours_per_week']
             
         if financial_update:
-            existing_financial = existing_data.get("financial_data", {})
+            existing_financial = existing_data.get("financial_data") or {}
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
             
         if personal_update:
-            existing_personal = existing_data.get("personal_data", {})
+            existing_personal = existing_data.get("personal_data") or {}
             existing_personal.update(personal_update)
             update_data["personal_data"] = existing_personal
             
@@ -1153,7 +1153,7 @@ def build_update_data_from_extraction(
                 real_estate_update[dest_key] = extracted_data[src_key]
         
         if real_estate_update:
-            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate = existing_data.get("real_estate_data") or {}
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
@@ -1180,7 +1180,7 @@ def build_update_data_from_extraction(
             personal_update['morada'] = extracted_data['morada']
             
         if personal_update:
-            existing_personal = existing_data.get("personal_data", {})
+            existing_personal = existing_data.get("personal_data") or {}
             existing_personal.update(personal_update)
             update_data["personal_data"] = existing_personal
             
@@ -1217,17 +1217,17 @@ def build_update_data_from_extraction(
             personal_update['data_nascimento'] = proponente['data_nascimento']
             
         if personal_update:
-            existing_personal = existing_data.get("personal_data", {})
+            existing_personal = existing_data.get("personal_data") or {}
             existing_personal.update(personal_update)
             update_data["personal_data"] = existing_personal
             
         if financial_update:
-            existing_financial = existing_data.get("financial_data", {})
+            existing_financial = existing_data.get("financial_data") or {}
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
             
         if real_estate_update:
-            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate = existing_data.get("real_estate_data") or {}
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
@@ -1254,7 +1254,7 @@ def build_update_data_from_extraction(
                     financial_update['prestacao_ch_atual'] = resp.get('prestacao', {}).get('valor', None)
                     
         if financial_update:
-            existing_financial = existing_data.get("financial_data", {})
+            existing_financial = existing_data.get("financial_data") or {}
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
     
@@ -1297,12 +1297,12 @@ def build_update_data_from_extraction(
             real_estate_update['fracao'] = imovel.get('fracao') or imovel.get('artigo')
             
         if financial_update:
-            existing_financial = existing_data.get("financial_data", {})
+            existing_financial = existing_data.get("financial_data") or {}
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
             
         if real_estate_update:
-            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate = existing_data.get("real_estate_data") or {}
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
             
@@ -1354,7 +1354,7 @@ def build_update_data_from_extraction(
                     break
                     
         if real_estate_update:
-            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate = existing_data.get("real_estate_data") or {}
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
@@ -1469,17 +1469,17 @@ def build_update_data_from_extraction(
                 del personal_update["nome_completo"]
         
         if personal_update:
-            existing_personal = existing_data.get("personal_data", {})
+            existing_personal = existing_data.get("personal_data") or {}
             existing_personal.update(personal_update)
             update_data["personal_data"] = existing_personal
         
         if financial_update:
-            existing_financial = existing_data.get("financial_data", {})
+            existing_financial = existing_data.get("financial_data") or {}
             existing_financial.update(financial_update)
             update_data["financial_data"] = existing_financial
             
         if real_estate_update:
-            existing_real_estate = existing_data.get("real_estate_data", {})
+            existing_real_estate = existing_data.get("real_estate_data") or {}
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
