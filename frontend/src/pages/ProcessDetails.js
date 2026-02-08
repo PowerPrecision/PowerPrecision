@@ -741,102 +741,108 @@ const ProcessDetails = () => {
 
                   {/* Financial Data Tab */}
                   <TabsContent value="financial" className="mt-4">
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {/* Rendimentos */}
-                      <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-green-700 dark:text-green-400">
-                          <Briefcase className="h-4 w-4" />
-                          Rendimentos
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Rendimento Mensal (€)</Label>
-                            <Input
-                              type="number"
-                              value={financialData.monthly_income || ""}
-                              onChange={(e) => setFinancialData({ ...financialData, monthly_income: parseFloat(e.target.value) || null })}
-                              disabled={!canEditFinancial}
-                              className="h-9"
-                            />
+                      <Card className="border-l-4 border-l-green-500">
+                        <CardContent className="pt-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-green-500" />
+                            Rendimentos
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Rendimento Mensal (€)</Label>
+                              <Input
+                                type="number"
+                                value={financialData.monthly_income || ""}
+                                onChange={(e) => setFinancialData({ ...financialData, monthly_income: parseFloat(e.target.value) || null })}
+                                disabled={!canEditFinancial}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Outros Rendimentos (€)</Label>
+                              <Input
+                                type="number"
+                                value={financialData.other_income || ""}
+                                onChange={(e) => setFinancialData({ ...financialData, other_income: parseFloat(e.target.value) || null })}
+                                disabled={!canEditFinancial}
+                                className="h-9"
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Outros Rendimentos (€)</Label>
-                            <Input
-                              type="number"
-                              value={financialData.other_income || ""}
-                              onChange={(e) => setFinancialData({ ...financialData, other_income: parseFloat(e.target.value) || null })}
-                              disabled={!canEditFinancial}
-                              className="h-9"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                       
                       {/* Despesas */}
-                      <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-red-700 dark:text-red-400">
-                          <CreditCard className="h-4 w-4" />
-                          Despesas
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Despesas Mensais (€)</Label>
-                            <Input
-                              type="number"
-                              value={financialData.monthly_expenses || ""}
-                              onChange={(e) => setFinancialData({ ...financialData, monthly_expenses: parseFloat(e.target.value) || null })}
-                              disabled={!canEditFinancial}
-                              className="h-9"
-                            />
+                      <Card className="border-l-4 border-l-red-500">
+                        <CardContent className="pt-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-red-500" />
+                            Despesas
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Despesas Mensais (€)</Label>
+                              <Input
+                                type="number"
+                                value={financialData.monthly_expenses || ""}
+                                onChange={(e) => setFinancialData({ ...financialData, monthly_expenses: parseFloat(e.target.value) || null })}
+                                disabled={!canEditFinancial}
+                                className="h-9"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                       
                       {/* Emprego */}
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                          <User className="h-4 w-4" />
-                          Situação Profissional
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Tipo de Emprego</Label>
-                            <Select
-                              value={financialData.employment_type || ""}
-                              onValueChange={(value) => setFinancialData({ ...financialData, employment_type: value })}
-                              disabled={!canEditFinancial}
-                            >
-                              <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="efetivo">Contrato Efetivo</SelectItem>
-                                <SelectItem value="termo">Contrato a Termo</SelectItem>
-                                <SelectItem value="independente">Trabalhador Independente</SelectItem>
-                                <SelectItem value="empresario">Empresário</SelectItem>
-                                <SelectItem value="reformado">Reformado</SelectItem>
-                                <SelectItem value="desempregado">Desempregado</SelectItem>
-                              </SelectContent>
-                            </Select>
+                      <Card className="border-l-4 border-l-purple-500">
+                        <CardContent className="pt-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <User className="h-4 w-4 text-purple-500" />
+                            Situação Profissional
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Tipo de Emprego</Label>
+                              <Select
+                                value={financialData.employment_type || ""}
+                                onValueChange={(value) => setFinancialData({ ...financialData, employment_type: value })}
+                                disabled={!canEditFinancial}
+                              >
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="efetivo">Contrato Efetivo</SelectItem>
+                                  <SelectItem value="termo">Contrato a Termo</SelectItem>
+                                  <SelectItem value="independente">Trabalhador Independente</SelectItem>
+                                  <SelectItem value="empresario">Empresário</SelectItem>
+                                  <SelectItem value="reformado">Reformado</SelectItem>
+                                  <SelectItem value="desempregado">Desempregado</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Tempo de Emprego</Label>
+                              <Input
+                                value={financialData.employment_duration || ""}
+                                onChange={(e) => setFinancialData({ ...financialData, employment_duration: e.target.value })}
+                                disabled={!canEditFinancial}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1 col-span-2">
+                              <Label className="text-xs text-muted-foreground">Entidade Empregadora</Label>
+                              <Input
+                                value={financialData.employer_name || ""}
+                                onChange={(e) => setFinancialData({ ...financialData, employer_name: e.target.value })}
+                                disabled={!canEditFinancial}
+                                className="h-9"
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Tempo de Emprego</Label>
-                            <Input
-                              value={financialData.employment_duration || ""}
-                              onChange={(e) => setFinancialData({ ...financialData, employment_duration: e.target.value })}
-                              disabled={!canEditFinancial}
-                              className="h-9"
-                            />
-                          </div>
-                          <div className="space-y-1 col-span-2">
-                            <Label className="text-xs text-muted-foreground">Entidade Empregadora</Label>
-                            <Input
-                              value={financialData.employer_name || ""}
-                              onChange={(e) => setFinancialData({ ...financialData, employer_name: e.target.value })}
-                              disabled={!canEditFinancial}
-                              className="h-9"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </TabsContent>
 
