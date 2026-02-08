@@ -50,6 +50,7 @@ import TasksPanel from "../components/TasksPanel";
 import ProcessSummaryCard from "../components/ProcessSummaryCard";
 import EmailHistoryPanel from "../components/EmailHistoryPanel";
 import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
+import DocumentChecklist from "../components/DocumentChecklist";
 import {
   ArrowLeft,
   User,
