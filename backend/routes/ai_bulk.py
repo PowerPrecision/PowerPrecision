@@ -100,9 +100,6 @@ def extract_all_names_from_string(text: str) -> Set[str]:
     if not text:
         return names
     
-    # Normalizar
-    text_normalized = normalize_text_for_matching(text)
-    
     # Extrair nomes de parênteses primeiro (ex: "Claúdia Batista (Edson)")
     parens_names = re.findall(r'\(([^)]+)\)', text)
     for name in parens_names:
