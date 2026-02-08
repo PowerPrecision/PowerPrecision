@@ -73,12 +73,15 @@ async def public_client_registration(data: PublicClientRegistration):
     não um utilizador com credenciais de login.
     """
     
+    # Sanitizar email logo no início
+    clean_email = sanitize_email(data.email)
+    
     # =========================================
     # VERIFICAR DUPLICADOS (EMAIL E NIF)
     # =========================================
     
     # Verificar se já existe processo com o mesmo email
-    existing_by_email = await db.processes.find_one({"client_email": data.email})
+    existing_by_email = await db.processes.find_one({"client_email": clean_email})
     if existing_by_email:
         return {
             "success": False,
