@@ -16,7 +16,6 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Fases do processo de crédito habitação
 const PROCESS_PHASES = [
   { id: "clientes_espera", label: "Clientes em Espera", color: "#FCD34D", order: 1 },
-  { id: "clientes_em_espera", label: "Clientes em Espera", color: "#FCD34D", order: 1 },
   { id: "fase_documental", label: "Fase Documental", color: "#60A5FA", order: 2 },
   { id: "entregue_aos_intermediarios", label: "Entregue aos Intermediários", color: "#A78BFA", order: 3 },
   { id: "enviado_ao_bruno", label: "Enviado ao Bruno", color: "#F97316", order: 4 },
@@ -29,6 +28,14 @@ const PROCESS_PHASES = [
   { id: "recusado", label: "Recusado", color: "#EF4444", order: 99 },
   { id: "desistiu", label: "Desistiu", color: "#6B7280", order: 98 },
 ];
+
+// Normalizar status (mapear variantes para o ID principal)
+const normalizeStatus = (status) => {
+  const statusMap = {
+    "clientes_em_espera": "clientes_espera",
+  };
+  return statusMap[status] || status;
+};
 
 // Componente de nó da timeline
 const TimelineNode = ({ phase, isCompleted, isCurrent, date, daysInPhase }) => {
