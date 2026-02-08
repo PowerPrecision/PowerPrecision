@@ -117,7 +117,7 @@ const DashboardLayout = ({ children, title }) => {
         settingsItem,
         {
           label: "Configurações",
-          icon: Settings,
+          icon: Cog,
           href: "/configuracoes",
         },
       ];
