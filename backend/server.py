@@ -21,6 +21,7 @@ from routes.tasks import router as tasks_router
 from routes.emails import router as emails_router
 from routes.trello import router as trello_router
 from routes.ai_bulk import router as ai_bulk_router
+from routes.leads import router as leads_router
 
 
 # Configure logging
