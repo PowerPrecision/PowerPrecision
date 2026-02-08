@@ -21,6 +21,7 @@ Tipos de documentos suportados:
 """
 import os
 import io
+import re
 import json
 import logging
 import base64
@@ -46,6 +47,35 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 # Modelo a usar - gpt-4o-mini é mais barato e rápido
 AI_MODEL = "gpt-4o-mini"
+
+
+def sanitize_email(email: str) -> str:
+    """
+    Limpa emails com formatação markdown ou outros artefactos.
+    """
+    if not email:
+        return ""
+    
+    email = email.strip()
+    
+    # Padrão: [texto](mailto:email)
+    markdown_link = re.search(r'\[.*?\]\(mailto:([^)]+)\)', email)
+    if markdown_link:
+        email = markdown_link.group(1)
+    
+    # Padrão: mailto:email
+    if email.startswith('mailto:'):
+        email = email.replace('mailto:', '')
+    
+    # Padrão: <email>
+    angle_brackets = re.search(r'<([^>]+@[^>]+)>', email)
+    if angle_brackets:
+        email = angle_brackets.group(1)
+    
+    # Remover caracteres markdown
+    email = re.sub(r'[\[\]\(\)]', '', email)
+    
+    return email.strip().lower()
 
 # Mínimo de caracteres para considerar extracção de texto bem sucedida
 MIN_TEXT_LENGTH = 100
