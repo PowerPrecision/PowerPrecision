@@ -37,9 +37,12 @@ async def find_matching_properties_for_client(process_id: str) -> List[Dict[str,
         except:
             pass
     
-    desired_district = (real_estate.get("distrito") or real_estate.get("localizacao") or "").lower()
-    desired_municipality = (real_estate.get("concelho") or "").lower()
-    desired_typology = real_estate.get("tipologia", "")
+    desired_district_raw = real_estate.get("distrito") or real_estate.get("localizacao") or ""
+    desired_district = desired_district_raw.lower() if isinstance(desired_district_raw, str) else ""
+    desired_municipality_raw = real_estate.get("concelho") or ""
+    desired_municipality = desired_municipality_raw.lower() if isinstance(desired_municipality_raw, str) else ""
+    desired_typology_raw = real_estate.get("tipologia", "")
+    desired_typology = desired_typology_raw if isinstance(desired_typology_raw, str) else ""
     
     # Extrair número de quartos
     desired_bedrooms = None
