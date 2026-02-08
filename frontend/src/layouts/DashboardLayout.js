@@ -23,6 +23,7 @@ import {
   CreditCard,
   PlusCircle,
   BarChart3,
+  Cog,
   Home,
   LayoutGrid,
 } from "lucide-react";
