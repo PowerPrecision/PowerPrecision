@@ -22,6 +22,7 @@ import {
   getProcesses, getCalendarDeadlines, createDeadline, deleteDeadline, getUpcomingExpiries
 } from "../services/api";
 import KanbanBoard from "../components/KanbanBoard";
+import LeadsKanban from "../components/LeadsKanban";
 import { 
   CalendarTab, DocumentsTab, UsersTab, ClientSearchTab, 
   CreateEventDialog, AIAnalysisTab 
