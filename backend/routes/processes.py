@@ -700,7 +700,7 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
             if process.get("client_email"):
                 await send_email_notification(
                     process["client_email"],
-                    f"Estado do Processo Atualizado",
+                    "Estado do Processo Atualizado",
                     f"O estado do seu processo foi atualizado para: {data.status}"
                 )
     
