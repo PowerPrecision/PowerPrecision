@@ -226,6 +226,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="tasks" className="gap-2" data-testid="tab-tasks">
               <ClipboardList className="h-4 w-4" />Tarefas
             </TabsTrigger>
+            <TabsTrigger value="leads" className="gap-2" data-testid="tab-leads">
+              <Building className="h-4 w-4" />Leads
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
