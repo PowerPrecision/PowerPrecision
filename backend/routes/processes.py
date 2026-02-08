@@ -306,7 +306,7 @@ async def create_client_process(data: ProcessCreate, user: dict = Depends(get_cu
     # Extrair nome e email dos dados pessoais
     personal = data.personal_data.model_dump() if data.personal_data else {}
     client_name = personal.get("nome_completo") or data.client_name or "Cliente"
-    client_email = personal.get("email") or data.client_email or ""
+    client_email = sanitize_email(personal.get("email") or data.client_email or "")
     client_phone = personal.get("telefone") or ""
     
     # Construir documento do processo
