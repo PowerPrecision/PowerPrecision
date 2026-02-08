@@ -137,7 +137,7 @@ async def public_client_registration(data: PublicClientRegistration):
         # Dados do cliente guardados directamente no processo
         "client_id": None,  # Não há utilizador associado
         "client_name": data.name,
-        "client_email": data.email,
+        "client_email": clean_email,  # Email já sanitizado
         "client_phone": data.phone,
         # Tipo e estado
         "process_type": data.process_type,
