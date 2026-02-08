@@ -143,9 +143,41 @@ def calculate_document_hash(content: bytes) -> str:
     return hashlib.md5(content).hexdigest()
 
 
+async def is_duplicate_document_db(process_id: str, document_type: str, doc_hash: str) -> Optional[dict]:
+    """
+    Verifica se o documento já foi analisado anteriormente (persistido na DB).
+    
+    Returns:
+        Dados do documento se for duplicado, None caso contrário
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"_id": 0, "analyzed_documents": 1}
+    )
+    
+    if not process:
+        return None
+    
+    analyzed_docs = process.get("analyzed_documents", [])
+    
+    for doc in analyzed_docs:
+        if doc.get("hash") == doc_hash:
+            logger.info(f"Documento duplicado detectado (DB): hash={doc_hash[:8]}... para {process_id}")
+            return doc
+        
+        # Verificar também por tipo + mês de referência (para recibos do mesmo mês)
+        if doc.get("document_type") == document_type:
+            if document_type in ["recibo_vencimento", "extrato_bancario"]:
+                # Se já existe um recibo/extrato do mesmo tipo, pode ser duplicado
+                # (verificado pelo hash acima)
+                pass
+    
+    return None
+
+
 def is_duplicate_document(process_id: str, document_type: str, content: bytes) -> Optional[dict]:
     """
-    Verifica se o documento é duplicado de um já analisado.
+    Verifica se o documento é duplicado de um já analisado (cache em memória).
     
     Returns:
         Dados extraídos anteriormente se for duplicado, None caso contrário
@@ -158,8 +190,33 @@ def is_duplicate_document(process_id: str, document_type: str, content: bytes) -
     if process_id in document_hash_cache:
         if document_type in document_hash_cache[process_id]:
             if doc_hash in document_hash_cache[process_id][document_type]:
-                logger.info(f"Documento duplicado detectado: {document_type} para {process_id}")
+                logger.info(f"Documento duplicado detectado (cache): {document_type} para {process_id}")
                 return document_hash_cache[process_id][document_type][doc_hash]
+    
+    return None
+
+
+async def check_duplicate_comprehensive(process_id: str, document_type: str, content: bytes) -> Optional[dict]:
+    """
+    Verificação completa de duplicados: cache em memória + base de dados.
+    
+    Returns:
+        Dados do documento se for duplicado, None caso contrário
+    """
+    if document_type not in DUPLICATE_PRONE_TYPES:
+        return None
+    
+    doc_hash = calculate_document_hash(content)
+    
+    # 1. Verificar cache em memória (rápido)
+    cached = is_duplicate_document(process_id, document_type, content)
+    if cached:
+        return cached
+    
+    # 2. Verificar base de dados (persistente)
+    db_record = await is_duplicate_document_db(process_id, document_type, doc_hash)
+    if db_record:
+        return db_record
     
     return None
 
