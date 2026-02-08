@@ -4,9 +4,10 @@ CRUD completo para imóveis listados pela agência
 """
 import uuid
 import logging
+import asyncio
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 
 from database import db
 from models.property import (
@@ -14,6 +15,7 @@ from models.property import (
     PropertyStatus, PropertyType, PropertyHistory
 )
 from services.auth import get_current_user, require_roles
+from services.alerts import check_and_notify_matches_for_new_property
 from models.auth import UserRole
 
 router = APIRouter(prefix="/properties", tags=["Properties"])
