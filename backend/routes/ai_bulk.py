@@ -454,6 +454,8 @@ async def analyze_single_file(
     - Se detectar CC frente ou verso, guarda em cache e espera pelo outro
     - Quando tem frente+verso, junta num PDF e analisa
     - Normaliza nomes de ficheiros
+    - Detecta documentos duplicados (ex: 3 recibos de vencimento iguais)
+    - Validação melhorada de NIF
     
     Estrutura do path: PastaRaiz/NomeCliente/[subpastas/]documento.pdf
     """
@@ -486,14 +488,25 @@ async def analyze_single_file(
         # Procurar cliente
         process = await find_client_by_name(client_name)
         if not process:
-            result.error = f"Cliente não encontrado: {client_name}"
+            result.error = f"Cliente não encontrado: {client_name}. Verifique se o nome está correcto (acentos, parênteses)."
+            logger.warning(f"Cliente não encontrado para '{client_name}'. Pasta: {filename}")
             return result
         
         process_id = process.get("id")
+        actual_client_name = process.get("client_name", client_name)
+        result.client_name = actual_client_name  # Usar nome real do cliente
         
         # Detectar tipo de documento
         document_type = detect_document_type(doc_filename)
         result.document_type = document_type
+        
+        # Verificar se é documento duplicado (recibos, extratos, etc.)
+        cached_data = is_duplicate_document(process_id, document_type, content)
+        if cached_data:
+            logger.info(f"Documento duplicado detectado para {actual_client_name}: {document_type}")
+            result.success = True
+            result.error = "Documento idêntico já analisado anteriormente (ignorado)"
+            return result
         
         # Nome normalizado
         normalized_name = get_normalized_filename(document_type)
@@ -508,11 +521,11 @@ async def analyze_single_file(
                     cc_cache[process_id] = {}
                 
                 cc_cache[process_id][cc_side] = (content, mime_type)
-                logger.info(f"CC {cc_side} guardado em cache para {client_name}")
+                logger.info(f"CC {cc_side} guardado em cache para {actual_client_name}")
                 
                 # Verificar se já temos frente E verso
                 if "frente" in cc_cache[process_id] and "verso" in cc_cache[process_id]:
-                    logger.info(f"CC completo (frente+verso) para {client_name}, a juntar...")
+                    logger.info(f"CC completo (frente+verso) para {actual_client_name}, a juntar...")
                     
                     # Juntar frente e verso num PDF
                     frente_data = cc_cache[process_id]["frente"]
