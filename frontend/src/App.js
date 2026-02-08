@@ -130,6 +130,16 @@ function App() {
             }
           />
           
+          {/* Clients Page - Staff and Admin */}
+          <Route
+            path="/clientes"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <ClientsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Process Details - Staff and Admin */}
           <Route
             path="/processo/:id"
