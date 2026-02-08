@@ -646,6 +646,15 @@ async def analyze_single_file(
                             result.fields_extracted = list(analysis_result.get("extracted_data", {}).keys())
                             result.filename = normalized_name
                             
+                            # Persistir análise do CC na DB
+                            await persist_document_analysis(
+                                process_id,
+                                "cc",
+                                merged_pdf,
+                                analysis_result.get("extracted_data", {}),
+                                "CC_frente_verso.pdf"
+                            )
+                            
                             # Actualizar ficha do cliente
                             updated, fields = await update_client_data(
                                 process_id,
