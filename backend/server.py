@@ -57,6 +57,7 @@ app.include_router(ai_bulk_router, prefix="/api")
 app.include_router(leads_router, prefix="/api")
 app.include_router(match_router, prefix="/api")
 app.include_router(system_config_router, prefix="/api")
+app.include_router(properties_router, prefix="/api")
 
 
 # Health check endpoint for Kubernetes
