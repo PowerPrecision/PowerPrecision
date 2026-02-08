@@ -142,7 +142,7 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
     const seenPhases = new Set();
 
     sortedHistory.forEach((entry, index) => {
-      const status = entry.new_status || entry.status;
+      const status = normalizeStatus(entry.new_status || entry.status);
       if (status && !seenPhases.has(status)) {
         seenPhases.add(status);
         
@@ -157,17 +157,17 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
         timeline.push({
           phase: status,
           date: entryDate,
-          daysInPhase: status !== currentStatus ? daysInPhase : undefined,
-          isCurrent: status === currentStatus,
-          isCompleted: status !== currentStatus,
+          daysInPhase: status !== normalizedCurrentStatus ? daysInPhase : undefined,
+          isCurrent: status === normalizedCurrentStatus,
+          isCompleted: status !== normalizedCurrentStatus,
         });
       }
     });
 
     // Adicionar fase atual se não estiver no histórico
-    if (!seenPhases.has(currentStatus)) {
+    if (!seenPhases.has(normalizedCurrentStatus)) {
       timeline.push({
-        phase: currentStatus,
+        phase: normalizedCurrentStatus,
         date: null,
         isCurrent: true,
         isCompleted: false,
