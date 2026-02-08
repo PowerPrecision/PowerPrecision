@@ -426,7 +426,7 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
                 return True, updated_fields
             else:
                 # Verificar se os dados já eram iguais
-                logger.info(f"Nenhuma alteração necessária (dados já existentes)")
+                logger.info("Nenhuma alteração necessária (dados já existentes)")
                 return True, updated_fields
         else:
             logger.warning(f"Nenhum dado para actualizar (update_data tem apenas {len(update_data)} campos)")
