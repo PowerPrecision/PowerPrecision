@@ -145,6 +145,17 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**8 Fevereiro 2026** (noite - final)
+- ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
+  - Lista de clientes com pesquisa por nome/email/NIF
+  - Estatísticas (total clientes, com processos activos)
+  - Criar novos clientes
+  - Criar processos para clientes existentes
+  - Eliminar clientes (se sem processos activos)
+- ✅ **Múltiplos Processos por Cliente**: Backend completo e testado
+  - `POST /api/clients/{id}/create-process` - processo #153 criado com sucesso
+- ❌ **Removida integração Idealista**: A pedido do utilizador, para evitar ban da conta empresarial
+
 **8 Fevereiro 2026** (noite - continuação)
 - ✅ **Múltiplos Processos por Cliente**: Nova arquitectura que permite um cliente ter múltiplos processos de compra:
   - Novo modelo `Client` separado do `Process`
