@@ -3,8 +3,9 @@
  * Lista, cria e edita imóveis listados pela agência
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, MapPin, Home, Euro, Ruler, User, Eye, Calendar, Building2, Filter, MoreHorizontal, Trash2, Edit } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Plus, Search, MapPin, Home, Ruler, User, Building2, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import DashboardLayout from '../layouts/DashboardLayout';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
