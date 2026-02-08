@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 class AdditionalTester:
-    def __init__(self, base_url="https://crm-core-3.preview.emergentagent.com"):
+    def __init__(self, base_url="https://real-estate-crm-8.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
 
