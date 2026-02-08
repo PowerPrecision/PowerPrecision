@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useAuth } from "../contexts/AuthContext";
 import { 
   Users, FolderOpen, Loader2, CheckCircle, XCircle, FileText, 
-  Calendar as CalendarIcon, Eye, Sparkles, LayoutGrid, Search, ClipboardList
+  Calendar as CalendarIcon, Eye, Sparkles, LayoutGrid, Search, ClipboardList, Building
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
