@@ -145,6 +145,17 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**8 Fevereiro 2026** (noite - continuação)
+- ✅ **Múltiplos Processos por Cliente**: Nova arquitectura que permite um cliente ter múltiplos processos de compra:
+  - Novo modelo `Client` separado do `Process`
+  - Rotas CRUD em `/api/clients`
+  - Endpoints: `POST /clients/{id}/link-process`, `POST /clients/{id}/create-process`, `GET /clients/{id}/processes`
+  - Endpoint `POST /clients/find-or-create` para encontrar ou criar cliente automaticamente
+- ✅ **Co-Compradores no Frontend**: Secção visual na ficha de cliente mostrando co-compradores e co-proponentes detectados em documentos (CPCV, IRS conjunto, simulações)
+- ✅ **Integração API Idealista**: Serviço `services/idealista_api.py` com OAuth2, pesquisa por localização, filtros de preço/tipologia
+  - Endpoints: `POST /api/leads/search/idealista`, `GET /api/leads/search/idealista/status`
+  - Requer configuração: `IDEALISTA_API_KEY` e `IDEALISTA_API_SECRET` no .env
+
 **8 Fevereiro 2026** (noite)
 - ✅ **Bug Fix Crítico - Análise de Documentos**: Corrigido bug onde dados extraídos de documentos não eram guardados quando `personal_data`, `financial_data` ou `real_estate_data` eram `None` (em vez de `{}`). O problema estava na função `build_update_data_from_extraction` em `services/ai_document.py` que usava `.get("key", {})` que retorna `None` quando a chave existe mas tem valor `None`, causando erro `NoneType.update()`. Corrigido para usar `.get("key") or {}`.
 - ✅ **Deteção de Documentos Duplicados (P1)**: Implementada persistência de hashes de documentos na base de dados para evitar re-análise de documentos idênticos, mesmo após reinício do servidor:
