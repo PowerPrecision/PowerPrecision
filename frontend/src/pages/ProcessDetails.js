@@ -1068,25 +1068,25 @@ const ProcessDetails = () => {
             </Card>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Activity Section - Moved to top of sidebar */}
+          {/* Sidebar - Compacta */}
+          <div className="space-y-4">
+            {/* Activity Section */}
             <Card className="border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+              <CardHeader className="pb-2 py-3">
+                <CardTitle className="text-sm flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Atividade
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
+              <CardContent className="pt-0 pb-3">
+                <div className="space-y-2">
                   {/* New Comment Input */}
                   <div className="flex gap-2">
                     <Textarea
                       placeholder="Adicionar comentário..."
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
-                      className="flex-1 min-h-[60px] text-sm"
+                      className="flex-1 min-h-[50px] text-sm resize-none"
                       data-testid="new-comment-input"
                     />
                     <Button
@@ -1099,22 +1099,20 @@ const ProcessDetails = () => {
                     </Button>
                   </div>
 
-                  {/* Comments List */}
-                  <ScrollArea className="h-[200px]">
-                    <div className="space-y-2">
+                  {/* Comments List - Compacto */}
+                  <ScrollArea className="h-[150px]">
+                    <div className="space-y-2 pr-2">
                       {activities.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-4 text-sm">Sem comentários</p>
+                        <p className="text-center text-muted-foreground py-2 text-xs">Sem comentários</p>
                       ) : (
-                        activities.map((activity) => (
-                          <div key={activity.id} className="p-2 bg-muted/50 rounded-md text-sm" data-testid={`activity-${activity.id}`}>
-                            <div className="flex items-start justify-between">
+                        activities.slice(0, 5).map((activity) => (
+                          <div key={activity.id} className="p-2 bg-muted/50 rounded text-xs" data-testid={`activity-${activity.id}`}>
+                            <div className="flex items-start justify-between gap-1">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1 flex-wrap">
-                                  <span className="font-medium text-xs">{activity.user_name}</span>
-                                  <Badge variant="outline" className="text-[10px] px-1 py-0">{activity.user_role}</Badge>
-                                </div>
-                                <p className="text-xs mt-1">{activity.comment}</p>
-                                <p className="text-[10px] text-muted-foreground mt-1">
+                                <span className="font-medium">{activity.user_name}</span>
+                                {activity.source === 'trello' && <Badge variant="outline" className="ml-1 text-[9px] px-1 py-0">trello</Badge>}
+                                <p className="text-xs mt-0.5 text-muted-foreground line-clamp-2">{activity.comment}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
                                   {format(parseISO(activity.created_at), "dd/MM HH:mm", { locale: pt })}
                                 </p>
                               </div>
@@ -1122,7 +1120,7 @@ const ProcessDetails = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 shrink-0"
+                                  className="h-5 w-5 shrink-0"
                                   onClick={() => handleDeleteComment(activity.id)}
                                 >
                                   <Trash2 className="h-3 w-3 text-destructive" />
@@ -1138,51 +1136,30 @@ const ProcessDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Document Checklist */}
-            <DocumentChecklist 
-              processId={id}
-              clientName={process?.client_name}
-            />
-
-            {/* Client Property Match */}
-            <ClientPropertyMatch 
-              processId={id}
-              clientName={process?.client_name}
-            />
-
-            {/* Tasks Panel */}
+            {/* Tasks Panel - Compacto */}
             <TasksPanel 
               processId={id} 
               processName={process.client_name}
               compact={true}
-              maxHeight="250px"
+              maxHeight="180px"
             />
 
-            {/* Emails Panel - Visível logo na página */}
-            <EmailHistoryPanel 
-              processId={id}
-              clientEmail={process?.client_email}
-              clientName={process?.client_name}
-              compact={false}
-              maxHeight="450px"
-            />
-
-            {/* Side Tabs */}
+            {/* Side Tabs - Prazos, Histórico, Ficheiros */}
             <Card className="border-border">
               <CardContent className="p-0">
                 <Tabs value={sideTab} onValueChange={setSideTab}>
-                  <TabsList className="w-full grid grid-cols-3 rounded-none rounded-t-md">
-                    <TabsTrigger value="deadlines" className="gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span className="hidden sm:inline">Prazos</span>
+                  <TabsList className="w-full grid grid-cols-3 rounded-none rounded-t-md h-9">
+                    <TabsTrigger value="deadlines" className="gap-1 text-xs">
+                      <Clock className="h-3 w-3" />
+                      Prazos
                     </TabsTrigger>
-                    <TabsTrigger value="history" className="gap-1">
-                      <History className="h-4 w-4" />
-                      <span className="hidden sm:inline">Histórico</span>
+                    <TabsTrigger value="history" className="gap-1 text-xs">
+                      <History className="h-3 w-3" />
+                      Histórico
                     </TabsTrigger>
-                    <TabsTrigger value="files" className="gap-1">
-                      <FolderOpen className="h-4 w-4" />
-                      <span className="hidden sm:inline">Ficheiros</span>
+                    <TabsTrigger value="files" className="gap-1 text-xs">
+                      <FolderOpen className="h-3 w-3" />
+                      Ficheiros
                     </TabsTrigger>
                   </TabsList>
 
