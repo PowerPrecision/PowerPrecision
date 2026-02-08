@@ -960,6 +960,23 @@ const ProcessDetails = () => {
                   </TabsContent>
                 </Tabs>
 
+                {/* Notas extraídas por IA */}
+                {process.ai_extracted_notes && (
+                  <Card className="mt-6 border-purple-200 bg-purple-50/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2 text-purple-700">
+                        <Sparkles className="h-4 w-4" />
+                        Dados Extraídos por IA
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="text-xs whitespace-pre-wrap text-gray-700 bg-white p-3 rounded border max-h-[200px] overflow-y-auto">
+                        {process.ai_extracted_notes}
+                      </pre>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Separator className="my-6" />
 
                 <div className="flex justify-end">
