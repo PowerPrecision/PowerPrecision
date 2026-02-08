@@ -1386,5 +1386,123 @@ def build_update_data_from_extraction(
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
     
+    # Recolher dados não mapeados e guardar nas observações
+    unmapped_data = collect_unmapped_data(extracted_data, mapped_fields, document_type)
+    if unmapped_data:
+        existing_notes = existing_data.get("ai_extracted_notes", "")
+        new_notes = format_unmapped_data_for_notes(unmapped_data, document_type)
+        if new_notes:
+            if existing_notes:
+                update_data["ai_extracted_notes"] = existing_notes + "\n\n" + new_notes
+            else:
+                update_data["ai_extracted_notes"] = new_notes
+    
     return update_data
+
+
+def collect_unmapped_data(extracted_data: Dict[str, Any], mapped_fields: set, document_type: str) -> Dict[str, Any]:
+    """
+    Recolher dados extraídos que não foram mapeados para campos existentes.
+    """
+    unmapped = {}
+    
+    # Campos a ignorar (metadados, campos vazios, etc.)
+    ignore_fields = {
+        'documento', 'tipo', 'tipo_documento', 'document_type', 
+        'raw_text', 'confidence', 'source', 'filename',
+        'updated_at', 'created_at', '_id', 'id'
+    }
+    
+    def extract_unmapped(data: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
+        result = {}
+        if not isinstance(data, dict):
+            return result
+            
+        for key, value in data.items():
+            full_key = f"{prefix}.{key}" if prefix else key
+            key_lower = key.lower()
+            
+            # Ignorar campos já mapeados ou na lista de ignorar
+            if key_lower in mapped_fields or key_lower in ignore_fields:
+                continue
+            
+            # Ignorar valores vazios
+            if value is None or value == "" or value == [] or value == {}:
+                continue
+            
+            # Se é um dict, processar recursivamente
+            if isinstance(value, dict):
+                nested = extract_unmapped(value, full_key)
+                result.update(nested)
+            elif isinstance(value, list):
+                # Converter listas para string
+                if all(isinstance(item, (str, int, float)) for item in value):
+                    result[full_key] = ", ".join(str(v) for v in value)
+                elif value:
+                    # Lista de dicts - tentar extrair
+                    for i, item in enumerate(value[:3]):  # Limitar a 3 items
+                        if isinstance(item, dict):
+                            nested = extract_unmapped(item, f"{full_key}[{i}]")
+                            result.update(nested)
+            else:
+                result[full_key] = value
+        
+        return result
+    
+    unmapped = extract_unmapped(extracted_data)
+    return unmapped
+
+
+def format_unmapped_data_for_notes(unmapped_data: Dict[str, Any], document_type: str) -> str:
+    """
+    Formatar dados não mapeados para texto legível nas observações.
+    """
+    if not unmapped_data:
+        return ""
+    
+    # Traduzir nomes de campos comuns
+    field_translations = {
+        'nome_completo': 'Nome Completo',
+        'data_validade': 'Data de Validade',
+        'entidade_emissora': 'Entidade Emissora',
+        'numero_seguranca_social': 'Nº Segurança Social',
+        'taxa_juro': 'Taxa de Juro',
+        'prazo': 'Prazo',
+        'spread': 'Spread',
+        'euribor': 'Euribor',
+        'tan': 'TAN',
+        'taeg': 'TAEG',
+        'seguro_vida': 'Seguro de Vida',
+        'seguro_multirriscos': 'Seguro Multirriscos',
+        'comissao': 'Comissão',
+        'despesas': 'Despesas',
+        'imposto_selo': 'Imposto de Selo',
+    }
+    
+    lines = []
+    timestamp = datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M")
+    lines.append(f"--- Dados extraídos por IA ({document_type}) em {timestamp} ---")
+    
+    for key, value in unmapped_data.items():
+        # Limpar e traduzir nome do campo
+        clean_key = key.split('.')[-1].replace('_', ' ').title()
+        for orig, trans in field_translations.items():
+            if orig in key.lower():
+                clean_key = trans
+                break
+        
+        # Formatar valor
+        if isinstance(value, (int, float)):
+            if 'valor' in key.lower() or 'preco' in key.lower() or 'montante' in key.lower():
+                formatted_value = f"€{value:,.2f}".replace(',', ' ')
+            elif 'taxa' in key.lower() or 'spread' in key.lower() or 'percentagem' in key.lower():
+                formatted_value = f"{value}%"
+            else:
+                formatted_value = str(value)
+        else:
+            formatted_value = str(value)
+        
+        lines.append(f"• {clean_key}: {formatted_value}")
+    
+    return "\n".join(lines)
 
