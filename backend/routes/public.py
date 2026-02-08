@@ -9,6 +9,7 @@ O registo público cria apenas um documento na colecção Processes.
 Os dados do cliente (email, telefone) ficam guardados no Process.
 ====================================================================
 """
+import re
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter
@@ -21,6 +22,39 @@ from services.alerts import notify_new_client_registration
 
 
 router = APIRouter(prefix="/public", tags=["Public"])
+
+
+def sanitize_email(email: str) -> str:
+    """
+    Limpa emails com formatação markdown ou outros artefactos.
+    Extrai o email puro de strings como '[email](mailto:email)' ou 'mailto:email'.
+    """
+    if not email:
+        return ""
+    
+    email = email.strip()
+    
+    # Padrão: [texto](mailto:email) ou [email](mailto:email)
+    markdown_link = re.search(r'\[.*?\]\(mailto:([^)]+)\)', email)
+    if markdown_link:
+        email = markdown_link.group(1)
+    
+    # Padrão: mailto:email
+    if email.startswith('mailto:'):
+        email = email.replace('mailto:', '')
+    
+    # Padrão: <email>
+    angle_brackets = re.search(r'<([^>]+@[^>]+)>', email)
+    if angle_brackets:
+        email = angle_brackets.group(1)
+    
+    # Remover quaisquer caracteres markdown restantes
+    email = re.sub(r'[\[\]\(\)]', '', email)
+    
+    # Limpar e normalizar
+    email = email.strip().lower()
+    
+    return email
 
 
 @router.post("/client-registration")
