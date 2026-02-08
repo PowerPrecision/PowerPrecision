@@ -77,8 +77,8 @@ const TimelineNode = ({ phase, isCompleted, isCurrent, date, daysInPhase }) => {
           </p>
         )}
         {daysInPhase !== undefined && daysInPhase > 0 && (
-          <Badge variant="outline" className="text-[10px] mt-1">
-            {daysInPhase} dias
+          <Badge variant="outline" className="text-[9px] mt-0.5 px-1 py-0">
+            {daysInPhase}d
           </Badge>
         )}
       </div>
@@ -86,16 +86,16 @@ const TimelineNode = ({ phase, isCompleted, isCurrent, date, daysInPhase }) => {
   );
 };
 
-// Componente de conector
+// Componente de conector (compacto)
 const TimelineConnector = ({ isCompleted }) => (
-  <div className="flex items-center px-1 -mt-6">
+  <div className="flex items-center -mt-4">
     <div
-      className={`h-0.5 w-8 ${
+      className={`h-0.5 w-4 ${
         isCompleted ? "bg-green-500" : "bg-gray-200"
       }`}
     />
     <ArrowRight
-      className={`h-3 w-3 -ml-1 ${
+      className={`h-2 w-2 -ml-0.5 ${
         isCompleted ? "text-green-500" : "text-gray-300"
       }`}
     />
