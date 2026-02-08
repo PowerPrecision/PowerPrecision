@@ -93,6 +93,13 @@ async def startup():
     await db.notifications.create_index("id", unique=True)
     await db.notifications.create_index("user_id")
     await db.notifications.create_index("process_id")
+    
+    # Indexes para imóveis angariados
+    await db.properties.create_index("id", unique=True)
+    await db.properties.create_index("internal_reference", unique=True, sparse=True)
+    await db.properties.create_index("status")
+    await db.properties.create_index("address.district")
+    await db.properties.create_index("financials.asking_price")
     await db.notifications.create_index("created_at")
     await db.notifications.create_index([("user_id", 1), ("read", 1)])  # Index composto para queries
     
