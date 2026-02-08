@@ -5,6 +5,7 @@ python-dotenv
 python-multipart
 pydantic
 pydantic-settings
+email-validator
 motor
 dnspython
 
