@@ -827,7 +827,48 @@ async def diagnose_client_data(
             "phone": process.get("client_phone"),
             "personal_data": personal,
             "financial_data": financial,
-        }
+        },
+        "analyzed_documents": process.get("analyzed_documents", [])
+    }
+
+
+@router.get("/analyzed-documents/{process_id}")
+async def get_analyzed_documents(
+    process_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Listar documentos já analisados para um processo.
+    Útil para verificar quais documentos não precisam ser re-analisados.
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"_id": 0, "client_name": 1, "analyzed_documents": 1}
+    )
+    
+    if not process:
+        return {"found": False, "error": "Processo não encontrado"}
+    
+    analyzed_docs = process.get("analyzed_documents", [])
+    
+    # Agrupar por tipo de documento
+    by_type = {}
+    for doc in analyzed_docs:
+        doc_type = doc.get("document_type", "outro")
+        if doc_type not in by_type:
+            by_type[doc_type] = []
+        by_type[doc_type].append({
+            "filename": doc.get("filename"),
+            "analyzed_at": doc.get("analyzed_at"),
+            "mes_referencia": doc.get("mes_referencia"),
+            "fields_extracted": len(doc.get("fields_extracted", []))
+        })
+    
+    return {
+        "found": True,
+        "client_name": process.get("client_name"),
+        "total_documents": len(analyzed_docs),
+        "by_type": by_type
     }
 
 
