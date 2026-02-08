@@ -1,12 +1,122 @@
 """
 Serviço para Match Cliente-Imóvel
-Encontra correspondências entre clientes e imóveis (leads) baseado em perfil
+Encontra correspondências entre clientes e imóveis (leads e imóveis angariados)
 """
 import logging
 from typing import List, Dict, Any, Optional
 from database import db
 
 logger = logging.getLogger(__name__)
+
+
+async def find_matching_properties_for_client(process_id: str) -> List[Dict[str, Any]]:
+    """
+    Encontra imóveis ANGARIADOS que correspondem ao perfil do cliente.
+    Usa a colecção 'properties' (imóveis da agência).
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    
+    if not process:
+        return []
+    
+    financial = process.get("financial_data", {})
+    real_estate = process.get("real_estate_data", {})
+    
+    # Extrair orçamento
+    max_price = None
+    for field in ["valor_pretendido", "valor_financiamento"]:
+        if financial.get(field):
+            try:
+                max_price = float(str(financial[field]).replace("€", "").replace(" ", "").replace(",", ".").replace(".", ""))
+                break
+            except:
+                pass
+    if not max_price and real_estate.get("valor_imovel"):
+        try:
+            max_price = float(str(real_estate["valor_imovel"]).replace("€", "").replace(" ", "").replace(",", "."))
+        except:
+            pass
+    
+    desired_district = (real_estate.get("distrito") or real_estate.get("localizacao") or "").lower()
+    desired_municipality = (real_estate.get("concelho") or "").lower()
+    desired_typology = real_estate.get("tipologia", "")
+    
+    # Extrair número de quartos
+    desired_bedrooms = None
+    if desired_typology:
+        try:
+            desired_bedrooms = int(desired_typology.upper().replace("T", "").replace("+", ""))
+        except:
+            pass
+    
+    # Buscar imóveis disponíveis
+    query = {"status": {"$in": ["disponivel", "em_analise"]}}
+    properties = await db.properties.find(query, {"_id": 0}).to_list(100)
+    
+    matches = []
+    for prop in properties:
+        score = 0
+        reasons = []
+        
+        prop_price = prop.get("financials", {}).get("asking_price")
+        prop_district = (prop.get("address", {}).get("district") or "").lower()
+        prop_municipality = (prop.get("address", {}).get("municipality") or "").lower()
+        prop_bedrooms = prop.get("features", {}).get("bedrooms") if prop.get("features") else None
+        prop_area = prop.get("features", {}).get("useful_area") if prop.get("features") else None
+        
+        # Match por preço (peso: 40)
+        if max_price and prop_price:
+            if prop_price <= max_price:
+                score += 40
+                reasons.append(f"Preço dentro do orçamento ({prop_price:,.0f}€ ≤ {max_price:,.0f}€)")
+            elif prop_price <= max_price * 1.1:
+                score += 25
+                reasons.append(f"Preço 10% acima do orçamento")
+            elif prop_price <= max_price * 1.2:
+                score += 10
+                reasons.append(f"Preço 20% acima do orçamento")
+        
+        # Match por localização (peso: 35)
+        if desired_district and prop_district:
+            if desired_district in prop_district or prop_district in desired_district:
+                score += 25
+                reasons.append(f"Distrito compatível ({prop.get('address', {}).get('district')})")
+        
+        if desired_municipality and prop_municipality:
+            if desired_municipality in prop_municipality or prop_municipality in desired_municipality:
+                score += 10
+                reasons.append(f"Concelho compatível ({prop.get('address', {}).get('municipality')})")
+        
+        # Match por tipologia (peso: 25)
+        if desired_bedrooms is not None and prop_bedrooms is not None:
+            if desired_bedrooms == prop_bedrooms:
+                score += 25
+                reasons.append(f"Tipologia exacta (T{prop_bedrooms})")
+            elif abs(desired_bedrooms - prop_bedrooms) == 1:
+                score += 15
+                reasons.append(f"Tipologia próxima (T{prop_bedrooms})")
+        
+        if score > 0:
+            matches.append({
+                "property": {
+                    "id": prop["id"],
+                    "internal_reference": prop.get("internal_reference"),
+                    "title": prop["title"],
+                    "price": prop_price,
+                    "district": prop.get("address", {}).get("district"),
+                    "municipality": prop.get("address", {}).get("municipality"),
+                    "bedrooms": prop_bedrooms,
+                    "area": prop_area,
+                    "photo": prop.get("photos", [None])[0],
+                    "status": prop.get("status"),
+                },
+                "score": score,
+                "match_reasons": reasons,
+                "source": "angariado"  # Imóvel da agência
+            })
+    
+    matches.sort(key=lambda x: x["score"], reverse=True)
+    return matches[:10]
 
 
 async def find_matching_leads_for_client(process_id: str) -> List[Dict[str, Any]]:
@@ -114,12 +224,125 @@ async def find_matching_leads_for_client(process_id: str) -> List[Dict[str, Any]
                 "lead": lead,
                 "score": score,
                 "match_reasons": match_reasons,
+                "source": "lead"  # Lead externo
             })
     
     # Ordenar por score (maior primeiro)
     matches.sort(key=lambda x: x["score"], reverse=True)
     
     return matches[:10]  # Top 10 matches
+
+
+async def find_all_matches_for_client(process_id: str) -> Dict[str, Any]:
+    """
+    Encontra TODOS os imóveis compatíveis (angariados + leads externos).
+    Combina resultados das duas fontes.
+    """
+    # Buscar em paralelo
+    properties = await find_matching_properties_for_client(process_id)
+    leads = await find_matching_leads_for_client(process_id)
+    
+    # Combinar e ordenar por score
+    all_matches = properties + leads
+    all_matches.sort(key=lambda x: x["score"], reverse=True)
+    
+    return {
+        "process_id": process_id,
+        "total_matches": len(all_matches),
+        "from_properties": len(properties),
+        "from_leads": len(leads),
+        "matches": all_matches[:15],  # Top 15
+        "has_perfect_match": any(m["score"] >= 75 for m in all_matches),
+    }
+
+
+async def find_matching_clients_for_property(property_id: str) -> List[Dict[str, Any]]:
+    """
+    Encontra clientes que podem ter interesse num imóvel ANGARIADO.
+    """
+    prop = await db.properties.find_one({"id": property_id}, {"_id": 0})
+    
+    if not prop:
+        return []
+    
+    prop_price = prop.get("financials", {}).get("asking_price")
+    prop_district = (prop.get("address", {}).get("district") or "").lower()
+    prop_municipality = (prop.get("address", {}).get("municipality") or "").lower()
+    prop_bedrooms = prop.get("features", {}).get("bedrooms") if prop.get("features") else None
+    
+    # Buscar processos activos
+    processes = await db.processes.find(
+        {"status": {"$nin": ["escriturado", "recusado", "desistiu"]}},
+        {"_id": 0, "id": 1, "client_name": 1, "client_email": 1, "client_phone": 1, 
+         "status": 1, "financial_data": 1, "real_estate_data": 1}
+    ).to_list(200)
+    
+    matches = []
+    for process in processes:
+        score = 0
+        reasons = []
+        
+        financial = process.get("financial_data", {})
+        real_estate = process.get("real_estate_data", {})
+        
+        # Obter orçamento do cliente
+        client_budget = None
+        for field in ["valor_pretendido", "valor_financiamento"]:
+            if financial.get(field):
+                try:
+                    client_budget = float(str(financial[field]).replace("€", "").replace(" ", "").replace(",", ".").replace(".", ""))
+                    break
+                except:
+                    pass
+        
+        client_district = (real_estate.get("distrito") or real_estate.get("localizacao") or "").lower()
+        client_typology = real_estate.get("tipologia", "")
+        client_bedrooms = None
+        if client_typology:
+            try:
+                client_bedrooms = int(client_typology.upper().replace("T", "").replace("+", ""))
+            except:
+                pass
+        
+        # Match por preço
+        if prop_price and client_budget:
+            if prop_price <= client_budget:
+                score += 40
+                reasons.append("Dentro do orçamento")
+            elif prop_price <= client_budget * 1.15:
+                score += 20
+                reasons.append("Ligeiramente acima do orçamento")
+        
+        # Match por localização
+        if prop_district and client_district:
+            if client_district in prop_district or prop_district in client_district:
+                score += 30
+                reasons.append(f"Localização desejada ({prop.get('address', {}).get('district')})")
+        
+        # Match por tipologia
+        if prop_bedrooms is not None and client_bedrooms is not None:
+            if prop_bedrooms == client_bedrooms:
+                score += 25
+                reasons.append(f"Tipologia exacta (T{prop_bedrooms})")
+            elif abs(prop_bedrooms - client_bedrooms) == 1:
+                score += 10
+                reasons.append(f"Tipologia próxima")
+        
+        if score > 0:
+            matches.append({
+                "process": {
+                    "id": process["id"],
+                    "client_name": process.get("client_name"),
+                    "client_email": process.get("client_email"),
+                    "client_phone": process.get("client_phone"),
+                    "status": process.get("status"),
+                },
+                "score": score,
+                "match_reasons": reasons,
+            })
+    
+    matches.sort(key=lambda x: x["score"], reverse=True)
+    return matches[:10]
 
 
 async def find_matching_clients_for_lead(lead_id: str) -> List[Dict[str, Any]]:
@@ -212,12 +435,14 @@ async def find_matching_clients_for_lead(lead_id: str) -> List[Dict[str, Any]]:
 
 async def get_match_summary_for_client(process_id: str) -> Dict[str, Any]:
     """
-    Obter resumo de matches para um cliente.
+    Obter resumo de matches para um cliente (propriedades + leads).
     """
-    matches = await find_matching_leads_for_client(process_id)
+    all_matches = await find_all_matches_for_client(process_id)
     
     return {
-        "total_matches": len(matches),
-        "top_matches": matches[:5],
-        "has_perfect_match": any(m["score"] >= 80 for m in matches),
+        "total_matches": all_matches["total_matches"],
+        "from_properties": all_matches["from_properties"],
+        "from_leads": all_matches["from_leads"],
+        "top_matches": all_matches["matches"][:5],
+        "has_perfect_match": all_matches["has_perfect_match"],
     }
