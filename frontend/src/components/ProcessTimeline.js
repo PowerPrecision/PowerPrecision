@@ -101,17 +101,22 @@ const ProcessTimeline = ({ processId, currentStatus, history }) => {
 
   // Processar histórico para construir timeline
   const buildTimeline = useCallback(() => {
+    // Encontrar a fase atual
+    const currentPhaseInfo = PROCESS_PHASES.find(p => p.id === currentStatus);
+    const currentOrder = currentPhaseInfo?.order || 0;
+
+    // Se não há histórico, mostrar todas as fases até a atual
     if (!history || history.length === 0) {
-      // Se não há histórico, mostrar apenas o status atual
-      const currentPhase = PROCESS_PHASES.find(p => p.id === currentStatus);
-      if (currentPhase) {
-        setTimelineData([{
-          phase: currentStatus,
+      const timeline = PROCESS_PHASES
+        .filter(p => p.order <= currentOrder && p.order < 90) // Excluir recusado/desistiu
+        .map(p => ({
+          phase: p.id,
           date: null,
-          isCurrent: true,
-          isCompleted: false,
-        }]);
-      }
+          isCurrent: p.id === currentStatus,
+          isCompleted: p.order < currentOrder,
+        }));
+      
+      setTimelineData(timeline);
       setLoading(false);
       return;
     }
