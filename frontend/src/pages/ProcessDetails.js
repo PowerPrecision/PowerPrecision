@@ -51,6 +51,7 @@ import ProcessSummaryCard from "../components/ProcessSummaryCard";
 import EmailHistoryPanel from "../components/EmailHistoryPanel";
 import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
 import DocumentChecklist from "../components/DocumentChecklist";
+import ProcessTimeline from "../components/ProcessTimeline";
 import {
   ArrowLeft,
   User,
