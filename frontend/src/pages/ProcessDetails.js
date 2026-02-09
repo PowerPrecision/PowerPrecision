@@ -216,6 +216,7 @@ const ProcessDetails = () => {
     let newPersonalData = { ...personalData };
     let newFinancialData = { ...financialData };
     let newRealEstateData = { ...realEstateData };
+    let additionalData = {}; // Para campos extras como co_buyers, vendedor, etc.
     
     // Preencher campos com base no tipo de documento
     if (documentType === "cc") {
@@ -240,7 +241,6 @@ const ProcessDetails = () => {
         setProcess(prev => ({ ...prev, client_name: extractedData.nome_completo }));
       }
       
-      // Ir para o separador de dados pessoais
       setActiveTab("personal");
       
     } else if (documentType === "recibo_vencimento" || documentType === "irs") {
@@ -254,9 +254,111 @@ const ProcessDetails = () => {
         categoria_profissional: extractedData.categoria_profissional || newFinancialData.categoria_profissional,
       };
       setFinancialData(newFinancialData);
-      
-      // Ir para o separador financeiro
       setActiveTab("financial");
+      
+    } else if (documentType === "cpcv") {
+      // CPCV - Contrato Promessa Compra e Venda
+      // Dados do comprador principal
+      const compradores = extractedData.compradores || mappedData?.compradores || [];
+      if (compradores.length > 0) {
+        const comprador1 = compradores[0];
+        newPersonalData = {
+          ...newPersonalData,
+          nif: comprador1.nif || newPersonalData.nif,
+          documento_id: comprador1.cc || newPersonalData.documento_id,
+          estado_civil: comprador1.estado_civil || newPersonalData.estado_civil,
+          profissao: comprador1.profissao || newPersonalData.profissao,
+          morada: comprador1.morada || newPersonalData.morada,
+          codigo_postal: comprador1.codigo_postal || newPersonalData.codigo_postal,
+        };
+        setPersonalData(newPersonalData);
+        
+        // Email e telefone do comprador
+        if (comprador1.email) {
+          additionalData.client_email = comprador1.email;
+        }
+        if (comprador1.telefone) {
+          additionalData.client_phone = comprador1.telefone;
+        }
+        
+        // Co-compradores (se houver mais que 1)
+        if (compradores.length > 0) {
+          additionalData.co_buyers = compradores;
+        }
+      }
+      
+      // Dados do vendedor
+      const vendedor = extractedData.vendedor || mappedData?.vendedor || {};
+      if (vendedor.nome || vendedor.nif) {
+        additionalData.vendedor = vendedor;
+      }
+      
+      // Dados do imóvel
+      const imovel = extractedData.imovel || mappedData?.imovel || {};
+      newRealEstateData = {
+        ...newRealEstateData,
+        localizacao: imovel.morada_completa || imovel.morada || newRealEstateData.localizacao,
+        codigo_postal: imovel.codigo_postal || newRealEstateData.codigo_postal,
+        localidade: imovel.localidade || newRealEstateData.localidade,
+        freguesia: imovel.freguesia || newRealEstateData.freguesia,
+        concelho: imovel.concelho || newRealEstateData.concelho,
+        tipologia: imovel.tipologia || newRealEstateData.tipologia,
+        area_bruta: imovel.area_bruta || newRealEstateData.area_bruta,
+        area_util: imovel.area_util || newRealEstateData.area_util,
+        fracao: imovel.fracao || newRealEstateData.fracao,
+        artigo_matricial: imovel.artigo_matricial || newRealEstateData.artigo_matricial,
+        conservatoria: imovel.conservatoria || newRealEstateData.conservatoria,
+        numero_predial: imovel.numero_predial || newRealEstateData.numero_predial,
+        certificado_energetico: imovel.certificado_energetico || newRealEstateData.certificado_energetico,
+        estacionamento: imovel.estacionamento || newRealEstateData.estacionamento,
+        arrecadacao: imovel.arrecadacao || newRealEstateData.arrecadacao,
+        descricao_imovel: imovel.descricao || newRealEstateData.descricao_imovel,
+      };
+      setRealEstateData(newRealEstateData);
+      
+      // Valores do negócio
+      const valores = extractedData.valores || mappedData?.valores || {};
+      newFinancialData = {
+        ...newFinancialData,
+        valor_pretendido: valores.valor_financiamento || newFinancialData.valor_pretendido,
+        valor_entrada: valores.sinal || newFinancialData.valor_entrada,
+        data_sinal: valores.data_sinal || newFinancialData.data_sinal,
+        reforco_sinal: valores.reforco_sinal || newFinancialData.reforco_sinal,
+        comissao_mediacao: valores.comissao_mediacao || newFinancialData.comissao_mediacao,
+      };
+      newRealEstateData = {
+        ...newRealEstateData,
+        valor_imovel: valores.preco_total || newRealEstateData.valor_imovel,
+      };
+      setFinancialData(newFinancialData);
+      setRealEstateData(newRealEstateData);
+      
+      // Datas do CPCV
+      const datas = extractedData.datas || mappedData?.datas || {};
+      newRealEstateData = {
+        ...newRealEstateData,
+        data_cpcv: datas.data_cpcv || newRealEstateData.data_cpcv,
+        data_escritura_prevista: datas.data_escritura_prevista || newRealEstateData.data_escritura_prevista,
+        prazo_escritura_dias: datas.prazo_escritura_dias || newRealEstateData.prazo_escritura_dias,
+        data_entrega_chaves: datas.data_entrega_chaves || newRealEstateData.data_entrega_chaves,
+      };
+      setRealEstateData(newRealEstateData);
+      
+      // Mediador
+      const mediador = extractedData.mediador || mappedData?.mediador || {};
+      if (mediador.nome_empresa || mediador.licenca_ami) {
+        additionalData.mediador = mediador;
+      }
+      
+      // Condições
+      const condicoes = extractedData.condicoes || mappedData?.condicoes || {};
+      if (condicoes.condicao_suspensiva) {
+        newRealEstateData.condicao_suspensiva = condicoes.condicao_suspensiva;
+        setRealEstateData(newRealEstateData);
+      }
+      
+      setActiveTab("real_estate");
+      toast.info("Dados do CPCV extraídos!");
       
     } else if (documentType === "caderneta_predial") {
       // Dados do imóvel
@@ -269,8 +371,6 @@ const ProcessDetails = () => {
         tipologia: extractedData.tipologia || newRealEstateData.tipologia,
       };
       setRealEstateData(newRealEstateData);
-      
-      // Ir para o separador do imóvel
       setActiveTab("real_estate");
       
     } else {
@@ -291,6 +391,7 @@ const ProcessDetails = () => {
         personal_data: newPersonalData,
         financial_data: newFinancialData,
         real_estate_data: newRealEstateData,
+        ...additionalData, // Inclui co_buyers, vendedor, mediador, etc.
       };
       
       await updateProcess(id, updateData);
