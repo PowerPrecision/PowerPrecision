@@ -162,6 +162,40 @@ else:
 
 
 # ====================================================================
+# TASK QUEUE CONFIG (Redis + ARQ)
+# ====================================================================
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+REDIS_DB = int(os.environ.get('REDIS_DB', '0'))
+REDIS_MAX_CONNECTIONS = int(os.environ.get('REDIS_MAX_CONNECTIONS', '10'))
+
+# Task settings
+TASK_JOB_TIMEOUT = int(os.environ.get('TASK_JOB_TIMEOUT', '300'))
+TASK_MAX_TRIES = int(os.environ.get('TASK_MAX_TRIES', '3'))
+TASK_RETRY_DELAY = int(os.environ.get('TASK_RETRY_DELAY', '60'))
+TASK_MAX_JOBS = int(os.environ.get('TASK_MAX_JOBS', '10'))
+
+
+def get_redis_settings():
+    """Retorna configuração Redis para ARQ."""
+    try:
+        from arq.connections import RedisSettings
+        from urllib.parse import urlparse
+        
+        parsed = urlparse(REDIS_URL)
+        
+        return RedisSettings(
+            host=parsed.hostname or "localhost",
+            port=parsed.port or 6379,
+            password=parsed.password,
+            database=int(parsed.path.lstrip("/") or REDIS_DB),
+            conn_timeout=30,
+            conn_retries=5,
+        )
+    except ImportError:
+        return None
+
+
+# ====================================================================
 # TRELLO CONFIG (opcional - para integração futura)
 # ====================================================================
 TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY', '')
