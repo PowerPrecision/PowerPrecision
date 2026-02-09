@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=TokenResponse)
-@limiter.limit("3/minute")
+@limiter.limit("3/hour")  # Limite restritivo: 3 registos por hora por IP
 async def register(request: Request, data: UserRegister):
     existing = await db.users.find_one({"email": data.email})
     if existing:
