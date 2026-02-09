@@ -161,6 +161,47 @@ async def health_check():
     return {"status": "healthy"}
 
 
+# ====================================================================
+# SENTRY DEBUG ENDPOINT (REMOVER EM PRODUÇÃO)
+# ====================================================================
+@app.get("/sentry-debug")
+async def sentry_debug():
+    """
+    Endpoint de teste para verificar integração Sentry.
+    Lança uma exceção propositada para testar se o Sentry captura.
+    
+    ⚠️  REMOVER OU PROTEGER EM PRODUÇÃO!
+    """
+    logger.info("Sentry debug endpoint called - about to trigger error")
+    
+    # Adicionar contexto ao Sentry
+    sentry_sdk.set_context("debug_info", {
+        "purpose": "Test Sentry integration",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+    sentry_sdk.set_tag("test_type", "manual_debug")
+    
+    # Trigger error
+    division_by_zero = 1 / 0
+    return {"this": "will never be reached"}
+
+
+@app.get("/sentry-test-message")
+async def sentry_test_message():
+    """
+    Endpoint para testar envio de mensagem ao Sentry (sem crash).
+    """
+    sentry_sdk.capture_message(
+        "Test message from CreditoIMO",
+        level="info"
+    )
+    return {
+        "success": True,
+        "message": "Mensagem de teste enviada ao Sentry",
+        "sentry_enabled": bool(SENTRY_DSN)
+    }
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=CORS_ALLOW_CREDENTIALS,
