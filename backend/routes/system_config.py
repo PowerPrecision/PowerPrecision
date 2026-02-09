@@ -399,6 +399,22 @@ async def test_service_connection(
         except Exception as e:
             return {"success": False, "message": f"Erro: {str(e)}"}
     
+    elif service == "mongodb" or service == "database":
+        # Testar ligação MongoDB
+        try:
+            from database import db
+            # Fazer uma query simples para testar a ligação
+            result = await db.command("ping")
+            if result.get("ok") == 1:
+                # Obter estatísticas
+                stats = await db.command("dbStats")
+                collections = stats.get("collections", 0)
+                return {"success": True, "message": f"MongoDB conectado. {collections} colecções."}
+            else:
+                return {"success": False, "message": "MongoDB não respondeu ao ping"}
+        except Exception as e:
+            return {"success": False, "message": f"Erro: {str(e)}"}
+    
     return {"success": False, "message": "Serviço desconhecido"}
 
 
