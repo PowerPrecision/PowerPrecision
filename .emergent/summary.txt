@@ -1,211 +1,239 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to separate production and test data by using different databases. The user then provided a comprehensive document () outlining a vision to evolve the current application from a credit process manager into a full-featured Real Estate CRM.
+The user initially reported a critical bug where data extracted from documents for a client (Bárbara) was not being saved if the client's data fields were . The user also reported that client name matching was not robust enough to handle variations in accents (e.g., Cláudia vs. Claúdia) and extra text.
 
-The latest and most critical request from the user, acting as a Senior Software Architect, is to implement the foundational features for this CRM evolution.
+Throughout the session, the user requested several new features and reported additional bugs:
+**PRODUCT REQUIREMENTS:**
+1.  **Fix Data Saving Bug:** Ensure data extracted from documents is always saved, even if existing data structures are null.
+2.  **Improve Name Matching:** Make client search robust against accent variations and extra text.
+3.  **Duplicate Document Detection:** Implement a system to prevent re-analyzing identical documents for the same process.
+4.  **Support Multiple Buyers:** The system must handle multiple buyers/applicants (e.g., from a CPCV or joint IRS declaration), storing their data correctly.
+5.  **Client-Centric Architecture:** Refactor the system so that a single client can have multiple processes associated with them.
+6.  **Client Management UI:** Create a dedicated UI for managing clients.
+7.  **Enhanced CPCV Extraction:** The AI should extract comprehensive details from CPCV documents, including buyer(s), seller, property details, and financial terms.
+8.  **URL Scraping for Consultants:** Consultants need the ability to scrape property data from a URL.
+9.  **Bug Fixes:** Address a list of reported issues, including:
+    *   Failing MongoDB connection test.
+    *   401 error in Trello integration.
+    *   Consultants/Intermediaries not seeing their clients.
+    *   Kanban UI improvement (collapse empty columns).
+    *   Error when an admin stops impersonating another user.
+    *   Errors and incorrect folder analysis during bulk document upload.
+    *   Invalid data (e.g., placeholder NIFs, dates) being saved for clients.
 
-PRODUCT REQUIREMENTS:
-1.  **Dependencies**: Add , , and  to .
-2.  **Backend Deep Scraping Service**: Create a new service  that can scrape a property listing from Idealista, find a link to the real estate agency's own website, navigate to it, and extract contact details (consultant name, phone number, agency name).
-3.  **Backend Data Models**: Create new MongoDB collections for  (for scraped listings) and  (for internal listings).
-4.  **Frontend Leads Panel**: Create a new Lead Management page with a Kanban board. It should have an input to paste an Idealista link, a button to trigger the scraping, and display the scraped data on a card that can be moved between columns (e.g., Link Recebido, Contactado, Visita).
-
-**User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
+**User's preferred language**: Portuguese
 
 **what currently exists?**
-The project is a web application with a React frontend and a FastAPI backend, connected to a MongoDB Atlas database. The application is configured to use a  database for the development environment.
-
-The current application manages credit processes for clients on a Kanban board, supports user authentication, and uses an LLM to analyze uploaded documents and extract relevant data.
-
-In this session, several new features were added:
-- A System Settings page allowing an administrator to configure storage services (OneDrive) and other system variables from the UI.
-- A visual Process Timeline and a Document Checklist on the client detail page.
-- A Lead Management Kanban board (a basic version that will be enhanced by the new requirements).
-- A feature to find Compatible Properties for a client.
-- An endpoint and UI button to clear AI-extracted data for a specific client.
-- Various bug fixes, including a UI layout issue and improvements to the document data extraction logic.
+A web application for managing mortgage processes built with a React frontend and a Python (FastAPI) backend using a MongoDB database. The application supports user roles (Admin, Consultor, Intermediario), a Kanban board for process tracking, and AI-powered data extraction from uploaded documents. A major architectural change was made to separate  and , allowing one client to have multiple processes.
 
 **Last working item**:
--   **Last item agent was working**: The agent was starting the implementation of the user's Senior Software Architect request to transform the application into a Real Estate CRM. The work began with the backend setup for the new Deep Scraping feature.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. The new scraping service requires backend testing (e.g., with  or a Python script) to validate the data extraction from Idealista. The new Leads Kanban board will require frontend testing to ensure the UI works as expected and interacts correctly with the backend API.
--   **User Testing Done**: N
+-   **Last item agent was working:** The agent was in the process of creating a new Leads page to allow the Consultor (Consultant) user role to access the feature for scraping property data from a URL. This functionality already existed but was only accessible to Admins.
+-   **Status:** IN PROGRESS
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** Frontend testing agent to verify that the new Leads page is correctly added to the navigation for the Consultor role, is accessible, and the URL scraping functionality works as expected.
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Data extraction from documents is still imperfect (P1).
--   **Issue 2**: Emails are still being saved with markdown formatting (P2).
--   **Issue 3**: The automatic OneDrive folder association is not fully functional (P3).
+-   **Issue 1: Trello Integration Fails with 401 Error (P1)**
+    -   **Description:** The Test Trello Connection feature in the settings page results in a 401 Unauthorized error.
+    -   **Attempted fixes:** The agent located the relevant code in  but did not implement a fix. The issue was postponed.
+    -   **Next debug checklist:**
+        -   Verify that  and  are correctly loaded from environment variables.
+        -   Add logging in the  endpoint to inspect the headers and URL of the outgoing request to Trello.
+        -   Confirm with the user that the stored credentials are valid and have the necessary permissions on Trello.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Backend
 
-**Issues Detail**:
--   **Issue 1**:
-    -   **Description**: The AI-powered data extraction from uploaded documents sometimes populates fields with incorrect data (e.g., a client's name was extracted as Fidelidade, which is an insurance company). This happens when the generic catch-all extraction logic misinterprets the document's content.
-    -   **Attempted fixes**: The agent improved the data extraction logic by adding specific handlers for more document types (P60, CPCV) and a mechanism to save unmapped data into a general notes field. However, the generic fallback is still prone to errors.
-    -   **Next debug checklist**:
-        - Review the  function in .
-        - Add a rejection filter to the generic data extraction logic to ignore common, non-relevant entities (like insurance company names, bank names) when trying to fill critical fields like .
-        - Consider using more targeted prompts for the LLM based on the document type, even for outro (other) types, if a few keywords can be identified in the filename.
-    -   **Why fix this issue and what will be achieved with the fix?**: Fixing this will improve the reliability of the document analysis feature, which is a core part of the application's value proposition. It will reduce the need for manual data correction.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
+-   **Issue 2: Error when Admin stops impersonating a user (P2)**
+    -   **Description:** An error occurs when an administrator, who is viewing the app as another user (e.g., an Intermediary), tries to stop the impersonation.
+    -   **Attempted fixes:** The agent added a  block to the  function in . This may only mask the error rather than fixing the root cause.
+    -   **Next debug checklist:**
+        -   Test the stop impersonation flow to see the new error message.
+        -   Check the browser's developer console for network errors on the call to .
+        -   Verify the backend endpoint returns the correct user data and a valid token.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend
 
--   **Issue 2**:
-    -   **Description**: The user reported that emails in the production database are still appearing in markdown format (e.g., ), despite previous fixes.
-    -   **Attempted fixes**: The agent has previously created scripts to clean the existing data in the database.
-    -   **Next debug checklist**:
-        - This is a data sanitization issue. The fix should be at the source.
-        - Identify every API endpoint where a client's  can be created or updated.
-        - In those endpoints, add a data validation/cleaning step *before* saving to the database to strip any markdown. A simple regex or a dedicated library can be used. Check  and  in .
-    -   **Why fix this issue and what will be achieved with the fix?**: Ensures data integrity and prevents display issues in the frontend or problems with external integrations that might use the email field.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
+-   **Issue 3: Bulk Upload Fails with postMessage Error (P3)**
+    -   **Description:** The bulk document upload feature fails with the error: 
+    -   **Attempted fixes:** The agent wrapped the  call in  within a  block. This is a temporary patch.
+    -   **Next debug checklist:**
+        -   Add  before the  call to inspect the object being sent to the web worker.
+        -   Identify which part of the object is non-serializable (e.g., a function, a DOM element, an AbortSignal).
+        -   Refactor the code to only pass serializable data to the worker.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend
 
--   **Issue 3**:
-    -   **Description**: The user reported that the automatic association of client folders in OneDrive is not working automatically.
-    -   **Attempted fixes**: The agent improved the  function in  to better handle folder names containing one or two client names (e.g., Client A e Client B).
-    -   **Next debug checklist**:
-        - The feature needs end-to-end testing.
-        - Manually trigger the OneDrive sync/analysis feature and check the backend logs for errors.
-        - Verify if the  function is being called correctly and if the folder search logic is succeeding.
-        - Test with various folder naming conventions that the user employs.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is critical for the Document Checklist feature to work, as it relies on finding the correct client folder in OneDrive.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: backend
+-   **Issue 4: Data from CPCV not being saved (P4)**
+    -   **Description:** After enhancing the AI to extract more data from CPCV documents (seller, property details, etc.), the user reported the new data was not being saved.
+    -   **Attempted fixes:** The agent identified that the backend () and frontend () were not structured to save these new top-level fields. The code was updated to handle and persist fields like , , and .
+    -   **Next debug checklist:**
+        -   Perform an end-to-end test: upload a CPCV document, let the AI analyze it, and verify in the database and the UI that the new fields (seller, co-buyers, property data) are correctly populated.
+    -   **Status:** USER VERIFICATION PENDING
+    -   **Is recurring issue?** Y (Data saving issues have been a recurring theme)
+    -   **Should Test frontend/backend/both after fix?** Both
+
+-   **Issue 5: Data validation is not robust (P5)**
+    -   **Description:** The system was saving invalid data, such as NIFs starting with '5', placeholder dates (), and placeholder ID numbers.
+    -   **Attempted fixes:** The agent implemented a  function in  that runs before saving data. A one-time script was also run to clean the existing Carolina Silva process data.
+    -   **Next debug checklist:**
+        -   Upload a document with known invalid data (e.g., a fake NIF, placeholder text).
+        -   Verify that the system either rejects the data or cleans it before saving it to the database.
+    -   **Status:** TESTING PENDING
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** Backend
 
 **In progress Task List**:
--   **Task 1**: Implement the Real Estate CRM Core Features (P0).
+-   **Task 1: Create Leads Page for Consultants (P0)**
+    -   **Where to resume:** The basic file  has been created. The agent needs to complete the UI, add the new route to , and add the navigation link to  for the 'Consultor' role.
+    -   **What will be achieved with this?** Consultants will have access to the property data scraping tool, allowing them to create leads from property URLs.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Frontend
 
-**Task Detail**:
--   **Task 1**:
-    -   **Where to resume**: The agent has just created the file . The immediate next step is to write the Python code for the Deep Scraping service inside this file, using  and . The service should contain the logic described in the user's prompt.
-    -   **What will be achieved with this?**: This will create the backend foundation for the new lead generation and management workflow, replacing the user's manual Excel process.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: No.
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks:**
+    -   (P0) Finalize and test the fix for Consultor/Intermediary sees no clients. The current fix shows all clients if none are assigned, which was a temporary workaround. (File: )
+    -   (P1) Get user confirmation on the Kanban UI change (collapsible empty columns). (File: )
 
-**Upcoming and Future Tasks**:
--   **Upcoming Tasks**:
-    -   **P0**: **Módulo Imóveis Angariados (Internal Properties Module)**: Implement the backend models and APIs for managing properties listed directly by the user's agency, as requested in the Senior Architect prompt ( collection).
-    -   **P1**: **Minutas automáticas (Automatic Document Generation)**: Create a feature to automatically generate template documents (e.g., proposals) populated with client and property data.
-    -   **P2**: **Refine Match Automático Cliente ↔ Imóvel**: Enhance the existing property matching feature to use the more detailed data from the new  collection.
--   **Future Tasks**:
-    -   **P0**: **Agente de Melhoria (AI Business Analyst)**: Implement an AI agent that analyzes application data (conversion rates, process bottlenecks) and provides actionable insights to the user.
-    -   **P1**: **HCPRO Integration**: Integrate with the HCPRO platform once the user obtains an API key.
+-   **Future Tasks:**
+    -   (P1) Implement a proper process assignment mechanism. The root cause of consultants not seeing clients is that processes lack an  value. A UI for admins to assign processes to consultants should be created.
+    -   (P2) Conduct a full regression test of the document analysis and data saving flow for all major document types (CC, IRS, CPCV) to ensure stability after numerous fixes.
 
 **Completed work in this session**
-- **System Configuration**:
-    - Implemented a System Settings page () for admins to configure API keys and storage options (e.g., OneDrive credentials) directly from the UI.
-    - Set up the environment to use a dedicated  database for development, separate from the  production database.
-    - Cleaned  to remove environment-specific dependencies, simplifying deployment.
-- **Feature: Lead Management (v1)**:
-    - Created the initial backend API () and a frontend Kanban board ( -> Leads tab) for managing property leads.
-- **Feature: Process Timeline**:
-    - Added a compact, visual timeline to the client detail page showing the progression of a process through its various stages.
-- **Feature: Document Checklist**:
-    - Implemented a component on the client detail page to check for the existence of required documents in the client's OneDrive folder.
-- **Feature: Data Reset**:
-    - Added a button and API endpoint () to allow resetting all AI-extracted data for a client.
-- **AI & Data Extraction Improvements**:
-    - Enhanced the AI document analysis to save any unmapped but extracted data into the client's notes field.
-    - Improved client name matching from OneDrive folder names to support folders named after two people.
-- **Bug Fixes**:
-    - Fixed a frontend crash ().
-    - Fixed a UI layout issue where the document upload status modal lacked a horizontal scrollbar.
+-   **Bug Fix: Data Not Saving for  values:** Corrected logic in  to handle cases where data fields in the database were .
+-   **Feature: Duplicate Document Detection:** Implemented document hashing and storage of hashes in the  array within the  collection to prevent re-analysis.
+-   **Feature: Multiple Buyers/Applicants:** Updated AI prompts, backend logic (), and data models to extract, store, and process data for co-buyers and co-applicants.
+-   **Architectural Refactor: Multiple Processes per Client:** Successfully separated Clients into their own collection and linked them to Processes, creating a one-to-many relationship.
+-   **Feature: Client Management UI:** Created a new Gestão de Clientes page () with backend routes () for client CRUD operations.
+-   **Bug Fix: Incomplete CC Data Extraction:** Fixed data mapping in  and field name mismatches in  to correctly save and display all fields from the Portuguese ID card (CC).
+-   **Feature: Automatic Frontend Data Saving:** Modified  to automatically save data extracted by the AI, removing the need for a manual Save click.
+-   **Bug Fix: MongoDB Connection Test:** Added a working Test Connection button for MongoDB in the Admin settings page.
+-   **UI Improvement: Collapsible Kanban Columns:** Implemented functionality in  to allow users to collapse empty columns.
+-   **Feature: Enhanced CPCV Data Extraction:** Expanded the AI prompt for CPCV documents and updated the entire data pipeline to process and store dozens of new fields related to the transaction.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Email Markdown Formatting.
-    -   **Debug checklist**: The root cause needs to be addressed. Check all backend endpoints that create or update user/client data (, ) and add a server-side sanitization step to strip markdown from email fields before saving to the database.
-    -   **Why to solve this issue and what will be achieved with this?**: Ensures data integrity and prevents issues with display or mail-related features.
-    -   **Should Test frontend/backend/both after fix**: backend
-    -   **Is recurring issue?**: Y
+-   **Issue 1: Trello Integration Fails with 401 Error**
+    -   **Debug checklist:** See All Pending/In progress Issue list.
+    -   **Why to solve this issue and what will be achieved with this?** To restore the Trello integration functionality, which is part of the required feature set.
+    -   **Should Test frontend/backend/both after fix:** Backend
+    -   **Is recurring issue?** N
 
 **Known issue recurrence from previous fork**
--   None.
+-   Not applicable, as the session started from a user problem statement, not a previous fork.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Python 3.11, Pydantic, Motor (async MongoDB driver), JWT for auth.
--   **Frontend**: React, Vite, Shadcn/UI, Tailwind CSS,  for drag-and-drop.
--   **Database**: MongoDB Atlas (NoSQL).
--   **Core Logic**: AI-driven document analysis using an LLM, process management via a Kanban board, integration with external services (OneDrive, Trello).
+-   **Frontend:** React.js, Material-UI (MUI)
+-   **Backend:** Python, FastAPI
+-   **Database:** MongoDB with  for asynchronous operations.
+-   **AI Integration:** An external LLM is used for data extraction from documents via structured prompts.
+-   **Architecture:** The application follows a decoupled frontend/backend structure. A significant refactoring introduced a client-centric data model where a  can have multiple .
 
 **key DB schema**
--   **clients**: 
--   **users**: 
--   **leads**: 
--   **settings**: 
+-   **:** { , , , , , , , , , ,  }
+-   **:** { , , , , ,  }
 
 **changes in tech stack**
--   New Python libraries added for web scraping: , , .
+-   No changes to the core technologies. The primary change was an architectural data model refactoring.
 
 **All files of reference**
--   : New (empty) file for the Idealista scraping logic. **Primary focus for the next step.**
--   : Updated to include new scraping dependencies and remove deployment-problematic ones.
--   , : New files for the Leads API and data model.
--   : New frontend component for the Leads Kanban board.
--   , : New files for the admin settings feature.
--   : New component for the visual process timeline.
--   , : Heavily modified to improve AI data extraction and saving logic.
+-   : The heart of the data processing logic. Contains  and .
+-   : The main user-facing page for a process. Contains the logic for displaying data and handling AI extraction results.
+-    & : New files that implement the client-centric architecture.
+-   : New file for the client management UI.
+-   : Contains all AI prompts, significantly updated for CPCV.
+-   : New file being created to provide URL scraping for consultants.
+
+**Areas that need refactoring**
+-   **Client/Process Query Logic for Consultants:** The query in  that shows *all* clients to a consultant if none are explicitly assigned is a temporary workaround and needs to be replaced with a proper process assignment feature.
+-   **Bulk Upload Error Handling:** The  error in the bulk uploader was patched with a  but the root cause (a non-clonable object) was not found. This needs a proper fix.
 
 **key api endpoints**
--   : **(To be created)** Triggers the web scraping of a property link.
--   : Retrieves all property leads for the Kanban board.
--   : Updates a lead's status (e.g., when moved on the Kanban).
--   , : Manage system-wide configurations.
--   : Gets the status of required documents from OneDrive.
--   : Resets AI-extracted data for a client.
+-   : Main endpoint for analyzing a document and saving the data to the database.
+-   : Analyzes a single document and returns the extracted data *without* saving it.
+-   : Standard endpoint for updating a process document with form data.
+-   : Lists clients, with logic that changes based on user role.
+-   : Creates a new client.
 
 **Critical Info for New Agent**
--   The project's direction has pivoted towards becoming a Real Estate CRM. The user's last message, framed as a Senior Software Architect, is the master plan for the current phase of work. **You must prioritize implementing the features outlined in that prompt.**
--   The immediate task is to build the Deep Scraping service in .
--   The user wants the Emergent workspace to always use the development database (). The code committed to GitHub should be production-ready. The user was told to manually edit the  file in their production environment to set . Do not change this workflow unless requested.
--   Pay attention to the recurring issue of emails being saved with markdown. A definitive, server-side fix is needed.
+-   **Idealista API REMOVED:** Do not re-implement the Idealista API integration. The user requested its removal due to the risk of their enterprise account being banned.
+-   **Client-Centric Model:** Remember that the architecture has shifted. You must now create a  first (or find an existing one) before creating a . A  document must have a valid .
+-   **Dual Analysis Endpoints:** Be aware of the two main AI analysis endpoints.  saves automatically.  does not; the frontend must handle saving the data it returns.
+-   **Data Validation:** A data cleaning function () now exists in  to prevent saving invalid or placeholder data. This is a critical defense against bad AI extractions.
 
 **documents and test reports created in this job**
--   : User-provided document containing feature ideas.
--   : An example environment file for the repository.
--   Uso: /app/backend/switch_env.sh {prod|dev|status}
-
-Exemplos:
-  /app/backend/switch_env.sh prod    - Muda para base de dados de produção
-  /app/backend/switch_env.sh dev     - Muda para base de dados de desenvolvimento
-  /app/backend/switch_env.sh status  - Mostra configuração atual: A shell script to toggle the  file between development and production settings.
+-   : This file was updated multiple times to reflect the status of bug fixes and new features.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (246):** Requested fixes for: handling multiple client names in folder paths, a missing scrollbar in a UI modal, and improving data extraction for property values from documents. (Partially addressed)
-2.  **User (293):** Reported that emails in production are still formatted incorrectly with markdown and asked for an easier way to deploy to production. (Partially addressed)
-3.  **User (310):** Agreed to the agent's plan for managing environment configurations. (Completed)
-4.  **User (316):** Asked for clarification on how to use the  script. (Completed)
-5.  **User (318):** Clarified that the Emergent environment must use the  database. (Completed)
-6.  **User (324):** Asked for the location of the  file and noted that certain  packages cause issues in production. (Completed, requirements were cleaned)
-7.  **User (330):** Asked about the  message when saving to GitHub. (Completed, explained)
-8.  **User (334):** Provided explicit approval/rejection for a list of proposed features, shaping the future roadmap. (Completed, roadmap updated)
-9.  **User (337):** Agreed to the agent's proposed implementation order for the new features. (Completed)
-10. **User (631):** **(PENDING/IN-PROGRESS)** Provided a detailed, high-priority prompt acting as a Senior Software Architect to build the core of a new Real Estate CRM, including a Deep Scraping service. This is the current main task.
+10. : It continues to not be filled in. - User reporting that extracted data fields are still empty, which led to the discovery that data was in the DB but not displayed on the frontend due to field name mismatches.
+9.  : It didnt fill in the date of birth or marital status..." - User reporting specific fields from the CC were not being extracted, which led to fixing the backend mapping function.
+8.  `os dados continuam a nao ser guardados corretamente...`: "The data is still not being saved correctly..." - User reporting the recurring data saving issue for a specific client, "Cláudia Batista".
+7.  `nenhum`: "none" - User confirming there were no other issues to check at that moment.
+6.  `continua`: "continue" - User asking the agent to proceed.
+5.  `pode ter extraido a informacao mas nao ficou guardada`: "It might have extracted the information but it wasnt saved. - User reporting that the newly implemented CPCV data was not being persisted, leading to a fix in the saving logic.
+4.  : User providing detailed requirements for data extraction from CPCV documents.
+3.  : A detailed list of bugs found in the Carolina Silva process, including invalid NIF, placeholder data, and missing fields.
+2.  : Where can the consultant enter the url to get the data? - User asking for the URL scraping feature for the consultant role.
+1.  **LATEST:** : A list of 6 new, distinct bugs related to settings, Trello, user roles, Kanban UI, impersonation, and bulk upload. **These are the most recent and pressing issues.**
 
 **Project Health Check:**
--   **Broken**: The AI data extraction can be unreliable, sometimes extracting incorrect information. The root cause of the markdown formatting in emails is not resolved.
--   **Mocked**: None.
+-   **Broken:**
+    -   Trello integration is non-functional (401 error).
+    -   Bulk document upload is unreliable due to the  cloning error.
+-   **Mocked:**
+    -   No mocked services are currently in use.
 
 **3rd Party Integrations**
--   **OpenAI GPT-4o**: Used for AI-powered document analysis. Uses Emergent LLM Key.
--   **Microsoft Graph API (OneDrive)**: Used for file system operations. Requires User API Key (OAuth credentials configured via the new Settings page).
--   **Trello API**: Used for card synchronization. Requires User API Key.
+-   **LLM for Document Analysis** — uses Emergent LLM Key.
+-   **Trello** — requires User API Key. Currently broken.
+-   **Google Drive** — requires User OAuth setup for bulk processing.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: []
--   **Known regressions**: The persistence of markdown formatting in email fields is a known regression/unresolved bug.
+-   **Testing agent used after significant changes:** YES, it was used early in the session to validate a core bug fix.
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** No permanent test files were created. The agent used temporary scripts for isolated testing.
+-   **Known regressions:** The authentication/session management may be fragile. The screenshot tool was unexpectedly redirected to the login page, which could indicate a bug in session handling when navigating between pages.
 
 **Credentials to test flow:**
--   **Username**: 
--   **Password**: 
+-   Run the seed script first: 
+⚠️  AVISO: A usar passwords padrão de desenvolvimento!
+   Para produção, defina SEED_ADMIN_PASSWORD e SEED_DEFAULT_PASSWORD
+
+==================================================
+CreditoIMO - Seed de Utilizadores
+==================================================
+MongoDB: mongodb+srv://admin:DeX2BNwhId35WcTe@cluster0.c8livu.mongodb.net/?appName=Cluster0&retryWrites=true&w=majority
+Database: powerprecision_dev
+
+  [SKIP] Admin (admin@sistema.pt) - já existe
+  [SKIP] Pedro Borges (pedro@powerealestate.pt) - já existe
+  [SKIP] Tiago Borges (tiago@powerealestate.pt) - já existe
+  [SKIP] Flávio da Silva (flavio@powerealestate.pt) - já existe
+  [SKIP] Estácio Miranda (estacio@precisioncredito.pt) - já existe
+  [SKIP] Fernando Andrade (fernando@precisioncredito.pt) - já existe
+  [SKIP] Carina Amuedo (carina@powerealestate.pt) - já existe
+  [SKIP] Marisa Rodrigues (marisa@powerealestate.pt) - já existe
+
+--------------------------------------------------
+Utilizadores criados: 0
+Utilizadores ignorados (já existiam): 8
+--------------------------------------------------
+
+Total de utilizadores na base de dados: 15
+
+⚠️  IMPORTANTE: Altere as passwords padrão em produção!
+   Defina SEED_ADMIN_PASSWORD e SEED_DEFAULT_PASSWORD
+==================================================
+
+Workflow statuses já existem (14 estados). Ignorando...
+-   **Admin:**  / 
+-   **Consultant:**  / 
+-   **Intermediary:**  / 
 
 **What agent forgot to execute**
--   The agent has not yet implemented a definitive server-side fix for the recurring markdown in email issue. The approach has been to clean up data after the fact, which doesn't solve the root cause.
--   The end-to-end functionality of the OneDrive Document Checklist has not been fully verified after the latest fixes to client name matching. It needs testing to confirm it works automatically as the user expects.</analysis>
+-   The agent did not fully resolve all 6 bugs from the user's last detailed bug report message. The Trello integration and the root cause of the bulk upload  error remain unfixed.
+-   The fix for consultants not seeing their clients was a workaround (show all clients) rather than a solution for the root cause (processes not being assigned). This was identified but not scheduled for an immediate fix.</analysis>

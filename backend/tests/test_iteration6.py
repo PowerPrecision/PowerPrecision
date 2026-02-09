@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://real-estate-crm-8.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://mortgage-process-hub.preview.emergentagent.com')
 
 # Credenciais de teste - usar variáveis de ambiente
 TEST_ADMIN_EMAIL = os.environ.get('TEST_ADMIN_EMAIL', 'admin@sistema.pt')
