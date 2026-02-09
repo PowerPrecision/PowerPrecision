@@ -491,10 +491,27 @@ const KanbanBoard = ({ token, user }) => {
             className="flex gap-4 pb-4 min-h-[70vh]"
             onScroll={(e) => setScrollPosition(e.currentTarget.scrollLeft)}
           >
-            {filteredColumns.map((column) => (
+            {filteredColumns.map((column) => {
+              const isCollapsed = collapsedColumns.has(column.id);
+              const isEmpty = column.count === 0;
+              
+              // Toggle collapse
+              const toggleCollapse = () => {
+                setCollapsedColumns(prev => {
+                  const newSet = new Set(prev);
+                  if (newSet.has(column.id)) {
+                    newSet.delete(column.id);
+                  } else {
+                    newSet.add(column.id);
+                  }
+                  return newSet;
+                });
+              };
+              
+              return (
               <div
                 key={column.id}
-                className={`flex-shrink-0 w-[320px] rounded-lg border-2 transition-all ${
+                className={`flex-shrink-0 ${isCollapsed ? 'w-[60px]' : 'w-[320px]'} rounded-lg border-2 transition-all ${
                   dragOverColumn === column.name
                     ? "border-primary border-dashed bg-primary/5"
                     : "border-transparent"
@@ -504,18 +521,48 @@ const KanbanBoard = ({ token, user }) => {
                 onDrop={(e) => handleDrop(e, column.name)}
               >
                 {/* Column Header */}
-                <div className={`${statusHeaderColors[column.color] || "bg-gray-500"} rounded-t-lg px-4 py-3`}>
+                <div 
+                  className={`${statusHeaderColors[column.color] || "bg-gray-500"} rounded-t-lg px-4 py-3 cursor-pointer`}
+                  onClick={isEmpty ? toggleCollapse : undefined}
+                  title={isEmpty ? (isCollapsed ? "Expandir" : "Minimizar") : ""}
+                >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-white text-sm truncate">
-                      {column.label}
-                    </h3>
-                    <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
-                      {column.count}
-                    </Badge>
+                    {isCollapsed ? (
+                      <div className="flex flex-col items-center w-full">
+                        <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 mb-1">
+                          {column.count}
+                        </Badge>
+                        <span className="text-white text-xs writing-mode-vertical transform -rotate-90 whitespace-nowrap mt-4">
+                          {column.label}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="font-semibold text-white text-sm truncate">
+                          {column.label}
+                        </h3>
+                        <div className="flex items-center gap-1">
+                          <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
+                            {column.count}
+                          </Badge>
+                          {isEmpty && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-white/70 hover:text-white hover:bg-white/20"
+                              onClick={(e) => { e.stopPropagation(); toggleCollapse(); }}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Column Content */}
+                {/* Column Content - Hidden when collapsed */}
+                {!isCollapsed && (
                 <div className={`${statusColors[column.color] || "bg-gray-100"} min-h-[60vh] rounded-b-lg p-2`}>
                   <ScrollArea className="h-[60vh]">
                     <div className="space-y-2 pr-2">
