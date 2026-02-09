@@ -47,9 +47,11 @@ const DOCUMENT_TYPES = [
   { value: "cc", label: "Cartão de Cidadão", icon: "🪪" },
   { value: "recibo_vencimento", label: "Recibo de Vencimento", icon: "💰" },
   { value: "irs", label: "Declaração IRS", icon: "📋" },
-  { value: "contrato_trabalho", label: "Contrato de Trabalho", icon: "📝" },
-  { value: "extrato_bancario", label: "Extrato Bancário", icon: "🏦" },
+  { value: "cpcv", label: "CPCV (Contrato Promessa)", icon: "📜" },
+  { value: "simulacao_credito", label: "Simulação de Crédito", icon: "🏦" },
   { value: "caderneta_predial", label: "Caderneta Predial", icon: "🏠" },
+  { value: "contrato_trabalho", label: "Contrato de Trabalho", icon: "📝" },
+  { value: "extrato_bancario", label: "Extrato Bancário", icon: "💳" },
   { value: "outro", label: "Outro Documento", icon: "📄" },
 ];
 
