@@ -7,18 +7,21 @@ Endpoints públicos (sem autenticação).
 IMPORTANTE: O cliente NÃO é um utilizador do sistema.
 O registo público cria apenas um documento na colecção Processes.
 Os dados do cliente (email, telefone) ficam guardados no Process.
+
+SEGURANÇA: Rate limiting aplicado para prevenir abusos.
 ====================================================================
 """
 import re
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from database import db
 from models.auth import UserRole
 from models.process import PublicClientRegistration
 from services.email import send_registration_confirmation, send_new_client_notification
 from services.alerts import notify_new_client_registration
+from middleware.rate_limit import limiter
 
 
 router = APIRouter(prefix="/public", tags=["Public"])
