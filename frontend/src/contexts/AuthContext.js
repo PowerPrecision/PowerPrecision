@@ -109,7 +109,13 @@ export const AuthProvider = ({ children }) => {
   const stopImpersonating = async () => {
     try {
       const response = await axios.post(`${API_URL}/admin/stop-impersonate`);
-      const { access_token, user: userData } = response.data;
+      const data = response.data;
+      
+      if (!data || !data.access_token) {
+        throw new Error("Resposta inválida do servidor");
+      }
+      
+      const { access_token, user: userData } = data;
       
       // Restaurar token original
       localStorage.removeItem("originalToken");
@@ -121,11 +127,20 @@ export const AuthProvider = ({ children }) => {
       setIsImpersonating(false);
       setOriginalAdminName(null);
       
+      // Forçar reload da página para limpar estado
+      window.location.href = "/admin";
+      
       return userData;
     } catch (error) {
       console.error("Error stopping impersonate:", error);
-      // Fallback: fazer logout
-      logout();
+      // Fallback: limpar estado local e redirecionar para login
+      localStorage.removeItem("token");
+      localStorage.removeItem("originalToken");
+      setToken(null);
+      setUser(null);
+      setIsImpersonating(false);
+      setOriginalAdminName(null);
+      window.location.href = "/login";
       throw error;
     }
   };
