@@ -710,8 +710,10 @@ const KanbanBoard = ({ token, user }) => {
                     </div>
                   </ScrollArea>
                 </div>
+                )}
               </div>
-            ))}
+            );
+            })}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
