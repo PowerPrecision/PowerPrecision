@@ -59,3 +59,8 @@ openpyxl
 beautifulsoup4
 fake-useragent
 phonenumbers
+bandit==1.9.3
+limits==5.8.0
+safety==3.7.0
+safety-schemas==0.0.16
+slowapi==0.1.9
