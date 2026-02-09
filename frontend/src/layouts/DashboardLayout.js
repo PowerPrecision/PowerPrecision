@@ -121,6 +121,11 @@ const DashboardLayout = ({ children, title }) => {
           href: "/clientes",
         },
         {
+          label: "Leads",
+          icon: Search,
+          href: "/leads",
+        },
+        {
           label: "Imóveis",
           icon: Building2,
           href: "/imoveis",
