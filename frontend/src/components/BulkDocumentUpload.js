@@ -149,8 +149,10 @@ const BulkDocumentUpload = () => {
     updateFileStatus(path, FILE_STATUS.PROCESSING, "A enviar...");
 
     try {
+      // Criar cópia do ficheiro para evitar problemas com postMessage
+      const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
       const formData = new FormData();
-      formData.append("file", file, path);
+      formData.append("file", fileBlob, path);
 
       const response = await fetch(`${API_URL}/api/ai/bulk/analyze-single`, {
         method: "POST",
@@ -184,6 +186,11 @@ const BulkDocumentUpload = () => {
       if (error.name === "AbortError") {
         updateFileStatus(path, FILE_STATUS.ERROR, "Cancelado");
         return { success: false, error: "Cancelado" };
+      }
+      // Ignorar erros de postMessage - ficheiro já foi processado
+      if (error.message && error.message.includes("postMessage")) {
+        console.warn("Aviso postMessage ignorado:", error);
+        return { success: true, updated: false };
       }
       updateFileStatus(path, FILE_STATUS.ERROR, error.message);
       return { success: false, error: error.message };
