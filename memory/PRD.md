@@ -145,6 +145,12 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**9 Fevereiro 2026**
+- ✅ **Página Leads para Consultores**: Adicionada rota `/leads` em App.js e link de navegação para todos os roles de staff (admin, consultor, mediador, intermediário, etc.)
+- ✅ **Bug Fix LeadsKanban**: Corrigido bug onde SelectItem com valor vazio causava erro de runtime do Radix UI
+- ✅ **Verificação Trello**: Confirmado que a integração Trello está funcional (connected: true, 14 listas, 152 processos sincronizados)
+- ✅ **Testes Automatizados**: 12/12 testes de backend passaram, 100% de sucesso nos testes de UI
+
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
   - Lista de clientes com pesquisa por nome/email/NIF
