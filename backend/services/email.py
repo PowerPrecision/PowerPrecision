@@ -4,6 +4,11 @@ EMAIL SERVICE - CREDITOIMO
 ====================================================================
 Serviço de envio de emails com templates HTML profissionais.
 
+ARQUITECTURA v2.0:
+- Usa API transacional (SendGrid/Resend) como primário
+- SMTP como fallback de emergência
+- Totalmente assíncrono (não-bloqueante)
+
 Templates disponíveis:
 1. Confirmação de registo (para o cliente)
 2. Lista de documentos necessários
@@ -12,33 +17,38 @@ Templates disponíveis:
 5. Actualização de estado
 ====================================================================
 """
-import os
-import smtplib
-import ssl
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from typing import Optional, List
+
+# Importar novo serviço de email
+from services.email_v2 import (
+    EmailService,
+    EmailMessage,
+    EmailResult,
+    email_service,
+    send_email_notification,
+    is_email_configured,
+    EMAIL_FROM,
+    EMAIL_FROM_NAME,
+    COMPANY_NAME,
+    COMPANY_WEBSITE,
+    COMPANY_PHONE
+)
 
 logger = logging.getLogger(__name__)
 
-# SMTP Configuration
-SMTP_SERVER = os.environ.get("SMTP_SERVER", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
-SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 
-# Company info
-COMPANY_NAME = "Power Real Estate & Precision Crédito"
-COMPANY_WEBSITE = "https://powerealestate.pt"
-COMPANY_PHONE = "+351 XXX XXX XXX"
-
-
+# ====================================================================
+# Funções de retrocompatibilidade
+# ====================================================================
 def is_smtp_configured() -> bool:
-    """Check if SMTP is properly configured"""
-    return all([SMTP_SERVER, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD])
+    """Retrocompatibilidade - verifica se email está configurado."""
+    return is_email_configured()
 
 
+# ====================================================================
+# TEMPLATE HTML BASE
+# ====================================================================
 def get_base_template(content: str, title: str = "") -> str:
     """Template HTML base com estilos consistentes."""
     return f"""
@@ -184,7 +194,7 @@ def get_base_template(content: str, title: str = "") -> str:
     <div class="wrapper">
         <div class="container">
             <div class="header">
-                <h1>🏠 Power Real Estate</h1>
+                <h1>Power Real Estate</h1>
                 <p class="subtitle">& Precision Crédito</p>
             </div>
             <div class="content">
@@ -204,55 +214,6 @@ def get_base_template(content: str, title: str = "") -> str:
 """
 
 
-async def send_email_notification(to_email: str, subject: str, body: str, html_body: str = None) -> bool:
-    """
-    Enviar email via SMTP SSL.
-    
-    Args:
-        to_email: Email do destinatário
-        subject: Assunto do email
-        body: Corpo em texto simples
-        html_body: Corpo em HTML (opcional)
-    
-    Returns:
-        True se enviado com sucesso, False caso contrário
-    """
-    if not is_smtp_configured():
-        logger.warning(f"[EMAIL SIMULATED] SMTP not configured")
-        logger.info(f"  To: {to_email}")
-        logger.info(f"  Subject: {subject}")
-        return False
-    
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{COMPANY_NAME} <{SMTP_EMAIL}>"
-        msg["To"] = to_email
-        
-        # Texto simples
-        part1 = MIMEText(body, "plain", "utf-8")
-        msg.attach(part1)
-        
-        # HTML
-        if html_body:
-            part2 = MIMEText(html_body, "html", "utf-8")
-            msg.attach(part2)
-        
-        context = ssl.create_default_context()
-        
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, context=context) as server:
-            server.login(SMTP_EMAIL, SMTP_PASSWORD)
-            # Codificar o email corretamente para suportar caracteres especiais
-            server.sendmail(SMTP_EMAIL, to_email.encode('utf-8').decode('ascii', 'ignore'), msg.as_bytes())
-        
-        logger.info(f"[EMAIL SENT] To: {to_email}, Subject: {subject}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"[EMAIL ERROR] Failed to send email to {to_email}: {str(e)}")
-        return False
-
-
 # ====================================================================
 # TEMPLATES DE EMAIL
 # ====================================================================
@@ -262,7 +223,7 @@ async def send_registration_confirmation(client_email: str, client_name: str) ->
     Email de confirmação de registo para o cliente.
     Enviado imediatamente após submissão do formulário.
     """
-    subject = "✅ Recebemos o seu pedido - Power Real Estate & Precision"
+    subject = "Recebemos o seu pedido - Power Real Estate & Precision"
     
     body = f"""
 Olá {client_name},
@@ -288,7 +249,7 @@ Cumprimentos,
 <p class="greeting">Olá <strong>{client_name}</strong>,</p>
 
 <div class="highlight-box">
-    <h2>✅ Pedido Recebido com Sucesso!</h2>
+    <h2>Pedido Recebido com Sucesso!</h2>
     <p>A sua solicitação foi registada no nosso sistema.</p>
 </div>
 
@@ -296,7 +257,7 @@ Cumprimentos,
 <strong>brevemente</strong>, normalmente dentro de <strong>24-48 horas úteis</strong>.</p>
 
 <div class="info-box">
-    <h3>📋 O que acontece a seguir?</h3>
+    <h3>O que acontece a seguir?</h3>
     <p>1. A nossa equipa analisa o seu perfil</p>
     <p>2. Entramos em contacto para esclarecer dúvidas</p>
     <p>3. Solicitamos documentação necessária</p>
@@ -304,7 +265,7 @@ Cumprimentos,
 </div>
 
 <div class="checklist">
-    <h3>📄 Documentos a Preparar</h3>
+    <h3>Documentos a Preparar</h3>
     <ul>
         <li>Cartão de Cidadão (frente e verso)</li>
         <li>Últimos 3 recibos de vencimento</li>
@@ -328,7 +289,7 @@ async def send_documents_checklist(client_email: str, client_name: str, document
     """
     Email com lista de documentos necessários para crédito habitação.
     """
-    subject = "📋 Lista de Documentos Necessários - Crédito Habitação"
+    subject = "Lista de Documentos Necessários - Crédito Habitação"
     
     default_documents = [
         "Cartão de Cidadão (frente e verso) de todos os titulares",
@@ -370,14 +331,14 @@ Cumprimentos,
 <p>Para avançarmos com a análise do seu crédito habitação, necessitamos dos seguintes documentos:</p>
 
 <div class="checklist">
-    <h3>📄 Documentos Necessários</h3>
+    <h3>Documentos Necessários</h3>
     <ul>
         {docs_html}
     </ul>
 </div>
 
 <div class="info-box">
-    <h3>💡 Dicas Importantes</h3>
+    <h3>Dicas Importantes</h3>
     <p>• Digitalize ou fotografe com boa qualidade e iluminação</p>
     <p>• Certifique-se que todos os dados estão legíveis</p>
     <p>• Envie ficheiros em PDF, JPG ou PNG</p>
@@ -407,7 +368,7 @@ async def send_credit_approved(
     """
     Email de notificação de aprovação de crédito.
     """
-    subject = "🎉 Parabéns! O seu Crédito foi Aprovado!"
+    subject = "Parabéns! O seu Crédito foi Aprovado!"
     
     details = f"Banco: {bank_name}\nValor Aprovado: {approved_amount}"
     if interest_rate:
@@ -446,12 +407,12 @@ Cumprimentos,
 <p class="greeting">Olá <strong>{client_name}</strong>,</p>
 
 <div class="highlight-box" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-color: #2196f3;">
-    <h2 style="color: #1565c0;">🎉 PARABÉNS!</h2>
+    <h2 style="color: #1565c0;">PARABÉNS!</h2>
     <p style="font-size: 18px; color: #1565c0;"><strong>O seu Crédito foi Aprovado!</strong></p>
 </div>
 
 <div class="info-box" style="border-left-color: #4caf50;">
-    <h3 style="color: #2e7d32;">📋 Detalhes da Aprovação</h3>
+    <h3 style="color: #2e7d32;">Detalhes da Aprovação</h3>
     {details_html}
 </div>
 
@@ -459,7 +420,7 @@ Cumprimentos,
 e agendar a assinatura da documentação.</p>
 
 <div class="info-box">
-    <h3>🏠 Próximos Passos</h3>
+    <h3>Próximos Passos</h3>
     <p>1. Reunião para revisão das condições</p>
     <p>2. Assinatura do contrato de crédito</p>
     <p>3. Agendamento da escritura</p>
@@ -486,7 +447,7 @@ async def send_new_client_notification(
 ) -> bool:
     """Notificação para staff sobre novo cliente registado."""
     
-    subject = f"🆕 Novo Cliente: {client_name}"
+    subject = f"Novo Cliente: {client_name}"
     
     body = f"""
 Olá {staff_name},
@@ -510,7 +471,7 @@ Sistema CreditoIMO
 <p>Foi registado um <strong>novo cliente</strong> no sistema:</p>
 
 <div class="info-box">
-    <h3>👤 Dados do Cliente</h3>
+    <h3>Dados do Cliente</h3>
     <p><strong>Nome:</strong> {client_name}</p>
     <p><strong>Email:</strong> <a href="mailto:{client_email}">{client_email}</a></p>
     <p><strong>Telefone:</strong> <a href="tel:{client_phone}">{client_phone}</a></p>
@@ -537,7 +498,7 @@ async def send_status_update_notification(
 ) -> bool:
     """Notificação de actualização de estado para o cliente."""
     
-    subject = f"📋 Atualização do seu Processo - {new_status}"
+    subject = f"Atualização do seu Processo - {new_status}"
     
     body = f"""
 Olá {client_name},
@@ -558,7 +519,7 @@ Cumprimentos,
 <p class="greeting">Olá <strong>{client_name}</strong>,</p>
 
 <div class="info-box">
-    <h3>📋 Atualização do Processo</h3>
+    <h3>Atualização do Processo</h3>
     <p>O estado do seu processo foi atualizado para:</p>
     <p style="font-size: 18px; font-weight: bold; color: #1e3a5f;">{new_status}</p>
 </div>
