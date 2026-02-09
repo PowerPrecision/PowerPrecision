@@ -189,11 +189,23 @@ async def public_client_registration(request: Request, data: PublicClientRegistr
     
     # =========================================
     # ENVIAR EMAIL DE CONFIRMAÇÃO AO CLIENTE
+    # Usa Task Queue para não bloquear a resposta
     # =========================================
-    await send_registration_confirmation(
+    from services.task_queue import task_queue
+    
+    # Tentar enfileirar (se Redis disponível)
+    job_id = await task_queue.send_registration_email(
         client_email=clean_email,
         client_name=data.name
     )
+    
+    # Se Task Queue não disponível, enviar directamente
+    if not job_id:
+        logger.info("Task Queue não disponível, enviando email directamente")
+        await send_registration_confirmation(
+            client_email=clean_email,
+            client_name=data.name
+        )
     
     # =========================================
     # NOTIFICAR STAFF SOBRE NOVO REGISTO
@@ -202,28 +214,38 @@ async def public_client_registration(request: Request, data: PublicClientRegistr
     # Criar alertas no sistema de notificações
     await notify_new_client_registration(process_doc, has_property)
     
-    # Enviar emails para admins e CEOs
+    # Enviar emails para admins e CEOs (em background via Task Queue)
     staff = await db.users.find(
         {"role": {"$in": [UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]}}, 
         {"_id": 0}
     ).to_list(100)
     
     for member in staff:
-        await send_new_client_notification(
-            client_name=data.name,
-            client_email=clean_email,
-            client_phone=data.phone,
-            process_type=data.process_type,
-            staff_email=member["email"],
-            staff_name=member["name"]
+        # Tentar enfileirar notificação de staff
+        staff_job = await task_queue.send_email(
+            to=member["email"],
+            subject=f"Novo Cliente: {data.name}",
+            body=f"Foi registado um novo cliente:\n\nNome: {data.name}\nEmail: {clean_email}\nTelefone: {data.phone}\nTipo: {data.process_type}"
         )
+        
+        # Fallback se Task Queue não disponível
+        if not staff_job:
+            await send_new_client_notification(
+                client_name=data.name,
+                client_email=clean_email,
+                client_phone=data.phone,
+                process_type=data.process_type,
+                staff_email=member["email"],
+                staff_name=member["name"]
+            )
     
     return {
         "success": True,
         "message": "Registo criado com sucesso. Verifique o seu email.",
         "process_id": process_id,
         "has_property": has_property,
-        "idade_menos_35": idade_menos_35
+        "idade_menos_35": idade_menos_35,
+        "email_queued": bool(job_id)
     }
 
 
