@@ -708,11 +708,53 @@ const ProcessDetails = () => {
                               />
                             </div>
                             <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Nº Documento (CC)</Label>
+                              <Input
+                                value={personalData.documento_id || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, documento_id: e.target.value })}
+                                disabled={!canEditPersonal}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1">
                               <Label className="text-xs text-muted-foreground">Data de Nascimento</Label>
                               <Input
                                 type="date"
-                                value={personalData.birth_date || ""}
-                                onChange={(e) => setPersonalData({ ...personalData, birth_date: e.target.value })}
+                                value={personalData.data_nascimento || personalData.birth_date || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, data_nascimento: e.target.value })}
+                                disabled={!canEditPersonal}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Validade CC</Label>
+                              <Input
+                                type="date"
+                                value={personalData.data_validade_cc || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, data_validade_cc: e.target.value })}
+                                disabled={!canEditPersonal}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Sexo</Label>
+                              <Select
+                                value={personalData.sexo || ""}
+                                onValueChange={(value) => setPersonalData({ ...personalData, sexo: value })}
+                                disabled={!canEditPersonal}
+                              >
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="M">Masculino</SelectItem>
+                                  <SelectItem value="F">Feminino</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Naturalidade</Label>
+                              <Input
+                                value={personalData.naturalidade || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, naturalidade: e.target.value })}
                                 disabled={!canEditPersonal}
                                 className="h-9"
                               />
@@ -742,6 +784,45 @@ const ProcessDetails = () => {
                                   <SelectItem value="uniao_facto">União de Facto</SelectItem>
                                 </SelectContent>
                               </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Altura (m)</Label>
+                              <Input
+                                value={personalData.altura || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, altura: e.target.value })}
+                                disabled={!canEditPersonal}
+                                className="h-9"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Filiação */}
+                      <Card className="border-l-4 border-l-orange-500">
+                        <CardContent className="pt-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <Users className="h-4 w-4 text-orange-500" />
+                            Filiação
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Nome do Pai</Label>
+                              <Input
+                                value={personalData.nome_pai || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, nome_pai: e.target.value })}
+                                disabled={!canEditPersonal}
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Nome da Mãe</Label>
+                              <Input
+                                value={personalData.nome_mae || ""}
+                                onChange={(e) => setPersonalData({ ...personalData, nome_mae: e.target.value })}
+                                disabled={!canEditPersonal}
+                                className="h-9"
+                              />
                             </div>
                           </div>
                         </CardContent>
