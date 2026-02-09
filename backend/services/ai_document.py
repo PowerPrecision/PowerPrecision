@@ -1140,6 +1140,41 @@ def build_update_data_from_extraction(
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
+    # Função para verificar se é valor placeholder
+    def is_placeholder(value):
+        if not value:
+            return True
+        val_str = str(value).strip().upper()
+        placeholders = ['YYYY-MM-DD', 'DD/MM/YYYY', 'DD-MM-YYYY', 'N/A', 'NA', 'NULL', 
+                       'NONE', '123456789', '000000000', '12345678', '00000000', '0']
+        if val_str in placeholders or 'YYYY' in val_str:
+            return True
+        return False
+    
+    # Função para limpar valor
+    def clean_value(value):
+        if value is None or is_placeholder(value):
+            return None
+        if isinstance(value, str):
+            return value.strip() if value.strip() else None
+        return value
+    
+    # Função para validar NIF (pessoas singulares)
+    def is_valid_nif(nif):
+        if not nif:
+            return False
+        nif_clean = re.sub(r'\D', '', str(nif))
+        if len(nif_clean) != 9:
+            return False
+        if nif_clean[0] == '5':  # Empresa - rejeitar
+            logger.warning(f"NIF {nif_clean} começa por 5 (empresa) - rejeitado")
+            return False
+        if nif_clean in ['123456789', '000000000']:
+            return False
+        if nif_clean[0] not in ['1', '2', '6', '9']:
+            return False
+        return True
+    
     # Conjunto para rastrear campos já mapeados
     mapped_fields = set()
     
@@ -1166,8 +1201,17 @@ def build_update_data_from_extraction(
         }
         
         for src_key, dest_key in field_mapping.items():
-            if extracted_data.get(src_key):
-                personal_update[dest_key] = extracted_data[src_key]
+            value = clean_value(extracted_data.get(src_key))
+            if value:
+                # Validação especial para NIF
+                if dest_key == 'nif' and not is_valid_nif(value):
+                    logger.warning(f"CC: NIF {value} inválido - ignorado")
+                    continue
+                # Validação especial para documento_id
+                if dest_key == 'documento_id' and value in ['123456789', '12345678']:
+                    logger.warning(f"CC: documento_id {value} é placeholder - ignorado")
+                    continue
+                personal_update[dest_key] = value
                 track_mapped(src_key)
         
         if personal_update:
