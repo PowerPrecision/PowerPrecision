@@ -107,6 +107,26 @@ CORS_MAX_AGE = int(os.environ.get('CORS_MAX_AGE', '600'))
 
 
 # ====================================================================
+# SENTRY CONFIG (OBSERVABILIDADE)
+# ====================================================================
+# SENTRY_DSN é opcional - se não definido, Sentry fica desactivado
+# Obter DSN em: https://sentry.io -> Project Settings -> Client Keys (DSN)
+# ====================================================================
+SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
+SENTRY_ENVIRONMENT = os.environ.get('SENTRY_ENVIRONMENT', 'development')
+SENTRY_TRACES_SAMPLE_RATE = float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '1.0'))
+SENTRY_PROFILES_SAMPLE_RATE = float(os.environ.get('SENTRY_PROFILES_SAMPLE_RATE', '0.1'))
+SENTRY_SEND_DEFAULT_PII = os.environ.get('SENTRY_SEND_DEFAULT_PII', 'false').lower() == 'true'
+
+# Validação e log de configuração Sentry
+if SENTRY_DSN:
+    print(f"✅ Sentry configurado para ambiente: {SENTRY_ENVIRONMENT}", file=sys.stderr)
+    print(f"   Traces sample rate: {SENTRY_TRACES_SAMPLE_RATE}", file=sys.stderr)
+else:
+    print("⚠️  SENTRY_DSN não configurado - observabilidade desactivada", file=sys.stderr)
+
+
+# ====================================================================
 # OneDrive Config (opcional)
 # ====================================================================
 ONEDRIVE_TENANT_ID = os.environ.get('ONEDRIVE_TENANT_ID', '')
