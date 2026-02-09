@@ -32,7 +32,12 @@ from arq import cron
 from arq.connections import RedisSettings, ArqRedis
 
 # Importar configurações
-from config.task_queue import get_redis_settings, task_settings
+from config import (
+    get_redis_settings,
+    TASK_JOB_TIMEOUT,
+    TASK_MAX_TRIES,
+    TASK_MAX_JOBS
+)
 
 # Configurar logging
 logging.basicConfig(
