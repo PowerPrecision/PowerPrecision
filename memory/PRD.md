@@ -146,10 +146,23 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização
 **9 Fevereiro 2026**
-- ✅ **Página Leads para Consultores**: Adicionada rota `/leads` em App.js e link de navegação para todos os roles de staff (admin, consultor, mediador, intermediário, etc.)
+- ✅ **Página Leads para Consultores**: Adicionada rota `/leads` em App.js e link de navegação para todos os roles de staff
 - ✅ **Bug Fix LeadsKanban**: Corrigido bug onde SelectItem com valor vazio causava erro de runtime do Radix UI
 - ✅ **Verificação Trello**: Confirmado que a integração Trello está funcional (connected: true, 14 listas, 152 processos sincronizados)
-- ✅ **Testes Automatizados**: 12/12 testes de backend passaram, 100% de sucesso nos testes de UI
+- ✅ **Impersonation Testado**: Admin consegue personificar consultores e parar personificação sem erros
+- ✅ **Visibilidade Clientes para Consultor**: Consultor vê 100 clientes baseado nos processos atribuídos
+- ✅ **Bulk Upload API**: Endpoint `/api/ai/bulk/clients-list` funcional
+- ✅ **Kanban para Consultor**: Tiago Borges vê 8 processos (1 activo, 5 concluídos, 2 desistências)
+- ✅ **Testes Completos**: Iteration 16 (12/12 backend + UI) e Iteration 17 (11/11 backend + 9/9 UI) - 100% sucesso
+
+### Issues Verificados e Resolvidos
+| Issue | Estado | Notas |
+|-------|--------|-------|
+| Trello 401 Error | ✅ RESOLVIDO | API conectada, 14 listas, 152 processos |
+| Impersonation Error | ✅ RESOLVIDO | Fluxo completo admin->consultor->admin testado |
+| Bulk Upload postMessage | ✅ WORKAROUND | Patch aplicado, API funcional |
+| Consultor não vê clientes | ✅ RESOLVIDO | 100 clientes visíveis para consultor |
+| Leads para Consultor | ✅ RESOLVIDO | Rota e navegação adicionadas |
 
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
