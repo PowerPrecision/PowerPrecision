@@ -136,12 +136,29 @@ ONEDRIVE_BASE_PATH = os.environ.get('ONEDRIVE_BASE_PATH', 'Documentação Client
 
 
 # ====================================================================
-# EMAIL CONFIG (opcional)
+# EMAIL CONFIG - API TRANSACIONAL
 # ====================================================================
+# Provider primário (recomendado): SendGrid ou Resend
+# SMTP mantido como fallback de emergência
+# ====================================================================
+EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'sendgrid')  # sendgrid | resend | smtp
+EMAIL_API_KEY = os.environ.get('EMAIL_API_KEY', '')  # API key do provider
+EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@powerealestate.pt')
+EMAIL_FROM_NAME = os.environ.get('EMAIL_FROM_NAME', 'Power Real Estate & Precision Crédito')
+
+# SMTP Fallback (legado)
 SMTP_SERVER = os.environ.get('SMTP_SERVER', '')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', '465'))
 SMTP_EMAIL = os.environ.get('SMTP_EMAIL', '')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+
+# Log de configuração de email
+if EMAIL_API_KEY:
+    print(f"✅ Email configurado: {EMAIL_PROVIDER.upper()} (API transacional)", file=sys.stderr)
+elif SMTP_SERVER:
+    print(f"⚠️  Email configurado: SMTP (modo legado)", file=sys.stderr)
+else:
+    print("⚠️  Email não configurado - emails serão simulados", file=sys.stderr)
 
 
 # ====================================================================
