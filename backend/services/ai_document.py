@@ -857,9 +857,14 @@ def map_cc_to_personal_data(cc_data: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "nif": cc_data.get("nif"),
         "documento_id": cc_data.get("numero_documento"),
+        "data_nascimento": cc_data.get("data_nascimento"),
+        "data_validade_cc": cc_data.get("data_validade"),
         "naturalidade": cc_data.get("naturalidade"),
         "nacionalidade": cc_data.get("nacionalidade"),
-        "birth_date": cc_data.get("data_nascimento"),
+        "sexo": cc_data.get("sexo"),
+        "altura": cc_data.get("altura"),
+        "nome_pai": cc_data.get("pai"),
+        "nome_mae": cc_data.get("mae"),
     }
 
 
