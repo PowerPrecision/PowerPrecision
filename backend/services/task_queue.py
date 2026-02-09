@@ -29,7 +29,7 @@ from typing import Optional, Dict, Any
 from arq import create_pool
 from arq.connections import ArqRedis
 
-from config.task_queue import get_redis_settings, task_settings
+from config import get_redis_settings
 
 logger = logging.getLogger(__name__)
 
