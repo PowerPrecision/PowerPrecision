@@ -2,13 +2,19 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-from config import CORS_ORIGINS
+from config import (
+    CORS_ORIGINS, CORS_ALLOW_CREDENTIALS, CORS_ALLOW_METHODS, 
+    CORS_ALLOW_HEADERS, CORS_MAX_AGE
+)
 from database import db, client
 from models.auth import UserRole
 from services.auth import hash_password
+from middleware.rate_limit import limiter
 from routes import (
     auth_router, processes_router, admin_router, users_router,
     deadlines_router, activities_router, onedrive_router,
@@ -34,6 +40,10 @@ logger = logging.getLogger(__name__)
 
 
 app = FastAPI(title="Sistema de Gestão de Processos")
+
+# Configurar Rate Limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # Include all routers under /api prefix
