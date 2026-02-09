@@ -722,6 +722,9 @@ IMPORTANTE:
 - Podem existir MÚLTIPLOS COMPRADORES (proponentes) - extrai dados de TODOS
 - Identifica: Primeiro Outorgante (vendedor), Segundo Outorgante (comprador/proponente)
 - Se houver casal/parceiros a comprar, extrai dados de ambos
+- Extrai TODOS os dados do imóvel: morada completa, tipologia, área, fração, descrição predial
+- Extrai TODOS os valores: preço, sinal, reforços, valor restante, comissões
+- Extrai todas as datas importantes
 - Valores monetários devem ser números decimais."""
         
         user_prompt = """Analisa este CPCV (Contrato Promessa Compra e Venda) e extrai os seguintes dados em formato JSON:
@@ -729,44 +732,83 @@ IMPORTANTE:
 {
     "compradores": [
         {
-            "nome_completo": "Nome do comprador/proponente 1",
-            "nif": "NIF do comprador 1",
-            "estado_civil": "Estado civil",
-            "morada": "Morada",
-            "email": "Email se disponível",
-            "telefone": "Telefone se disponível"
-        },
-        {
-            "nome_completo": "Nome do comprador/proponente 2 (cônjuge/parceiro) ou null se só um",
-            "nif": "NIF do comprador 2 ou null",
-            "estado_civil": "Estado civil",
-            "morada": "Morada",
-            "email": "Email se disponível",
-            "telefone": "Telefone se disponível"
+            "nome_completo": "Nome completo do comprador/proponente 1",
+            "nif": "NIF do comprador 1 (9 dígitos)",
+            "cc": "Número do Cartão de Cidadão",
+            "estado_civil": "Solteiro/Casado/Divorciado/Viúvo/União de Facto",
+            "regime_bens": "Comunhão de adquiridos/Separação de bens/etc",
+            "profissao": "Profissão",
+            "morada": "Morada completa",
+            "codigo_postal": "Código postal",
+            "localidade": "Localidade/Cidade",
+            "email": "Email",
+            "telefone": "Telefone"
         }
     ],
     "vendedor": {
-        "nome": "Nome do vendedor/promitente vendedor",
-        "nif": "NIF do vendedor"
+        "nome": "Nome completo do vendedor/promitente vendedor",
+        "nif": "NIF do vendedor",
+        "cc": "Número CC do vendedor",
+        "estado_civil": "Estado civil do vendedor",
+        "morada": "Morada do vendedor",
+        "tipo": "Particular/Empresa/Herança"
     },
     "imovel": {
-        "morada": "Morada completa do imóvel",
-        "tipologia": "T0/T1/T2/T3/etc",
-        "fracao": "Fração/Artigo matricial",
-        "area": "Área em m2"
+        "descricao": "Descrição do imóvel (apartamento, moradia, etc)",
+        "morada_completa": "Morada completa do imóvel",
+        "codigo_postal": "Código postal",
+        "localidade": "Localidade/Cidade",
+        "freguesia": "Freguesia",
+        "concelho": "Concelho",
+        "distrito": "Distrito",
+        "tipologia": "T0/T1/T2/T3/T4/T5/Moradia",
+        "area_bruta": "Área bruta em m2",
+        "area_util": "Área útil em m2",
+        "fracao": "Fração (ex: A, B, 1º Dto)",
+        "artigo_matricial": "Artigo matricial/Número da matriz",
+        "descricao_predial": "Descrição predial na Conservatória",
+        "conservatoria": "Nome da Conservatória do Registo Predial",
+        "numero_predial": "Número de descrição predial",
+        "licenca_utilizacao": "Número da licença de utilização",
+        "ano_construcao": "Ano de construção",
+        "certificado_energetico": "Classe energética (A, B, C, D, E, F)",
+        "estacionamento": "Sim/Não - detalhes do lugar de garagem",
+        "arrecadacao": "Sim/Não - detalhes da arrecadação"
     },
     "valores": {
         "preco_total": 0.00,
         "sinal": 0.00,
-        "valor_restante": 0.00
+        "data_sinal": "Data do pagamento do sinal (YYYY-MM-DD)",
+        "reforco_sinal": 0.00,
+        "data_reforco": "Data do reforço (YYYY-MM-DD)",
+        "valor_escritura": 0.00,
+        "valor_financiamento": 0.00,
+        "comissao_mediacao": 0.00,
+        "percentagem_comissao": 0.00,
+        "quem_paga_comissao": "Comprador/Vendedor/Partilhada"
     },
     "datas": {
-        "data_cpcv": "Data do contrato (YYYY-MM-DD)",
-        "data_escritura_prevista": "Data prevista para escritura (YYYY-MM-DD)"
+        "data_cpcv": "Data do contrato CPCV (YYYY-MM-DD)",
+        "data_escritura_prevista": "Data prevista para escritura (YYYY-MM-DD)",
+        "prazo_escritura_dias": "Prazo em dias para a escritura",
+        "data_entrega_chaves": "Data prevista entrega de chaves (YYYY-MM-DD)"
+    },
+    "condicoes": {
+        "condicao_suspensiva": "Descrever condição suspensiva se existir (ex: aprovação crédito)",
+        "prazo_condicao": "Prazo da condição suspensiva",
+        "clausula_penalizacao": "Valor/condições de penalização por incumprimento",
+        "observacoes": "Outras condições importantes"
+    },
+    "mediador": {
+        "nome_empresa": "Nome da imobiliária/mediador",
+        "nif_empresa": "NIF da empresa",
+        "licenca_ami": "Número da licença AMI",
+        "consultor": "Nome do consultor imobiliário"
     }
 }
 
 Se houver apenas 1 comprador, o array "compradores" deve ter apenas 1 elemento.
+Extrai o máximo de informação possível do documento.
 Retorna APENAS o JSON, sem texto adicional."""
 
     elif document_type == "simulacao_credito":
