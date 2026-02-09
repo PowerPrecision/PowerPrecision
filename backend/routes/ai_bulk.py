@@ -11,6 +11,11 @@ FUNCIONALIDADES:
 - Conversão de PDFs scan para imagem
 - Detecção de documentos duplicados (evita reanalisar recibos/extratos iguais)
 - Matching flexível de nomes (suporta acentos, parênteses, nomes compostos)
+
+SEGURANÇA:
+- Validação de ficheiros usando Magic Bytes (não confia na extensão)
+- Whitelist de MIME types permitidos (PDF, JPEG, PNG, etc.)
+- Bloqueio de ficheiros executáveis e scripts
 """
 import os
 import re
@@ -27,6 +32,7 @@ from pydantic import BaseModel
 from database import db
 from models.auth import UserRole
 from services.auth import require_roles, get_current_user
+from services.file_validation import validate_file_content, validate_file_upload
 from services.ai_document import (
     MAX_FILE_SIZE,
     detect_document_type,
