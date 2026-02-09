@@ -214,6 +214,30 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    """
+    Inicialização da aplicação.
+    - Cria indexes na base de dados
+    - Conecta à Task Queue (Redis)
+    - Cria utilizador admin default
+    """
+    logger.info("🚀 Iniciando aplicação CreditoIMO...")
+    
+    # ================================================================
+    # TASK QUEUE (Redis) - Conectar se disponível
+    # ================================================================
+    try:
+        from services.task_queue import task_queue
+        connected = await task_queue.connect()
+        if connected:
+            logger.info("✅ Task Queue (Redis) conectada")
+        else:
+            logger.warning("⚠️ Task Queue não disponível - tarefas executadas localmente")
+    except Exception as e:
+        logger.warning(f"⚠️ Task Queue não disponível: {str(e)}")
+    
+    # ================================================================
+    # DATABASE INDEXES
+    # ================================================================
     # Create indexes
     await db.users.create_index("email", unique=True)
     await db.users.create_index("id", unique=True)
