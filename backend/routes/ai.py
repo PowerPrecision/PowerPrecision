@@ -60,7 +60,7 @@ async def analyze_document(
     if not request.document_url and not request.document_base64:
         raise HTTPException(status_code=400, detail="Forneça document_url ou document_base64")
     
-    if request.document_type not in ['cc', 'recibo_vencimento', 'irs', 'outro']:
+    if request.document_type not in ['cc', 'recibo_vencimento', 'irs', 'cpcv', 'simulacao_credito', 'caderneta_predial', 'outro']:
         raise HTTPException(status_code=400, detail="document_type inválido")
     
     if request.document_base64:
