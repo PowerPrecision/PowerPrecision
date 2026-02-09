@@ -89,6 +89,17 @@ async def analyze_document(
         mapped_data["financial_data"] = map_recibo_to_financial_data(extracted_data)
     elif request.document_type == "irs":
         mapped_data["financial_data"] = map_irs_to_financial_data(extracted_data)
+    elif request.document_type == "cpcv":
+        # CPCV tem múltiplos dados
+        mapped_data["compradores"] = extracted_data.get("compradores", [])
+        mapped_data["vendedor"] = extracted_data.get("vendedor", {})
+        mapped_data["imovel"] = extracted_data.get("imovel", {})
+        mapped_data["valores"] = extracted_data.get("valores", {})
+        mapped_data["datas"] = extracted_data.get("datas", {})
+        mapped_data["condicoes"] = extracted_data.get("condicoes", {})
+        mapped_data["mediador"] = extracted_data.get("mediador", {})
+    elif request.document_type == "caderneta_predial":
+        mapped_data["real_estate_data"] = extracted_data
     
     return {
         "success": True,
