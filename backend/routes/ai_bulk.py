@@ -481,10 +481,12 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
             if 'NIF' in extracted_data:
                 del extracted_data['NIF']
         
-        # Obter dados existentes
+        # Obter dados existentes (incluindo novos campos do CPCV)
         process = await db.processes.find_one(
             {"id": process_id},
-            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1, "ai_extracted_notes": 1, "client_name": 1}
+            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1, 
+             "ai_extracted_notes": 1, "client_name": 1, "co_buyers": 1, "co_applicants": 1,
+             "vendedor": 1, "mediador": 1}
         )
         
         if not process:
@@ -505,6 +507,8 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
                     for subkey, subvalue in value.items():
                         if subvalue:
                             updated_fields.append(f"{key}.{subkey}")
+                elif isinstance(value, list):
+                    updated_fields.append(f"{key} ({len(value)} items)")
                 else:
                     updated_fields.append(key)
         
