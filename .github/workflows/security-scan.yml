@@ -1,0 +1,78 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  schedule:
+    # Executar semanalmente às segundas-feiras às 9:00 UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências de segurança
+        run: |
+          pip install safety bandit
+
+      - name: Safety - Verificar vulnerabilidades em dependências
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          safety check --full-report --output json > ../security-reports/safety-report.json || true
+          safety check
+        continue-on-error: true
+
+      - name: Bandit - Análise estática de segurança do código
+        run: |
+          cd backend
+          bandit -r . -f json -o ../security-reports/bandit-report.json --exclude ./tests,./venv,./.venv || true
+          bandit -r . --exclude ./tests,./venv,./.venv -ll
+        continue-on-error: true
+
+      - name: Upload relatórios de segurança
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: security-reports/
+          retention-days: 30
+
+      - name: Resumo de Segurança
+        if: always()
+        run: |
+          echo "## Relatório de Segurança" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Safety (Vulnerabilidades de Dependências)" >> $GITHUB_STEP_SUMMARY
+          if [ -f security-reports/safety-report.json ]; then
+            echo "Verificação concluída. Ver artefactos para detalhes." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Bandit (Análise de Código)" >> $GITHUB_STEP_SUMMARY
+          if [ -f security-reports/bandit-report.json ]; then
+            echo "Análise concluída. Ver artefactos para detalhes." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
