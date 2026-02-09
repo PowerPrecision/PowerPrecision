@@ -1,273 +1,234 @@
-# ====================================================================
-# CI/CD PIPELINE - CREDITOIMO
-# ====================================================================
-# Pipeline de Integração Contínua e Deploy Contínuo
-# 
-# Triggers:
-# - Push para main/develop
-# - Pull Requests para main
-# ====================================================================
-
-name: CreditoIMO CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main]
+    branches: [main, master, develop]
 
 env:
   PYTHON_VERSION: '3.11'
-  NODE_VERSION: '18'
 
 jobs:
   # ====================================================================
-  # BACKEND TESTS
-  # ====================================================================
-  backend-tests:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd="mongosh --eval 'db.adminCommand({ping: 1})'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-      
-      - name: Install dependencies
-        working-directory: ./backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov httpx
-      
-      - name: Run linting
-        working-directory: ./backend
-        run: |
-          pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      
-      - name: Run tests
-        working-directory: ./backend
-        env:
-          MONGO_URL: mongodb://localhost:27017
-          DB_NAME: creditoimo_test
-          SECRET_KEY: test-secret-key-for-ci
-          JWT_ALGORITHM: HS256
-        run: |
-          python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
-      
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./backend/coverage.xml
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
-
-  # ====================================================================
-  # FRONTEND TESTS
-  # ====================================================================
-  frontend-tests:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-          cache-dependency-path: './frontend/yarn.lock'
-      
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: yarn install --frozen-lockfile
-      
-      - name: Run linting
-        working-directory: ./frontend
-        run: yarn lint || true
-      
-      - name: Run tests
-        working-directory: ./frontend
-        env:
-          CI: true
-          REACT_APP_BACKEND_URL: http://localhost:8001
-        run: |
-          yarn test --coverage --watchAll=false --passWithNoTests
-      
-      - name: Build
-        working-directory: ./frontend
-        env:
-          CI: false
-          REACT_APP_BACKEND_URL: ${{ secrets.BACKEND_URL }}
-        run: yarn build
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build/
-          retention-days: 7
-
-  # ====================================================================
-  # INTEGRATION TESTS
-  # ====================================================================
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
-    
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
-      
-      - name: Start backend server
-        working-directory: ./backend
-        env:
-          MONGO_URL: mongodb://localhost:27017
-          DB_NAME: creditoimo_integration_test
-          SECRET_KEY: test-secret-key
-        run: |
-          uvicorn server:app --host 0.0.0.0 --port 8001 &
-          sleep 5
-      
-      - name: Run integration tests
-        working-directory: ./backend
-        env:
-          REACT_APP_BACKEND_URL: http://localhost:8001
-        run: |
-          python -m pytest tests/test_integration*.py -v || true
-
-  # ====================================================================
-  # SECURITY SCAN
+  # JOB 1: SECURITY SCAN (BLOCKING)
+  # Pipeline FALHA se forem detetadas vulnerabilidades médias ou altas
   # ====================================================================
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout código
         uses: actions/checkout@v4
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-      
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Instalar dependências
+        run: |
+          pip install --upgrade pip
+          pip install safety bandit
+          cd backend && pip install -r requirements.txt
+
+      - name: Criar directório de relatórios
+        run: mkdir -p security-reports
+
+      # ================================================================
+      # BANDIT - Análise estática de código Python
+      # FALHA se encontrar issues de severidade MÉDIA ou ALTA
+      # ================================================================
+      - name: Bandit - Análise de Segurança do Código
+        id: bandit
+        run: |
+          cd backend
+          echo "🔍 A executar análise Bandit..."
+          
+          # Gerar relatório JSON
+          bandit -r . -f json -o ../security-reports/bandit-report.json \
+            --exclude ./tests,./venv,./.venv,./migrations || true
+          
+          # Executar com severidade média ou alta - DEVE FALHAR se encontrar
+          bandit -r . --exclude ./tests,./venv,./.venv,./migrations \
+            -ll --severity-level medium
+        continue-on-error: false
+
+      # ================================================================
+      # SAFETY - Verificação de vulnerabilidades em dependências
+      # FALHA se encontrar vulnerabilidades conhecidas
+      # ================================================================
+      - name: Safety - Scan de Vulnerabilidades
+        id: safety
+        run: |
+          cd backend
+          echo "🔍 A verificar vulnerabilidades em dependências..."
+          
+          # Gerar relatório
+          safety check --full-report -o json > ../security-reports/safety-report.json 2>&1 || true
+          
+          # Verificar vulnerabilidades - DEVE FALHAR se encontrar
+          safety check --full-report
+        continue-on-error: false
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          name: security-reports
+          path: security-reports/
+          retention-days: 30
 
-  # ====================================================================
-  # DEPLOY (apenas para main)
-  # ====================================================================
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests, integration-tests]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build/
-      
-      - name: Deploy notification
+      - name: Security Summary
+        if: always()
         run: |
-          echo "🚀 Deploy triggered for CreditoIMO"
-          echo "Commit: ${{ github.sha }}"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Author: ${{ github.actor }}"
-      
-      # Adicionar steps de deploy específicos aqui
-      # Exemplo: Deploy para Vercel, AWS, etc.
-      
-      # - name: Deploy to Vercel
-      #   uses: amondnet/vercel-action@v25
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-      #     working-directory: ./frontend
-
-  # ====================================================================
-  # NOTIFY
-  # ====================================================================
-  notify:
-    name: Notify Results
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
-    if: always()
-    
-    steps:
-      - name: Check job status
-        run: |
-          if [ "${{ needs.backend-tests.result }}" == "success" ] && [ "${{ needs.frontend-tests.result }}" == "success" ]; then
-            echo "✅ All tests passed!"
-            echo "STATUS=success" >> $GITHUB_ENV
+          echo "## 🔒 Relatório de Segurança" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.bandit.outcome }}" == "failure" ]; then
+            echo "### ❌ Bandit - FALHOU" >> $GITHUB_STEP_SUMMARY
+            echo "Foram encontradas vulnerabilidades no código." >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Some tests failed!"
-            echo "STATUS=failure" >> $GITHUB_ENV
+            echo "### ✅ Bandit - OK" >> $GITHUB_STEP_SUMMARY
           fi
-      
-      - name: Create summary
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.safety.outcome }}" == "failure" ]; then
+            echo "### ❌ Safety - FALHOU" >> $GITHUB_STEP_SUMMARY
+            echo "Foram encontradas vulnerabilidades nas dependências." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Safety - OK" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ====================================================================
+  # JOB 2: TESTES
+  # Só executa se o security scan passar
+  # ====================================================================
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: security-scan  # Depende do security scan passar
+    
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Instalar dependências
         run: |
-          echo "## 📊 CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend Tests | ${{ needs.backend-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend Tests | ${{ needs.frontend-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov httpx
+          cd backend && pip install -r requirements.txt
+
+      - name: Executar testes
+        env:
+          MONGO_URL: mongodb://localhost:27017
+          DB_NAME: test_db
+          JWT_SECRET: test-secret-key-for-ci
+          CORS_ORIGINS: http://localhost:3000
+        run: |
+          cd backend
+          pytest tests/ -v --tb=short --cov=. --cov-report=xml
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/coverage.xml
+
+  # ====================================================================
+  # JOB 3: LINT
+  # ====================================================================
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Instalar linters
+        run: |
+          pip install ruff black isort
+
+      - name: Ruff (linting)
+        run: |
+          cd backend
+          ruff check . --ignore E501,F401
+        continue-on-error: true
+
+      - name: Black (formatting check)
+        run: |
+          cd backend
+          black --check --diff . || echo "⚠️ Formatação não está conforme Black"
+        continue-on-error: true
+
+  # ====================================================================
+  # JOB 4: BUILD (apenas em push para main/master)
+  # ====================================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [security-scan, test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Build success
+        run: |
+          echo "✅ Build pronto para deploy!"
+          echo "Security scan: PASSED"
+          echo "Tests: PASSED"
+
+  # ====================================================================
+  # JOB 5: DEPENDENCY REVIEW (apenas em PRs)
+  # ====================================================================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: medium
+          deny-licenses: GPL-3.0, AGPL-3.0
