@@ -1524,6 +1524,9 @@ def build_update_data_from_extraction(
         imovel = cpcv.get('imovel', cpcv.get('dados_imovel', {}))
         valores = cpcv.get('valores', cpcv.get('condicoes_financeiras', {}))
         datas = cpcv.get('datas', {})
+        vendedor = cpcv.get('vendedor', extracted_data.get('vendedor', {}))
+        condicoes = cpcv.get('condicoes', {})
+        mediador = cpcv.get('mediador', {})
         
         # === PROCESSAR MÚLTIPLOS COMPRADORES ===
         compradores = extracted_data.get('compradores', [])
@@ -1540,8 +1543,13 @@ def build_update_data_from_extraction(
             buyer_data = {
                 "nome": comprador.get('nome_completo') or comprador.get('nome'),
                 "nif": comprador.get('nif'),
+                "cc": comprador.get('cc'),
                 "estado_civil": comprador.get('estado_civil'),
+                "regime_bens": comprador.get('regime_bens'),
+                "profissao": comprador.get('profissao'),
                 "morada": comprador.get('morada'),
+                "codigo_postal": comprador.get('codigo_postal'),
+                "localidade": comprador.get('localidade'),
                 "email": comprador.get('email'),
                 "telefone": comprador.get('telefone')
             }
@@ -1556,34 +1564,130 @@ def build_update_data_from_extraction(
                 if i == 0:
                     if buyer_data.get('nif'):
                         personal_update['nif'] = buyer_data['nif']
+                    if buyer_data.get('cc'):
+                        personal_update['documento_id'] = buyer_data['cc']
                     if buyer_data.get('morada'):
                         personal_update['morada'] = buyer_data['morada']
+                    if buyer_data.get('codigo_postal'):
+                        personal_update['codigo_postal'] = buyer_data['codigo_postal']
                     if buyer_data.get('estado_civil'):
                         personal_update['estado_civil'] = buyer_data['estado_civil']
+                    if buyer_data.get('profissao'):
+                        personal_update['profissao'] = buyer_data['profissao']
+                    if buyer_data.get('email'):
+                        update_data['client_email'] = sanitize_email(buyer_data['email'])
+                    if buyer_data.get('telefone'):
+                        update_data['client_phone'] = buyer_data['telefone']
         
-        # Guardar array de co-compradores se houver mais de 1
-        if len(co_buyers) > 1:
+        # Guardar array de co-compradores
+        if len(co_buyers) > 0:
             update_data["co_buyers"] = co_buyers
-            logger.info(f"CPCV com {len(co_buyers)} compradores detectados")
-        elif len(co_buyers) == 1:
-            # Apenas 1 comprador, guardar dados normalmente
-            pass
+            if len(co_buyers) > 1:
+                logger.info(f"CPCV com {len(co_buyers)} compradores detectados")
         
-        # Dados financeiros do negócio
+        # === DADOS DO VENDEDOR ===
+        if vendedor:
+            vendedor_data = {
+                "nome": vendedor.get('nome'),
+                "nif": vendedor.get('nif'),
+                "cc": vendedor.get('cc'),
+                "estado_civil": vendedor.get('estado_civil'),
+                "morada": vendedor.get('morada'),
+                "tipo": vendedor.get('tipo')
+            }
+            vendedor_data = {k: v for k, v in vendedor_data.items() if v}
+            if vendedor_data:
+                update_data["vendedor"] = vendedor_data
+        
+        # === DADOS DO NEGÓCIO / VALORES ===
+        # Preço e sinal
         if valores.get('preco_total') or valores.get('valor_venda'):
             real_estate_update['valor_imovel'] = valores.get('preco_total') or valores.get('valor_venda')
         if valores.get('sinal') or valores.get('valor_sinal'):
             financial_update['valor_entrada'] = valores.get('sinal') or valores.get('valor_sinal')
-        if valores.get('valor_restante'):
-            financial_update['valor_financiar'] = valores.get('valor_restante')
+        if valores.get('data_sinal'):
+            financial_update['data_sinal'] = valores['data_sinal']
+        if valores.get('reforco_sinal'):
+            financial_update['reforco_sinal'] = valores['reforco_sinal']
+        if valores.get('data_reforco'):
+            financial_update['data_reforco'] = valores['data_reforco']
+        if valores.get('valor_restante') or valores.get('valor_escritura'):
+            financial_update['valor_financiar'] = valores.get('valor_restante') or valores.get('valor_escritura')
+        if valores.get('valor_financiamento'):
+            financial_update['valor_pretendido'] = valores['valor_financiamento']
+        
+        # Comissões
+        if valores.get('comissao_mediacao'):
+            financial_update['comissao_mediacao'] = valores['comissao_mediacao']
+        if valores.get('percentagem_comissao'):
+            financial_update['percentagem_comissao'] = valores['percentagem_comissao']
+        if valores.get('quem_paga_comissao'):
+            financial_update['quem_paga_comissao'] = valores['quem_paga_comissao']
             
-        # Datas importantes
-        if datas.get('data_escritura_prevista'):
-            real_estate_update['data_escritura_prevista'] = datas['data_escritura_prevista']
+        # === DATAS IMPORTANTES ===
         if datas.get('data_cpcv'):
             real_estate_update['data_cpcv'] = datas['data_cpcv']
+        if datas.get('data_escritura_prevista'):
+            real_estate_update['data_escritura_prevista'] = datas['data_escritura_prevista']
+        if datas.get('prazo_escritura_dias'):
+            real_estate_update['prazo_escritura_dias'] = datas['prazo_escritura_dias']
+        if datas.get('data_entrega_chaves'):
+            real_estate_update['data_entrega_chaves'] = datas['data_entrega_chaves']
             
-        # Campos de nível superior
+        # === DADOS COMPLETOS DO IMÓVEL ===
+        imovel_fields = {
+            'morada_completa': 'localizacao',
+            'localizacao': 'localizacao',
+            'morada': 'localizacao',
+            'codigo_postal': 'codigo_postal',
+            'localidade': 'localidade',
+            'freguesia': 'freguesia',
+            'concelho': 'concelho',
+            'distrito': 'distrito',
+            'tipologia': 'tipologia',
+            'descricao': 'descricao_imovel',
+            'area_bruta': 'area_bruta',
+            'area_util': 'area_util',
+            'area': 'area',
+            'fracao': 'fracao',
+            'artigo_matricial': 'artigo_matricial',
+            'descricao_predial': 'descricao_predial',
+            'conservatoria': 'conservatoria',
+            'numero_predial': 'numero_predial',
+            'licenca_utilizacao': 'licenca_utilizacao',
+            'ano_construcao': 'ano_construcao',
+            'certificado_energetico': 'certificado_energetico',
+            'estacionamento': 'estacionamento',
+            'arrecadacao': 'arrecadacao'
+        }
+        
+        for src_key, dest_key in imovel_fields.items():
+            if imovel.get(src_key):
+                real_estate_update[dest_key] = imovel[src_key]
+        
+        # === CONDIÇÕES DO CONTRATO ===
+        if condicoes.get('condicao_suspensiva'):
+            real_estate_update['condicao_suspensiva'] = condicoes['condicao_suspensiva']
+        if condicoes.get('prazo_condicao'):
+            real_estate_update['prazo_condicao'] = condicoes['prazo_condicao']
+        if condicoes.get('clausula_penalizacao'):
+            real_estate_update['clausula_penalizacao'] = condicoes['clausula_penalizacao']
+        if condicoes.get('observacoes'):
+            real_estate_update['observacoes_cpcv'] = condicoes['observacoes']
+        
+        # === DADOS DO MEDIADOR ===
+        if mediador:
+            mediador_data = {
+                "nome_empresa": mediador.get('nome_empresa'),
+                "nif_empresa": mediador.get('nif_empresa'),
+                "licenca_ami": mediador.get('licenca_ami'),
+                "consultor": mediador.get('consultor')
+            }
+            mediador_data = {k: v for k, v in mediador_data.items() if v}
+            if mediador_data:
+                update_data["mediador"] = mediador_data
+            
+        # Campos de nível superior (fallback)
         if extracted_data.get('valor_venda'):
             real_estate_update['valor_imovel'] = extracted_data['valor_venda']
         if extracted_data.get('sinal'):
@@ -1592,16 +1696,6 @@ def build_update_data_from_extraction(
             real_estate_update['valor_imovel'] = extracted_data['valor_imovel']
         if extracted_data.get('entrada') or extracted_data.get('valor_entrada'):
             financial_update['valor_entrada'] = extracted_data.get('entrada') or extracted_data.get('valor_entrada')
-            
-        # Dados do imóvel
-        if imovel.get('localizacao') or imovel.get('morada'):
-            real_estate_update['localizacao'] = imovel.get('localizacao') or imovel.get('morada')
-        if imovel.get('tipologia'):
-            real_estate_update['tipologia'] = imovel['tipologia']
-        if imovel.get('area'):
-            real_estate_update['area'] = imovel['area']
-        if imovel.get('fracao') or imovel.get('artigo'):
-            real_estate_update['fracao'] = imovel.get('fracao') or imovel.get('artigo')
         
         if personal_update:
             existing_personal = existing_data.get("personal_data") or {}
