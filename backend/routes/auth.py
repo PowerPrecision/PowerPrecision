@@ -56,7 +56,7 @@ async def register(request: Request, data: UserRegister):
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")  # Anti-brute-force: 10 tentativas por minuto por IP
 async def login(request: Request, data: UserLogin):
     from fastapi import HTTPException
     
