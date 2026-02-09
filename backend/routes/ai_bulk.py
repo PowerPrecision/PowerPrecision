@@ -626,6 +626,18 @@ async def analyze_single_file(
     try:
         # Ler ficheiro imediatamente
         content = await read_file_with_limit(file)
+        
+        # ================================================================
+        # VALIDAÇÃO DE SEGURANÇA - Magic Bytes
+        # Verifica se o conteúdo real corresponde a um tipo permitido
+        # ================================================================
+        try:
+            validate_file_content(content, doc_filename)
+        except HTTPException as security_error:
+            logger.warning(f"[SECURITY] Ficheiro rejeitado: {filename} - {security_error.detail}")
+            result.error = f"Ficheiro rejeitado: {security_error.detail}"
+            return result
+        
         mime_type = get_mime_type(doc_filename)
         
         # Procurar cliente
