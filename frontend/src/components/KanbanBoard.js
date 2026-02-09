@@ -56,6 +56,7 @@ const KanbanBoard = ({ token, user }) => {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
+  const [collapsedColumns, setCollapsedColumns] = useState(new Set()); // Colunas colapsadas
   
   // Estado para criação de novo cliente
   const [showCreateDialog, setShowCreateDialog] = useState(false);
