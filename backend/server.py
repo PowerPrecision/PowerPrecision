@@ -81,11 +81,11 @@ async def health_check():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
+    allow_credentials=CORS_ALLOW_CREDENTIALS,
     allow_origins=CORS_ORIGINS,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
+    max_age=CORS_MAX_AGE,
 )
 
 
