@@ -40,15 +40,43 @@ DB_NAME = get_required_env('DB_NAME')
 
 
 # ====================================================================
-# CORS CONFIG
+# CORS CONFIG (ESTRITO)
 # ====================================================================
-_cors_env = os.environ.get('CORS_ORIGINS', '*').strip().strip('"').strip("'")
-if _cors_env == '*':
+# CORS_ORIGINS deve ser definido explicitamente em produção
+# Formato: "https://domain1.com,https://domain2.com"
+# Em desenvolvimento pode usar "*" mas NÃO em produção
+_cors_env = os.environ.get('CORS_ORIGINS', '').strip().strip('"').strip("'")
+
+# Validação estrita de CORS
+if not _cors_env:
+    print("⚠️  AVISO: CORS_ORIGINS não definido. Usando wildcard (*) - NÃO usar em produção!", file=sys.stderr)
+    CORS_ORIGINS = ["*"]
+elif _cors_env == '*':
+    print("⚠️  AVISO: CORS_ORIGINS definido como '*' - NÃO usar em produção!", file=sys.stderr)
     CORS_ORIGINS = ["*"]
 else:
-    CORS_ORIGINS = [origin.strip() for origin in _cors_env.split(',') if origin.strip()]
+    # Parsing e validação das origens
+    CORS_ORIGINS = []
+    for origin in _cors_env.split(','):
+        origin = origin.strip()
+        if origin:
+            # Validar formato da origem (deve ser URL válido)
+            if origin.startswith('http://') or origin.startswith('https://'):
+                CORS_ORIGINS.append(origin)
+            else:
+                print(f"⚠️  AVISO: Origem CORS inválida ignorada: {origin}", file=sys.stderr)
+    
     if not CORS_ORIGINS:
+        print("❌ ERRO: Nenhuma origem CORS válida configurada!", file=sys.stderr)
         CORS_ORIGINS = ["*"]
+    else:
+        print(f"✅ CORS configurado para: {', '.join(CORS_ORIGINS)}", file=sys.stderr)
+
+# Configurações adicionais de CORS
+CORS_ALLOW_CREDENTIALS = os.environ.get('CORS_ALLOW_CREDENTIALS', 'true').lower() == 'true'
+CORS_ALLOW_METHODS = os.environ.get('CORS_ALLOW_METHODS', 'GET,POST,PUT,DELETE,OPTIONS,PATCH').split(',')
+CORS_ALLOW_HEADERS = os.environ.get('CORS_ALLOW_HEADERS', 'Authorization,Content-Type,Accept,Origin,X-Requested-With').split(',')
+CORS_MAX_AGE = int(os.environ.get('CORS_MAX_AGE', '600'))
 
 
 # ====================================================================
