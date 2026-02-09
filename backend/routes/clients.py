@@ -35,29 +35,47 @@ async def list_clients(
     """
     Listar clientes.
     - Admin/CEO: vê todos os clientes
-    - Consultor/Intermediário: vê clientes dos seus processos
+    - Consultor/Intermediário: vê clientes dos seus processos (ou todos se não houver atribuição)
     """
     user_role = user.get("role", "")
     user_id = user.get("id", "")
+    user_email = user.get("email", "")
     
-    # Para roles não-admin, buscar clientes a partir dos processos atribuídos
+    # Para roles não-admin, buscar clientes a partir dos processos
     if user_role not in ["admin", "ceo", "diretor"]:
-        # Buscar processos do utilizador
-        process_query = {
+        # Primeiro verificar se há processos atribuídos a este utilizador
+        my_processes_count = await db.processes.count_documents({
             "$or": [
                 {"assigned_to": user_id},
-                {"created_by": user.get("email")}
+                {"assigned_to": user_email},
+                {"created_by": user_email}
             ]
-        }
+        })
+        
+        # Se não houver processos atribuídos, mostrar todos os processos (legado)
+        if my_processes_count == 0:
+            process_query = {}
+        else:
+            process_query = {
+                "$or": [
+                    {"assigned_to": user_id},
+                    {"assigned_to": user_email},
+                    {"created_by": user_email}
+                ]
+            }
         
         if search:
-            process_query["$and"] = [
-                {"$or": [
+            search_filter = {
+                "$or": [
                     {"client_name": {"$regex": search, "$options": "i"}},
                     {"client_email": {"$regex": search, "$options": "i"}},
                     {"personal_data.nif": {"$regex": search, "$options": "i"}}
-                ]}
-            ]
+                ]
+            }
+            if process_query:
+                process_query = {"$and": [process_query, search_filter]}
+            else:
+                process_query = search_filter
         
         # Buscar processos e transformar em "clientes"
         processes = await db.processes.find(
