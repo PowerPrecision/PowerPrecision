@@ -161,6 +161,56 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/health/detailed")
+async def health_check_detailed():
+    """Health check detalhado com status de todos os serviços."""
+    from services.task_queue import task_queue
+    
+    # Task Queue health
+    task_queue_health = await task_queue.health_check()
+    
+    # Database health
+    try:
+        await db.command("ping")
+        db_healthy = True
+    except Exception:
+        db_healthy = False
+    
+    return {
+        "status": "healthy" if db_healthy else "degraded",
+        "services": {
+            "database": {"status": "healthy" if db_healthy else "unhealthy"},
+            "task_queue": task_queue_health,
+            "sentry": {"enabled": bool(SENTRY_DSN)},
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ====================================================================
+# TASK QUEUE TEST ENDPOINT
+# ====================================================================
+@app.post("/api/test/enqueue-email")
+async def test_enqueue_email(to_email: str = "test@example.com"):
+    """
+    Endpoint de teste para enfileirar um email.
+    ⚠️ REMOVER EM PRODUÇÃO!
+    """
+    from services.task_queue import task_queue
+    
+    job_id = await task_queue.send_email(
+        to=to_email,
+        subject="Teste de Task Queue",
+        body="Este é um email de teste enviado via Task Queue."
+    )
+    
+    return {
+        "success": bool(job_id),
+        "job_id": job_id,
+        "message": "Email enfileirado" if job_id else "Task Queue não disponível"
+    }
+
+
 # ====================================================================
 # SENTRY DEBUG ENDPOINT (REMOVER EM PRODUÇÃO)
 # ====================================================================
