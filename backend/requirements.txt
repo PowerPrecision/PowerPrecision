@@ -64,3 +64,5 @@ limits==5.8.0
 safety==3.7.0
 safety-schemas==0.0.16
 slowapi==0.1.9
+sentry-sdk[fastapi,pymongo]==2.52.0
+# --- Observabilidade ---
