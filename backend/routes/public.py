@@ -61,7 +61,8 @@ def sanitize_email(email: str) -> str:
 
 
 @router.post("/client-registration")
-async def public_client_registration(data: PublicClientRegistration):
+@limiter.limit("3/minute")
+async def public_client_registration(request: Request, data: PublicClientRegistration):
     """
     Endpoint público para registo de clientes - sem autenticação.
     
