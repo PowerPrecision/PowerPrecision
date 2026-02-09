@@ -465,13 +465,13 @@ class WorkerSettings:
     redis_settings = get_redis_settings()
     
     # Configurações do worker
-    max_jobs = task_settings.max_jobs
-    job_timeout = task_settings.job_timeout
-    max_tries = task_settings.job_max_tries
+    max_jobs = TASK_MAX_JOBS
+    job_timeout = TASK_JOB_TIMEOUT
+    max_tries = TASK_MAX_TRIES
     retry_jobs = True
     
     # Health check
-    health_check_interval = task_settings.health_check_interval
+    health_check_interval = 30
     
     # Logging
     log_results = True
