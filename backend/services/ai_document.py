@@ -1199,6 +1199,22 @@ def build_update_data_from_extraction(
         # NIF do titular (IRS)
         if extracted_data.get('nif_titular'):
             personal_update['nif'] = extracted_data['nif_titular']
+        
+        # Estado civil do IRS
+        if extracted_data.get('estado_civil_fiscal'):
+            estado = extracted_data['estado_civil_fiscal'].lower()
+            if 'casad' in estado:
+                personal_update['estado_civil'] = 'casado'
+            elif 'soltei' in estado:
+                personal_update['estado_civil'] = 'solteiro'
+            elif 'uni' in estado or 'facto' in estado:
+                personal_update['estado_civil'] = 'uniao_facto'
+            elif 'divorc' in estado:
+                personal_update['estado_civil'] = 'divorciado'
+            elif 'viuv' in estado:
+                personal_update['estado_civil'] = 'viuvo'
+            else:
+                personal_update['estado_civil'] = estado
             
         # UK employee
         if employee.get('national_insurance_number'):
