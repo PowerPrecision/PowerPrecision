@@ -269,9 +269,9 @@ async def persist_document_analysis(process_id: str, document_type: str, content
 
 def validate_nif(nif: str) -> bool:
     """
-    Valida se o NIF é válido.
-    NIFs portugueses não podem começar por 0, 3, 4, 7, 8 (pessoas singulares começam por 1, 2, 5, 6).
-    NIFs de empresas começam por 5.
+    Valida se o NIF é válido para pessoa singular.
+    NIFs de pessoas singulares começam por 1, 2, 6 ou 9.
+    NIFs começados por 5 são de empresas/colectividades - REJEITADOS.
     """
     if not nif:
         return True  # Permitir vazio
@@ -282,21 +282,59 @@ def validate_nif(nif: str) -> bool:
     if len(nif) != 9:
         return False
     
-    # Para pessoas singulares, NIF deve começar por 1, 2 ou 6
-    # 5 é para empresas/colectividades
-    first_digit = nif[0]
-    
-    # NIFs de clientes (pessoas singulares) tipicamente começam por 1, 2 ou 6
-    # 5 é para entidades colectivas - provavelmente erro se aparecer como cliente
-    if first_digit == '5':
-        logger.warning(f"NIF {nif} começa por 5 (entidade colectiva) - possível erro")
+    # Rejeitar NIFs placeholder
+    if nif in ['123456789', '000000000', '111111111', '999999999']:
+        logger.warning(f"NIF {nif} é um placeholder - rejeitado")
         return False
     
-    if first_digit not in ['1', '2', '6', '9']:  # 9 é para entidades internacionais
+    first_digit = nif[0]
+    
+    # 5 é para entidades colectivas - SEMPRE REJEITAR para clientes
+    if first_digit == '5':
+        logger.warning(f"NIF {nif} começa por 5 (entidade colectiva) - REJEITADO")
+        return False
+    
+    # NIFs válidos para pessoas singulares: 1, 2, 6, 9
+    if first_digit not in ['1', '2', '6', '9']:
         logger.warning(f"NIF {nif} tem primeiro dígito inválido: {first_digit}")
         return False
     
     return True
+
+
+def is_placeholder_value(value: str) -> bool:
+    """Verifica se um valor é um placeholder (não real)."""
+    if not value:
+        return False
+    
+    value_str = str(value).strip().upper()
+    
+    # Datas placeholder
+    if value_str in ['YYYY-MM-DD', 'DD/MM/YYYY', 'DD-MM-YYYY', 'N/A', 'NA', 'NULL', 'NONE', '']:
+        return True
+    
+    # Valores numéricos placeholder
+    if value_str in ['123456789', '000000000', '0', '00000000', '12345678']:
+        return True
+    
+    # Se contém YYYY ou DD sem ser uma data real
+    if 'YYYY' in value_str or value_str == 'DD':
+        return True
+    
+    return False
+
+
+def clean_extracted_value(value):
+    """Limpa um valor extraído, removendo placeholders."""
+    if value is None:
+        return None
+    
+    if isinstance(value, str):
+        if is_placeholder_value(value):
+            return None
+        return value.strip() if value.strip() else None
+    
+    return value
 
 
 def is_cc_frente_or_verso(filename: str) -> Optional[str]:
