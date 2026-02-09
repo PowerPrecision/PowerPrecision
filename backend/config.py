@@ -40,39 +40,66 @@ DB_NAME = get_required_env('DB_NAME')
 
 
 # ====================================================================
-# CORS CONFIG (ESTRITO)
+# CORS CONFIG (FAIL-SECURE)
 # ====================================================================
-# CORS_ORIGINS deve ser definido explicitamente em produção
+# CORS_ORIGINS é OBRIGATÓRIO em produção.
 # Formato: "https://domain1.com,https://domain2.com"
-# Em desenvolvimento pode usar "*" mas NÃO em produção
+# A aplicação FALHA se não estiver correctamente configurado.
+# ====================================================================
 _cors_env = os.environ.get('CORS_ORIGINS', '').strip().strip('"').strip("'")
 
-# Validação estrita de CORS
+# FAIL-SECURE: A aplicação DEVE falhar se CORS não estiver configurado
 if not _cors_env:
-    print("⚠️  AVISO: CORS_ORIGINS não definido. Usando wildcard (*) - NÃO usar em produção!", file=sys.stderr)
-    CORS_ORIGINS = ["*"]
-elif _cors_env == '*':
-    print("⚠️  AVISO: CORS_ORIGINS definido como '*' - NÃO usar em produção!", file=sys.stderr)
-    CORS_ORIGINS = ["*"]
-else:
-    # Parsing e validação das origens
-    CORS_ORIGINS = []
-    for origin in _cors_env.split(','):
-        origin = origin.strip()
-        if origin:
-            # Validar formato da origem (deve ser URL válido)
-            if origin.startswith('http://') or origin.startswith('https://'):
-                CORS_ORIGINS.append(origin)
-            else:
-                print(f"⚠️  AVISO: Origem CORS inválida ignorada: {origin}", file=sys.stderr)
-    
-    if not CORS_ORIGINS:
-        print("❌ ERRO: Nenhuma origem CORS válida configurada!", file=sys.stderr)
-        CORS_ORIGINS = ["*"]
-    else:
-        print(f"✅ CORS configurado para: {', '.join(CORS_ORIGINS)}", file=sys.stderr)
+    raise ValueError(
+        "❌ ERRO FATAL: CORS_ORIGINS não definido!\n"
+        "   Configure a variável de ambiente CORS_ORIGINS com as origens permitidas.\n"
+        "   Exemplo: CORS_ORIGINS='https://meusite.com,https://app.meusite.com'\n"
+        "   A aplicação não pode arrancar sem configuração CORS explícita."
+    )
 
-# Configurações adicionais de CORS
+if _cors_env == '*':
+    raise ValueError(
+        "❌ ERRO FATAL: CORS_ORIGINS='*' não é permitido!\n"
+        "   Wildcards não são aceites em modo de produção.\n"
+        "   Configure origens específicas: CORS_ORIGINS='https://meusite.com'"
+    )
+
+# Parsing e validação estrita das origens
+CORS_ORIGINS = []
+_invalid_origins = []
+
+for origin in _cors_env.split(','):
+    origin = origin.strip()
+    if not origin:
+        continue
+    
+    # Validar formato da origem (deve ser URL válido com protocolo)
+    if origin.startswith('https://'):
+        CORS_ORIGINS.append(origin)
+    elif origin.startswith('http://localhost') or origin.startswith('http://127.0.0.1'):
+        # Permitir localhost apenas para desenvolvimento
+        print(f"⚠️  AVISO: Origem HTTP localhost permitida (apenas dev): {origin}", file=sys.stderr)
+        CORS_ORIGINS.append(origin)
+    elif origin.startswith('http://'):
+        _invalid_origins.append(f"{origin} (HTTP não seguro)")
+    else:
+        _invalid_origins.append(f"{origin} (formato inválido)")
+
+# Reportar origens inválidas
+if _invalid_origins:
+    print(f"⚠️  Origens CORS ignoradas: {', '.join(_invalid_origins)}", file=sys.stderr)
+
+# FAIL-SECURE: Deve haver pelo menos uma origem válida
+if not CORS_ORIGINS:
+    raise ValueError(
+        f"❌ ERRO FATAL: Nenhuma origem CORS válida configurada!\n"
+        f"   Origens rejeitadas: {', '.join(_invalid_origins) if _invalid_origins else 'nenhuma fornecida'}\n"
+        f"   Use HTTPS para origens de produção: CORS_ORIGINS='https://meusite.com'"
+    )
+
+print(f"✅ CORS configurado (fail-secure): {', '.join(CORS_ORIGINS)}", file=sys.stderr)
+
+# Configurações adicionais de CORS (com defaults seguros)
 CORS_ALLOW_CREDENTIALS = os.environ.get('CORS_ALLOW_CREDENTIALS', 'true').lower() == 'true'
 CORS_ALLOW_METHODS = os.environ.get('CORS_ALLOW_METHODS', 'GET,POST,PUT,DELETE,OPTIONS,PATCH').split(',')
 CORS_ALLOW_HEADERS = os.environ.get('CORS_ALLOW_HEADERS', 'Authorization,Content-Type,Accept,Origin,X-Requested-With').split(',')

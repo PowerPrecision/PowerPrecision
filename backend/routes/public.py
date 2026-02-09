@@ -61,7 +61,7 @@ def sanitize_email(email: str) -> str:
 
 
 @router.post("/client-registration")
-@limiter.limit("3/minute")
+@limiter.limit("5/hour")  # Rate limit restritivo para prevenir spam de registos
 async def public_client_registration(request: Request, data: PublicClientRegistration):
     """
     Endpoint público para registo de clientes - sem autenticação.
