@@ -66,3 +66,4 @@ safety-schemas==0.0.16
 slowapi==0.1.9
 sentry-sdk[fastapi,pymongo]==2.52.0
 # --- Observabilidade ---
+python-magic==0.4.27
