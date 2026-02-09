@@ -1,6 +1,21 @@
+"""
+====================================================================
+CREDITOIMO - BACKEND SERVER
+====================================================================
+Sistema de Gestão de Processos de Crédito Habitação
+
+Observabilidade: Sentry SDK para error tracking e performance monitoring
+====================================================================
+"""
 import logging
 import uuid
 from datetime import datetime, timezone
+
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.pymongo import PyMongoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
@@ -9,7 +24,9 @@ from slowapi.errors import RateLimitExceeded
 
 from config import (
     CORS_ORIGINS, CORS_ALLOW_CREDENTIALS, CORS_ALLOW_METHODS, 
-    CORS_ALLOW_HEADERS, CORS_MAX_AGE
+    CORS_ALLOW_HEADERS, CORS_MAX_AGE,
+    SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_TRACES_SAMPLE_RATE,
+    SENTRY_PROFILES_SAMPLE_RATE, SENTRY_SEND_DEFAULT_PII
 )
 from database import db, client
 from models.auth import UserRole
@@ -34,8 +51,73 @@ from routes.properties import router as properties_router
 from routes.clients import router as clients_router
 
 
+# ====================================================================
+# SENTRY INITIALIZATION (antes de qualquer outra coisa)
+# ====================================================================
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        
+        # Performance Monitoring
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=SENTRY_PROFILES_SAMPLE_RATE,
+        
+        # Integrações
+        integrations=[
+            FastApiIntegration(transaction_style="endpoint"),
+            StarletteIntegration(transaction_style="endpoint"),
+            PyMongoIntegration(),
+            LoggingIntegration(
+                level=logging.INFO,        # Capturar logs INFO+ como breadcrumbs
+                event_level=logging.ERROR  # Enviar logs ERROR+ como eventos
+            ),
+        ],
+        
+        # Configurações de privacidade
+        send_default_pii=SENTRY_SEND_DEFAULT_PII,
+        
+        # Filtrar eventos
+        before_send=_sentry_before_send,
+        
+        # Release tracking (usar em CI/CD)
+        release=f"creditoimo@{datetime.now().strftime('%Y.%m.%d')}",
+        
+        # Attach stack trace to messages
+        attach_stacktrace=True,
+        
+        # Enable debug mode in development
+        debug=SENTRY_ENVIRONMENT == "development",
+    )
+
+
+def _sentry_before_send(event, hint):
+    """
+    Hook para filtrar/modificar eventos antes de enviar ao Sentry.
+    Útil para remover dados sensíveis ou ignorar erros específicos.
+    """
+    # Ignorar erros de rate limiting (são esperados)
+    if "exception" in event:
+        exc_type = event.get("exception", {}).get("values", [{}])[0].get("type", "")
+        if exc_type in ["RateLimitExceeded"]:
+            return None
+    
+    # Remover dados sensíveis de headers
+    if "request" in event and "headers" in event["request"]:
+        headers = event["request"]["headers"]
+        sensitive_headers = ["authorization", "cookie", "x-api-key"]
+        for header in sensitive_headers:
+            if header in headers:
+                headers[header] = "[FILTERED]"
+    
+    return event
+
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 
