@@ -228,6 +228,7 @@ async def public_client_registration(request: Request, data: PublicClientRegistr
 
 
 @router.get("/health")
-async def public_health():
+@limiter.limit("30/minute")
+async def public_health(request: Request):
     """Health check público."""
     return {"status": "ok", "public": True}
