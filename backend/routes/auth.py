@@ -56,7 +56,8 @@ async def register(request: Request, data: UserRegister):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: UserLogin):
+@limiter.limit("5/minute")
+async def login(request: Request, data: UserLogin):
     from fastapi import HTTPException
     
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
