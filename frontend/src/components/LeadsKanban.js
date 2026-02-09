@@ -390,6 +390,8 @@ const LeadsKanban = () => {
         price: formData.price ? parseFloat(formData.price) : null,
         area: formData.area ? parseFloat(formData.area) : null,
         consultant: formData.consultant.name ? formData.consultant : null,
+        // Handle "none" value for client_id
+        client_id: formData.client_id === "none" ? "" : formData.client_id,
       };
 
       const url = editingLead
