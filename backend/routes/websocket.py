@@ -8,7 +8,7 @@ Endpoints WebSocket para comunicação em tempo real.
 
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from jose import JWTError, jwt
+import jwt  # CORREÇÃO: Usar PyJWT em vez de python-jose
 
 from config import JWT_SECRET, JWT_ALGORITHM
 from database import db
@@ -22,6 +22,7 @@ router = APIRouter(tags=["WebSocket"])
 async def verify_websocket_token(token: str) -> dict:
     """Verificar token JWT para conexão WebSocket."""
     try:
+        # CORREÇÃO: Utilização da biblioteca PyJWT
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
         
@@ -35,7 +36,7 @@ async def verify_websocket_token(token: str) -> dict:
             return None
         
         return user
-    except JWTError as e:
+    except jwt.PyJWTError as e: # CORREÇÃO: Capturar erros do PyJWT
         logger.error(f"Erro JWT WebSocket: {e}")
         return None
 
