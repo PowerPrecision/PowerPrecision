@@ -49,6 +49,7 @@ from routes.match import router as match_router
 from routes.system_config import router as system_config_router
 from routes.properties import router as properties_router
 from routes.clients import router as clients_router
+from routes.gdpr import router as gdpr_router
 
 
 # ====================================================================
