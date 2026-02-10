@@ -477,8 +477,16 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
     """
     system_prompt, user_prompt = get_extraction_prompts(document_type)
     
-    # Redimensionar imagem antes de enviar
-    resized_base64, new_mime_type = resize_image_base64(base64_content, mime_type)
+    # Para documentos de identificação (CC), NÃO redimensionar para preservar qualidade
+    # Para outros documentos, redimensionar para economizar tokens
+    if document_type in ['cc', 'cpcv']:
+        # Manter resolução original para documentos de ID
+        resized_base64 = base64_content
+        new_mime_type = mime_type
+        logger.info(f"Análise com visão: tipo={document_type}, mantendo resolução original")
+    else:
+        # Redimensionar imagem antes de enviar
+        resized_base64, new_mime_type = resize_image_base64(base64_content, mime_type)
     
     # Documentos de identificação (CC) precisam de alta resolução para ler números pequenos
     # Outros documentos podem usar baixa resolução para economizar tokens
