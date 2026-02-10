@@ -25,7 +25,6 @@ async def client():
     Não requer servidor a correr na porta 8001.
     """
     # CORREÇÃO CRÍTICA: Desligar o Rate Limiter durante os testes
-    # para evitar erro 429 (Too Many Requests)
     if hasattr(app.state, "limiter"):
         app.state.limiter.enabled = False
     
@@ -41,13 +40,12 @@ async def client():
 @pytest_asyncio.fixture
 async def admin_token(client):
     """Obter token de admin"""
-    # Tenta login com a password padrão
     response = await client.post("/auth/login", json={
         "email": "admin@sistema.pt",
         "password": "admin123" 
     })
     
-    # Fallback se a password for diferente (dependendo do seed)
+    # Fallback se a password for diferente
     if response.status_code != 200:
          response = await client.post("/auth/login", json={
             "email": "admin@sistema.pt",
@@ -60,7 +58,6 @@ async def admin_token(client):
 @pytest_asyncio.fixture
 async def consultor_token(client):
     """Obter token de consultor"""
-    # Tenta criar utilizador primeiro para garantir que existe
     await client.post("/auth/register", json={
         "email": "consultor@sistema.pt",
         "password": "consultor123",
