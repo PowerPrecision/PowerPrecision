@@ -9,3 +9,8 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+
+def get_motor_client():
+    """Retorna o cliente Motor para uso em contextos específicos."""
+    return client
