@@ -16,7 +16,7 @@ email-validator
 
 # --- Autenticação e Segurança ---
 passlib[bcrypt]
-bcrypt
+bcrypt==3.2.2
 PyJWT
 python-jose
 
@@ -59,14 +59,3 @@ openpyxl
 beautifulsoup4
 fake-useragent
 phonenumbers
-bandit==1.9.3
-limits==5.8.0
-safety==3.7.0
-safety-schemas==0.0.16
-slowapi==0.1.9
-sentry-sdk[fastapi,pymongo]==2.52.0
-# --- Observabilidade ---
-python-magic==0.4.27
-arq==0.26.1
-redis==5.2.1
-psutil
