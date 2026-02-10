@@ -1,6 +1,11 @@
 """
 Tests for CreditoIMO API
 Configuração central dos testes.
+
+NOTA: Os utilizadores de teste devem existir na DB:
+- admin@sistema.pt / admin123
+- consultor@sistema.pt / consultor123  
+- mediador@sistema.pt / mediador123
 """
 import os
 import sys
@@ -9,7 +14,6 @@ import asyncio
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from motor.motor_asyncio import AsyncIOMotorClient
 
 # CORREÇÃO: Definir modo de teste ANTES de importar a app
 os.environ["TESTING"] = "true"
@@ -33,20 +37,6 @@ def event_loop():
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="session")
-async def test_db():
-    """
-    Fixture que cria um cliente MongoDB separado para testes.
-    """
-    mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-    db_name = os.environ.get('DB_NAME', 'powerprecision_dev')
-    
-    client = AsyncIOMotorClient(mongo_url)
-    db = client[db_name]
-    yield db
-    client.close()
-
-
 @pytest_asyncio.fixture(scope="function")
 async def client():
     """
@@ -66,55 +56,15 @@ async def client():
         yield ac
 
 
-async def _ensure_test_user_via_db(db, email: str, password: str, name: str, role: str):
-    """Helper para criar/atualizar utilizador de teste diretamente na DB."""
-    import uuid
-    from datetime import datetime, timezone
-    from services.auth import hash_password
-    
-    hashed = hash_password(password)
-    now = datetime.now(timezone.utc).isoformat()
-    
-    # Verificar se já existe
-    existing = await db.users.find_one({"email": email})
-    
-    if existing:
-        # Atualizar password e garantir que está ativo
-        await db.users.update_one(
-            {"email": email},
-            {"$set": {
-                "password": hashed,
-                "is_active": True
-            }}
-        )
-    else:
-        # Criar novo utilizador
-        await db.users.insert_one({
-            "id": str(uuid.uuid4()),
-            "email": email,
-            "password": hashed,
-            "name": name,
-            "role": role,
-            "is_active": True,
-            "created_at": now
-        })
-
-
 # --- Fixtures de Autenticação ---
+# NOTA: Os utilizadores devem já existir na DB (criados via seed)
 
 @pytest_asyncio.fixture
-async def admin_token(client, test_db):
-    """Obter token de admin. Cria o user se não existir."""
-    email = "admin@sistema.pt"
-    password = "admin123"
-    
-    # 1. Garantir que o user existe na DB
-    await _ensure_test_user_via_db(test_db, email, password, "Admin Teste", "admin")
-    
-    # 2. Fazer Login
+async def admin_token(client):
+    """Obter token de admin (user deve existir na DB)."""
     response = await client.post("/auth/login", json={
-        "email": email,
-        "password": password
+        "email": "admin@sistema.pt",
+        "password": "admin123"
     })
     
     assert response.status_code == 200, f"Admin login failed: {response.text}"
@@ -122,26 +72,22 @@ async def admin_token(client, test_db):
 
 
 @pytest_asyncio.fixture
-async def consultor_token(client, test_db):
-    """Obter token de consultor. Cria o user se não existir."""
-    email = "consultor@sistema.pt"
-    password = "consultor123"
-    
-    await _ensure_test_user_via_db(test_db, email, password, "Consultor Teste", "consultor")
-    
-    response = await client.post("/auth/login", json={"email": email, "password": password})
+async def consultor_token(client):
+    """Obter token de consultor (user deve existir na DB)."""
+    response = await client.post("/auth/login", json={
+        "email": "consultor@sistema.pt",
+        "password": "consultor123"
+    })
     assert response.status_code == 200, f"Consultor login failed: {response.text}"
     return response.json()["access_token"]
 
 
 @pytest_asyncio.fixture
-async def mediador_token(client, test_db):
-    """Obter token de mediador. Cria o user se não existir."""
-    email = "mediador@sistema.pt"
-    password = "mediador123"
-    
-    await _ensure_test_user_via_db(test_db, email, password, "Mediador Teste", "mediador")
-    
-    response = await client.post("/auth/login", json={"email": email, "password": password})
+async def mediador_token(client):
+    """Obter token de mediador (user deve existir na DB)."""
+    response = await client.post("/auth/login", json={
+        "email": "mediador@sistema.pt",
+        "password": "mediador123"
+    })
     assert response.status_code == 200, f"Mediador login failed: {response.text}"
     return response.json()["access_token"]
