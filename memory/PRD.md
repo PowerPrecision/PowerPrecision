@@ -160,6 +160,12 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
     - Filtro por fase do workflow
     - Tabela com: Nº, Cliente, Fase, Ações Pendentes, Última Atualização, Ações
   - Link "Os Meus Clientes" adicionado na navegação para consultores
+- ✅ **Bug Fix - Dados CPCV não guardados (P2)**:
+  - Adicionados campos ao modelo `RealEstateData`: valor_imovel, data_cpcv, data_escritura_prevista, tipologia, etc.
+  - Adicionados campos ao modelo `FinancialData`: valor_entrada, valor_pretendido, data_sinal, etc.
+  - Adicionados campos ao modelo `ProcessUpdate`: co_buyers, vendedor, mediador
+  - Adicionados campos ao modelo `ProcessResponse` para retornar dados do CPCV
+  - Endpoint `PUT /processes/{id}` agora guarda todos os campos do CPCV
 - ✅ **Instalação libmagic**: Corrigido erro de importação do python-magic para validação de ficheiros
 
 **9 Fevereiro 2026**
