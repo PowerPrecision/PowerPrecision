@@ -642,26 +642,78 @@ const LeadsKanban = () => {
   return (
     <div className="h-full" data-testid="leads-kanban">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Gestão de Leads / Visitas
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Arraste os cartões entre colunas para alterar o estado
-          </p>
+      <div className="flex flex-col gap-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Gestão de Leads / Visitas
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Arraste os cartões entre colunas para alterar o estado
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsDialogOpen(true);
+            }}
+            data-testid="add-lead-btn"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Lead
+          </Button>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setIsDialogOpen(true);
-          }}
-          data-testid="add-lead-btn"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Lead
-        </Button>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap gap-4 items-center p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Filtrar por Consultor:</Label>
+            <Select value={filterConsultor} onValueChange={setFilterConsultor}>
+              <SelectTrigger className="w-[200px]" data-testid="filter-consultor">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {consultores.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name || c.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Filtrar por Estado:</Label>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[180px]" data-testid="filter-status">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {LEAD_STATUSES.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(filterConsultor !== "all" || filterStatus !== "all") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFilterConsultor("all");
+                setFilterStatus("all");
+              }}
+            >
+              Limpar filtros
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -675,6 +727,7 @@ const LeadsKanban = () => {
             onEdit={handleEdit}
             onStatusChange={handleStatusChange}
             onDelete={handleDelete}
+            onRefreshPrice={handleRefreshPrice}
             clients={clients}
           />
         ))}
