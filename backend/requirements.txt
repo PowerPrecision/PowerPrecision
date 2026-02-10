@@ -59,3 +59,6 @@ openpyxl
 beautifulsoup4
 fake-useragent
 phonenumbers
+
+# --- Monitorização (O que faltava) ---
+sentry-sdk

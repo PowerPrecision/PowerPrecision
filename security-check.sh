@@ -63,7 +63,7 @@ echo "  - bandit-report.json (análise de código)"
 echo ""
 echo -e "${YELLOW}=== Issues Principais (Bandit - Medium/High) ===${NC}"
 
-# CORREÇÃO AQUI: Substituído -ll por --severity-level medium para evitar conflitos
+# CORREÇÃO AQUI: Usar apenas a flag nova e explicita
 bandit -r . --exclude "./tests,./venv,./.venv" \
     --severity-level medium \
     --confidence-level medium \
