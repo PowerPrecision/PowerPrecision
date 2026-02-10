@@ -1,0 +1,324 @@
+# ====================================================================
+# DOCKER COMPOSE - CREDITOIMO
+# ====================================================================
+# Stack completa: Backend + MongoDB + Redis
+#
+# Comandos úteis:
+#   docker compose up -d              # Iniciar todos os serviços
+#   docker compose up -d --build      # Rebuild e iniciar
+#   docker compose logs -f backend    # Ver logs do backend
+#   docker compose down               # Parar todos os serviços
+#   docker compose down -v            # Parar e remover volumes
+#
+# Ambientes:
+#   docker compose up -d                      # Produção (default)
+#   docker compose --profile dev up -d        # Desenvolvimento
+#   docker compose --profile worker up -d     # Com ARQ worker
+#
+# ====================================================================
+
+version: "3.9"
+
+services:
+  # ==================================================================
+  # BACKEND - FastAPI
+  # ==================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production  # ou 'development' para dev
+    container_name: creditoimo-backend
+    restart: unless-stopped
+    
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    
+    environment:
+      # MongoDB
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=${DB_NAME:-creditoimo}
+      
+      # Redis (Task Queue)
+      - REDIS_URL=redis://redis:6379/0
+      
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      
+      # CORS
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      
+      # Email
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
+      - EMAIL_API_KEY=${EMAIL_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@creditoimo.pt}
+      - SMTP_SERVER=${SMTP_SERVER:-}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_EMAIL=${SMTP_EMAIL:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      
+      # Sentry (Observabilidade)
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      
+      # Trello
+      - TRELLO_API_KEY=${TRELLO_API_KEY:-}
+      - TRELLO_TOKEN=${TRELLO_TOKEN:-}
+      - TRELLO_BOARD_ID=${TRELLO_BOARD_ID:-}
+      
+      # App
+      - APP_ENV=production
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-4}
+    
+    volumes:
+      # Volume para ficheiros temporários
+      - backend-temp:/app/temp
+      # Volume para logs
+      - backend-logs:/app/logs
+    
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - creditoimo-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================================================================
+  # BACKEND DEV - Com hot reload
+  # ==================================================================
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: creditoimo-backend-dev
+    profiles: ["dev"]
+    restart: unless-stopped
+    
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=${DB_NAME:-creditoimo_dev}
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-me}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - SENTRY_ENVIRONMENT=development
+      - APP_ENV=development
+    
+    volumes:
+      # Mount do código para hot reload
+      - ./backend:/app:cached
+      - backend-temp:/app/temp
+    
+    depends_on:
+      - mongodb
+      - redis
+    
+    networks:
+      - creditoimo-network
+
+  # ==================================================================
+  # ARQ WORKER - Task Queue
+  # ==================================================================
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: creditoimo-worker
+    profiles: ["worker", "full"]
+    restart: unless-stopped
+    
+    command: ["arq", "worker.WorkerSettings"]
+    
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=${DB_NAME:-creditoimo}
+      - REDIS_URL=redis://redis:6379/0
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
+      - EMAIL_API_KEY=${EMAIL_API_KEY:-}
+      - SMTP_SERVER=${SMTP_SERVER:-}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_EMAIL=${SMTP_EMAIL:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+    
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - creditoimo-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================================================================
+  # MONGODB
+  # ==================================================================
+  mongodb:
+    image: mongo:7.0
+    container_name: creditoimo-mongodb
+    restart: unless-stopped
+    
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    
+    environment:
+      # Autenticação (comentar para dev sem auth)
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-}
+      - MONGO_INITDB_DATABASE=${DB_NAME:-creditoimo}
+    
+    volumes:
+      # Persistência de dados
+      - mongodb-data:/data/db
+      # Configuração customizada
+      - mongodb-config:/data/configdb
+      # Script de inicialização (opcional)
+      # - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    
+    networks:
+      - creditoimo-network
+    
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================================================================
+  # REDIS - Cache e Task Queue
+  # ==================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: creditoimo-redis
+    restart: unless-stopped
+    
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    
+    volumes:
+      - redis-data:/data
+    
+    networks:
+      - creditoimo-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================================================================
+  # MONGO EXPRESS - UI para MongoDB (dev apenas)
+  # ==================================================================
+  mongo-express:
+    image: mongo-express:1.0
+    container_name: creditoimo-mongo-express
+    profiles: ["dev", "tools"]
+    restart: unless-stopped
+    
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_USER:-}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_PASSWORD:-}
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-admin123}
+    
+    depends_on:
+      - mongodb
+    
+    networks:
+      - creditoimo-network
+
+  # ==================================================================
+  # REDIS COMMANDER - UI para Redis (dev apenas)
+  # ==================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: creditoimo-redis-commander
+    profiles: ["dev", "tools"]
+    restart: unless-stopped
+    
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8082}:8081"
+    
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    
+    depends_on:
+      - redis
+    
+    networks:
+      - creditoimo-network
+
+
+# ==================================================================
+# NETWORKS
+# ==================================================================
+networks:
+  creditoimo-network:
+    name: creditoimo-network
+    driver: bridge
+
+
+# ==================================================================
+# VOLUMES
+# ==================================================================
+volumes:
+  mongodb-data:
+    name: creditoimo-mongodb-data
+  mongodb-config:
+    name: creditoimo-mongodb-config
+  redis-data:
+    name: creditoimo-redis-data
+  backend-temp:
+    name: creditoimo-backend-temp
+  backend-logs:
+    name: creditoimo-backend-logs
