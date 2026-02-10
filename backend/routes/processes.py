@@ -829,6 +829,16 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
         if data.client_phone is not None:
             update_data["client_phone"] = data.client_phone
         
+        # Campos adicionais do CPCV
+        if data.co_buyers is not None:
+            update_data["co_buyers"] = data.co_buyers
+        if data.co_applicants is not None:
+            update_data["co_applicants"] = data.co_applicants
+        if data.vendedor is not None:
+            update_data["vendedor"] = data.vendedor
+        if data.mediador is not None:
+            update_data["mediador"] = data.mediador
+        
         if data.status and can_update_status and (data.status in valid_statuses or not valid_statuses):
             await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
             update_data["status"] = data.status
