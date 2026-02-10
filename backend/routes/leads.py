@@ -104,6 +104,21 @@ async def get_leads_by_status(
     
     return grouped
 
+
+@router.get("/consultores")
+async def get_consultores_for_filter(user: dict = Depends(get_current_user)):
+    """
+    Obter lista de consultores para os filtros do Kanban.
+    Retorna utilizadores com role consultor, diretor ou admin.
+    """
+    consultores = await db.users.find(
+        {"role": {"$in": ["consultor", "diretor", "admin", "administrativo"]}},
+        {"_id": 0, "id": 1, "name": 1, "email": 1}
+    ).to_list(length=100)
+    
+    return consultores
+
+
 @router.post("/extract-url")
 async def extract_url_data(
     payload: Dict[str, str], # Recebe JSON { "url": "..." }
