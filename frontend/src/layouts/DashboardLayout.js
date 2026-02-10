@@ -141,9 +141,21 @@ const DashboardLayout = ({ children, title }) => {
 
     // For staff roles (consultor, mediador, intermediario, ceo, etc.)
     if (["consultor", "mediador", "intermediario", "consultor_intermediario", "ceo", "diretor", "administrativo"].includes(user?.role)) {
-      return [
+      const items = [
         ...baseItems,
         statsItem,
+      ];
+      
+      // Adicionar "Os Meus Clientes" apenas para consultores
+      if (user?.role === "consultor") {
+        items.push({
+          label: "Os Meus Clientes",
+          icon: Users,
+          href: "/meus-clientes",
+        });
+      }
+      
+      items.push(
         {
           label: "Todos os Processos",
           icon: FileText,
