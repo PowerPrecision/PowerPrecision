@@ -232,6 +232,95 @@ async def update_lead_status(
     )
     return {"success": True, "status": status}
 
+
+@router.post("/{lead_id}/refresh")
+async def refresh_lead_price(
+    lead_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Verificar se o preço do lead mudou visitando o URL novamente.
+    Se mudou, actualiza a DB e adiciona entrada ao histórico.
+    """
+    # Buscar lead
+    lead = await db.property_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+    
+    url = lead.get("url")
+    if not url:
+        raise HTTPException(status_code=400, detail="Lead não tem URL associado")
+    
+    old_price = lead.get("price")
+    
+    try:
+        # Fazer scraping novamente
+        scraped_data = await scrape_property_url(url)
+        
+        if scraped_data.get("error"):
+            return {
+                "success": False,
+                "message": f"Erro ao verificar: {scraped_data.get('error')}",
+                "old_price": old_price,
+                "new_price": None,
+                "price_changed": False
+            }
+        
+        new_price = scraped_data.get("preco")
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Verificar se o preço mudou
+        price_changed = new_price is not None and new_price != old_price
+        
+        update_fields = {
+            "updated_at": now,
+            "last_checked_at": now
+        }
+        
+        history_entry = {
+            "timestamp": now,
+            "event": "Preço verificado",
+            "user": user.get("email")
+        }
+        
+        if price_changed:
+            update_fields["price"] = new_price
+            history_entry["event"] = f"Preço alterado de {old_price or 'N/D'}€ para {new_price}€"
+            logger.info(f"Lead {lead_id}: Preço alterado de {old_price} para {new_price}")
+        
+        # Também actualizar outros campos se disponíveis
+        if scraped_data.get("titulo"):
+            update_fields["title"] = scraped_data.get("titulo")
+        if scraped_data.get("localizacao"):
+            update_fields["location"] = scraped_data.get("localizacao")
+        
+        await db.property_leads.update_one(
+            {"id": lead_id},
+            {
+                "$set": update_fields,
+                "$push": {"history": history_entry}
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": "Preço alterado" if price_changed else "Preço sem alteração",
+            "old_price": old_price,
+            "new_price": new_price,
+            "price_changed": price_changed
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao verificar preço do lead {lead_id}: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Erro ao verificar preço: {str(e)}",
+            "old_price": old_price,
+            "new_price": None,
+            "price_changed": False
+        }
+
+
 @router.delete("/{lead_id}")
 async def delete_lead(lead_id: str, user: dict = Depends(get_current_user)):
     """Eliminar lead."""
