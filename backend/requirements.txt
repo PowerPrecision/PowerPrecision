@@ -4,6 +4,7 @@ uvicorn
 python-dotenv
 python-multipart
 jinja2
+slowapi
 
 # --- Base de Dados ---
 motor
