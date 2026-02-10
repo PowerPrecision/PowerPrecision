@@ -48,6 +48,7 @@ pywebpush
 stripe
 
 # --- Processamento de Ficheiros (PDFs e Imagens) ---
+python-magic
 PyMuPDF
 pypdf
 img2pdf
