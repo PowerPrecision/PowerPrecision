@@ -146,7 +146,8 @@ def extract_all_names_from_string(text: str) -> Set[str]:
 
 def calculate_document_hash(content: bytes) -> str:
     """Calcular hash MD5 do conteúdo do documento."""
-    return hashlib.md5(content).hexdigest()
+    # CORREÇÃO DE SEGURANÇA: Adicionado usedforsecurity=False
+    return hashlib.md5(content, usedforsecurity=False).hexdigest()
 
 
 async def is_duplicate_document_db(process_id: str, document_type: str, doc_hash: str) -> Optional[dict]:
