@@ -24,15 +24,18 @@ logger = logging.getLogger(__name__)
 async def list_leads(
     status: Optional[LeadStatus] = None,
     client_id: Optional[str] = None,
+    consultor_id: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
-    """Listar todos os leads de imóveis."""
+    """Listar todos os leads de imóveis com filtros opcionais."""
     query = {}
     
     if status:
         query["status"] = status.value
     if client_id:
         query["client_id"] = client_id
+    if consultor_id:
+        query["created_by_id"] = consultor_id
     
     # Busca leads e exclui o _id do mongo
     leads = await db.property_leads.find(query, {"_id": 0}).to_list(length=500)
@@ -49,10 +52,26 @@ async def list_leads(
     
     return leads
 
+
 @router.get("/by-status")
-async def get_leads_by_status(user: dict = Depends(get_current_user)):
-    """Obter leads agrupados por status (para o Kanban)."""
-    leads = await db.property_leads.find({}, {"_id": 0}).to_list(length=500)
+async def get_leads_by_status(
+    consultor_id: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Obter leads agrupados por status (para o Kanban).
+    Suporta filtros por consultor e por estado.
+    """
+    query = {}
+    
+    if consultor_id:
+        query["created_by_id"] = consultor_id
+    
+    if status_filter and status_filter != "all":
+        query["status"] = status_filter
+    
+    leads = await db.property_leads.find(query, {"_id": 0}).to_list(length=500)
     
     # Inicializar grupos
     grouped = {status.value: [] for status in LeadStatus}
@@ -64,10 +83,22 @@ async def get_leads_by_status(user: dict = Depends(get_current_user)):
             if process:
                 lead["client_name"] = process.get("client_name")
         
+        # Calcular dias desde criação
+        if lead.get("created_at"):
+            try:
+                from datetime import datetime, timezone
+                created = datetime.fromisoformat(lead["created_at"].replace('Z', '+00:00'))
+                days_old = (datetime.now(timezone.utc) - created).days
+                lead["days_old"] = days_old
+                lead["is_stale"] = days_old > 7 and lead.get("status") == LeadStatus.NOVO.value
+            except:
+                lead["days_old"] = 0
+                lead["is_stale"] = False
+        
         # Agrupar
-        status = lead.get("status", LeadStatus.NOVO.value)
-        if status in grouped:
-            grouped[status].append(lead)
+        lead_status = lead.get("status", LeadStatus.NOVO.value)
+        if lead_status in grouped:
+            grouped[lead_status].append(lead)
         else:
             grouped[LeadStatus.NOVO.value].append(lead)
     
