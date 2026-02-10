@@ -122,8 +122,12 @@ rate_limit_tracker = RateLimitTracker()
 def on_request(request_type, name, response_time, response_length, 
                response, context, exception, start_time, url, **kwargs):
     """Listener para todos os requests - rastreia rate limits."""
-    if response:
-        rate_limit_tracker.record_request(name, response.status_code)
+    if response is not None:
+        try:
+            status_code = response.status_code
+            rate_limit_tracker.record_request(name, status_code)
+        except Exception:
+            pass  # Ignorar erros no tracking
 
 
 @events.test_stop.add_listener
