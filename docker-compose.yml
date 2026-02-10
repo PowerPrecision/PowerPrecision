@@ -404,3 +404,11 @@ volumes:
     name: creditoimo-backend-temp
   backend-logs:
     name: creditoimo-backend-logs
+  nginx-ssl:
+    name: creditoimo-nginx-ssl
+  nginx-logs:
+    name: creditoimo-nginx-logs
+  letsencrypt:
+    name: creditoimo-letsencrypt
+  certbot-www:
+    name: creditoimo-certbot-www
