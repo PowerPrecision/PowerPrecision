@@ -244,9 +244,49 @@ class PropertyScraper:
         # Lógica Remax
         return data
         
-    def _parse_era(self, soup: BeautifulSoup) -> Dict[str, Any]:
+    def _parse_era(self, soup: BeautifulSoup, html_content: str = "") -> Dict[str, Any]:
         data = {"fonte": "era"}
-        # Lógica ERA
+        
+        # Título
+        title = soup.find('h1', class_='property-title') or soup.find('h1')
+        if title:
+            data["titulo"] = self._clean_text(title.get_text())
+        
+        # Preço
+        price_elem = soup.find('span', class_='property-price') or soup.find('div', class_='price')
+        if price_elem:
+            data["preco"] = self._clean_price(price_elem.get_text())
+        
+        # Localização
+        loc = soup.find('div', class_='property-location') or soup.find('span', class_='location')
+        if loc:
+            data["localizacao"] = self._clean_text(loc.get_text())
+        
+        # Características
+        features = soup.find_all('li', class_='property-feature')
+        for f in features:
+            text = f.get_text().lower()
+            if 't' in text and any(c.isdigit() for c in text):
+                data["tipologia"] = self._clean_text(text)
+            elif 'm²' in text:
+                data["area"] = self._clean_text(re.sub(r'[^\d]', '', text))
+        
+        # Foto
+        og_img = soup.find('meta', property='og:image')
+        if og_img:
+            data["foto_principal"] = og_img.get('content')
+        
+        # Consultor
+        agent = soup.find('div', class_='agent-info') or soup.find('div', class_='consultant')
+        if agent:
+            name = agent.find('span', class_='name') or agent.find('h4')
+            phone = agent.find('a', href=re.compile(r'^tel:'))
+            data["consultor"] = {}
+            if name:
+                data["consultor"]["nome"] = self._clean_text(name.get_text())
+            if phone:
+                data["consultor"]["telefone"] = phone.get('href').replace('tel:', '')
+        
         return data
         
     def _parse_kw(self, soup: BeautifulSoup) -> Dict[str, Any]:
