@@ -643,17 +643,30 @@ def get_extraction_prompts(document_type: str) -> tuple:
     
     if document_type == "cc":
         system_prompt = """És um assistente especializado em extrair dados de documentos de identificação portugueses (Cartão de Cidadão).
-        
+
+IMPORTANTE - Localização dos dados no Cartão de Cidadão Português:
+- O NIF (Número de Identificação Fiscal) tem 9 dígitos e aparece no VERSO do cartão, na secção "Nº DE IDENTIFICAÇÃO FISCAL"
+- O número do documento aparece na FRENTE do cartão
+- A data de nascimento aparece na FRENTE do cartão no formato DD MM YYYY
+- O nome completo aparece na FRENTE do cartão
+
 Extraia TODOS os dados visíveis do documento e retorna em formato JSON estruturado.
-Sê preciso com datas, números e nomes.
+Sê MUITO preciso com números - lê cada dígito cuidadosamente.
+O NIF português para pessoas singulares começa por 1, 2, 6 ou 9 (NUNCA por 5 que é para empresas).
 Se algum campo não for legível ou não existir, usa null."""
         
-        user_prompt = """Analisa este Cartão de Cidadão português e extrai os seguintes dados em formato JSON:
+        user_prompt = """Analisa este Cartão de Cidadão português e extrai os seguintes dados em formato JSON.
+
+ATENÇÃO AO NIF:
+- O NIF tem EXACTAMENTE 9 dígitos
+- Aparece no VERSO do cartão, na linha "Nº DE IDENTIFICAÇÃO FISCAL" ou "NIF"
+- Lê cada dígito cuidadosamente, especialmente o primeiro dígito
+- NIFs válidos para pessoas: começam por 1, 2, 6 ou 9
 
 {
-    "nome_completo": "Nome completo da pessoa",
-    "nif": "Número de Identificação Fiscal (9 dígitos)",
-    "numero_documento": "Número do CC",
+    "nome_completo": "Nome completo da pessoa (apelidos + nomes próprios)",
+    "nif": "Número de Identificação Fiscal - EXACTAMENTE 9 dígitos, ex: 268494622",
+    "numero_documento": "Número do documento CC",
     "data_nascimento": "Data de nascimento (formato YYYY-MM-DD)",
     "data_validade": "Data de validade do documento (formato YYYY-MM-DD)",
     "naturalidade": "Local de nascimento",
