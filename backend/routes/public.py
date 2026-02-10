@@ -16,6 +16,10 @@ import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from starlette.requests import Request
+
 from database import db
 from models.auth import UserRole
 from models.process import PublicClientRegistration
@@ -23,6 +27,7 @@ from services.email import send_registration_confirmation, send_new_client_notif
 from services.alerts import notify_new_client_registration
 from middleware.rate_limit import limiter
 
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/public", tags=["Public"])
 
