@@ -136,6 +136,7 @@ class FinancialData(BaseModel):
     - acesso_portal_financas, chave_movel_digital, renda_habitacao_atual
     - precisa_vender_casa, efetivo, fiador, bancos_creditos
     - capital_proprio, valor_financiado
+    - Dados do CPCV: valor_entrada, valor_pretendido, etc.
     """
     acesso_portal_financas: Optional[str] = None
     chave_movel_digital: Optional[str] = None
@@ -146,6 +147,12 @@ class FinancialData(BaseModel):
     bancos_creditos: Optional[List[str]] = None
     capital_proprio: Optional[float] = None
     valor_financiado: Optional[str] = None
+    # Dados do CPCV - Valores
+    valor_pretendido: Optional[float] = None
+    valor_entrada: Optional[float] = None
+    data_sinal: Optional[str] = None
+    reforco_sinal: Optional[float] = None
+    comissao_mediacao: Optional[float] = None
 
 
 class CreditData(BaseModel):
