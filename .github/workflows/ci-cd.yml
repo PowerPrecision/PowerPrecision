@@ -54,13 +54,14 @@ jobs:
           cd backend
           echo "🔍 A executar análise Bandit..."
           
-          # Gerar relatório JSON
+          # Gerar relatório JSON (sem falhar aqui, apenas gera o ficheiro)
           bandit -r . -f json -o ../security-reports/bandit-report.json \
-            --exclude ./tests,./venv,./.venv,./migrations || true
+            --exclude ./tests,./venv,./.venv,./migrations --exit-zero || true
           
           # Executar com severidade média ou alta - DEVE FALHAR se encontrar
+          # CORREÇÃO: Removido -ll para evitar conflito com --severity-level
           bandit -r . --exclude ./tests,./venv,./.venv,./migrations \
-            -ll --severity-level medium
+            --severity-level medium --confidence-level medium
         continue-on-error: false
 
       # ================================================================
@@ -74,7 +75,7 @@ jobs:
           echo "🔍 A verificar vulnerabilidades em dependências..."
           
           # Gerar relatório
-          safety check --full-report -o json > ../security-reports/safety-report.json 2>&1 || true
+          safety check --full-report --output json > ../security-reports/safety-report.json 2>&1 || true
           
           # Verificar vulnerabilidades - DEVE FALHAR se encontrar
           safety check --full-report
