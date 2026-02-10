@@ -74,11 +74,17 @@ jobs:
           cd backend
           echo "🔍 A verificar vulnerabilidades em dependências..."
           
-          # Gerar relatório
-          safety check --full-report --output json > ../security-reports/safety-report.json 2>&1 || true
+          # IDs Ignorados:
+          # 64459, 64396: Vulnerabilidades no python-ecdsa (Minerva attack/side-channel)
+          # Os mantedores não vão corrigir (limitação do python puro) e não usamos ECDSA directamente.
           
-          # Verificar vulnerabilidades - DEVE FALHAR se encontrar
-          safety check --full-report
+          # Gerar relatório
+          safety check --full-report --output json \
+            --ignore 64459 --ignore 64396 \
+            > ../security-reports/safety-report.json 2>&1 || true
+          
+          # Verificar vulnerabilidades - DEVE FALHAR se encontrar (exceto as ignoradas)
+          safety check --full-report --ignore 64459 --ignore 64396
         continue-on-error: false
 
       - name: Upload Security Reports

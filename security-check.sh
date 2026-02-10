@@ -26,7 +26,13 @@ mkdir -p "$REPORTS_DIR"
 echo -e "${YELLOW}[1/2] A executar Safety (vulnerabilidades de dependências)...${NC}"
 cd "$BACKEND_DIR"
 
-if safety check --output json > "$REPORTS_DIR/safety-report.json" 2>/dev/null; then
+# Instala safety se necessário
+pip install safety bandit > /dev/null 2>&1 || true
+
+# Ignora vulnerabilidades conhecidas e sem fix (ecdsa)
+# 64459: Minerva attack (python-ecdsa won't fix)
+# 64396: Side-channel attacks (python-ecdsa won't fix)
+if safety check --output json --ignore 64459 --ignore 64396 > "$REPORTS_DIR/safety-report.json" 2>/dev/null; then
     echo -e "${GREEN}✓ Nenhuma vulnerabilidade crítica encontrada${NC}"
 else
     echo -e "${RED}⚠ Vulnerabilidades encontradas - ver $REPORTS_DIR/safety-report.json${NC}"
@@ -63,7 +69,7 @@ echo "  - bandit-report.json (análise de código)"
 echo ""
 echo -e "${YELLOW}=== Issues Principais (Bandit - Medium/High) ===${NC}"
 
-# CORREÇÃO AQUI: Usar apenas a flag nova e explicita
+# CORREÇÃO: Usar apenas a flag nova e explicita
 bandit -r . --exclude "./tests,./venv,./.venv" \
     --severity-level medium \
     --confidence-level medium \
