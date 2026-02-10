@@ -676,6 +676,10 @@ class WorkerSettings:
         # GDPR / Conformidade
         gdpr_anonymization_task,
         gdpr_audit_report_task,
+        
+        # Backup
+        database_backup_task,
+        backup_verification_task,
     ]
     
     # Tarefas agendadas (cron)
