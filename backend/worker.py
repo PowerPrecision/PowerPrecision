@@ -550,6 +550,10 @@ class WorkerSettings:
         cleanup_temp_files_task,
         generate_daily_report_task,
         check_deadlines_task,
+        
+        # GDPR / Conformidade
+        gdpr_anonymization_task,
+        gdpr_audit_report_task,
     ]
     
     # Tarefas agendadas (cron)
@@ -562,6 +566,12 @@ class WorkerSettings:
         
         # Verificar prazos a cada hora
         cron(check_deadlines_task, minute=0),
+        
+        # GDPR: Anonimização semanal (domingo às 2:00)
+        cron(gdpr_anonymization_task, weekday=6, hour=2, minute=0),
+        
+        # GDPR: Relatório de auditoria mensal (dia 1 às 6:00)
+        cron(gdpr_audit_report_task, day=1, hour=6, minute=0),
     ]
     
     # Lifecycle hooks
