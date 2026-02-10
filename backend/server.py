@@ -156,35 +156,235 @@ app.include_router(clients_router, prefix="/api")
 app.include_router(gdpr_router, prefix="/api")
 
 
-# Health check endpoint for Kubernetes
+# ====================================================================
+# HEALTH CHECK ENDPOINTS
+# ====================================================================
+# /health         - Kubernetes liveness/readiness probes (retorna 503 se unhealthy)
+# /health/live    - Liveness probe simples (app está a correr)
+# /health/ready   - Readiness probe (dependências prontas)
+# /health/detailed- Health check detalhado com métricas
+# ====================================================================
+
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for Kubernetes liveness/readiness probes."""
-    return {"status": "healthy"}
+    """
+    Health check principal para Kubernetes probes.
+    
+    Verifica:
+    - MongoDB: db.command('ping')
+    - Redis: redis.ping() (se configurado)
+    
+    Retorna:
+    - 200 OK: Todos os componentes healthy
+    - 503 Service Unavailable: Algum componente critical down
+    
+    Kubernetes usa este endpoint para:
+    - Liveness probe: reiniciar se falhar
+    - Readiness probe: remover do load balancer se falhar
+    """
+    from fastapi.responses import JSONResponse
+    
+    components = {}
+    is_healthy = True
+    
+    # ================================================================
+    # 1. CHECK MONGODB (CRITICAL)
+    # ================================================================
+    try:
+        # Ping com timeout de 5 segundos
+        await db.command("ping")
+        components["mongodb"] = {
+            "status": "up",
+            "latency_ms": None  # Poderia medir o tempo
+        }
+    except Exception as e:
+        components["mongodb"] = {
+            "status": "down",
+            "error": str(e)[:100]
+        }
+        is_healthy = False
+        logger.error(f"[HEALTH] MongoDB down: {str(e)}")
+    
+    # ================================================================
+    # 2. CHECK REDIS (OPTIONAL - não falha health se não configurado)
+    # ================================================================
+    try:
+        from services.task_queue import task_queue
+        
+        if task_queue.is_connected:
+            # Redis está conectado e configurado
+            redis_health = await task_queue.health_check()
+            if redis_health.get("redis"):
+                components["redis"] = {
+                    "status": "up",
+                    "version": redis_health.get("redis_version", "unknown")
+                }
+            else:
+                components["redis"] = {
+                    "status": "down",
+                    "error": redis_health.get("error", "Unknown error")
+                }
+                # Redis down não é crítico - app funciona sem ele
+                logger.warning("[HEALTH] Redis down (non-critical)")
+        else:
+            components["redis"] = {
+                "status": "not_configured",
+                "message": "Task queue not connected"
+            }
+    except Exception as e:
+        components["redis"] = {
+            "status": "error",
+            "error": str(e)[:100]
+        }
+        logger.warning(f"[HEALTH] Redis check failed: {str(e)}")
+    
+    # ================================================================
+    # BUILD RESPONSE
+    # ================================================================
+    response_data = {
+        "status": "healthy" if is_healthy else "unhealthy",
+        "components": components,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Retornar 503 se unhealthy (para Kubernetes saber que deve reiniciar)
+    if not is_healthy:
+        return JSONResponse(
+            status_code=503,
+            content=response_data
+        )
+    
+    return response_data
+
+
+@app.get("/health/live")
+async def liveness_probe():
+    """
+    Liveness probe simples - apenas verifica se a app está a correr.
+    
+    Não verifica dependências externas.
+    Usado por Kubernetes para detectar deadlocks.
+    """
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+async def readiness_probe():
+    """
+    Readiness probe - verifica se a app está pronta para receber tráfego.
+    
+    Verifica se todas as dependências críticas estão disponíveis.
+    """
+    from fastapi.responses import JSONResponse
+    
+    is_ready = True
+    checks = {}
+    
+    # MongoDB é obrigatório
+    try:
+        await db.command("ping")
+        checks["mongodb"] = "ready"
+    except Exception:
+        checks["mongodb"] = "not_ready"
+        is_ready = False
+    
+    response = {
+        "status": "ready" if is_ready else "not_ready",
+        "checks": checks
+    }
+    
+    if not is_ready:
+        return JSONResponse(status_code=503, content=response)
+    
+    return response
 
 
 @app.get("/health/detailed")
 async def health_check_detailed():
-    """Health check detalhado com status de todos os serviços."""
+    """
+    Health check detalhado com métricas de todos os serviços.
+    
+    Inclui:
+    - Status de cada componente
+    - Métricas de performance
+    - Configurações activas
+    """
     from services.task_queue import task_queue
+    import psutil
     
-    # Task Queue health
-    task_queue_health = await task_queue.health_check()
+    components = {}
     
-    # Database health
+    # ================================================================
+    # MONGODB
+    # ================================================================
     try:
-        await db.command("ping")
-        db_healthy = True
+        start = datetime.now(timezone.utc)
+        result = await db.command("ping")
+        latency = (datetime.now(timezone.utc) - start).total_seconds() * 1000
+        
+        # Obter estatísticas do servidor
+        server_status = await db.command("serverStatus")
+        
+        components["mongodb"] = {
+            "status": "healthy",
+            "latency_ms": round(latency, 2),
+            "connections": {
+                "current": server_status.get("connections", {}).get("current", 0),
+                "available": server_status.get("connections", {}).get("available", 0)
+            },
+            "version": server_status.get("version", "unknown")
+        }
+    except Exception as e:
+        components["mongodb"] = {
+            "status": "unhealthy",
+            "error": str(e)[:200]
+        }
+    
+    # ================================================================
+    # REDIS / TASK QUEUE
+    # ================================================================
+    try:
+        redis_health = await task_queue.health_check()
+        components["redis"] = redis_health
+    except Exception as e:
+        components["redis"] = {
+            "status": "error",
+            "error": str(e)[:100]
+        }
+    
+    # ================================================================
+    # SYSTEM RESOURCES
+    # ================================================================
+    try:
+        process = psutil.Process()
+        components["system"] = {
+            "cpu_percent": psutil.cpu_percent(interval=0.1),
+            "memory": {
+                "used_mb": round(process.memory_info().rss / 1024 / 1024, 2),
+                "percent": round(process.memory_percent(), 2)
+            },
+            "open_files": len(process.open_files()),
+            "threads": process.num_threads()
+        }
     except Exception:
-        db_healthy = False
+        components["system"] = {"status": "unavailable"}
+    
+    # ================================================================
+    # APPLICATION INFO
+    # ================================================================
+    components["app"] = {
+        "sentry_enabled": bool(SENTRY_DSN),
+        "environment": SENTRY_ENVIRONMENT if SENTRY_DSN else "unknown",
+        "cors_origins": len(CORS_ORIGINS),
+    }
+    
+    # Determinar status geral
+    db_healthy = components.get("mongodb", {}).get("status") == "healthy"
+    overall_status = "healthy" if db_healthy else "degraded"
     
     return {
-        "status": "healthy" if db_healthy else "degraded",
-        "services": {
-            "database": {"status": "healthy" if db_healthy else "unhealthy"},
-            "task_queue": task_queue_health,
-            "sentry": {"enabled": bool(SENTRY_DSN)},
-        },
+        "status": overall_status,
+        "components": components,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
