@@ -480,6 +480,11 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
     # Redimensionar imagem antes de enviar
     resized_base64, new_mime_type = resize_image_base64(base64_content, mime_type)
     
+    # Documentos de identificação (CC) precisam de alta resolução para ler números pequenos
+    # Outros documentos podem usar baixa resolução para economizar tokens
+    image_detail = "high" if document_type in ['cc', 'cpcv'] else "low"
+    logger.info(f"Análise com visão: tipo={document_type}, detail={image_detail}")
+    
     try:
         messages = [
             {"role": "system", "content": system_prompt},
@@ -491,7 +496,7 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
                         "type": "image_url",
                         "image_url": {
                             "url": f"data:{new_mime_type};base64,{resized_base64}",
-                            "detail": "low"
+                            "detail": image_detail
                         }
                     }
                 ]
