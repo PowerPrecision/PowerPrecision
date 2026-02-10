@@ -66,12 +66,9 @@ app = FastAPI(title="Sistema de Gestão de Processos")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORREÇÃO CRÍTICA: Desligar Rate Limit se estiver em modo de teste
-# Isto previne o erro 429 durante os testes no CI/CD
+# CORREÇÃO: Se estiver em testes, desativar o limitador completamente
 if os.getenv("TESTING") == "true":
-    logger.warning("⚠️ MODO DE TESTE DETETADO: Rate Limiting DESATIVADO ⚠️")
     limiter.enabled = False
-    app.state.limiter.enabled = False
 
 # Rotas
 app.include_router(auth_router, prefix="/api")
@@ -124,8 +121,11 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    # Em testes, fechar o loop explicitamente pode causar erros se não for gerido pelo pytest
-    # O try/except aqui protege contra "Event loop is closed" no shutdown
+    # CORREÇÃO CRÍTICA: Não fechar a conexão DB se estivermos a correr testes!
+    # O pytest reutiliza a conexão global, se a fecharmos aqui, o próximo teste falha.
+    if os.getenv("TESTING") == "true":
+        return
+        
     try:
         client.close()
     except Exception:
