@@ -163,7 +163,8 @@ jobs:
           CORS_ORIGINS: http://localhost:3000
         run: |
           cd backend
-          pytest tests/ -v --tb=short --cov=. --cov-report=xml
+          # CORREÇÃO: --ignore=tests/e2e adicionado para ignorar testes que precisam de browser/playwright
+          pytest tests/ --ignore=tests/e2e -v --tb=short --cov=. --cov-report=xml
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
