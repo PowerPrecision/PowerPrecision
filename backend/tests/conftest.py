@@ -10,7 +10,6 @@ NOTA: Os utilizadores de teste devem existir na DB:
 import os
 import sys
 from pathlib import Path
-import asyncio
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -24,20 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # URL fictício para os testes
 API_URL = "http://testserver/api"
 
-# Configurar pytest-asyncio
-pytest_plugins = ('pytest_asyncio',)
 
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Cria uma instância do event loop para toda a sessão de testes."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture
 async def client():
     """
     Cria um cliente HTTP assíncrono que fala DIRETAMENTE com a app.
@@ -59,9 +46,6 @@ async def client():
         timeout=30.0
     ) as ac:
         yield ac
-    
-    # Cleanup após teste
-    reset_db_connection()
 
 
 # --- Fixtures de Autenticação ---
