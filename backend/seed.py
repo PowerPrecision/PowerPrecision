@@ -83,7 +83,7 @@ async def seed_users():
     # Lista de utilizadores a criar
     default_users = [
         {
-            "email": "admin@sistema.pt",
+            "email": "geral@powerealestate.pt",
             "password": admin_password,
             "name": "Admin",
             "role": UserRole.ADMIN,
@@ -91,7 +91,7 @@ async def seed_users():
             "company": "Sistema"
         },
         {
-            "email": "pedro@powerealestate.pt",
+            "email": "pedroborges@powerealestate.pt",
             "password": default_password,
             "name": "Pedro Borges",
             "role": UserRole.CEO,
@@ -99,7 +99,7 @@ async def seed_users():
             "company": "Power Real Estate"
         },
         {
-            "email": "tiago@powerealestate.pt",
+            "email": "tiagoborges@powerealestate.pt",
             "password": default_password,
             "name": "Tiago Borges",
             "role": UserRole.CONSULTOR,
@@ -107,7 +107,7 @@ async def seed_users():
             "company": "Power Real Estate"
         },
         {
-            "email": "flavio@powerealestate.pt",
+            "email": "flaviosilva@powerealestate.pt",
             "password": default_password,
             "name": "Flávio da Silva",
             "role": UserRole.CONSULTOR,
@@ -115,7 +115,7 @@ async def seed_users():
             "company": "Power Real Estate"
         },
         {
-            "email": "estacio@precisioncredito.pt",
+            "email": "silvamiranda@precisioncredito.pt",
             "password": default_password,
             "name": "Estácio Miranda",
             "role": UserRole.INTERMEDIARIO,
@@ -123,7 +123,7 @@ async def seed_users():
             "company": "Precision Crédito"
         },
         {
-            "email": "fernando@precisioncredito.pt",
+            "email": "fernandoandrade@precisioncredito.pt",
             "password": default_password,
             "name": "Fernando Andrade",
             "role": UserRole.INTERMEDIARIO,
@@ -131,7 +131,7 @@ async def seed_users():
             "company": "Precision Crédito"
         },
         {
-            "email": "carina@powerealestate.pt",
+            "email": "carinaamuedo@powerealestate.pt",
             "password": default_password,
             "name": "Carina Amuedo",
             "role": UserRole.DIRETOR,
@@ -139,7 +139,7 @@ async def seed_users():
             "company": "Power Real Estate"
         },
         {
-            "email": "marisa@powerealestate.pt",
+            "email": "marisarodrigues@powerealestate.pt",
             "password": default_password,
             "name": "Marisa Rodrigues",
             "role": UserRole.ADMINISTRATIVO,
