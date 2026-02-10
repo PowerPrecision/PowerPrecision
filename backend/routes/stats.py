@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 
 from database import db
 from models.auth import UserRole
-from services.auth import get_current_user
+from services.auth import get_current_user, require_staff
 
 
 router = APIRouter(tags=["Stats"])
@@ -106,6 +106,113 @@ async def get_stats(user: dict = Depends(get_current_user)):
         stats["intermediarios"] = await db.users.count_documents({"role": {"$in": [UserRole.MEDIADOR, UserRole.INTERMEDIARIO, UserRole.DIRETOR]}})
     
     return stats
+
+
+@router.get("/stats/leads")
+async def get_leads_stats(user: dict = Depends(require_staff())):
+    """
+    Estatísticas de leads para a página de Estatísticas.
+    Retorna contagens por estado, origem e ranking de consultores.
+    """
+    # Contagem de leads por estado
+    lead_statuses = ["novo", "contactado", "visita_agendada", "proposta", "reservado", "descartado"]
+    leads_by_status = {}
+    
+    for status in lead_statuses:
+        count = await db.property_leads.count_documents({"status": status})
+        leads_by_status[status] = count
+    
+    # Total de leads
+    total_leads = sum(leads_by_status.values())
+    
+    # Leads por fonte (source)
+    pipeline_source = [
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    source_cursor = db.property_leads.aggregate(pipeline_source)
+    leads_by_source = []
+    async for doc in source_cursor:
+        leads_by_source.append({
+            "source": doc["_id"] or "Desconhecido",
+            "count": doc["count"]
+        })
+    
+    # Top 5 consultores com mais leads angariados
+    pipeline_consultors = [
+        {"$match": {"created_by_id": {"$ne": None}}},
+        {"$group": {"_id": "$created_by_id", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    consultor_cursor = db.property_leads.aggregate(pipeline_consultors)
+    top_consultors_raw = []
+    async for doc in consultor_cursor:
+        top_consultors_raw.append({"user_id": doc["_id"], "leads_count": doc["count"]})
+    
+    # Enriquecer com nomes dos consultores
+    top_consultors = []
+    for item in top_consultors_raw:
+        user = await db.users.find_one({"id": item["user_id"]}, {"name": 1, "email": 1, "_id": 0})
+        if user:
+            top_consultors.append({
+                "name": user.get("name") or user.get("email"),
+                "leads_count": item["leads_count"]
+            })
+    
+    return {
+        "total_leads": total_leads,
+        "leads_by_status": leads_by_status,
+        "leads_by_source": leads_by_source,
+        "top_consultors": top_consultors,
+        "funnel_data": [
+            {"stage": "Novo", "count": leads_by_status.get("novo", 0)},
+            {"stage": "Contactado", "count": leads_by_status.get("contactado", 0)},
+            {"stage": "Visita Agendada", "count": leads_by_status.get("visita_agendada", 0)},
+            {"stage": "Proposta", "count": leads_by_status.get("proposta", 0)},
+            {"stage": "Reservado", "count": leads_by_status.get("reservado", 0)},
+        ]
+    }
+
+
+@router.get("/stats/conversion")
+async def get_conversion_stats(user: dict = Depends(require_staff())):
+    """
+    Estatísticas de tempo de conversão de leads.
+    Calcula o tempo médio desde criação até proposta.
+    """
+    # Buscar leads que chegaram a proposta ou reservado
+    pipeline = [
+        {"$match": {"status": {"$in": ["proposta", "reservado"]}}},
+        {"$project": {
+            "created_at": 1,
+            "updated_at": 1,
+            "status": 1
+        }}
+    ]
+    
+    cursor = db.property_leads.aggregate(pipeline)
+    conversion_times = []
+    
+    async for lead in cursor:
+        if lead.get("created_at") and lead.get("updated_at"):
+            try:
+                created = datetime.fromisoformat(lead["created_at"].replace('Z', '+00:00'))
+                updated = datetime.fromisoformat(lead["updated_at"].replace('Z', '+00:00'))
+                days = (updated - created).days
+                if days >= 0:
+                    conversion_times.append(days)
+            except:
+                pass
+    
+    avg_conversion_days = sum(conversion_times) / len(conversion_times) if conversion_times else 0
+    
+    return {
+        "avg_conversion_days": round(avg_conversion_days, 1),
+        "total_converted": len(conversion_times),
+        "min_days": min(conversion_times) if conversion_times else 0,
+        "max_days": max(conversion_times) if conversion_times else 0
+    }
 
 
 @router.get("/health")
