@@ -199,6 +199,31 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 | CORS Estrito | ✅ IMPLEMENTADO | Validação via .env |
 | Security Scan CI/CD | ✅ IMPLEMENTADO | GitHub Actions workflow |
 
+**10 Fevereiro 2026**
+- ✅ **Correção de Testes Unitários**: Resolvido problema de asyncio event loop com Motor driver
+  - Actualizado `conftest.py` com `reset_db_connection()` entre testes
+  - Criado `DatabaseProxy` em `database.py` para conexões on-demand
+  - Corrigidos fixtures de autenticação (admin, consultor, mediador)
+  - Todos os 16 testes passam (test_auth.py + test_processes.py)
+- ✅ **Melhorias no Módulo de Gestão de Leads**:
+  - Novo endpoint `POST /api/leads/{id}/refresh` para verificar se preço mudou
+  - Botão "🔄 Verificar Preço" no card de cada lead
+  - Filtro por Consultor no Kanban de Leads
+  - Filtro por Estado no Kanban de Leads
+  - Endpoint `GET /api/leads/consultores` para lista de consultores
+  - Data de entrada nos cards ("Há X dias")
+  - Destaque visual (borda vermelha) para leads antigas (>7 dias em "Novo")
+- ✅ **Nova Página de Estatísticas de Leads**:
+  - Tab "Funil de Leads" com gráfico de barras (5 fases)
+  - Tab "Ranking Consultores" com top 5 consultores por leads angariados
+  - Endpoint `GET /api/stats/leads` retorna estatísticas
+  - Endpoint `GET /api/stats/conversion` retorna tempo médio de conversão
+  - KPIs: Total de Leads, Tempo Médio de Conversão, Leads Convertidos
+- ✅ **Correção de Bug UI**: Toast notifications movidas para bottom-right (não tapam botões)
+- ✅ **Correção de Bug de Acesso**: Consultores podem agora aceder a processos que criaram
+  - Função `can_view_process()` actualizada para verificar `created_by`
+- ✅ **Melhorias no Scraper**: Adicionado fallback SSL, parser ERA melhorado
+
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
   - Lista de clientes com pesquisa por nome/email/NIF
