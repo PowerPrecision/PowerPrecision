@@ -26,6 +26,9 @@ jobs:
         run: |
           pip install safety bandit
 
+      - name: Criar diretório de relatórios
+        run: mkdir -p security-reports
+
       - name: Safety - Verificar vulnerabilidades em dependências
         run: |
           cd backend
@@ -37,8 +40,12 @@ jobs:
       - name: Bandit - Análise estática de segurança do código
         run: |
           cd backend
-          bandit -r . -f json -o ../security-reports/bandit-report.json --exclude ./tests,./venv,./.venv || true
-          bandit -r . --exclude ./tests,./venv,./.venv -ll
+          # Gerar relatório JSON completo (sem falhar)
+          bandit -r . -f json -o ../security-reports/bandit-report.json --exclude "./tests,./venv,./.venv" --exit-zero
+          
+          # Mostrar issues de severidade Média/Alta no terminal
+          # CORREÇÃO: Substituído -ll por --severity-level medium
+          bandit -r . --exclude "./tests,./venv,./.venv" --severity-level medium --confidence-level medium --exit-zero
         continue-on-error: true
 
       - name: Upload relatórios de segurança

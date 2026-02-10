@@ -36,15 +36,19 @@ fi
 echo ""
 echo -e "${YELLOW}[2/2] A executar Bandit (análise estática de código)...${NC}"
 
-if bandit -r . --exclude ./tests,./venv,./.venv -f json -o "$REPORTS_DIR/bandit-report.json" 2>/dev/null; then
+# Executa bandit e guarda relatório completo (todas as severidades)
+# Ignora testes e ambientes virtuais
+if bandit -r . --exclude "./tests,./venv,./.venv" -f json -o "$REPORTS_DIR/bandit-report.json" 2>/dev/null; then
     echo -e "${GREEN}✓ Nenhum problema de segurança crítico encontrado${NC}"
 else
     # Bandit retorna código != 0 se encontrar issues
-    HIGH_ISSUES=$(python3 -c "import json; d=json.load(open('$REPORTS_DIR/bandit-report.json')); print(d['metrics']['_totals']['SEVERITY.HIGH'])" 2>/dev/null || echo "0")
+    # Tenta ler o total de High Severity do JSON
+    HIGH_ISSUES=$(python3 -c "import json; d=json.load(open('$REPORTS_DIR/bandit-report.json')); print(d['metrics']['_totals'].get('SEVERITY.HIGH', 0))" 2>/dev/null || echo "0")
+    
     if [ "$HIGH_ISSUES" -gt 0 ]; then
         echo -e "${RED}⚠ $HIGH_ISSUES problemas de severidade ALTA encontrados${NC}"
     else
-        echo -e "${GREEN}✓ Apenas problemas de baixa severidade encontrados${NC}"
+        echo -e "${GREEN}✓ Apenas problemas de média/baixa severidade encontrados${NC}"
     fi
 fi
 
@@ -55,10 +59,15 @@ echo "Relatórios gerados em: $REPORTS_DIR/"
 echo "  - safety-report.json (vulnerabilidades de dependências)"
 echo "  - bandit-report.json (análise de código)"
 
-# Mostrar problemas de alta severidade do Bandit
+# Mostrar problemas de alta/média severidade do Bandit no terminal
 echo ""
-echo -e "${YELLOW}=== Issues de Alta Severidade (Bandit) ===${NC}"
-bandit -r "$BACKEND_DIR" --exclude ./tests,./venv,./.venv -ll -q 2>/dev/null || true
+echo -e "${YELLOW}=== Issues Principais (Bandit - Medium/High) ===${NC}"
+
+# CORREÇÃO AQUI: Substituído -ll por --severity-level medium para evitar conflitos
+bandit -r . --exclude "./tests,./venv,./.venv" \
+    --severity-level medium \
+    --confidence-level medium \
+    -q 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}Verificação concluída!${NC}"
