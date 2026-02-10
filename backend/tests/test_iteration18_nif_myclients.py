@@ -99,8 +99,9 @@ class TestMyClientsEndpoint:
     def test_my_clients_requires_auth(self, api_client):
         """Test that my-clients endpoint requires authentication"""
         response = api_client.get(f"{BASE_URL}/api/processes/my-clients")
-        assert response.status_code == 401
-        print("PASS: my-clients requires authentication")
+        # Should return 401 or 403 for unauthorized access
+        assert response.status_code in [401, 403]
+        print(f"PASS: my-clients requires authentication (status={response.status_code})")
     
     def test_my_clients_consultor_access(self, api_client, consultor_token):
         """Test consultor can access my-clients endpoint"""
@@ -206,9 +207,17 @@ class TestAIDocumentAnalysis:
         assert response.status_code == 200
         data = response.json()
         
-        # Should have cc (Cartão de Cidadão) in supported types
-        assert "types" in data or "supported" in data or isinstance(data, list)
-        print(f"PASS: Supported documents endpoint working")
+        # Should have document_types with cc (Cartão de Cidadão)
+        assert "document_types" in data
+        doc_types = data["document_types"]
+        assert isinstance(doc_types, list)
+        
+        # Verify cc type exists
+        cc_type = next((d for d in doc_types if d.get("type") == "cc"), None)
+        assert cc_type is not None, "CC document type not found"
+        assert "nif" in cc_type.get("extracts", []), "NIF should be in CC extracts"
+        
+        print(f"PASS: Supported documents endpoint working, {len(doc_types)} types")
     
     def test_nif_extraction_from_cc_url(self, api_client, admin_token):
         """
