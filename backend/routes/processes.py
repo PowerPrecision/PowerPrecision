@@ -466,6 +466,143 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
     }
 
 
+@router.get("/my-clients")
+async def get_my_clients(user: dict = Depends(require_roles([UserRole.CONSULTOR, UserRole.ADMIN, UserRole.CEO]))):
+    """
+    Obter lista de clientes atribuídos ao consultor atual.
+    
+    Retorna uma lista com:
+    - Nome do cliente
+    - Fase do processo
+    - Ações pendentes (tarefas, documentos a atualizar)
+    
+    Permissões:
+    - Consultor: Apenas os seus clientes
+    - Admin/CEO: Todos os clientes (para supervisão)
+    """
+    user_id = user["id"]
+    role = user["role"]
+    
+    # Construir query baseada no papel do utilizador
+    if role == UserRole.CONSULTOR:
+        query = {"assigned_consultor_id": user_id}
+    else:
+        # Admin/CEO vêem todos
+        query = {}
+    
+    # Buscar processos com campos necessários
+    processes = await db.processes.find(
+        query,
+        {
+            "_id": 0, 
+            "id": 1, 
+            "process_number": 1,
+            "client_name": 1, 
+            "client_email": 1,
+            "client_phone": 1,
+            "status": 1, 
+            "process_type": 1,
+            "assigned_consultor_id": 1,
+            "assigned_mediador_id": 1,
+            "created_at": 1,
+            "updated_at": 1,
+            "deed_date": 1,
+            "property_id": 1
+        }
+    ).sort("updated_at", -1).to_list(500)
+    
+    # Obter labels das fases do workflow
+    statuses = await db.workflow_statuses.find({}, {"_id": 0}).to_list(100)
+    status_map = {s["name"]: s for s in statuses}
+    
+    # Obter tarefas pendentes por processo
+    process_ids = [p["id"] for p in processes]
+    tasks = await db.tasks.find(
+        {
+            "process_id": {"$in": process_ids},
+            "completed": {"$ne": True}
+        },
+        {"_id": 0, "id": 1, "process_id": 1, "title": 1, "priority": 1, "due_date": 1}
+    ).to_list(1000)
+    
+    # Agrupar tarefas por processo
+    tasks_by_process = {}
+    for task in tasks:
+        pid = task["process_id"]
+        if pid not in tasks_by_process:
+            tasks_by_process[pid] = []
+        tasks_by_process[pid].append(task)
+    
+    # Buscar nomes dos consultores
+    consultor_ids = list(set(p.get("assigned_consultor_id") for p in processes if p.get("assigned_consultor_id")))
+    consultores = await db.users.find(
+        {"id": {"$in": consultor_ids}},
+        {"_id": 0, "id": 1, "name": 1}
+    ).to_list(100)
+    consultor_map = {c["id"]: c["name"] for c in consultores}
+    
+    # Construir lista de clientes com informações enriquecidas
+    clients_list = []
+    for p in processes:
+        status_info = status_map.get(p.get("status"), {})
+        pending_tasks = tasks_by_process.get(p["id"], [])
+        
+        # Determinar ações pendentes
+        pending_actions = []
+        
+        # Adicionar tarefas pendentes
+        for task in pending_tasks[:3]:  # Limitar a 3 tarefas
+            pending_actions.append({
+                "type": "task",
+                "title": task.get("title", "Tarefa"),
+                "priority": task.get("priority", "normal"),
+                "due_date": task.get("due_date")
+            })
+        
+        # Verificar se há mais tarefas
+        if len(pending_tasks) > 3:
+            pending_actions.append({
+                "type": "info",
+                "title": f"+{len(pending_tasks) - 3} tarefas adicionais",
+                "priority": "normal"
+            })
+        
+        # Verificar documentos em falta baseado na fase
+        fase = p.get("status", "")
+        if fase in ["fase_documental", "fase_documental_ii"]:
+            pending_actions.append({
+                "type": "document",
+                "title": "Verificar documentos em falta",
+                "priority": "high"
+            })
+        
+        clients_list.append({
+            "id": p["id"],
+            "process_number": p.get("process_number"),
+            "client_name": p.get("client_name", "Sem nome"),
+            "client_email": p.get("client_email"),
+            "client_phone": p.get("client_phone"),
+            "status": p.get("status"),
+            "status_label": status_info.get("label", p.get("status", "Desconhecido")),
+            "status_color": status_info.get("color", "#6B7280"),
+            "process_type": p.get("process_type"),
+            "consultor_name": consultor_map.get(p.get("assigned_consultor_id"), ""),
+            "pending_actions": pending_actions,
+            "pending_count": len(pending_tasks),
+            "created_at": p.get("created_at"),
+            "updated_at": p.get("updated_at"),
+            "deed_date": p.get("deed_date"),
+            "has_property": bool(p.get("property_id"))
+        })
+    
+    return {
+        "clients": clients_list,
+        "total": len(clients_list),
+        "user_id": user_id,
+        "user_role": role
+    }
+
+
 @router.put("/kanban/{process_id}/move")
 async def move_process_kanban(
     process_id: str,
