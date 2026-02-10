@@ -35,7 +35,7 @@ from services.auth import hash_password
 from middleware.rate_limit import limiter
 from routes import (
     auth_router, processes_router, admin_router, users_router,
-    deadlines_router, activities_router, onedrive_router,
+    deadlines_router, activities_router,
     public_router, stats_router, ai_router, documents_router
 )
 from routes.alerts import router as alerts_router
@@ -141,7 +141,7 @@ app.include_router(users_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(deadlines_router, prefix="/api")
 app.include_router(activities_router, prefix="/api")
-app.include_router(onedrive_router, prefix="/api")
+#app.include_router(onedrive_router, prefix="/api")
 app.include_router(stats_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
