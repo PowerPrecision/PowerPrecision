@@ -253,6 +253,7 @@ export const moveProcessKanban = (processId, newStatus) =>
   api.put(`/processes/kanban/${processId}/move`, null, {
     params: { new_status: newStatus }
   });
+export const getMyClients = () => api.get("/processes/my-clients");
 
 // Deadlines
 export const getDeadlines = (processId) => 
