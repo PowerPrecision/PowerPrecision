@@ -340,6 +340,12 @@ async def startup():
     await db.emails.create_index([("process_id", 1), ("sent_at", -1)])
     await db.emails.create_index("direction")
     
+    # Indexes para GDPR
+    await db.gdpr_audit.create_index("timestamp")
+    await db.gdpr_audit.create_index("action")
+    await db.gdpr_audit.create_index([("action", 1), ("timestamp", -1)])
+    await db.processes.create_index("is_anonymized", sparse=True)
+    
     # Create default workflow statuses if none exist - 15 fases do Trello
     status_count = await db.workflow_statuses.count_documents({})
     if status_count == 0:
