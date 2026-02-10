@@ -1,45 +1,66 @@
 """
 Tests for CreditoIMO API
-These tests run against the actual running server.
-Make sure the backend is running before executing tests.
+Configuração central dos testes.
 """
 import sys
-from pathlib import Path
-
-# Add backend to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import os
+from pathlib import Path
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
+# Adicionar backend ao path para conseguir importar o server
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Get the API URL from environment or use default
-API_URL = os.environ.get('TEST_API_URL', 'http://localhost:8001/api')
+# IMPORTANTE: Importar a app real
+from server import app
 
+# URL fictício para os testes (interceptado pelo ASGITransport)
+API_URL = "http://testserver/api"
 
 @pytest_asyncio.fixture
 async def client():
-    """Create async HTTP client for testing"""
-    async with AsyncClient(base_url=API_URL, timeout=30.0) as ac:
+    """
+    Cria um cliente HTTP assíncrono que fala DIRETAMENTE com a app.
+    Não requer servidor a correr na porta 8001.
+    """
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url=API_URL,
+        timeout=30.0
+    ) as ac:
         yield ac
 
+# --- Fixtures de Autenticação (Mantidas e Atualizadas) ---
 
 @pytest_asyncio.fixture
 async def admin_token(client):
-    """Get admin authentication token"""
+    """Obter token de admin"""
     response = await client.post("/auth/login", json={
         "email": "admin@sistema.pt",
-        "password": "admin123"
+        "password": "admin123" # A password definida no seed.py
     })
+    # Se falhar, tenta a password alternativa que tinhas nos outros testes
+    if response.status_code != 200:
+         response = await client.post("/auth/login", json={
+            "email": "admin@sistema.pt",
+            "password": "admin2026"
+        })
+    
     assert response.status_code == 200, f"Admin login failed: {response.text}"
     return response.json()["access_token"]
 
-
 @pytest_asyncio.fixture
 async def consultor_token(client):
-    """Get consultor authentication token"""
+    """Obter token de consultor"""
+    # Tenta criar utilizador primeiro para garantir que existe
+    await client.post("/auth/register", json={
+        "email": "consultor@sistema.pt",
+        "password": "consultor123",
+        "name": "Consultor Teste",
+        "role": "consultor"
+    })
+    
     response = await client.post("/auth/login", json={
         "email": "consultor@sistema.pt",
         "password": "consultor123"
@@ -47,10 +68,16 @@ async def consultor_token(client):
     assert response.status_code == 200, f"Consultor login failed: {response.text}"
     return response.json()["access_token"]
 
-
 @pytest_asyncio.fixture
 async def mediador_token(client):
-    """Get mediador authentication token"""
+    """Obter token de mediador"""
+    await client.post("/auth/register", json={
+        "email": "mediador@sistema.pt",
+        "password": "mediador123",
+        "name": "Mediador Teste",
+        "role": "mediador"
+    })
+    
     response = await client.post("/auth/login", json={
         "email": "mediador@sistema.pt",
         "password": "mediador123"
