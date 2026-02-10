@@ -318,11 +318,16 @@ const LeadsKanban = () => {
   const { token, user } = useAuth();
   const [leads, setLeads] = useState({});
   const [clients, setClients] = useState([]);
+  const [consultores, setConsultores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Filtros
+  const [filterConsultor, setFilterConsultor] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -346,7 +351,21 @@ const LeadsKanban = () => {
   // Carregar leads
   const fetchLeads = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/leads/by-status`, {
+      let url = `${API_URL}/api/leads/by-status`;
+      const params = new URLSearchParams();
+      
+      if (filterConsultor && filterConsultor !== "all") {
+        params.append("consultor_id", filterConsultor);
+      }
+      if (filterStatus && filterStatus !== "all") {
+        params.append("status_filter", filterStatus);
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -359,7 +378,7 @@ const LeadsKanban = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, filterConsultor, filterStatus]);
 
   // Carregar clientes para associação
   const fetchClients = useCallback(async () => {
@@ -376,10 +395,52 @@ const LeadsKanban = () => {
     }
   }, [token]);
 
+  // Carregar consultores para o filtro
+  const fetchConsultores = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/leads/consultores`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setConsultores(data);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar consultores:", error);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchLeads();
     fetchClients();
-  }, [fetchLeads, fetchClients]);
+    fetchConsultores();
+  }, [fetchLeads, fetchClients, fetchConsultores]);
+
+  // Refresh preço de um lead
+  const handleRefreshPrice = async (leadId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/leads/${leadId}/refresh`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.price_changed) {
+          toast.success(`Preço actualizado: ${result.old_price}€ → ${result.new_price}€`);
+        } else {
+          toast.info("Preço sem alteração");
+        }
+        fetchLeads();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao verificar preço");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar preço:", error);
+      toast.error("Erro ao verificar preço");
+    }
+  };
 
   // Extrair dados do URL
   const handleExtractUrl = async () => {
@@ -397,6 +458,7 @@ const LeadsKanban = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
 
       if (response.ok) {
         const result = await response.json();
