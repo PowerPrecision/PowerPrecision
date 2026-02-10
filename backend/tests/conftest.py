@@ -41,9 +41,14 @@ def event_loop():
 async def client():
     """
     Cria um cliente HTTP assíncrono que fala DIRETAMENTE com a app.
+    Reset da conexão DB antes de cada teste para evitar problemas de event loop.
     """
+    from database import reset_db_connection
     from server import app
     from middleware.rate_limit import limiter
+    
+    # Reset conexão DB para forçar nova conexão com o event loop actual
+    reset_db_connection()
     
     # Garantia extra de que o rate limit está off
     limiter.enabled = False
@@ -54,6 +59,9 @@ async def client():
         timeout=30.0
     ) as ac:
         yield ac
+    
+    # Cleanup após teste
+    reset_db_connection()
 
 
 # --- Fixtures de Autenticação ---
