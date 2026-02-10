@@ -225,7 +225,7 @@ function App() {
         </Routes>
         <ImpersonateBanner />
       </BrowserRouter>
-      <Toaster position="top-right" richColors />
+      <Toaster position="bottom-right" richColors closeButton offset="20px" />
     </AuthProvider>
   );
 }
