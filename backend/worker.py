@@ -418,6 +418,113 @@ async def check_deadlines_task(ctx: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ====================================================================
+# TAREFAS GDPR (CONFORMIDADE)
+# ====================================================================
+async def gdpr_anonymization_task(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Tarefa de anonimização GDPR.
+    Executada semanalmente (domingo às 2:00).
+    
+    Processa processos com:
+    - Estado: concluído, desistência, arquivado, etc.
+    - Data de actualização > 2 anos (configurável)
+    - Ainda não anonimizados
+    
+    Conforme RGPD Artigo 17 (Direito ao apagamento) e
+    Artigo 5(1)(e) (Limitação da conservação).
+    """
+    logger.info("🔒 [GDPR] Iniciando tarefa de anonimização semanal...")
+    
+    try:
+        from services.gdpr import run_anonymization_batch, get_gdpr_statistics
+        
+        # Obter estatísticas antes
+        stats_before = await get_gdpr_statistics()
+        
+        # Executar anonimização em lote
+        result = await run_anonymization_batch(
+            dry_run=False,  # Executar de verdade
+            batch_size=100
+        )
+        
+        # Obter estatísticas depois
+        stats_after = await get_gdpr_statistics()
+        
+        # Log detalhado
+        logger.info(
+            f"🔒 [GDPR] Tarefa concluída:\n"
+            f"   - Processados: {result.get('processed', 0)}\n"
+            f"   - Sucesso: {result.get('succeeded', 0)}\n"
+            f"   - Falhas: {result.get('failed', 0)}\n"
+            f"   - Total anonimizados: {stats_after.get('anonymized_processes', 0)}\n"
+            f"   - Pendentes: {stats_after.get('eligible_for_anonymization', 0)}"
+        )
+        
+        return {
+            "success": True,
+            "task": "gdpr_anonymization",
+            "processed": result.get("processed", 0),
+            "succeeded": result.get("succeeded", 0),
+            "failed": result.get("failed", 0),
+            "errors": result.get("errors", []),
+            "stats": {
+                "before": stats_before,
+                "after": stats_after
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ [GDPR] Erro na tarefa de anonimização: {str(e)}")
+        raise
+
+
+async def gdpr_audit_report_task(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Gera relatório mensal de auditoria GDPR.
+    Executada no primeiro dia de cada mês às 6:00.
+    """
+    logger.info("📊 [GDPR] Gerando relatório de auditoria...")
+    
+    try:
+        from services.gdpr import get_gdpr_statistics
+        from database import db
+        
+        now = datetime.now(timezone.utc)
+        last_month = now - timedelta(days=30)
+        
+        # Estatísticas gerais
+        stats = await get_gdpr_statistics()
+        
+        # Acções de auditoria do último mês
+        audit_actions = await db.gdpr_audit.aggregate([
+            {"$match": {"timestamp": {"$gte": last_month}}},
+            {"$group": {"_id": "$action", "count": {"$sum": 1}}}
+        ]).to_list(100)
+        
+        report = {
+            "report_type": "gdpr_monthly_audit",
+            "period": {
+                "from": last_month.isoformat(),
+                "to": now.isoformat()
+            },
+            "statistics": stats,
+            "audit_actions": {item["_id"]: item["count"] for item in audit_actions},
+            "generated_at": now.isoformat()
+        }
+        
+        # Guardar relatório
+        await db.gdpr_reports.insert_one(report)
+        
+        logger.info(f"📊 [GDPR] Relatório gerado: {stats.get('anonymized_processes', 0)} anonimizados")
+        
+        return report
+        
+    except Exception as e:
+        logger.error(f"❌ [GDPR] Erro ao gerar relatório: {str(e)}")
+        raise
+
+
+# ====================================================================
 # ARQ WORKER SETTINGS
 # ====================================================================
 class WorkerSettings:
