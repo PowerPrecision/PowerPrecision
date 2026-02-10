@@ -5,6 +5,7 @@ Configuração central dos testes.
 import os
 import sys
 from pathlib import Path
+import asyncio
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -16,7 +17,7 @@ os.environ["TESTING"] = "true"
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from server import app
-from database import db
+from database import db, get_motor_client
 from services.auth import hash_password
 # Importar limiter para garantir que está desligado
 from middleware.rate_limit import limiter
@@ -24,14 +25,17 @@ from middleware.rate_limit import limiter
 # URL fictício para os testes
 API_URL = "http://testserver/api"
 
-@pytest_asyncio.fixture(scope="session")
+# Configurar pytest-asyncio para usar o mesmo event loop
+pytest_plugins = ('pytest_asyncio',)
+
+@pytest.fixture(scope="session")
 def event_loop():
     """Cria uma instância do event loop para toda a sessão de testes."""
-    import asyncio
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     yield loop
     loop.close()
+
 
 @pytest_asyncio.fixture(scope="function")
 async def client():
@@ -48,6 +52,40 @@ async def client():
     ) as ac:
         yield ac
 
+
+async def _ensure_test_user(email: str, password: str, name: str, role: str):
+    """Helper para criar/atualizar utilizador de teste diretamente na DB."""
+    import uuid
+    from datetime import datetime, timezone
+    
+    hashed = hash_password(password)
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Verificar se já existe
+    existing = await db.users.find_one({"email": email})
+    
+    if existing:
+        # Atualizar password e garantir que está ativo
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {
+                "password": hashed,
+                "is_active": True
+            }}
+        )
+    else:
+        # Criar novo utilizador
+        await db.users.insert_one({
+            "id": str(uuid.uuid4()),
+            "email": email,
+            "password": hashed,
+            "name": name,
+            "role": role,
+            "is_active": True,
+            "created_at": now
+        })
+
+
 # --- Fixtures de Autenticação ---
 
 @pytest_asyncio.fixture
@@ -56,19 +94,8 @@ async def admin_token(client):
     email = "admin@sistema.pt"
     password = "admin123"
     
-    # 1. Garantir que o user existe na DB (Seed automático)
-    hashed = hash_password(password)
-    await db.users.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "password": hashed,
-            "name": "Admin Teste",
-            "role": "admin",
-            "is_active": True
-        }},
-        upsert=True
-    )
+    # 1. Garantir que o user existe na DB
+    await _ensure_test_user(email, password, "Admin Teste", "admin")
     
     # 2. Fazer Login
     response = await client.post("/auth/login", json={
@@ -79,27 +106,19 @@ async def admin_token(client):
     assert response.status_code == 200, f"Admin login failed: {response.text}"
     return response.json()["access_token"]
 
+
 @pytest_asyncio.fixture
 async def consultor_token(client):
     """Obter token de consultor. Cria o user se não existir."""
     email = "consultor@sistema.pt"
     password = "consultor123"
     
-    hashed = hash_password(password)
-    await db.users.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "password": hashed,
-            "name": "Consultor Teste",
-            "role": "consultor",
-            "is_active": True
-        }},
-        upsert=True
-    )
+    await _ensure_test_user(email, password, "Consultor Teste", "consultor")
     
     response = await client.post("/auth/login", json={"email": email, "password": password})
+    assert response.status_code == 200, f"Consultor login failed: {response.text}"
     return response.json()["access_token"]
+
 
 @pytest_asyncio.fixture
 async def mediador_token(client):
@@ -107,18 +126,8 @@ async def mediador_token(client):
     email = "mediador@sistema.pt"
     password = "mediador123"
     
-    hashed = hash_password(password)
-    await db.users.update_one(
-        {"email": email},
-        {"$set": {
-            "email": email,
-            "password": hashed,
-            "name": "Mediador Teste",
-            "role": "mediador",
-            "is_active": True
-        }},
-        upsert=True
-    )
+    await _ensure_test_user(email, password, "Mediador Teste", "mediador")
     
     response = await client.post("/auth/login", json={"email": email, "password": password})
+    assert response.status_code == 200, f"Mediador login failed: {response.text}"
     return response.json()["access_token"]
