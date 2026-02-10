@@ -14,6 +14,18 @@ _client = None
 _db = None
 
 
+def reset_db_connection():
+    """Reset da conexão (útil para testes)."""
+    global _client, _db
+    if _client is not None:
+        try:
+            _client.close()
+        except:
+            pass
+    _client = None
+    _db = None
+
+
 def get_motor_client():
     """Retorna o cliente Motor (criado on-demand)."""
     global _client
@@ -44,10 +56,7 @@ class ClientProxy:
     Proxy para o cliente Motor que permite acesso lazy.
     """
     def close(self):
-        global _client
-        if _client is not None:
-            _client.close()
-            _client = None
+        reset_db_connection()
     
     def __getattr__(self, name):
         return getattr(get_motor_client(), name)
