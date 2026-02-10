@@ -1208,13 +1208,25 @@ def build_update_data_from_extraction(
             'altura': 'altura',
         }
         
+        # === DEBUG: Log de todos os dados extraídos do CC ===
+        logger.info(f"[DEBUG build_update CC] extracted_data recebido: {json.dumps(extracted_data, ensure_ascii=False, default=str)}")
+        
         for src_key, dest_key in field_mapping.items():
             value = clean_value(extracted_data.get(src_key))
+            
+            # === DEBUG: Log para cada campo do CC ===
+            if src_key == 'nif':
+                raw_value = extracted_data.get(src_key)
+                logger.info(f"[DEBUG NIF] raw='{raw_value}', após clean='{value}'")
+            
             if value:
                 # Validação especial para NIF
-                if dest_key == 'nif' and not is_valid_nif(value):
-                    logger.warning(f"CC: NIF {value} inválido - ignorado")
-                    continue
+                if dest_key == 'nif':
+                    nif_valid = is_valid_nif(value)
+                    logger.info(f"[DEBUG NIF] Validação: valor='{value}', válido={nif_valid}")
+                    if not nif_valid:
+                        logger.warning(f"CC: NIF {value} inválido - ignorado")
+                        continue
                 # Validação especial para documento_id
                 if dest_key == 'documento_id' and value in ['123456789', '12345678']:
                     logger.warning(f"CC: documento_id {value} é placeholder - ignorado")
