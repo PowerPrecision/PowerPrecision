@@ -9,15 +9,13 @@ import asyncio
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
+from motor.motor_asyncio import AsyncIOMotorClient
 
 # CORREÇÃO: Definir modo de teste ANTES de importar a app
 os.environ["TESTING"] = "true"
 
 # Adicionar backend ao path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from server import app
-from middleware.rate_limit import limiter
 
 # URL fictício para os testes
 API_URL = "http://testserver/api"
@@ -35,11 +33,28 @@ def event_loop():
     loop.close()
 
 
+@pytest_asyncio.fixture(scope="session")
+async def test_db():
+    """
+    Fixture que cria um cliente MongoDB separado para testes.
+    """
+    mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+    db_name = os.environ.get('DB_NAME', 'powerprecision_dev')
+    
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    yield db
+    client.close()
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client():
     """
     Cria um cliente HTTP assíncrono que fala DIRETAMENTE com a app.
     """
+    from server import app
+    from middleware.rate_limit import limiter
+    
     # Garantia extra de que o rate limit está off
     limiter.enabled = False
     
@@ -49,15 +64,6 @@ async def client():
         timeout=30.0
     ) as ac:
         yield ac
-
-
-@pytest_asyncio.fixture(scope="function")
-async def db_client():
-    """
-    Fixture que fornece acesso à DB dentro do mesmo event loop.
-    """
-    from database import db
-    yield db
 
 
 async def _ensure_test_user_via_db(db, email: str, password: str, name: str, role: str):
@@ -97,13 +103,13 @@ async def _ensure_test_user_via_db(db, email: str, password: str, name: str, rol
 # --- Fixtures de Autenticação ---
 
 @pytest_asyncio.fixture
-async def admin_token(client, db_client):
+async def admin_token(client, test_db):
     """Obter token de admin. Cria o user se não existir."""
     email = "admin@sistema.pt"
     password = "admin123"
     
     # 1. Garantir que o user existe na DB
-    await _ensure_test_user_via_db(db_client, email, password, "Admin Teste", "admin")
+    await _ensure_test_user_via_db(test_db, email, password, "Admin Teste", "admin")
     
     # 2. Fazer Login
     response = await client.post("/auth/login", json={
@@ -116,12 +122,12 @@ async def admin_token(client, db_client):
 
 
 @pytest_asyncio.fixture
-async def consultor_token(client, db_client):
+async def consultor_token(client, test_db):
     """Obter token de consultor. Cria o user se não existir."""
     email = "consultor@sistema.pt"
     password = "consultor123"
     
-    await _ensure_test_user_via_db(db_client, email, password, "Consultor Teste", "consultor")
+    await _ensure_test_user_via_db(test_db, email, password, "Consultor Teste", "consultor")
     
     response = await client.post("/auth/login", json={"email": email, "password": password})
     assert response.status_code == 200, f"Consultor login failed: {response.text}"
@@ -129,12 +135,12 @@ async def consultor_token(client, db_client):
 
 
 @pytest_asyncio.fixture
-async def mediador_token(client, db_client):
+async def mediador_token(client, test_db):
     """Obter token de mediador. Cria o user se não existir."""
     email = "mediador@sistema.pt"
     password = "mediador123"
     
-    await _ensure_test_user_via_db(db_client, email, password, "Mediador Teste", "mediador")
+    await _ensure_test_user_via_db(test_db, email, password, "Mediador Teste", "mediador")
     
     response = await client.post("/auth/login", json={"email": email, "password": password})
     assert response.status_code == 200, f"Mediador login failed: {response.text}"
