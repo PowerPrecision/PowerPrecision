@@ -684,8 +684,8 @@ class WorkerSettings:
     
     # Tarefas agendadas (cron)
     cron_jobs = [
-        # Limpeza de ficheiros às 3:00 todos os dias
-        cron(cleanup_temp_files_task, hour=3, minute=0),
+        # Limpeza de ficheiros às 3:30 todos os dias
+        cron(cleanup_temp_files_task, hour=3, minute=30),
         
         # Relatório diário às 8:00
         cron(generate_daily_report_task, hour=8, minute=0),
@@ -698,6 +698,12 @@ class WorkerSettings:
         
         # GDPR: Relatório de auditoria mensal (dia 1 às 6:00)
         cron(gdpr_audit_report_task, day=1, hour=6, minute=0),
+        
+        # BACKUP: Backup diário às 03:00
+        cron(database_backup_task, hour=3, minute=0),
+        
+        # BACKUP: Verificação semanal (segunda às 09:00)
+        cron(backup_verification_task, weekday=0, hour=9, minute=0),
     ]
     
     # Lifecycle hooks
