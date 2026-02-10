@@ -175,8 +175,10 @@ const DashboardLayout = ({ children, title }) => {
           label: "Imóveis",
           icon: Building2,
           href: "/imoveis",
-        },
-      ];
+        }
+      );
+      
+      return items;
     }
 
     return [...baseItems];
