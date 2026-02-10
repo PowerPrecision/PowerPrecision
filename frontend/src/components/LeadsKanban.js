@@ -58,8 +58,9 @@ const LEAD_STATUSES = [
 ];
 
 // Componente de cartão de lead
-const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, clients }) => {
+const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, clients }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleDragStart = (e) => {
     setIsDragging(true);
@@ -80,6 +81,33 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, clients }) => {
     }).format(price);
   };
 
+  const handleRefreshPrice = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefreshPrice(lead.id);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Formatar data relativa
+  const formatRelativeDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Hoje";
+      if (diffDays === 1) return "Há 1 dia";
+      return `Há ${diffDays} dias`;
+    } catch {
+      return null;
+    }
+  };
+
+  const isStale = lead.is_stale || (lead.days_old > 7 && lead.status === "novo");
+  const daysOldText = formatRelativeDate(lead.created_at);
+
   return (
     <Card
       draggable
@@ -87,7 +115,7 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, clients }) => {
       onDragEnd={handleDragEnd}
       className={`cursor-grab active:cursor-grabbing transition-all ${
         isDragging ? "opacity-50 rotate-2 scale-105" : "hover:shadow-md"
-      }`}
+      } ${isStale ? "border-red-400 border-2" : ""}`}
       data-testid={`lead-card-${lead.id}`}
     >
       <CardContent className="p-3 space-y-2">
@@ -105,6 +133,13 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, clients }) => {
           </div>
         )}
 
+        {/* Data de entrada e indicador de antiguidade */}
+        {daysOldText && (
+          <div className={`text-xs ${isStale ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+            {isStale && "⚠️ "}{daysOldText}
+          </div>
+        )}
+
         {/* Título */}
         <div className="flex items-start justify-between gap-2">
           <h4 className="text-sm font-medium line-clamp-2" title={lead.title}>
@@ -117,6 +152,7 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, clients }) => {
               className="h-6 w-6"
               onClick={() => onEdit(lead)}
               data-testid={`edit-lead-${lead.id}`}
+              title="Editar"
             >
               <Edit className="h-3 w-3" />
             </Button>
@@ -126,16 +162,34 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, clients }) => {
               className="h-6 w-6 text-red-500 hover:text-red-700"
               onClick={() => onDelete(lead.id)}
               data-testid={`delete-lead-${lead.id}`}
+              title="Eliminar"
             >
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
         </div>
 
-        {/* Preço */}
-        <div className="flex items-center gap-1 text-green-600 font-semibold">
-          <Euro className="h-4 w-4" />
-          <span>{formatPrice(lead.price)}</span>
+        {/* Preço com botão de refresh */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 text-green-600 font-semibold">
+            <Euro className="h-4 w-4" />
+            <span>{formatPrice(lead.price)}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={handleRefreshPrice}
+            disabled={isRefreshing}
+            data-testid={`refresh-price-${lead.id}`}
+            title="Verificar preço"
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <>🔄</>
+            )}
+          </Button>
         </div>
 
         {/* Localização e tipologia */}
