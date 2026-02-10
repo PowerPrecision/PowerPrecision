@@ -26,7 +26,8 @@ async def client():
     """
     # CORREÇÃO CRÍTICA: Desligar o Rate Limiter durante os testes
     # para evitar erro 429 (Too Many Requests)
-    app.state.limiter.enabled = False
+    if hasattr(app.state, "limiter"):
+        app.state.limiter.enabled = False
     
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -40,18 +41,19 @@ async def client():
 @pytest_asyncio.fixture
 async def admin_token(client):
     """Obter token de admin"""
+    # Tenta login com a password padrão
     response = await client.post("/auth/login", json={
         "email": "admin@sistema.pt",
         "password": "admin123" 
     })
-    # Fallback se a password for diferente
+    
+    # Fallback se a password for diferente (dependendo do seed)
     if response.status_code != 200:
          response = await client.post("/auth/login", json={
             "email": "admin@sistema.pt",
             "password": "admin2026"
         })
     
-    # Se falhar aqui, mostra o erro (agora já não será Rate Limit)
     assert response.status_code == 200, f"Admin login failed: {response.text}"
     return response.json()["access_token"]
 
@@ -70,7 +72,7 @@ async def consultor_token(client):
         "email": "consultor@sistema.pt",
         "password": "consultor123"
     })
-    # Tratamento de erro para evitar falhas silenciosas
+    
     if response.status_code != 200:
         pytest.skip(f"Falha login consultor: {response.text}")
         
@@ -90,6 +92,7 @@ async def mediador_token(client):
         "email": "mediador@sistema.pt",
         "password": "mediador123"
     })
+    
     if response.status_code != 200:
         pytest.skip(f"Falha login mediador: {response.text}")
         
