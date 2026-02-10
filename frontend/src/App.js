@@ -152,6 +152,16 @@ function App() {
             }
           />
           
+          {/* My Clients - For Consultors */}
+          <Route
+            path="/meus-clientes"
+            element={
+              <ProtectedRoute allowedRoles={["consultor", "admin", "ceo"]}>
+                <MyClientsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Process Details - Staff and Admin */}
           <Route
             path="/processo/:id"
