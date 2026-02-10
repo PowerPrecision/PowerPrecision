@@ -203,6 +203,7 @@ async def create_lead(
     lead_dict["created_at"] = now
     lead_dict["updated_at"] = now
     lead_dict["created_by"] = user.get("email")
+    lead_dict["created_by_id"] = user.get("id")  # Para filtros por consultor
     lead_dict["history"] = [{
         "timestamp": now,
         "event": "Lead criado",
