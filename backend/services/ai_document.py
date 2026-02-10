@@ -887,6 +887,14 @@ def parse_ai_response(response: str, document_type: str) -> Dict[str, Any]:
         
         # Parse JSON
         data = json.loads(response)
+        
+        # === LOG DETALHADO PARA DEBUG DO NIF ===
+        if document_type == 'cc':
+            nif_extraido = data.get('nif')
+            nome_extraido = data.get('nome_completo')
+            logger.info(f"[DEBUG CC] IA extraiu: NIF='{nif_extraido}', Nome='{nome_extraido}'")
+            logger.info(f"[DEBUG CC] Dados completos extraídos: {json.dumps(data, ensure_ascii=False, indent=2)}")
+        
         return data
         
     except json.JSONDecodeError as e:
