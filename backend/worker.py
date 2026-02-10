@@ -525,6 +525,128 @@ async def gdpr_audit_report_task(ctx: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ====================================================================
+# TAREFAS DE BACKUP
+# ====================================================================
+async def database_backup_task(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Tarefa de backup diário da base de dados.
+    Executada todos os dias às 03:00.
+    
+    Workflow:
+    1. Criar backup com mongodump
+    2. Comprimir em ZIP
+    3. Upload para OneDrive (se configurado)
+    4. Limpar backups antigos
+    """
+    logger.info("🗄️ [BACKUP] Iniciando backup diário...")
+    
+    try:
+        from services.backup import full_backup_workflow, get_backup_statistics
+        
+        # Executar workflow completo
+        result = await full_backup_workflow(
+            upload_to_cloud=True,
+            cleanup_after=True
+        )
+        
+        # Log resultado
+        if result["success"]:
+            backup_info = result.get("backup", {})
+            upload_info = result.get("upload", {})
+            
+            logger.info(
+                f"✅ [BACKUP] Concluído com sucesso:\n"
+                f"   - Ficheiro: {backup_info.get('filename', 'N/A')}\n"
+                f"   - Tamanho: {backup_info.get('size_mb', 0)}MB\n"
+                f"   - Duração: {backup_info.get('duration_seconds', 0)}s\n"
+                f"   - OneDrive: {'✅' if upload_info.get('success') else '❌'}"
+            )
+            
+            # Obter estatísticas
+            stats = await get_backup_statistics()
+            logger.info(
+                f"📊 [BACKUP] Stats: {stats['successful']}/{stats['total_backups']} "
+                f"bem sucedidos ({stats['success_rate']}%)"
+            )
+        else:
+            logger.error(f"❌ [BACKUP] Falhou: {result.get('error', 'Erro desconhecido')}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ [BACKUP] Erro na tarefa de backup: {str(e)}")
+        raise
+
+
+async def backup_verification_task(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Tarefa de verificação semanal dos backups.
+    Executada às segundas às 09:00.
+    
+    Verifica:
+    - Último backup bem sucedido
+    - Espaço em disco
+    - Integridade dos ficheiros
+    """
+    logger.info("🔍 [BACKUP] Verificando integridade dos backups...")
+    
+    try:
+        from services.backup import get_backup_statistics, config
+        import zipfile
+        
+        stats = await get_backup_statistics()
+        issues = []
+        
+        # Verificar último backup
+        last_backup = stats.get("last_backup")
+        if not last_backup:
+            issues.append("Nenhum backup encontrado no histórico")
+        elif not last_backup.get("success"):
+            issues.append(f"Último backup falhou: {last_backup.get('error', 'N/A')}")
+        
+        # Verificar idade do último backup
+        if last_backup and last_backup.get("started_at"):
+            last_backup_time = datetime.fromisoformat(
+                last_backup["started_at"].replace("Z", "+00:00")
+            )
+            age_hours = (datetime.now(timezone.utc) - last_backup_time).total_seconds() / 3600
+            
+            if age_hours > 48:
+                issues.append(f"Último backup tem {age_hours:.0f} horas (>48h)")
+        
+        # Verificar integridade dos ZIPs locais
+        corrupted = []
+        for backup_file in config.BACKUP_DIR.glob("backup_*.zip"):
+            try:
+                with zipfile.ZipFile(backup_file, 'r') as zf:
+                    if zf.testzip() is not None:
+                        corrupted.append(backup_file.name)
+            except Exception as e:
+                corrupted.append(f"{backup_file.name}: {str(e)}")
+        
+        if corrupted:
+            issues.append(f"Backups corrompidos: {', '.join(corrupted)}")
+        
+        result = {
+            "success": len(issues) == 0,
+            "statistics": stats,
+            "issues": issues,
+            "verified_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        if issues:
+            logger.warning(f"⚠️ [BACKUP] Problemas encontrados: {issues}")
+        else:
+            logger.info("✅ [BACKUP] Verificação concluída sem problemas")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ [BACKUP] Erro na verificação: {str(e)}")
+        raise
+
+
+# ====================================================================
 # ARQ WORKER SETTINGS
 # ====================================================================
 class WorkerSettings:
