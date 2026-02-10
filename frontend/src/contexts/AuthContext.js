@@ -85,14 +85,12 @@ export const AuthProvider = ({ children }) => {
   // Impersonate - ver como outro utilizador
   const impersonate = async (userId) => {
     try {
-      const response = await axios.post(`${API_URL}/admin/impersonate/${userId}`);
+      const response = await api.post(`/admin/impersonate/${userId}`);
       const { access_token, user: userData } = response.data;
       
       // Guardar token original para poder voltar
       localStorage.setItem("originalToken", localStorage.getItem("token"));
-      localStorage.setItem("token", access_token);
-      
-      axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+      setAuthToken(access_token);
       setToken(access_token);
       setUser(userData);
       setIsImpersonating(true);
@@ -108,7 +106,7 @@ export const AuthProvider = ({ children }) => {
   // Terminar impersonate e voltar à conta original
   const stopImpersonating = async () => {
     try {
-      const response = await axios.post(`${API_URL}/admin/stop-impersonate`);
+      const response = await api.post("/admin/stop-impersonate");
       const data = response.data;
       
       if (!data || !data.access_token) {
@@ -119,9 +117,7 @@ export const AuthProvider = ({ children }) => {
       
       // Restaurar token original
       localStorage.removeItem("originalToken");
-      localStorage.setItem("token", access_token);
-      
-      axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+      setAuthToken(access_token);
       setToken(access_token);
       setUser(userData);
       setIsImpersonating(false);
