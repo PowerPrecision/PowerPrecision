@@ -86,6 +86,7 @@ class RealEstateData(BaseModel):
     - outras_caracteristicas, outras_informacoes
     - ja_tem_imovel (indica se o cliente já tem imóvel identificado)
     - Dados do proprietário: owner_name, owner_email, owner_phone
+    - Dados do CPCV: valor_imovel, datas, etc.
     """
     tipo_imovel: Optional[str] = None
     num_quartos: Optional[str] = None
@@ -99,6 +100,32 @@ class RealEstateData(BaseModel):
     owner_name: Optional[str] = None
     owner_email: Optional[str] = None
     owner_phone: Optional[str] = None
+    # Dados do CPCV
+    valor_imovel: Optional[float] = None
+    codigo_postal: Optional[str] = None
+    localidade: Optional[str] = None
+    freguesia: Optional[str] = None
+    concelho: Optional[str] = None
+    tipologia: Optional[str] = None
+    area_bruta: Optional[str] = None
+    area_util: Optional[str] = None
+    fracao: Optional[str] = None
+    artigo_matricial: Optional[str] = None
+    conservatoria: Optional[str] = None
+    numero_predial: Optional[str] = None
+    certificado_energetico: Optional[str] = None
+    estacionamento: Optional[str] = None
+    arrecadacao: Optional[str] = None
+    descricao_imovel: Optional[str] = None
+    valor_patrimonial: Optional[float] = None
+    # Datas do CPCV
+    data_cpcv: Optional[str] = None
+    data_escritura_prevista: Optional[str] = None
+    prazo_escritura_dias: Optional[int] = None
+    data_entrega_chaves: Optional[str] = None
+    # Condições
+    condicao_suspensiva: Optional[str] = None
+    observacoes_cpcv: Optional[str] = None
 
 
 class FinancialData(BaseModel):
