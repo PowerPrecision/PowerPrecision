@@ -39,5 +39,20 @@ class DatabaseProxy:
         return getattr(get_database(), name)
 
 
-# Manter compatibilidade com código existente: `from database import db`
+class ClientProxy:
+    """
+    Proxy para o cliente Motor que permite acesso lazy.
+    """
+    def close(self):
+        global _client
+        if _client is not None:
+            _client.close()
+            _client = None
+    
+    def __getattr__(self, name):
+        return getattr(get_motor_client(), name)
+
+
+# Manter compatibilidade com código existente: `from database import db, client`
 db = DatabaseProxy()
+client = ClientProxy()
