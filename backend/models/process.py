@@ -231,3 +231,8 @@ class ProcessResponse(BaseModel):
     trello_list_id: Optional[str] = None  # ID da lista no Trello
     source: Optional[str] = None  # Origem do processo (trello_import, web_form, etc.)
     monitored_emails: Optional[List[str]] = None  # Emails adicionais para monitorizar
+    # Campos do CPCV
+    co_buyers: Optional[List[dict]] = None  # Co-compradores
+    co_applicants: Optional[List[dict]] = None  # Co-proponentes
+    vendedor: Optional[dict] = None  # Dados do vendedor
+    mediador: Optional[dict] = None  # Dados do mediador imobiliário
