@@ -1,7 +1,7 @@
 # ====================================================================
 # DOCKER COMPOSE - CREDITOIMO
 # ====================================================================
-# Stack completa: Backend + MongoDB + Redis
+# Stack completa: Nginx + Backend + Frontend + MongoDB + Redis
 #
 # Comandos úteis:
 #   docker compose up -d              # Iniciar todos os serviços
@@ -14,6 +14,11 @@
 #   docker compose up -d                      # Produção (default)
 #   docker compose --profile dev up -d        # Desenvolvimento
 #   docker compose --profile worker up -d     # Com ARQ worker
+#   docker compose --profile full up -d       # Stack completa
+#
+# Portas expostas (produção):
+#   80  - HTTP (redirect para HTTPS)
+#   443 - HTTPS (Nginx)
 #
 # ====================================================================
 
@@ -21,18 +26,95 @@ version: "3.9"
 
 services:
   # ==================================================================
+  # NGINX - REVERSE PROXY & SSL TERMINATION
+  # ==================================================================
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: creditoimo-nginx
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Nginx status (interno)
+    
+    volumes:
+      # Configuração
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      
+      # Certificados SSL
+      - nginx-ssl:/etc/nginx/ssl
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+      
+      # Logs
+      - nginx-logs:/var/log/nginx
+    
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    
+    networks:
+      - creditoimo-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ==================================================================
+  # FRONTEND - React
+  # ==================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: creditoimo-frontend
+    restart: unless-stopped
+    
+    # Portas não expostas externamente (apenas via Nginx)
+    expose:
+      - "3000"
+    
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_BACKEND_URL=https://${DOMAIN:-localhost}/api
+    
+    networks:
+      - creditoimo-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================================================================
   # BACKEND - FastAPI
   # ==================================================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: production  # ou 'development' para dev
+      target: production
     container_name: creditoimo-backend
     restart: unless-stopped
     
-    ports:
-      - "${BACKEND_PORT:-8001}:8001"
+    # Portas não expostas externamente (apenas via Nginx)
+    expose:
+      - "8001"
     
     environment:
       # MongoDB
@@ -45,8 +127,8 @@ services:
       # JWT
       - JWT_SECRET=${JWT_SECRET}
       
-      # CORS
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      # CORS (aceita requests do Nginx)
+      - CORS_ORIGINS=https://${DOMAIN:-localhost},http://localhost:3000
       
       # Email
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
