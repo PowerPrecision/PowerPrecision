@@ -37,46 +37,53 @@ class PropertyScraper:
         if not url.startswith("http"):
             url = "https://" + url
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-                follow_redirects=True,
-                # CORREÇÃO DE SEGURANÇA: Removido verify=False (default é True)
-                verify=True
-            ) as client:
-                response = await client.get(url, headers=self._get_headers())
-                
-                if response.status_code != 200:
-                    logger.warning(f"Erro ao aceder {url}: Status {response.status_code}")
-                    return {
-                        "url": url,
-                        "error": f"Erro HTTP {response.status_code}",
-                        "fonte": "erro"
-                    }
+        # Tentar primeiro com SSL, depois sem verificação (alguns sites têm certificados problemáticos)
+        for verify_ssl in [True, False]:
+            try:
+                async with httpx.AsyncClient(
+                    timeout=self.timeout,
+                    follow_redirects=True,
+                    verify=verify_ssl
+                ) as client:
+                    response = await client.get(url, headers=self._get_headers())
+                    
+                    if response.status_code != 200:
+                        logger.warning(f"Erro ao aceder {url}: Status {response.status_code}")
+                        if response.status_code == 403:
+                            return {
+                                "url": url,
+                                "error": "Site bloqueou o acesso (código 403). Tente novamente mais tarde.",
+                                "fonte": "erro"
+                            }
+                        return {
+                            "url": url,
+                            "error": f"Erro HTTP {response.status_code}",
+                            "fonte": "erro"
+                        }
 
-                html_content = response.text
-                soup = BeautifulSoup(html_content, 'html.parser')
-                
-                # Detectar fonte e extrair dados específicos
-                domain = url.lower()
-                data = {}
+                    html_content = response.text
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    
+                    # Detectar fonte e extrair dados específicos
+                    domain = url.lower()
+                    data = {}
 
-                if "idealista.pt" in domain:
-                    data = self._parse_idealista(soup)
-                elif "imovirtual.com" in domain:
-                    data = self._parse_imovirtual(soup)
-                elif "supercasa.pt" in domain:
-                    data = self._parse_supercasa(soup)
-                elif "casasapo.pt" in domain:
-                    data = self._parse_casasapo(soup)
-                elif "remax.pt" in domain:
-                    data = self._parse_remax(soup)
-                elif "era.pt" in domain:
-                    data = self._parse_era(soup)
-                elif "kwportugal.pt" in domain:
-                    data = self._parse_kw(soup)
-                else:
-                    data = self._parse_generic(soup)
+                    if "idealista.pt" in domain:
+                        data = self._parse_idealista(soup, html_content)
+                    elif "imovirtual.com" in domain:
+                        data = self._parse_imovirtual(soup)
+                    elif "supercasa.pt" in domain:
+                        data = self._parse_supercasa(soup)
+                    elif "casasapo.pt" in domain:
+                        data = self._parse_casasapo(soup)
+                    elif "remax.pt" in domain:
+                        data = self._parse_remax(soup)
+                    elif "era.pt" in domain:
+                        data = self._parse_era(soup, html_content)
+                    elif "kwportugal.pt" in domain:
+                        data = self._parse_kw(soup)
+                    else:
+                        data = self._parse_generic(soup)
 
                 # Adicionar metadados comuns
                 data["url"] = url
