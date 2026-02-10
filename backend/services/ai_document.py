@@ -1611,6 +1611,9 @@ def build_update_data_from_extraction(
         real_estate_update = {}
         personal_update = {}
         
+        # === DEBUG: Log de dados extraídos do CPCV ===
+        logger.info(f"[DEBUG CPCV] extracted_data keys: {list(extracted_data.keys())}")
+        
         # Extrair de estrutura aninhada
         cpcv = extracted_data.get('cpcv', extracted_data)
         imovel = cpcv.get('imovel', cpcv.get('dados_imovel', {}))
@@ -1619,6 +1622,10 @@ def build_update_data_from_extraction(
         vendedor = cpcv.get('vendedor', extracted_data.get('vendedor', {}))
         condicoes = cpcv.get('condicoes', {})
         mediador = cpcv.get('mediador', {})
+        
+        logger.info(f"[DEBUG CPCV] imovel: {imovel}")
+        logger.info(f"[DEBUG CPCV] valores: {valores}")
+        logger.info(f"[DEBUG CPCV] datas: {datas}")
         
         # === PROCESSAR MÚLTIPLOS COMPRADORES ===
         compradores = extracted_data.get('compradores', [])
