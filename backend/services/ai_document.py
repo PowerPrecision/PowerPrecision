@@ -1810,6 +1810,12 @@ def build_update_data_from_extraction(
             existing_real_estate = existing_data.get("real_estate_data") or {}
             existing_real_estate.update(real_estate_update)
             update_data["real_estate_data"] = existing_real_estate
+        
+        # === DEBUG: Log final do CPCV ===
+        logger.info(f"[DEBUG CPCV] personal_update: {personal_update}")
+        logger.info(f"[DEBUG CPCV] financial_update: {financial_update}")
+        logger.info(f"[DEBUG CPCV] real_estate_update: {real_estate_update}")
+        logger.info(f"[DEBUG CPCV] update_data keys: {list(update_data.keys())}")
             
     elif document_type == 'dados_imovel':
         # Ficheiros relacionados com o imóvel (fotos, plantas, documentos do imóvel)
