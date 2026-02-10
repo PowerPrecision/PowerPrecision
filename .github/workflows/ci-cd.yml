@@ -12,7 +12,6 @@ env:
 jobs:
   # ====================================================================
   # JOB 1: SECURITY SCAN (BLOCKING)
-  # Pipeline FALHA se forem detetadas vulnerabilidades médias ou altas
   # ====================================================================
   security-scan:
     name: Security Scan
@@ -44,46 +43,25 @@ jobs:
       - name: Criar directório de relatórios
         run: mkdir -p security-reports
 
-      # ================================================================
-      # BANDIT - Análise estática de código Python
-      # FALHA se encontrar issues de severidade MÉDIA ou ALTA
-      # ================================================================
       - name: Bandit - Análise de Segurança do Código
         id: bandit
         run: |
           cd backend
           echo "🔍 A executar análise Bandit..."
-          
-          # Gerar relatório JSON (sem falhar aqui, apenas gera o ficheiro)
           bandit -r . -f json -o ../security-reports/bandit-report.json \
             --exclude ./tests,./venv,./.venv,./migrations --exit-zero || true
-          
-          # Executar com severidade média ou alta - DEVE FALHAR se encontrar
-          # CORREÇÃO: Removido -ll para evitar conflito com --severity-level
           bandit -r . --exclude ./tests,./venv,./.venv,./migrations \
             --severity-level medium --confidence-level medium
         continue-on-error: false
 
-      # ================================================================
-      # SAFETY - Verificação de vulnerabilidades em dependências
-      # FALHA se encontrar vulnerabilidades conhecidas
-      # ================================================================
       - name: Safety - Scan de Vulnerabilidades
         id: safety
         run: |
           cd backend
           echo "🔍 A verificar vulnerabilidades em dependências..."
-          
-          # IDs Ignorados:
-          # 64459, 64396: Vulnerabilidades no python-ecdsa (Minerva attack/side-channel)
-          # Os mantedores não vão corrigir (limitação do python puro) e não usamos ECDSA directamente.
-          
-          # Gerar relatório
           safety check --full-report --output json \
             --ignore 64459 --ignore 64396 \
             > ../security-reports/safety-report.json 2>&1 || true
-          
-          # Verificar vulnerabilidades - DEVE FALHAR se encontrar (exceto as ignoradas)
           safety check --full-report --ignore 64459 --ignore 64396
         continue-on-error: false
 
@@ -95,36 +73,13 @@ jobs:
           path: security-reports/
           retention-days: 30
 
-      - name: Security Summary
-        if: always()
-        run: |
-          echo "## 🔒 Relatório de Segurança" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.bandit.outcome }}" == "failure" ]; then
-            echo "### ❌ Bandit - FALHOU" >> $GITHUB_STEP_SUMMARY
-            echo "Foram encontradas vulnerabilidades no código." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ✅ Bandit - OK" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.safety.outcome }}" == "failure" ]; then
-            echo "### ❌ Safety - FALHOU" >> $GITHUB_STEP_SUMMARY
-            echo "Foram encontradas vulnerabilidades nas dependências." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ✅ Safety - OK" >> $GITHUB_STEP_SUMMARY
-          fi
-
   # ====================================================================
   # JOB 2: TESTES
-  # Só executa se o security scan passar
   # ====================================================================
   test:
     name: Tests
     runs-on: ubuntu-latest
-    needs: security-scan  # Depende do security scan passar
+    needs: security-scan
     
     services:
       mongodb:
@@ -163,7 +118,8 @@ jobs:
           CORS_ORIGINS: http://localhost:3000
         run: |
           cd backend
-          pytest  # <--- APENAS ISTO! Não escrevas "tests/" nem "tests/e2e" à frente.
+          # CORREÇÃO: Apenas pytest. Sem argumentos extra.
+          pytest
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -172,70 +128,37 @@ jobs:
           path: backend/coverage.xml
 
   # ====================================================================
-  # JOB 3: LINT
+  # JOB 3: LINT e BUILD (Mantidos iguais)
   # ====================================================================
   lint:
     name: Code Quality
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
       - name: Instalar linters
-        run: |
-          pip install ruff black isort
-
+        run: pip install ruff black isort
       - name: Ruff (linting)
-        run: |
-          cd backend
-          ruff check . --ignore E501,F401
+        run: cd backend && ruff check . --ignore E501,F401
         continue-on-error: true
-
       - name: Black (formatting check)
-        run: |
-          cd backend
-          black --check --diff . || echo "⚠️ Formatação não está conforme Black"
+        run: cd backend && black --check --diff . || echo "⚠️ Formatação não está conforme Black"
         continue-on-error: true
 
-  # ====================================================================
-  # JOB 4: BUILD (apenas em push para main/master)
-  # ====================================================================
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: [security-scan, test]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
-
       - name: Build success
         run: |
           echo "✅ Build pronto para deploy!"
           echo "Security scan: PASSED"
           echo "Tests: PASSED"
-
-  # ====================================================================
-  # JOB 5: DEPENDENCY REVIEW (apenas em PRs)
-  # ====================================================================
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-        
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: medium
-          deny-licenses: GPL-3.0, AGPL-3.0

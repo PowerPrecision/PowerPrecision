@@ -45,7 +45,6 @@ async def admin_token(client):
         "password": "admin123" 
     })
     
-    # Fallback se a password for diferente
     if response.status_code != 200:
          response = await client.post("/auth/login", json={
             "email": "admin@sistema.pt",

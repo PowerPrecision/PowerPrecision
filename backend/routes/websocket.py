@@ -8,7 +8,7 @@ Endpoints WebSocket para comunicação em tempo real.
 
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-import jwt  # CORREÇÃO: Importar PyJWT
+import jwt  # CORREÇÃO: Usar PyJWT
 
 from config import JWT_SECRET, JWT_ALGORITHM
 from database import db
