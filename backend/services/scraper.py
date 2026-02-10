@@ -139,7 +139,7 @@ class PropertyScraper:
 
     # --- Parsers Específicos (Lógica de Extração) ---
 
-    def _parse_idealista(self, soup: BeautifulSoup) -> Dict[str, Any]:
+    def _parse_idealista(self, soup: BeautifulSoup, html_content: str = "") -> Dict[str, Any]:
         data = {"fonte": "idealista"}
         
         # Título
@@ -147,13 +147,30 @@ class PropertyScraper:
         if title_elem:
             data["titulo"] = self._clean_text(title_elem.get_text())
 
-        # Preço
+        # Preço - múltiplas estratégias
         price_elem = soup.find('span', class_='txt-bold', string=re.compile(r'€')) or soup.find('span', class_='info-data-price')
+        if not price_elem:
+            price_elem = soup.find('span', class_='h2-simulated')
         if price_elem:
             data["preco"] = self._clean_price(price_elem.get_text())
+        
+        # Fallback: procurar no JSON-LD
+        if not data.get("preco"):
+            try:
+                json_ld = soup.find('script', type='application/ld+json')
+                if json_ld:
+                    ld_data = json.loads(json_ld.string)
+                    if isinstance(ld_data, list):
+                        ld_data = ld_data[0]
+                    if 'offers' in ld_data:
+                        data["preco"] = self._clean_price(str(ld_data['offers'].get('price', '')))
+            except:
+                pass
 
         # Localização
         loc_elem = soup.find('div', id='headerMap') or soup.find('span', class_='main-info__title-minor')
+        if not loc_elem:
+            loc_elem = soup.find('span', class_='txt-regular') 
         if loc_elem:
             data["localizacao"] = self._clean_text(loc_elem.get_text())
 
@@ -163,13 +180,22 @@ class PropertyScraper:
             text = feat.get_text().lower()
             if 't' in text and any(c.isdigit() for c in text):
                 data["tipologia"] = self._clean_text(text)
-            elif 'm²' in text:
-                data["area"] = self._clean_text(text)
+            elif 'm²' in text or 'm2' in text:
+                area_text = self._clean_text(text)
+                # Extrair só o número
+                area_match = re.search(r'(\d+)', area_text)
+                if area_match:
+                    data["area"] = area_match.group(1)
 
         # Foto Principal
         img_elem = soup.find('img', class_='main-image_img')
         if img_elem and img_elem.get('src'):
             data["foto_principal"] = img_elem.get('src')
+        # Fallback: OpenGraph
+        if not data.get("foto_principal"):
+            og_img = soup.find('meta', property='og:image')
+            if og_img:
+                data["foto_principal"] = og_img.get('content')
 
         # Consultor / Agência
         advertiser = soup.find('div', class_='advertiser-name')
