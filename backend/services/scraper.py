@@ -86,21 +86,30 @@ class PropertyScraper:
                         data = self._parse_generic(soup)
 
                 # Adicionar metadados comuns
-                data["url"] = url
-                data["scraped_at"] = datetime.now(timezone.utc).isoformat()
-                
-                # Se não extraiu consultor, tentar genérico
-                if not data.get("consultor"):
-                    data["consultor"] = self._extract_generic_contacts(soup)
+                    data["url"] = url
+                    data["scraped_at"] = datetime.now(timezone.utc).isoformat()
+                    
+                    # Se não extraiu consultor, tentar genérico
+                    if not data.get("consultor"):
+                        data["consultor"] = self._extract_generic_contacts(soup)
 
-                return data
+                    return data
 
-        except httpx.RequestError as e:
-            logger.error(f"Erro de rede ao fazer scraping de {url}: {str(e)}")
-            return {"url": url, "error": f"Erro de rede: {str(e)}"}
-        except Exception as e:
-            logger.error(f"Erro inesperado no scraping de {url}: {str(e)}")
-            return {"url": url, "error": f"Erro interno: {str(e)}"}
+            except httpx.SSLError as e:
+                if verify_ssl:
+                    logger.warning(f"Erro SSL para {url}, a tentar sem verificação...")
+                    continue  # Tentar sem SSL
+                else:
+                    logger.error(f"Erro SSL ao fazer scraping de {url}: {str(e)}")
+                    return {"url": url, "error": f"Erro SSL: {str(e)}"}
+            except httpx.RequestError as e:
+                logger.error(f"Erro de rede ao fazer scraping de {url}: {str(e)}")
+                return {"url": url, "error": f"Erro de rede: {str(e)}"}
+            except Exception as e:
+                logger.error(f"Erro inesperado no scraping de {url}: {str(e)}")
+                return {"url": url, "error": f"Erro interno: {str(e)}"}
+        
+        return {"url": url, "error": "Não foi possível aceder ao site"}
 
     def _clean_price(self, price_str: str) -> Optional[float]:
         """Limpa string de preço para float."""
