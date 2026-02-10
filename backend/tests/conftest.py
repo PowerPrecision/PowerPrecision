@@ -17,16 +17,14 @@ os.environ["TESTING"] = "true"
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from server import app
-from database import db, get_motor_client
-from services.auth import hash_password
-# Importar limiter para garantir que está desligado
 from middleware.rate_limit import limiter
 
 # URL fictício para os testes
 API_URL = "http://testserver/api"
 
-# Configurar pytest-asyncio para usar o mesmo event loop
+# Configurar pytest-asyncio
 pytest_plugins = ('pytest_asyncio',)
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -53,10 +51,20 @@ async def client():
         yield ac
 
 
-async def _ensure_test_user(email: str, password: str, name: str, role: str):
+@pytest_asyncio.fixture(scope="function")
+async def db_client():
+    """
+    Fixture que fornece acesso à DB dentro do mesmo event loop.
+    """
+    from database import db
+    yield db
+
+
+async def _ensure_test_user_via_db(db, email: str, password: str, name: str, role: str):
     """Helper para criar/atualizar utilizador de teste diretamente na DB."""
     import uuid
     from datetime import datetime, timezone
+    from services.auth import hash_password
     
     hashed = hash_password(password)
     now = datetime.now(timezone.utc).isoformat()
@@ -89,13 +97,13 @@ async def _ensure_test_user(email: str, password: str, name: str, role: str):
 # --- Fixtures de Autenticação ---
 
 @pytest_asyncio.fixture
-async def admin_token(client):
+async def admin_token(client, db_client):
     """Obter token de admin. Cria o user se não existir."""
     email = "admin@sistema.pt"
     password = "admin123"
     
     # 1. Garantir que o user existe na DB
-    await _ensure_test_user(email, password, "Admin Teste", "admin")
+    await _ensure_test_user_via_db(db_client, email, password, "Admin Teste", "admin")
     
     # 2. Fazer Login
     response = await client.post("/auth/login", json={
@@ -108,12 +116,12 @@ async def admin_token(client):
 
 
 @pytest_asyncio.fixture
-async def consultor_token(client):
+async def consultor_token(client, db_client):
     """Obter token de consultor. Cria o user se não existir."""
     email = "consultor@sistema.pt"
     password = "consultor123"
     
-    await _ensure_test_user(email, password, "Consultor Teste", "consultor")
+    await _ensure_test_user_via_db(db_client, email, password, "Consultor Teste", "consultor")
     
     response = await client.post("/auth/login", json={"email": email, "password": password})
     assert response.status_code == 200, f"Consultor login failed: {response.text}"
@@ -121,12 +129,12 @@ async def consultor_token(client):
 
 
 @pytest_asyncio.fixture
-async def mediador_token(client):
+async def mediador_token(client, db_client):
     """Obter token de mediador. Cria o user se não existir."""
     email = "mediador@sistema.pt"
     password = "mediador123"
     
-    await _ensure_test_user(email, password, "Mediador Teste", "mediador")
+    await _ensure_test_user_via_db(db_client, email, password, "Mediador Teste", "mediador")
     
     response = await client.post("/auth/login", json={"email": email, "password": password})
     assert response.status_code == 200, f"Mediador login failed: {response.text}"
