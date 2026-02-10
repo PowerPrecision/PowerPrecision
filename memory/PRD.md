@@ -145,6 +145,23 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**10 Fevereiro 2026**
+- ✅ **Bug Fix Crítico - Extração NIF de CC**: Corrigido bug onde NIF era extraído incorretamente de documentos CC (começava por 5 em vez do valor real):
+  - Alterado `detail` de `'low'` para `'high'` na API de visão para documentos CC/CPCV
+  - Aumentado DPI de conversão PDF→imagem de 200 para 300 para documentos CC/CPCV
+  - Imagens de CC não são mais redimensionadas para preservar qualidade
+  - Prompts melhorados com instruções específicas sobre localização do NIF no verso do cartão
+  - Testado com CC da Carolina Silva: NIF 268494622 extraído correctamente
+- ✅ **Nova Funcionalidade - Lista de Clientes para Consultores (P0)**:
+  - Novo endpoint `GET /api/processes/my-clients` com filtro por consultor
+  - Nova página `/meus-clientes` com:
+    - Estatísticas: Total de Clientes, Com Tarefas Pendentes, Com Imóvel Associado
+    - Pesquisa por nome, email ou nº processo
+    - Filtro por fase do workflow
+    - Tabela com: Nº, Cliente, Fase, Ações Pendentes, Última Atualização, Ações
+  - Link "Os Meus Clientes" adicionado na navegação para consultores
+- ✅ **Instalação libmagic**: Corrigido erro de importação do python-magic para validação de ficheiros
+
 **9 Fevereiro 2026**
 - ✅ **Segurança: SlowAPI Rate Limiting**: Implementado nas rotas públicas e de autenticação
   - Login: 5 requests/minuto
