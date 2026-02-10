@@ -580,12 +580,14 @@ async def analyze_document_from_base64(base64_content: str, mime_type: str, docu
             # PDF sem texto (provavelmente scan/imagem) - converter para imagem
             logger.info(f"Texto insuficiente ({len(extracted_text)} chars), convertendo PDF para imagem...")
             
-            img_bytes, img_mime = convert_pdf_to_image(content_bytes, page_num=0, dpi=200)
+            # Para documentos de identificação (CC), usar DPI mais alto para melhor leitura de números
+            conversion_dpi = 300 if document_type in ['cc', 'cpcv'] else 200
+            img_bytes, img_mime = convert_pdf_to_image(content_bytes, page_num=0, dpi=conversion_dpi)
             
             if img_bytes:
                 # Usar a imagem convertida para análise de visão
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                logger.info("PDF convertido para imagem, usando modelo de visão")
+                logger.info(f"PDF convertido para imagem (DPI={conversion_dpi}), usando modelo de visão")
                 return await analyze_with_vision(img_base64, img_mime, document_type)
             else:
                 logger.warning("Falha ao converter PDF para imagem, tentando com PDF original")
