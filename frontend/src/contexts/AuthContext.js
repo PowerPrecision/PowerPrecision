@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import api, { setAuthToken, clearAuthToken } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      setAuthToken(token);
       fetchUser();
     } else {
       setLoading(false);
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get(`${API_URL}/auth/me`);
+      const response = await api.get("/auth/me");
       const userData = response.data;
       setUser(userData);
       
@@ -37,14 +37,17 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error fetching user:", error);
-      logout();
+      // Não chamar logout aqui - o interceptor já trata 401
+      if (error.response?.status !== 401) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email, password) => {
-    const response = await axios.post(`${API_URL}/auth/login`, {
+    const response = await api.post("/auth/login", {
       email,
       password,
     });
