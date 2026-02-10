@@ -159,6 +159,11 @@ class ProcessUpdate(BaseModel):
     status: Optional[str] = None
     client_email: Optional[str] = None
     client_phone: Optional[str] = None
+    # Campos adicionais para CPCV e documentos com múltiplos compradores
+    co_buyers: Optional[List[dict]] = None  # Co-compradores do CPCV
+    co_applicants: Optional[List[dict]] = None  # Co-proponentes de simulação/IRS
+    vendedor: Optional[dict] = None  # Dados do vendedor do CPCV
+    mediador: Optional[dict] = None  # Dados do mediador imobiliário
 
 
 class ProcessResponse(BaseModel):
