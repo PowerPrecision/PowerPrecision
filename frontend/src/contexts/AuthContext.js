@@ -52,8 +52,7 @@ export const AuthProvider = ({ children }) => {
       password,
     });
     const { access_token, user: userData } = response.data;
-    localStorage.setItem("token", access_token);
-    axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+    setAuthToken(access_token);
     setToken(access_token);
     setUser(userData);
     setIsImpersonating(false);
@@ -62,23 +61,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (name, email, password, phone) => {
-    const response = await axios.post(`${API_URL}/auth/register`, {
+    const response = await api.post("/auth/register", {
       name,
       email,
       password,
       phone,
     });
     const { access_token, user: userData } = response.data;
-    localStorage.setItem("token", access_token);
-    axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
+    setAuthToken(access_token);
     setToken(access_token);
     setUser(userData);
     return userData;
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    delete axios.defaults.headers.common["Authorization"];
+    clearAuthToken();
     setToken(null);
     setUser(null);
     setIsImpersonating(false);
