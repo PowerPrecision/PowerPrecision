@@ -1,0 +1,116 @@
+{
+  "summary": "Iteration 23: Backend testing for bugs h, i, j, k. All 4 bugs verified as FIXED. Personal data fields (data_nascimento, data_validade_cc, sexo, altura, nome_pai, nome_mae) are correctly saved and persisted. Consultores can access assigned processes. My-clients endpoint correctly filters by user assignment. Menu visibility for intermediários is correct.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Bug h: PUT /api/processes/{id} saves data_nascimento field correctly",
+    "Bug h: PUT /api/processes/{id} saves data_validade_cc field correctly",
+    "Bug h: PUT /api/processes/{id} saves sexo field correctly",
+    "Bug h: PUT /api/processes/{id} saves altura field correctly",
+    "Bug h: PUT /api/processes/{id} saves nome_pai field correctly",
+    "Bug h: PUT /api/processes/{id} saves nome_mae field correctly",
+    "Bug h: GET /api/processes/{id} confirms all fields persisted in database",
+    "Bug i: Consultor can access assigned process without 401/403 error",
+    "Bug i: Consultor can access kanban board",
+    "Bug j: GET /api/processes/my-clients returns only processes assigned to consultor",
+    "Bug j: GET /api/clients filters correctly for consultor role (1 client vs 152 for admin)",
+    "Bug k: DashboardLayout.js excludes 'Todos os Processos' for intermediario/mediador (line 176)",
+    "Bug k: DashboardLayout.js excludes 'Imóveis' for intermediario/mediador (line 199)"
+  ],
+  
+  "failed_tests": [],
+  
+  "skipped_tests": [
+    "create-client endpoint restricted to INTERMEDIARIO/MEDIADOR only - used existing processes for testing"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration23_bugs_h_i_j_k.py",
+    "/app/test_reports/pytest/pytest_results_iteration23.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "✅ PersonalData model in models/process.py includes all new fields: data_nascimento, data_validade_cc, sexo, altura, nome_pai, nome_mae (lines 62-72)",
+    "✅ update_process in routes/processes.py correctly saves personal_data with model_dump() (line 824)",
+    "✅ can_view_process function in routes/processes.py checks created_by by both ID and email (lines 177-179)",
+    "✅ my-clients endpoint filters by assigned_consultor_id for consultors, assigned_mediador_id for intermediarios (lines 496-499)",
+    "✅ /api/clients list_clients filters processes by assigned_consultor_id or assigned_mediador_id based on role (lines 48-65)",
+    "✅ DashboardLayout.js menu filtering logic correctly excludes menus for specific roles (lines 175-205)"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration23_bugs_h_i_j_k.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (13/13 verifications passed)",
+    "frontend": "Not tested (backend-only test request, code review only for frontend)"
+  },
+  
+  "test_credentials": {
+    "admin": "admin@sistema.pt / admin123",
+    "consultor": "consultor@sistema.pt / consultor123"
+  },
+  
+  "seed_data_creation": "Used existing process 67e67aac-966b-4484-85c5-25da31db90ef for Bug h testing. Updated personal_data fields. Assigned process c7996fb8-9200-4460-a240-e6a4f1a1467b to consultor for Bug i/j testing.",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All 4 bugs (h, i, j, k) verified as FIXED. Bug h: PersonalData model supports new fields and they are correctly saved via PUT and persisted in MongoDB. Bug i: can_view_process function updated to check created_by by both ID and email, allowing consultors to access their assigned/created processes. Bug j: my-clients and /api/clients endpoints correctly filter by user's role and assignment. Bug k: Frontend DashboardLayout.js menu filtering verified via code review - intermediarios don't see 'Imóveis' or 'Todos os Processos'. Rate limiting on login endpoint (10 per minute) - wait 60s between login attempts if running multiple tests.",
+  
+  "verified_bugs": {
+    "bug_h_personal_data_fields": {
+      "status": "FIXED",
+      "details": [
+        "PersonalData model includes: data_nascimento, data_validade_cc, sexo, altura, nome_pai, nome_mae",
+        "PUT /api/processes/{id} with personal_data saves all fields",
+        "GET /api/processes/{id} confirms persistence",
+        "Tested on process 67e67aac-966b-4484-85c5-25da31db90ef"
+      ]
+    },
+    "bug_i_consultor_redirect": {
+      "status": "FIXED",
+      "details": [
+        "can_view_process function checks created_by by ID or email",
+        "Consultor with assigned_consultor_id can access process",
+        "GET /api/processes/{id} returns 200 for assigned consultor",
+        "Tested with consultor@sistema.pt accessing process c7996fb8-9200-4460-a240-e6a4f1a1467b"
+      ]
+    },
+    "bug_j_my_clients_filter": {
+      "status": "FIXED",
+      "details": [
+        "GET /api/processes/my-clients filters by assigned_consultor_id for consultors",
+        "GET /api/processes/my-clients filters by assigned_mediador_id for intermediarios/mediadores",
+        "GET /api/clients also filters by role-specific assignment",
+        "Consultor sees 1 client, Admin sees 152 clients - filtering works correctly"
+      ]
+    },
+    "bug_k_menu_visibility": {
+      "status": "FIXED",
+      "details": [
+        "DashboardLayout.js line 176: 'Todos os Processos' excluded for consultor, intermediario, mediador",
+        "DashboardLayout.js line 199: 'Imóveis' excluded for intermediario, mediador",
+        "Code review confirms correct implementation"
+      ]
+    }
+  },
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "NO MOCKED APIs - All real integrations tested"
+  }
+}
