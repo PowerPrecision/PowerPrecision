@@ -160,5 +160,58 @@ async def get_supported_sites(user: dict = Depends(get_current_user)):
             }
         ],
         "generic_support": True,
-        "notes": "Sites não listados são processados com extração genérica via meta tags OpenGraph"
+        "ai_analysis": {
+            "available": True,
+            "model": "claude-3-5-sonnet-20241022",
+            "description": "Análise IA disponível para sites não suportados"
+        },
+        "notes": "Sites não listados são processados com extração genérica ou IA (Claude)"
     }
+
+
+@router.post("/analyze-with-ai")
+async def analyze_page_with_ai_endpoint(
+    request: ScrapeRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
+):
+    """
+    Analisa uma página usando Claude 3.5 Sonnet.
+    
+    Útil para sites que bloqueiam scraping ou têm estrutura complexa.
+    A IA extrai automaticamente informações de imóveis do HTML.
+    
+    Custo: Usa créditos do EMERGENT_LLM_KEY
+    """
+    try:
+        from services.scraper import analyze_page_with_ai
+        import httpx
+        
+        logger.info(f"Análise IA solicitada para: {request.url}")
+        
+        # Primeiro, obter o HTML da página
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            response = await client.get(request.url, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            })
+            
+            if response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"Não foi possível aceder à página (HTTP {response.status_code})"
+                }
+            
+            html_content = response.text
+        
+        # Analisar com IA
+        result = await analyze_page_with_ai(request.url, html_content)
+        
+        return {
+            "success": True,
+            "url": request.url,
+            "ai_model": "claude-3-5-sonnet-20241022",
+            "data": result
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro na análise IA: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
