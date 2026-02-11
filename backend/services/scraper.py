@@ -534,12 +534,41 @@ Conteúdo:
             
         except json.JSONDecodeError as e:
             logger.error(f"Gemini retornou JSON inválido: {e}")
+            # Registar erro
+            try:
+                from services.ai_usage_tracker import ai_usage_tracker, estimate_cost
+                response_time = int((time.time() - start_time) * 1000)
+                cost = estimate_cost("gemini-2.0-flash", input_tokens, 0)
+                await ai_usage_tracker.log_usage(
+                    task="scraper_extraction",
+                    model="gemini-2.0-flash",
+                    provider="gemini",
+                    input_tokens=input_tokens,
+                    cost=cost,
+                    response_time_ms=response_time,
+                    success=False,
+                    error_message="JSON inválido"
+                )
+            except Exception:
+                pass
             return {"_error": "JSON inválido da IA"}
         except Exception as e:
             error_str = str(e).lower()
             # Tratamento específico para quota excedida
             if "quota" in error_str or "rate" in error_str or "resource" in error_str or "exhausted" in error_str:
                 logger.warning(f"Gemini quota excedida - continuando sem IA: {e}")
+                # Registar erro de quota
+                try:
+                    from services.ai_usage_tracker import ai_usage_tracker
+                    await ai_usage_tracker.log_usage(
+                        task="scraper_extraction",
+                        model="gemini-2.0-flash",
+                        provider="gemini",
+                        success=False,
+                        error_message="quota_exceeded"
+                    )
+                except Exception:
+                    pass
                 return {"_error": "quota_exceeded", "_fallback": True}
             logger.error(f"Erro Gemini: {type(e).__name__}: {e}")
             return {"_error": str(e)}
