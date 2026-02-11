@@ -61,18 +61,19 @@ async def create_deadline(data: DeadlineCreate, user: dict = Depends(get_current
     if data.process_id:
         await log_history(data.process_id, user, "Criou prazo", "deadline", None, data.title)
     
-    # Notificar todos os utilizadores atribuídos (exceto o criador)
+    # Notificar todos os utilizadores atribuídos (exceto o criador) - com verificação de preferências
     for assigned_id in assigned_users:
         if assigned_id != user["id"]:
             assigned_user = await db.users.find_one({"id": assigned_id}, {"_id": 0})
             if assigned_user:
-                await send_email_notification(
+                await send_notification_with_preference_check(
                     assigned_user["email"],
                     f"Novo Prazo Atribuído: {data.title}",
                     f"Foi-lhe atribuído um novo prazo por {user['name']}:\n\n"
                     f"Título: {data.title}\n"
                     f"Data limite: {data.due_date}\n"
-                    f"Prioridade: {data.priority}"
+                    f"Prioridade: {data.priority}",
+                    notification_type="task_assigned"
                 )
     
     return DeadlineResponse(**{k: v for k, v in deadline_doc.items() if k != "_id"})
