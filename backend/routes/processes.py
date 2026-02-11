@@ -692,14 +692,15 @@ async def move_process_kanban(
                 "message": "Escritura agendada sem data. Defina a data para criar lembrete automático."
             })
     
-    # Send email notification if client has email
+    # Send email notification if client has email (com verificação de preferências)
     if process.get("client_email"):
         status_doc = await db.workflow_statuses.find_one({"name": new_status}, {"_id": 0})
         status_label = status_doc.get("label", new_status) if status_doc else new_status
-        await send_email_notification(
+        await send_notification_with_preference_check(
             process["client_email"],
             "Atualização do seu processo",
-            f"O estado do seu processo foi atualizado para: {status_label}"
+            f"O estado do seu processo foi atualizado para: {status_label}",
+            notification_type="status_change"
         )
     
     # === CRIAR NOTIFICAÇÃO NA BASE DE DADOS ===
