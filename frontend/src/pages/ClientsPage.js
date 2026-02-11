@@ -284,19 +284,50 @@ export default function ClientsPage() {
           </Button>
         </div>
 
-        {/* Search & Stats */}
+        {/* Search, Filters & Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="md:col-span-2">
             <CardContent className="pt-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Pesquisar por nome, email ou NIF..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  data-testid="search-clients-input"
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Pesquisar por nome, email ou NIF..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                    data-testid="search-clients-input"
+                  />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[150px]" data-testid="filter-status">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="with_process">Com Processos</SelectItem>
+                    <SelectItem value="without_process">Sem Processos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={`${sortField}_${sortOrder}`} onValueChange={(v) => {
+                  const [field, order] = v.split('_');
+                  setSortField(field);
+                  setSortOrder(order);
+                }}>
+                  <SelectTrigger className="w-[150px]" data-testid="sort-field">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Ordenar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created_at_desc">Mais Recentes</SelectItem>
+                    <SelectItem value="created_at_asc">Mais Antigos</SelectItem>
+                    <SelectItem value="nome_asc">Nome (A-Z)</SelectItem>
+                    <SelectItem value="nome_desc">Nome (Z-A)</SelectItem>
+                    <SelectItem value="process_count_desc">Mais Processos</SelectItem>
+                    <SelectItem value="process_count_asc">Menos Processos</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
