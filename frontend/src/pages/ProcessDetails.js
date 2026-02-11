@@ -2120,11 +2120,17 @@ const ProcessDetails = () => {
               </p>
             </div>
             
+            {loadingUsers ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                <span className="ml-2 text-sm text-muted-foreground">A carregar utilizadores...</span>
+              </div>
+            ) : (
             <div className="space-y-3">
               <div>
                 <Label className="text-sm font-medium">Consultor</Label>
                 <Select value={selectedConsultor || "none"} onValueChange={(v) => setSelectedConsultor(v === "none" ? "" : v)}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1" data-testid="consultor-select">
                     <SelectValue placeholder="Seleccionar consultor..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -2144,7 +2150,7 @@ const ProcessDetails = () => {
               <div>
                 <Label className="text-sm font-medium">Intermediário / Mediador</Label>
                 <Select value={selectedMediador || "none"} onValueChange={(v) => setSelectedMediador(v === "none" ? "" : v)}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1" data-testid="mediador-select">
                     <SelectValue placeholder="Seleccionar intermediário..." />
                   </SelectTrigger>
                   <SelectContent>
