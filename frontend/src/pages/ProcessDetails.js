@@ -2167,6 +2167,7 @@ const ProcessDetails = () => {
                 </Select>
               </div>
             </div>
+            )}
           </div>
           
           <DialogFooter className="gap-2">
