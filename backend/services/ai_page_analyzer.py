@@ -1,15 +1,14 @@
 """
 ====================================================================
-SERVIÇO DE IA PARA ANÁLISE DE PÁGINAS (GPT-4o)
+SERVIÇO DE IA PARA ANÁLISE (Configurável)
 ====================================================================
-Este serviço usa o GPT-4o para:
-- Analisar conteúdo HTML de páginas web
-- Extrair informações de imóveis
-- Análise inteligente de dados estruturados
+Este serviço gere as configurações de IA do sistema e permite
+ao admin escolher qual modelo usar para cada tarefa.
 
-Configuração:
-- Modelo: gpt-4o (OpenAI)
-- Provider: OpenAI via emergentintegrations
+Modelos suportados:
+- gemini-1.5-flash: Rápido e económico (scraping)
+- gpt-4o-mini: Bom custo-benefício (documentos)
+- gpt-4o: Mais capaz (análise complexa)
 ====================================================================
 """
 import os
@@ -21,217 +20,222 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Configuração do modelo - GPT-4o é muito capaz para análise
-AI_MODEL = "gpt-4o"
-AI_PROVIDER = "openai"
+# Importar configurações
+from config import GEMINI_API_KEY, EMERGENT_LLM_KEY, AI_CONFIG_DEFAULTS, AI_MODELS
 
 
-async def analyze_page_with_claude(
-    html_content: str,
-    url: str,
-    extraction_type: str = "property"
+async def get_ai_config() -> Dict[str, Any]:
+    """
+    Obtém a configuração actual de IA.
+    Pode ser sobrescrita pelas definições guardadas na DB.
+    """
+    from database import db
+    
+    # Tentar obter configuração da DB
+    config = await db.system_config.find_one(
+        {"key": "ai_config"},
+        {"_id": 0}
+    )
+    
+    if config and config.get("value"):
+        return config["value"]
+    
+    # Usar defaults
+    return AI_CONFIG_DEFAULTS
+
+
+async def save_ai_config(config: Dict[str, str], user_email: str) -> bool:
+    """
+    Guarda a configuração de IA na DB.
+    Apenas admins podem fazer isto.
+    """
+    from database import db
+    from datetime import datetime, timezone
+    
+    await db.system_config.update_one(
+        {"key": "ai_config"},
+        {
+            "$set": {
+                "key": "ai_config",
+                "value": config,
+                "updated_by": user_email,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    logger.info(f"Configuração de IA actualizada por {user_email}")
+    return True
+
+
+async def analyze_with_configured_ai(
+    content: str,
+    task_type: str = "scraper_extraction",
+    context: str = ""
 ) -> Dict[str, Any]:
     """
-    Analisa o conteúdo HTML de uma página usando Claude 3.5 Sonnet.
+    Analisa conteúdo usando o modelo configurado para a tarefa.
     
     Args:
-        html_content: Conteúdo HTML da página
-        url: URL da página para contexto
-        extraction_type: Tipo de extração ("property", "contact", "general")
-        
-    Returns:
-        Dict com dados extraídos
-    """
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
-        if not api_key:
-            logger.error("EMERGENT_LLM_KEY não configurada")
-            return {"error": "API key não configurada"}
-        
-        # Limitar tamanho do HTML (Claude tem limite de contexto)
-        max_html_length = 50000
-        if len(html_content) > max_html_length:
-            html_content = html_content[:max_html_length] + "...[truncated]"
-        
-        # Configurar chat com GPT-4o
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"page-analysis-{url[:50]}",
-            system_message=get_system_prompt(extraction_type)
-        ).with_model(AI_PROVIDER, AI_MODEL)
-        
-        # Criar mensagem
-        user_message = UserMessage(
-            text=f"""Analisa o seguinte conteúdo HTML de uma página imobiliária.
-            
-URL: {url}
-
-HTML Content:
-{html_content}
-
-Extrai as informações relevantes e retorna em formato JSON estruturado."""
-        )
-        
-        # Enviar e obter resposta
-        response = await chat.send_message(user_message)
-        
-        # Tentar parsear como JSON
-        import json
-        try:
-            # Remover possíveis markdown code blocks
-            clean_response = response.strip()
-            if clean_response.startswith("```json"):
-                clean_response = clean_response[7:]
-            if clean_response.startswith("```"):
-                clean_response = clean_response[3:]
-            if clean_response.endswith("```"):
-                clean_response = clean_response[:-3]
-            
-            data = json.loads(clean_response.strip())
-            return {"success": True, "data": data, "model": AI_MODEL}
-        except json.JSONDecodeError:
-            # Se não for JSON válido, retornar texto
-            return {"success": True, "data": {"raw_analysis": response}, "model": CLAUDE_MODEL}
-            
-    except Exception as e:
-        logger.error(f"Erro ao analisar página com Claude: {e}")
-        return {"success": False, "error": str(e)}
-
-
-async def analyze_weekly_errors_with_ai(
-    errors: list,
-    patterns: Dict[str, int]
-) -> Dict[str, Any]:
-    """
-    Usa IA (Claude) para analisar erros semanais e gerar sugestões inteligentes.
+        content: Conteúdo a analisar
+        task_type: Tipo de tarefa (scraper_extraction, document_analysis, etc.)
+        context: Contexto adicional (URL, nome do documento, etc.)
     
-    Args:
-        errors: Lista de erros da semana
-        patterns: Padrões de erro identificados
-        
     Returns:
-        Dict com análise e sugestões da IA
+        Dict com resultado da análise
     """
+    config = await get_ai_config()
+    model_key = config.get(task_type, "gemini-1.5-flash")
+    
+    model_info = AI_MODELS.get(model_key, AI_MODELS["gemini-1.5-flash"])
+    provider = model_info["provider"]
+    
+    logger.info(f"Usando {model_key} ({provider}) para {task_type}")
+    
+    if provider == "gemini":
+        return await _call_gemini(content, task_type, context, model_key)
+    elif provider == "openai":
+        return await _call_openai(content, task_type, context, model_key)
+    else:
+        return {"error": f"Provider desconhecido: {provider}"}
+
+
+async def _call_gemini(content: str, task_type: str, context: str, model: str) -> Dict[str, Any]:
+    """Chama Gemini via litellm."""
+    if not GEMINI_API_KEY:
+        return {"error": "GEMINI_API_KEY não configurada"}
+    
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from litellm import completion
+        import json
         
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
-        if not api_key:
-            return {"error": "API key não configurada"}
+        prompt = _get_prompt_for_task(task_type, content, context)
         
-        # Preparar dados para análise
-        error_summary = []
-        for err in errors[:50]:  # Limitar a 50 erros
-            error_summary.append({
-                "source": err.get("source", "unknown"),
-                "message": (err.get("error_message") or err.get("error", ""))[:200],
-                "count": 1
-            })
-        
-        # Configurar chat com GPT-4o
-        chat = LlmChat(
-            api_key=api_key,
-            session_id="weekly-error-analysis",
-            system_message="""És um analista de sistemas especializado em CRM imobiliário.
-Analisa os erros de importação e gera sugestões práticas de resolução.
-Responde sempre em Português de Portugal.
-Formato de resposta: JSON com campos "summary", "root_causes", "suggestions", "priority_actions"."""
-        ).with_model(AI_PROVIDER, AI_MODEL)
-        
-        # Criar mensagem
-        user_message = UserMessage(
-            text=f"""Analisa os seguintes erros de importação da última semana:
-
-ERROS ({len(errors)} total):
-{error_summary[:20]}
-
-PADRÕES IDENTIFICADOS:
-{patterns}
-
-Gera um relatório com:
-1. Sumário executivo
-2. Causas raiz identificadas
-3. Sugestões de resolução (ordenadas por impacto)
-4. Acções prioritárias para a próxima semana
-
-Responde em JSON."""
+        response = completion(
+            model=f"gemini/{model}",
+            api_key=GEMINI_API_KEY,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=2000
         )
         
-        response = await chat.send_message(user_message)
+        result_text = response.choices[0].message.content.strip()
         
-        # Parsear resposta
-        import json
+        # Limpar markdown
+        if result_text.startswith("```json"):
+            result_text = result_text[7:]
+        if result_text.startswith("```"):
+            result_text = result_text[3:]
+        if result_text.endswith("```"):
+            result_text = result_text[:-3]
+        
         try:
-            clean_response = response.strip()
-            if clean_response.startswith("```json"):
-                clean_response = clean_response[7:]
-            if clean_response.startswith("```"):
-                clean_response = clean_response[3:]
-            if clean_response.endswith("```"):
-                clean_response = clean_response[:-3]
-            
-            return json.loads(clean_response.strip())
+            data = json.loads(result_text.strip())
+            return {"success": True, "data": data, "model": model}
         except json.JSONDecodeError:
-            return {"summary": response, "ai_model": AI_MODEL}
+            return {"success": True, "data": {"raw": result_text}, "model": model}
             
     except Exception as e:
-        logger.error(f"Erro na análise IA de erros: {e}")
+        logger.error(f"Erro Gemini: {e}")
         return {"error": str(e)}
 
 
-def get_system_prompt(extraction_type: str) -> str:
-    """Retorna o system prompt adequado ao tipo de extração."""
+async def _call_openai(content: str, task_type: str, context: str, model: str) -> Dict[str, Any]:
+    """Chama OpenAI via emergentintegrations."""
+    if not EMERGENT_LLM_KEY:
+        return {"error": "EMERGENT_LLM_KEY não configurada"}
     
-    prompts = {
-        "property": """És um especialista em extração de dados imobiliários.
-Analisa páginas HTML de portais imobiliários portugueses e extrai:
-- Título do imóvel
-- Preço (em euros)
-- Localização (distrito, concelho, freguesia)
-- Tipologia (T0, T1, T2, etc.)
-- Área (útil e bruta em m²)
-- Características (quartos, casas de banho, garagem, etc.)
-- Descrição
-- Contacto do anunciante
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import json
+        
+        prompt = _get_prompt_for_task(task_type, content, context)
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"{task_type}-analysis",
+            system_message="Responde sempre em formato JSON estruturado. Usa português de Portugal."
+        ).with_model("openai", model)
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Limpar markdown
+        result_text = response.strip()
+        if result_text.startswith("```json"):
+            result_text = result_text[7:]
+        if result_text.startswith("```"):
+            result_text = result_text[3:]
+        if result_text.endswith("```"):
+            result_text = result_text[:-3]
+        
+        try:
+            data = json.loads(result_text.strip())
+            return {"success": True, "data": data, "model": model}
+        except json.JSONDecodeError:
+            return {"success": True, "data": {"raw": result_text}, "model": model}
+            
+    except Exception as e:
+        logger.error(f"Erro OpenAI: {e}")
+        return {"error": str(e)}
 
-Responde sempre em JSON estruturado. Usa null para campos não encontrados.
-Normaliza preços para números (sem € ou pontos de milhar).
-Responde em Português de Portugal.""",
 
-        "contact": """És um especialista em extração de contactos.
-Extrai informações de contacto de páginas web:
-- Nome
-- Email
-- Telefone (formato português)
-- Morada
-- Website
-
-Responde em JSON. Usa null para campos não encontrados.""",
-
-        "general": """És um assistente de análise de conteúdo web.
-Extrai as informações principais da página fornecida.
-Identifica o tipo de conteúdo e estrutura os dados relevantes.
-Responde em JSON estruturado."""
-    }
+def _get_prompt_for_task(task_type: str, content: str, context: str) -> str:
+    """Gera prompt adequado ao tipo de tarefa."""
     
-    return prompts.get(extraction_type, prompts["general"])
+    if task_type == "scraper_extraction":
+        return f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai os dados em JSON.
+        
+URL/Contexto: {context}
+
+Extrai: titulo, preco (número), localizacao, tipologia, area (m²), quartos, casas_banho, descricao, certificacao_energetica
+
+Responde APENAS com JSON. Usa null para campos não encontrados.
+
+Conteúdo:
+{content[:15000]}"""
+    
+    elif task_type == "document_analysis":
+        return f"""Analisa este documento e extrai informações relevantes em JSON.
+        
+Documento: {context}
+
+Identifica: tipo_documento, dados_pessoais, datas_importantes, valores_monetarios, observacoes
+
+Responde em JSON.
+
+Conteúdo:
+{content[:10000]}"""
+    
+    elif task_type == "error_analysis":
+        return f"""Analisa estes erros de sistema e gera sugestões em JSON.
+        
+Gera: summary, root_causes (lista), suggestions (lista ordenada por impacto), priority_actions (lista)
+
+Responde em português de Portugal.
+
+Erros:
+{content[:8000]}"""
+    
+    else:
+        return f"""Analisa o seguinte conteúdo e responde em JSON estruturado.
+        
+Contexto: {context}
+
+{content[:10000]}"""
 
 
-# Instância para uso global
+# Classe wrapper para compatibilidade
 class PageAnalyzer:
-    """Wrapper para análise de páginas com IA (GPT-4o)."""
-    
-    def __init__(self):
-        self.model = AI_MODEL
-        self.provider = AI_PROVIDER
+    """Wrapper para análise de páginas."""
     
     async def analyze(self, html: str, url: str, type: str = "property") -> Dict:
-        return await analyze_page_with_claude(html, url, type)
+        return await analyze_with_configured_ai(html, "scraper_extraction", url)
     
     async def analyze_errors(self, errors: list, patterns: dict) -> Dict:
-        return await analyze_weekly_errors_with_ai(errors, patterns)
+        import json
+        content = json.dumps({"errors": errors[:50], "patterns": patterns}, indent=2)
+        return await analyze_with_configured_ai(content, "error_analysis", "weekly_report")
 
 
 page_analyzer = PageAnalyzer()
