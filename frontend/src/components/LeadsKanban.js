@@ -499,12 +499,27 @@ const LeadsKanban = () => {
         resetForm();
         fetchLeads();
       } else {
-        const error = await response.json();
-        toast.error(error.detail || "Erro ao guardar lead");
+        const errorData = await response.json();
+        const parsed = parseBackendError({ response: { data: errorData } });
+        
+        if (parsed.hasMultiple) {
+          toast.error(
+            <div>
+              <strong>Erro ao guardar lead:</strong>
+              <ul style={{margin: '8px 0 0 0', paddingLeft: '16px'}}>
+                {parsed.errors.map((e, i) => <li key={i}>{e.fullMessage}</li>)}
+              </ul>
+            </div>,
+            { duration: 6000 }
+          );
+        } else {
+          toast.error(parsed.message || "Erro ao guardar lead");
+        }
       }
     } catch (error) {
       console.error("Erro ao guardar:", error);
-      toast.error("Erro ao guardar lead");
+      const parsed = parseBackendError(error);
+      toast.error(parsed.message || "Erro ao guardar lead");
     } finally {
       setSaving(false);
     }
