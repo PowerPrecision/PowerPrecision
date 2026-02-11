@@ -56,10 +56,31 @@ async def scrape_single_url(
         result = await property_scraper.scrape_url(request.url, use_cache=request.use_cache)
         
         if result.get("error"):
+            # Mensagens de erro amigáveis
+            error_code = result.get("error_code", "unknown")
+            error_msg = result.get("error", "Erro desconhecido")
+            
+            friendly_messages = {
+                "blocked": "O site bloqueou o acesso. Tente novamente mais tarde ou insira os dados manualmente.",
+                "timeout": "O site demorou muito a responder. Verifique se o link esta correcto ou insira os dados manualmente.",
+                "not_found": "Pagina nao encontrada. O imovel pode ter sido removido. Insira os dados manualmente.",
+                "quota_exceeded": "Limite de IA excedido. Os dados basicos foram extraidos. Pode complementar manualmente.",
+                "parse_error": "Nao foi possivel extrair todos os dados. Verifique e complete manualmente.",
+                "ssl_error": "Erro de seguranca ao aceder ao site. Tente novamente ou insira manualmente.",
+            }
+            
+            friendly_error = friendly_messages.get(error_code, error_msg)
+            
             return ScrapeResponse(
                 success=False,
-                error=result.get("error"),
-                data=result
+                error=friendly_error,
+                data={
+                    **result,
+                    "error_code": error_code,
+                    "can_retry": error_code in ["blocked", "timeout", "ssl_error"],
+                    "suggest_manual": True,
+                    "partial_data": {k: v for k, v in result.items() if v and k not in ["error", "error_code"]}
+                }
             )
         
         return ScrapeResponse(
@@ -69,7 +90,17 @@ async def scrape_single_url(
         
     except Exception as e:
         logger.error(f"Erro no scraping: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Erro generico - sempre sugerir insercao manual
+        return ScrapeResponse(
+            success=False,
+            error="Ocorreu um erro ao extrair os dados. Por favor, insira os dados manualmente ou tente novamente.",
+            data={
+                "error_code": "system_error",
+                "can_retry": True,
+                "suggest_manual": True,
+                "url": request.url
+            }
+        )
 
 
 @router.post("/crawl")
