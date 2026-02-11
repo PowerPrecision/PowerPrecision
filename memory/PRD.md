@@ -52,13 +52,21 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
    - Parâmetro `use_cache` no endpoint `/api/scraper/single`
 
 6. **UI de Configuração de IA - NOVO**
-   - Nova página `/configuracoes/ia` acessível no menu lateral (só admin)
-   - Interface visual para configurar modelo de IA por tarefa
-   - Mostra preço por 1k tokens e casos de uso recomendados
-   - Secção de gestão de cache com estatísticas e botões de limpar/actualizar
-   - Lista de modelos disponíveis com badges de provider
+   - Nova página `/configuracoes/ia` com 3 tabs:
+     - **Configuração de Tarefas**: Mostra todas as tarefas e permite alterar o modelo de cada uma
+     - **Modelos de IA**: CRUD completo para adicionar/editar/remover modelos
+     - **Cache & Notificações**: Estatísticas de cache com barra de progresso e configurações de alertas
+   - Botões "Nova Tarefa" e "Novo Modelo" para adicionar via UI
+   - Modelos e tarefas são agora guardados na DB (não hardcoded)
+   - Notificações automáticas quando cache atinge limite configurado
 
-7. **Correcções Técnicas**
+7. **Sistema de Notificações de Cache - NOVO**
+   - Configurações: Limite do cache (default: 1000) e % para alertar (default: 80%)
+   - Barra de progresso visual mostra utilização do cache
+   - Alerta amarelo aparece automaticamente quando limite é atingido
+   - Endpoints: `GET/PUT /api/admin/cache-settings`
+
+8. **Correcções Técnicas**
    - Instalado `libmagic1` para validação de ficheiros
    - Instalado `h2` para suporte HTTP/2 no scraper
    - Nova chave Gemini API configurada no `.env`
