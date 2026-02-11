@@ -151,7 +151,7 @@ def can_view_process(user: dict, process: dict) -> bool:
     - Admin/CEO/Administrativo: Acesso a todos os processos
     - Cliente: Apenas o próprio processo
     - Consultor: Processos onde está atribuído como consultor OU foi o criador
-    - Intermediário: Processos onde está atribuído como intermediário
+    - Intermediário/Mediador: Processos onde está atribuído como intermediário OU foi o criador
     - Diretor: Ambos os tipos de atribuição
     
     Args:
@@ -163,6 +163,7 @@ def can_view_process(user: dict, process: dict) -> bool:
     """
     role = user["role"]
     user_id = user["id"]
+    user_email = user.get("email", "")
     
     # Administradores, CEO e Administrativo têm acesso total
     if role in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
@@ -172,23 +173,28 @@ def can_view_process(user: dict, process: dict) -> bool:
     if role == UserRole.CLIENTE:
         return process.get("client_id") == user_id
     
+    # Helper para verificar se utilizador criou o processo (created_by pode ser ID ou email)
+    def is_creator():
+        created_by = process.get("created_by", "")
+        return created_by == user_id or created_by == user_email
+    
     # Consultores vêem processos atribuídos OU criados por eles
     if role == UserRole.CONSULTOR:
         return (process.get("assigned_consultor_id") == user_id or
-                process.get("created_by") == user_id or
+                is_creator() or
                 process.get("consultor_id") == user_id)
     
-    # Intermediários vêem processos atribuídos OU criados por eles
-    if role == UserRole.MEDIADOR:
+    # Intermediários/Mediadores vêem processos atribuídos OU criados por eles
+    if role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
         return (process.get("assigned_mediador_id") == user_id or
-                process.get("created_by") == user_id or
+                is_creator() or
                 process.get("intermediario_id") == user_id)
     
     # Diretor: acesso a ambos os tipos de atribuição (consultor e intermediário)
     if role == UserRole.DIRETOR:
         return (process.get("assigned_consultor_id") == user_id or 
                 process.get("assigned_mediador_id") == user_id or
-                process.get("created_by") == user_id)
+                is_creator())
     
     return False
 
