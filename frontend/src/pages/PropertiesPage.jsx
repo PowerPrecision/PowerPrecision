@@ -275,6 +275,26 @@ const PropertyForm = ({ property, onSave, onCancel, users }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+      {/* Link para HCPro */}
+      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold text-blue-800">Integração HCPro</h4>
+            <p className="text-sm text-blue-600">Aceda ao CRM HCPro para consultar dados de imóveis</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-blue-300 text-blue-700 hover:bg-blue-100"
+            onClick={() => window.open(HCPRO_URL, '_blank')}
+            data-testid="hcpro-login-btn"
+          >
+            <ExternalLink size={16} className="mr-2" />
+            Abrir HCPro
+          </Button>
+        </div>
+      </div>
+
       {/* Informações Básicas */}
       <div className="space-y-4">
         <h4 className="font-semibold text-sm text-gray-700 border-b pb-2">Informações Básicas</h4>
