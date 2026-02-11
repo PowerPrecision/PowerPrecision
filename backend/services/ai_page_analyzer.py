@@ -1,15 +1,15 @@
 """
 ====================================================================
-SERVIÇO DE IA PARA ANÁLISE DE PÁGINAS (Claude 3.5 Sonnet)
+SERVIÇO DE IA PARA ANÁLISE DE PÁGINAS (GPT-4o)
 ====================================================================
-Este serviço usa o Claude 3.5 Sonnet para:
+Este serviço usa o GPT-4o para:
 - Analisar conteúdo HTML de páginas web
 - Extrair informações de imóveis
 - Análise inteligente de dados estruturados
 
 Configuração:
-- Modelo: claude-3-5-sonnet-20241022 (Claude 3.5 Sonnet)
-- Provider: Anthropic via emergentintegrations
+- Modelo: gpt-4o (OpenAI)
+- Provider: OpenAI via emergentintegrations
 ====================================================================
 """
 import os
@@ -21,9 +21,9 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Configuração do modelo Claude
-CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
-CLAUDE_PROVIDER = "anthropic"
+# Configuração do modelo - GPT-4o é muito capaz para análise
+AI_MODEL = "gpt-4o"
+AI_PROVIDER = "openai"
 
 
 async def analyze_page_with_claude(
