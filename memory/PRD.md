@@ -242,6 +242,12 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Botão sparkles (✨) no cartão de lead para ver clientes compatíveis
   - Dialog mostra clientes com score de match e razões do match
   - Corrigido bug em `client_match.py` (NoneType error em financial_data)
+- ✅ **Scraper melhorado**:
+  - Headers mais realistas (Sec-Fetch, Cache-Control)
+  - Delay aleatório entre requests
+  - Suporte HTTP/2
+  - Handling correcto de erros SSL
+- ✅ **Bug login consultor VERIFICADO**: Consultor consegue aceder a processos atribuídos
 
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
