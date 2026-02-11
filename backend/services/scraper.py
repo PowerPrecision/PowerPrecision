@@ -82,8 +82,8 @@ class PropertyScraper:
     # ================================================================
     
     def _get_url_hash(self, url: str) -> str:
-        """Gera hash único para uma URL."""
-        return hashlib.md5(url.lower().strip().encode()).hexdigest()
+        """Gera hash único para uma URL usando SHA-256 (seguro)."""
+        return hashlib.sha256(url.lower().strip().encode()).hexdigest()
     
     async def _get_cached_result(self, url: str) -> Optional[Dict[str, Any]]:
         """
