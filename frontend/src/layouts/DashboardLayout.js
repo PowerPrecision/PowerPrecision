@@ -134,6 +134,16 @@ const DashboardLayout = ({ children, title }) => {
           icon: Building2,
           href: "/imoveis",
         },
+        {
+          label: "Minutas",
+          icon: FileArchive,
+          href: "/minutas",
+        },
+        {
+          label: "Backups",
+          icon: Database,
+          href: "/admin/backups",
+        },
         settingsItem,
         {
           label: "Configurações",
