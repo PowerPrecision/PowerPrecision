@@ -257,6 +257,12 @@ const LeadsKanban = () => {
   // Filtros
   const [filterConsultor, setFilterConsultor] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // Clientes Sugeridos
+  const [suggestedClientsDialog, setSuggestedClientsDialog] = useState(false);
+  const [suggestedClients, setSuggestedClients] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [selectedLeadForSuggestions, setSelectedLeadForSuggestions] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
