@@ -359,8 +359,227 @@ class PropertyScraper:
             
         return contacts
 
+    async def crawl_recursive(
+        self, 
+        start_url: str, 
+        max_pages: int = 10,
+        max_depth: int = 2
+    ) -> Dict[str, Any]:
+        """
+        Crawler recursivo que navega por várias páginas do mesmo domínio.
+        
+        Args:
+            start_url: URL inicial
+            max_pages: Número máximo de páginas a visitar
+            max_depth: Profundidade máxima de navegação
+            
+        Returns:
+            Dict com lista de imóveis encontrados e estatísticas
+        """
+        from urllib.parse import urlparse, urljoin
+        from collections import deque
+        import asyncio
+        
+        # Normalizar URL
+        if not start_url.startswith("http"):
+            start_url = "https://" + start_url
+            
+        parsed_start = urlparse(start_url)
+        base_domain = parsed_start.netloc
+        
+        # Fila de URLs: (url, profundidade_atual)
+        queue = deque([(start_url, 0)])
+        visited = set()
+        properties = []
+        errors = []
+        
+        logger.info(f"Iniciando crawl recursivo em {base_domain} (max_pages={max_pages}, max_depth={max_depth})")
+        
+        while queue and len(visited) < max_pages:
+            current_url, depth = queue.popleft()
+            
+            # Skip se já visitada
+            if current_url in visited:
+                continue
+                
+            visited.add(current_url)
+            logger.info(f"Crawling [{len(visited)}/{max_pages}] depth={depth}: {current_url}")
+            
+            try:
+                # Delay para não sobrecarregar o servidor
+                import random
+                await asyncio.sleep(random.uniform(0.5, 1.5))
+                
+                async with httpx.AsyncClient(
+                    timeout=self.timeout,
+                    follow_redirects=True,
+                    verify=False,  # Alguns sites têm SSL problemático
+                    http2=True
+                ) as client:
+                    response = await client.get(current_url, headers=self._get_headers())
+                    
+                    if response.status_code != 200:
+                        errors.append({
+                            "url": current_url,
+                            "error": f"HTTP {response.status_code}"
+                        })
+                        continue
+                    
+                    html_content = response.text
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    
+                    # Verificar se é uma página de detalhe de imóvel
+                    property_data = self._detect_and_parse(current_url, soup, html_content)
+                    
+                    if property_data and not property_data.get("error"):
+                        # Verificar se tem dados mínimos (título ou preço)
+                        if property_data.get("titulo") or property_data.get("preco"):
+                            property_data["url"] = current_url
+                            property_data["crawl_depth"] = depth
+                            properties.append(property_data)
+                            logger.info(f"✓ Encontrado imóvel: {property_data.get('titulo', 'Sem título')}")
+                    
+                    # Se ainda não atingimos a profundidade máxima, encontrar mais links
+                    if depth < max_depth and len(visited) < max_pages:
+                        new_links = self._extract_property_links(soup, base_domain, current_url)
+                        
+                        for link in new_links:
+                            if link not in visited and len(queue) + len(visited) < max_pages * 2:
+                                queue.append((link, depth + 1))
+                                
+            except httpx.TimeoutException:
+                errors.append({"url": current_url, "error": "Timeout"})
+            except httpx.RequestError as e:
+                errors.append({"url": current_url, "error": str(e)})
+            except Exception as e:
+                logger.error(f"Erro ao processar {current_url}: {e}")
+                errors.append({"url": current_url, "error": str(e)})
+        
+        logger.info(f"Crawl concluído: {len(properties)} imóveis, {len(visited)} páginas, {len(errors)} erros")
+        
+        return {
+            "success": True,
+            "domain": base_domain,
+            "pages_visited": len(visited),
+            "properties_found": len(properties),
+            "properties": properties,
+            "errors": errors if errors else None,
+            "max_pages_reached": len(visited) >= max_pages
+        }
+    
+    def _extract_property_links(
+        self, 
+        soup: BeautifulSoup, 
+        base_domain: str, 
+        current_url: str
+    ) -> list:
+        """
+        Extrai links de imóveis de uma página.
+        Filtra apenas links relevantes do mesmo domínio.
+        """
+        from urllib.parse import urlparse, urljoin
+        
+        links = []
+        
+        # Padrões comuns de URLs de imóveis
+        property_patterns = [
+            r'/imovel/',
+            r'/property/',
+            r'/anuncio/',
+            r'/listing/',
+            r'/detalhe/',
+            r'/ficha/',
+            r'/ad/',
+            r'/casa-',
+            r'/apartamento-',
+            r'/moradia-',
+            r'/terreno-',
+            r'/loja-',
+            r'/armazem-',
+            r'/escritorio-',
+            r'/comprar/',
+            r'/venda/',
+            r'/arrendar/',
+        ]
+        
+        # Padrões a evitar (paginação, filtros, etc.)
+        skip_patterns = [
+            r'page=',
+            r'pagina=',
+            r'/login',
+            r'/registo',
+            r'/register',
+            r'/contacto',
+            r'/sobre',
+            r'/about',
+            r'/privacy',
+            r'/terms',
+            r'#',
+            r'javascript:',
+            r'mailto:',
+            r'tel:',
+        ]
+        
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag.get('href', '')
+            
+            # Ignorar links vazios ou de âncora
+            if not href or href == '#':
+                continue
+            
+            # Converter para URL absoluta
+            full_url = urljoin(current_url, href)
+            parsed = urlparse(full_url)
+            
+            # Verificar se é do mesmo domínio
+            if base_domain not in parsed.netloc:
+                continue
+            
+            # Verificar se deve ser ignorado
+            should_skip = any(re.search(pattern, full_url.lower()) for pattern in skip_patterns)
+            if should_skip:
+                continue
+            
+            # Verificar se parece uma página de imóvel
+            is_property_link = any(re.search(pattern, full_url.lower()) for pattern in property_patterns)
+            
+            # Também aceitar links com números (geralmente IDs de imóveis)
+            has_id_pattern = re.search(r'/\d{4,}', full_url)
+            
+            if is_property_link or has_id_pattern:
+                # Limpar URL (remover parâmetros desnecessários)
+                clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                if clean_url not in links:
+                    links.append(clean_url)
+        
+        logger.debug(f"Extraídos {len(links)} links de imóveis de {current_url}")
+        return links[:50]  # Limitar a 50 links por página
+    
+    def _detect_and_parse(self, url: str, soup: BeautifulSoup, html_content: str) -> Dict[str, Any]:
+        """Detecta a fonte e aplica o parser adequado."""
+        url_lower = url.lower()
+        
+        if "idealista" in url_lower:
+            return self._parse_idealista(soup, html_content)
+        elif "imovirtual" in url_lower:
+            return self._parse_imovirtual(soup)
+        elif "casasapo" in url_lower or "casa.sapo" in url_lower:
+            return self._parse_casasapo(soup)
+        elif "remax" in url_lower:
+            return self._parse_remax(soup)
+        elif "era.pt" in url_lower:
+            return self._parse_era(soup, html_content)
+        elif "kw.com" in url_lower or "kwportugal" in url_lower:
+            return self._parse_kw(soup)
+        elif "supercasa" in url_lower:
+            return self._parse_supercasa(soup)
+        else:
+            return self._parse_generic(soup)
+
+
 from datetime import datetime, timezone
 
 # Instância global
 property_scraper = PropertyScraper()
 scrape_property_url = property_scraper.scrape_url
+crawl_properties = property_scraper.crawl_recursive
