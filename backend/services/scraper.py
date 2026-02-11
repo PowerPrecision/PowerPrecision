@@ -68,6 +68,151 @@ class PropertyScraper:
     def __init__(self):
         self.ua = UserAgent()
         self.timeout = 30.0
+        self._db = None
+    
+    async def _get_db(self):
+        """Lazy load database connection."""
+        if self._db is None:
+            from database import db
+            self._db = db
+        return self._db
+    
+    # ================================================================
+    # CACHE SYSTEM
+    # ================================================================
+    
+    def _get_url_hash(self, url: str) -> str:
+        """Gera hash único para uma URL."""
+        return hashlib.md5(url.lower().strip().encode()).hexdigest()
+    
+    async def _get_cached_result(self, url: str) -> Optional[Dict[str, Any]]:
+        """
+        Verifica se existe resultado em cache para esta URL.
+        
+        Returns:
+            Resultado em cache ou None
+        """
+        try:
+            db = await self._get_db()
+            url_hash = self._get_url_hash(url)
+            
+            # Buscar cache não expirado
+            expiry_date = datetime.now(timezone.utc) - timedelta(days=CACHE_EXPIRY_DAYS)
+            
+            cached = await db.scraper_cache.find_one(
+                {
+                    "url_hash": url_hash,
+                    "created_at": {"$gte": expiry_date.isoformat()}
+                },
+                {"_id": 0}
+            )
+            
+            if cached:
+                logger.info(f"✓ Cache hit para {url[:50]}...")
+                cached["_from_cache"] = True
+                return cached.get("result")
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Erro ao verificar cache: {e}")
+            return None
+    
+    async def _save_to_cache(self, url: str, result: Dict[str, Any]) -> None:
+        """
+        Guarda resultado no cache.
+        
+        Args:
+            url: URL processada
+            result: Resultado da extracção
+        """
+        try:
+            db = await self._get_db()
+            url_hash = self._get_url_hash(url)
+            
+            cache_doc = {
+                "url_hash": url_hash,
+                "url": url,
+                "result": result,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Upsert (actualizar se existir)
+            await db.scraper_cache.update_one(
+                {"url_hash": url_hash},
+                {"$set": cache_doc},
+                upsert=True
+            )
+            
+            logger.debug(f"Resultado guardado em cache para {url[:50]}...")
+            
+        except Exception as e:
+            logger.debug(f"Erro ao guardar cache: {e}")
+    
+    async def clear_cache(self, url: Optional[str] = None) -> int:
+        """
+        Limpa cache de scraping.
+        
+        Args:
+            url: URL específica para limpar, ou None para limpar tudo
+            
+        Returns:
+            Número de registos eliminados
+        """
+        try:
+            db = await self._get_db()
+            
+            if url:
+                url_hash = self._get_url_hash(url)
+                result = await db.scraper_cache.delete_one({"url_hash": url_hash})
+            else:
+                result = await db.scraper_cache.delete_many({})
+            
+            return result.deleted_count
+            
+        except Exception as e:
+            logger.error(f"Erro ao limpar cache: {e}")
+            return 0
+    
+    async def get_cache_stats(self) -> Dict[str, Any]:
+        """Retorna estatísticas do cache."""
+        try:
+            db = await self._get_db()
+            
+            total = await db.scraper_cache.count_documents({})
+            
+            expiry_date = datetime.now(timezone.utc) - timedelta(days=CACHE_EXPIRY_DAYS)
+            valid = await db.scraper_cache.count_documents({
+                "created_at": {"$gte": expiry_date.isoformat()}
+            })
+            
+            return {
+                "total_entries": total,
+                "valid_entries": valid,
+                "expired_entries": total - valid,
+                "cache_expiry_days": CACHE_EXPIRY_DAYS
+            }
+            
+        except Exception as e:
+            return {"error": str(e)}
+    
+    # ================================================================
+    # AI MODEL CONFIGURATION
+    # ================================================================
+    
+    async def _get_ai_model_for_scraping(self) -> str:
+        """
+        Obtém o modelo de IA configurado para scraping.
+        
+        Returns:
+            Nome do modelo (ex: 'gemini-2.0-flash', 'gpt-4o-mini')
+        """
+        try:
+            from services.ai_page_analyzer import get_ai_config
+            config = await get_ai_config()
+            return config.get("scraper_extraction", "gemini-2.0-flash")
+        except Exception:
+            return "gemini-2.0-flash"
     
     def _get_headers(self) -> Dict[str, str]:
         """Gera headers realistas para evitar bloqueios."""
