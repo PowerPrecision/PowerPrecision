@@ -667,6 +667,12 @@ const PropertiesPage = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
+  
+  // Estado para importação Excel
+  const [importing, setImporting] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importResults, setImportResults] = useState(null);
+  const fileInputRef = useRef(null);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
