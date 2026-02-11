@@ -51,7 +51,14 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
      - `POST /api/scraper/cache/refresh` - forçar refresh
    - Parâmetro `use_cache` no endpoint `/api/scraper/single`
 
-6. **Correcções Técnicas**
+6. **UI de Configuração de IA - NOVO**
+   - Nova página `/configuracoes/ia` acessível no menu lateral (só admin)
+   - Interface visual para configurar modelo de IA por tarefa
+   - Mostra preço por 1k tokens e casos de uso recomendados
+   - Secção de gestão de cache com estatísticas e botões de limpar/actualizar
+   - Lista de modelos disponíveis com badges de provider
+
+7. **Correcções Técnicas**
    - Instalado `libmagic1` para validação de ficheiros
    - Instalado `h2` para suporte HTTP/2 no scraper
    - Nova chave Gemini API configurada no `.env`
