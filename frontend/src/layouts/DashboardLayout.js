@@ -206,7 +206,52 @@ const DashboardLayout = ({ children, title }) => {
         });
       }
       
+      // Minutas para todos os staff
+      items.push({
+        label: "Minutas",
+        icon: FileArchive,
+        href: "/minutas",
+      });
+      
       return items;
+    }
+
+    // Admin específico
+    if (user?.role === "admin") {
+      return [
+        ...baseItems,
+        statsItem,
+        {
+          label: "Todos os Processos",
+          icon: FileText,
+          href: "/processos",
+        },
+        {
+          label: "Clientes",
+          icon: User,
+          href: "/clientes",
+        },
+        {
+          label: "Leads",
+          icon: Search,
+          href: "/leads",
+        },
+        {
+          label: "Imóveis",
+          icon: Building2,
+          href: "/imoveis",
+        },
+        {
+          label: "Minutas",
+          icon: FileArchive,
+          href: "/minutas",
+        },
+        {
+          label: "Backups",
+          icon: Database,
+          href: "/admin/backups",
+        },
+      ];
     }
 
     return [...baseItems];
