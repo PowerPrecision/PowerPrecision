@@ -391,6 +391,8 @@ async def create_deed_reminder(process: dict, deed_date: str, user: dict) -> Opt
 async def notify_new_client_registration(process: dict, has_property: bool = False):
     """
     Notifica administradores sobre novo registo de cliente.
+    NOTA: Envia email apenas para o PRIMEIRO admin para evitar spam.
+    Os outros recebem notificação via sistema interno.
     
     Args:
         process: Dados do processo
@@ -408,7 +410,9 @@ async def notify_new_client_registration(process: dict, has_property: bool = Fal
     else:
         assignment_note = "\n\nAtribuir consultor imobiliário e/ou intermediário de crédito conforme necessário."
     
-    for admin in admins:
+    # Enviar email apenas para o PRIMEIRO admin (evitar spam)
+    if admins:
+        admin = admins[0]
         await send_email_notification(
             admin["email"],
             f"🆕 Novo Registo de Cliente: {process.get('client_name', 'Cliente')}",
