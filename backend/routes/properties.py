@@ -458,3 +458,236 @@ async def remove_property_photo(
     )
     
     return {"success": True, "message": "Foto removida"}
+
+
+@router.post("/import-excel")
+async def import_properties_from_excel(
+    file: UploadFile,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
+):
+    """
+    Importar imóveis a partir de ficheiro Excel.
+    
+    Colunas esperadas (case-insensitive):
+    - titulo (obrigatório): Título do imóvel
+    - tipo: apartamento, moradia, terreno, loja, escritorio, armazem, garagem, outro
+    - preco (obrigatório): Preço pedido
+    - distrito (obrigatório): Ex: Lisboa, Porto
+    - concelho (obrigatório): Ex: Lisboa, Cascais
+    - localidade: Ex: Cascais, Oeiras
+    - morada: Endereço completo
+    - codigo_postal: Ex: 2750-123
+    - quartos: Número de quartos (T0=0, T1=1, etc.)
+    - casas_banho: Número de casas de banho
+    - area_util: Área útil em m²
+    - area_bruta: Área bruta em m²
+    - ano_construcao: Ano de construção
+    - certificado_energetico: A, B, C, D, E, F, G
+    - estado: novo, como_novo, bom, para_recuperar, em_construcao
+    - proprietario_nome (obrigatório): Nome do proprietário
+    - proprietario_telefone: Telefone do proprietário
+    - proprietario_email: Email do proprietário
+    - descricao: Descrição do imóvel
+    - notas: Notas internas
+    """
+    import pandas as pd
+    from io import BytesIO
+    
+    # Validar tipo de ficheiro
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Ficheiro deve ser Excel (.xlsx ou .xls)")
+    
+    # Ler ficheiro
+    try:
+        contents = await file.read()
+        df = pd.read_excel(BytesIO(contents))
+    except Exception as e:
+        logger.error(f"Erro ao ler ficheiro Excel: {e}")
+        raise HTTPException(status_code=400, detail=f"Erro ao ler ficheiro: {str(e)}")
+    
+    # Normalizar nomes das colunas (lowercase, sem espaços)
+    df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
+    
+    # Mapear tipos de imóvel
+    tipo_map = {
+        'apartamento': 'apartamento',
+        'moradia': 'moradia',
+        'terreno': 'terreno',
+        'loja': 'loja',
+        'escritorio': 'escritorio',
+        'escritório': 'escritorio',
+        'armazem': 'armazem',
+        'armazém': 'armazem',
+        'garagem': 'garagem',
+        'outro': 'outro'
+    }
+    
+    # Mapear estados
+    estado_map = {
+        'novo': 'novo',
+        'como_novo': 'como_novo',
+        'como novo': 'como_novo',
+        'bom': 'bom',
+        'para_recuperar': 'para_recuperar',
+        'para recuperar': 'para_recuperar',
+        'em_construcao': 'em_construcao',
+        'em construção': 'em_construcao',
+        'em construcao': 'em_construcao'
+    }
+    
+    results = {
+        "total": len(df),
+        "importados": 0,
+        "erros": [],
+        "ids_criados": []
+    }
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    for idx, row in df.iterrows():
+        linha = idx + 2  # +2 porque idx começa em 0 e Excel tem cabeçalho
+        
+        try:
+            # Campos obrigatórios
+            titulo = str(row.get('titulo', '')).strip()
+            if not titulo or titulo == 'nan':
+                results["erros"].append({"linha": linha, "erro": "Título em falta"})
+                continue
+            
+            preco = row.get('preco') or row.get('preço')
+            if pd.isna(preco):
+                results["erros"].append({"linha": linha, "erro": "Preço em falta"})
+                continue
+            preco = float(preco)
+            
+            distrito = str(row.get('distrito', '')).strip()
+            if not distrito or distrito == 'nan':
+                results["erros"].append({"linha": linha, "erro": "Distrito em falta"})
+                continue
+            
+            concelho = str(row.get('concelho', '')).strip()
+            if not concelho or concelho == 'nan':
+                results["erros"].append({"linha": linha, "erro": "Concelho em falta"})
+                continue
+            
+            proprietario_nome = str(row.get('proprietario_nome', '') or row.get('proprietário_nome', '')).strip()
+            if not proprietario_nome or proprietario_nome == 'nan':
+                results["erros"].append({"linha": linha, "erro": "Nome do proprietário em falta"})
+                continue
+            
+            # Campos opcionais
+            tipo = str(row.get('tipo', 'apartamento')).lower().strip()
+            tipo = tipo_map.get(tipo, 'apartamento')
+            
+            estado = str(row.get('estado', 'bom')).lower().strip()
+            estado = estado_map.get(estado, 'bom')
+            
+            # Criar documento
+            internal_ref = await get_next_reference()
+            
+            property_doc = {
+                "id": str(uuid.uuid4()),
+                "internal_reference": internal_ref,
+                "property_type": tipo,
+                "title": titulo,
+                "description": str(row.get('descricao', '') or '').strip() if not pd.isna(row.get('descricao')) else None,
+                "address": {
+                    "street": str(row.get('morada', '') or '').strip() if not pd.isna(row.get('morada')) else None,
+                    "postal_code": str(row.get('codigo_postal', '') or '').strip() if not pd.isna(row.get('codigo_postal')) else None,
+                    "locality": str(row.get('localidade', '') or '').strip() if not pd.isna(row.get('localidade')) else None,
+                    "municipality": concelho,
+                    "district": distrito
+                },
+                "features": {
+                    "bedrooms": int(row.get('quartos')) if not pd.isna(row.get('quartos')) else None,
+                    "bathrooms": int(row.get('casas_banho')) if not pd.isna(row.get('casas_banho')) else None,
+                    "useful_area": float(row.get('area_util')) if not pd.isna(row.get('area_util')) else None,
+                    "gross_area": float(row.get('area_bruta')) if not pd.isna(row.get('area_bruta')) else None,
+                    "construction_year": int(row.get('ano_construcao')) if not pd.isna(row.get('ano_construcao')) else None,
+                    "energy_certificate": str(row.get('certificado_energetico', '')).upper().strip() if not pd.isna(row.get('certificado_energetico')) else None,
+                    "extra_features": []
+                },
+                "condition": estado,
+                "financials": {
+                    "asking_price": preco
+                },
+                "owner": {
+                    "name": proprietario_nome,
+                    "phone": str(row.get('proprietario_telefone', '') or row.get('proprietário_telefone', '')).strip() if not pd.isna(row.get('proprietario_telefone', row.get('proprietário_telefone'))) else None,
+                    "email": str(row.get('proprietario_email', '') or row.get('proprietário_email', '')).strip() if not pd.isna(row.get('proprietario_email', row.get('proprietário_email'))) else None
+                },
+                "photos": [],
+                "documents": [],
+                "status": "em_analise",
+                "notes": str(row.get('notas', '') or '').strip() if not pd.isna(row.get('notas')) else None,
+                "history": [{
+                    "timestamp": now,
+                    "event": "Importado via Excel",
+                    "user": user.get("email")
+                }],
+                "created_at": now,
+                "updated_at": now,
+                "created_by": user.get("email"),
+                "view_count": 0,
+                "inquiry_count": 0,
+                "visit_count": 0,
+                "interested_clients": []
+            }
+            
+            await db.properties.insert_one(property_doc)
+            results["importados"] += 1
+            results["ids_criados"].append(property_doc["id"])
+            
+            logger.info(f"Imóvel importado: {internal_ref} - {titulo}")
+            
+        except Exception as e:
+            logger.error(f"Erro na linha {linha}: {e}")
+            results["erros"].append({"linha": linha, "erro": str(e)})
+    
+    # Log de erros para análise
+    if results["erros"]:
+        for err in results["erros"]:
+            await db.error_logs.insert_one({
+                "timestamp": now,
+                "source": "excel_import",
+                "error_message": err["erro"],
+                "raw_data": f"Linha {err['linha']}",
+                "user": user.get("email")
+            })
+    
+    return results
+
+
+@router.get("/import-template")
+async def get_import_template(user: dict = Depends(get_current_user)):
+    """
+    Retorna instruções para o template de importação Excel.
+    """
+    return {
+        "instrucoes": "Crie um ficheiro Excel (.xlsx) com as seguintes colunas:",
+        "colunas_obrigatorias": [
+            {"nome": "titulo", "descricao": "Título do imóvel", "exemplo": "T2 em Cascais"},
+            {"nome": "preco", "descricao": "Preço pedido", "exemplo": "250000"},
+            {"nome": "distrito", "descricao": "Distrito", "exemplo": "Lisboa"},
+            {"nome": "concelho", "descricao": "Concelho", "exemplo": "Cascais"},
+            {"nome": "proprietario_nome", "descricao": "Nome do proprietário", "exemplo": "João Silva"}
+        ],
+        "colunas_opcionais": [
+            {"nome": "tipo", "valores": "apartamento, moradia, terreno, loja, escritorio, armazem, garagem, outro"},
+            {"nome": "localidade", "exemplo": "Cascais"},
+            {"nome": "morada", "exemplo": "Rua das Flores, 123"},
+            {"nome": "codigo_postal", "exemplo": "2750-123"},
+            {"nome": "quartos", "exemplo": "2"},
+            {"nome": "casas_banho", "exemplo": "1"},
+            {"nome": "area_util", "exemplo": "85"},
+            {"nome": "area_bruta", "exemplo": "100"},
+            {"nome": "ano_construcao", "exemplo": "2010"},
+            {"nome": "certificado_energetico", "valores": "A, B, C, D, E, F, G"},
+            {"nome": "estado", "valores": "novo, como_novo, bom, para_recuperar, em_construcao"},
+            {"nome": "proprietario_telefone", "exemplo": "+351 912345678"},
+            {"nome": "proprietario_email", "exemplo": "email@exemplo.com"},
+            {"nome": "descricao", "exemplo": "Apartamento renovado com vista mar"},
+            {"nome": "notas", "exemplo": "Notas internas"}
+        ]
+    }
+
