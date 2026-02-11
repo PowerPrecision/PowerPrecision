@@ -237,7 +237,7 @@ class AIImprovementAgent:
             })
         
         # 4. Sugestões com IA (se disponível)
-        if self.openai_client and alerts:
+        if self.llm_client and alerts:
             try:
                 ai_suggestion = await self._get_ai_insight(stats, alerts[:10])
                 if ai_suggestion:
