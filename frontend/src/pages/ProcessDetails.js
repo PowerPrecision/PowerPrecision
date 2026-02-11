@@ -551,6 +551,25 @@ const ProcessDetails = () => {
     return cleaned;
   };
 
+  // Helper para limpar dados financeiros para envio
+  const cleanFinancialDataForSubmit = (data) => {
+    // Campos válidos do modelo FinancialData no backend
+    const validFields = [
+      'acesso_portal_financas', 'chave_movel_digital', 'renda_habitacao_atual',
+      'precisa_vender_casa', 'efetivo', 'fiador', 'bancos_creditos',
+      'capital_proprio', 'valor_financiado', 'valor_pretendido', 'valor_entrada',
+      'data_sinal', 'reforco_sinal', 'comissao_mediacao'
+    ];
+    
+    const cleaned = {};
+    for (const key of validFields) {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        cleaned[key] = data[key];
+      }
+    }
+    return cleaned;
+  };
+
   const handleSave = async () => {
     // Validar NIF antes de guardar
     if (personalData.nif) {
@@ -568,29 +587,32 @@ const ProcessDetails = () => {
       
       // Limpar dados pessoais antes de enviar
       const cleanedPersonalData = cleanPersonalDataForSubmit(personalData);
+      
+      // Limpar dados financeiros (remover campos não válidos no backend)
+      const cleanedFinancialData = cleanFinancialDataForSubmit(financialData);
 
-      // Sempre incluir email e telefone do cliente se foram alterados
-      if (process?.client_email !== undefined) {
-        updateData.client_email = process.client_email;
+      // Sempre incluir email e telefone do cliente - garantir que são strings
+      if (process?.client_email !== undefined && process?.client_email !== null) {
+        updateData.client_email = String(process.client_email || '');
       }
-      if (process?.client_phone !== undefined) {
-        updateData.client_phone = process.client_phone;
+      if (process?.client_phone !== undefined && process?.client_phone !== null) {
+        updateData.client_phone = String(process.client_phone || '');
       }
 
       if (user.role === "cliente" || user.role === "admin") {
         updateData.personal_data = cleanedPersonalData;
-        updateData.financial_data = financialData;
+        updateData.financial_data = cleanedFinancialData;
       }
 
       if (user.role === "consultor" || user.role === "admin") {
         updateData.personal_data = cleanedPersonalData;
-        updateData.financial_data = financialData;
+        updateData.financial_data = cleanedFinancialData;
         updateData.real_estate_data = realEstateData;
       }
 
       if (user.role === "mediador" || user.role === "admin") {
         updateData.personal_data = cleanedPersonalData;
-        updateData.financial_data = financialData;
+        updateData.financial_data = cleanedFinancialData;
         const allowedStatuses = workflowStatuses.filter(s => s.order >= 3).map(s => s.name);
         if (allowedStatuses.includes(process.status) || process.status === "autorizacao_bancaria" || process.status === "aprovado") {
           updateData.credit_data = creditData;
