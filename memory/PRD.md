@@ -231,6 +231,13 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Mediador (se existir)
 - ✅ **Cartões do Kanban compactados**: Tamanho reduzido para melhor visualização
 - ✅ **Ficheiros de teste temporários limpos**
+- ✅ **Sistema de Logging de Erros de Importação**:
+  - Novo endpoint `GET /api/ai/bulk/import-errors` - lista erros de importação
+  - Novo endpoint `GET /api/ai/bulk/import-errors/summary` - resumo estatístico
+  - Novo endpoint `POST /api/ai/bulk/import-errors/{id}/resolve` - marcar como resolvido
+  - Novo endpoint `DELETE /api/ai/bulk/import-errors/clear` - limpar erros antigos
+  - Erros guardados na colecção `import_errors` com: cliente, ficheiro, tipo, erro, timestamp
+  - Agrupamento por tipo de erro para identificar padrões
 
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
