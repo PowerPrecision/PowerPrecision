@@ -196,7 +196,7 @@ const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete,
 
   return (
     <div
-      className={`flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 transition-colors ${
+      className={`flex-shrink-0 w-56 bg-gray-50 rounded-lg p-2 transition-colors ${
         isDragOver ? "bg-blue-50 ring-2 ring-blue-300" : ""
       }`}
       onDragOver={handleDragOver}
