@@ -866,6 +866,179 @@ const AIConfigPage = () => {
             )}
           </TabsContent>
 
+          {/* TAB: Uso & Custos */}
+          <TabsContent value="usage" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Acompanhe o uso de IA e custos estimados por período
+              </p>
+              <div className="flex items-center gap-2">
+                <Select value={usagePeriod} onValueChange={(v) => { setUsagePeriod(v); loadUsageStats(v); }}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Hoje</SelectItem>
+                    <SelectItem value="week">Última Semana</SelectItem>
+                    <SelectItem value="month">Este Mês</SelectItem>
+                    <SelectItem value="all">Tudo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={() => loadUsageStats()}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {loadingUsage ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              <>
+                {/* Summary Cards */}
+                <div className="grid gap-4 md:grid-cols-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total de Chamadas</CardDescription>
+                      <CardTitle className="text-2xl flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-primary" />
+                        {usageSummary?.total_calls || 0}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Tokens Consumidos</CardDescription>
+                      <CardTitle className="text-2xl flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-amber-500" />
+                        {(usageSummary?.total_tokens || 0).toLocaleString()}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Custo Estimado</CardDescription>
+                      <CardTitle className="text-2xl flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-green-500" />
+                        €{(usageSummary?.total_cost_eur || 0).toFixed(4)}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Taxa de Sucesso</CardDescription>
+                      <CardTitle className="text-2xl flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-emerald-500" />
+                        {(usageSummary?.success_rate || 0).toFixed(1)}%
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                </div>
+
+                {/* Usage by Task */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileSearch className="h-4 w-4 text-primary" />
+                        Uso por Tarefa
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {usageByTask.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum uso registado neste período
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {usageByTask.map((item) => (
+                            <div key={item.task} className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-sm">{item.task}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.total_calls} chamadas • {item.total_tokens.toLocaleString()} tokens
+                                </p>
+                              </div>
+                              <Badge variant="outline">€{item.total_cost_eur.toFixed(4)}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Bot className="h-4 w-4 text-primary" />
+                        Uso por Modelo
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {usageByModel.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum uso registado neste período
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {usageByModel.map((item) => (
+                            <div key={item.model} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge className={PROVIDER_COLORS[item.provider] || "bg-gray-100"} variant="secondary">
+                                  {item.provider?.toUpperCase()}
+                                </Badge>
+                                <div>
+                                  <p className="font-medium text-sm">{item.model}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.total_calls} chamadas
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant="outline">€{item.total_cost_eur.toFixed(4)}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Trend (if data exists) */}
+                {usageTrend.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        Tendência Diária (últimos 30 dias)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-24 flex items-end gap-1">
+                        {usageTrend.slice(-30).map((day, i) => {
+                          const maxCalls = Math.max(...usageTrend.map(d => d.total_calls)) || 1;
+                          const height = (day.total_calls / maxCalls) * 100;
+                          return (
+                            <div
+                              key={day.date}
+                              className="flex-1 bg-primary/20 hover:bg-primary/40 rounded-t transition-colors"
+                              style={{ height: `${Math.max(height, 5)}%` }}
+                              title={`${day.date}: ${day.total_calls} chamadas, €${day.total_cost_eur.toFixed(4)}`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                        <span>{usageTrend[0]?.date}</span>
+                        <span>{usageTrend[usageTrend.length - 1]?.date}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </TabsContent>
+
           {/* TAB: Cache & Notificações */}
           <TabsContent value="cache" className="space-y-4">
             {/* Cache Stats */}
