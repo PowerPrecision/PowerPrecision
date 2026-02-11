@@ -130,7 +130,7 @@ async def analyze_weekly_errors_with_ai(
                 "count": 1
             })
         
-        # Configurar chat com Claude
+        # Configurar chat com GPT-4o
         chat = LlmChat(
             api_key=api_key,
             session_id="weekly-error-analysis",
@@ -138,7 +138,7 @@ async def analyze_weekly_errors_with_ai(
 Analisa os erros de importação e gera sugestões práticas de resolução.
 Responde sempre em Português de Portugal.
 Formato de resposta: JSON com campos "summary", "root_causes", "suggestions", "priority_actions"."""
-        ).with_model(CLAUDE_PROVIDER, CLAUDE_MODEL)
+        ).with_model(AI_PROVIDER, AI_MODEL)
         
         # Criar mensagem
         user_message = UserMessage(
