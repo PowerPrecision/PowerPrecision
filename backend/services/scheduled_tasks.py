@@ -121,7 +121,7 @@ class ScheduledTasksService:
                 
                 try:
                     expiry_date = datetime.fromisoformat(expiry_date_str.replace('Z', '+00:00'))
-                except:
+                except (ValueError, TypeError):
                     continue
                 
                 # Verificar se expira nos próximos 7 dias
