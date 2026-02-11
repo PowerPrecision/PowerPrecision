@@ -233,7 +233,8 @@ const AIConfigPage = () => {
     loadModels();
     loadTasks();
     loadCacheStats();
-  }, [loadConfig, loadModels, loadTasks, loadCacheStats]);
+    loadUsageStats();
+  }, [loadConfig, loadModels, loadTasks, loadCacheStats, loadUsageStats]);
 
   // Alterar modelo para uma tarefa
   const handleModelChange = (task, model) => {
