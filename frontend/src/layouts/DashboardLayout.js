@@ -137,6 +137,11 @@ const DashboardLayout = ({ children, title }) => {
           icon: Cog,
           href: "/configuracoes",
         },
+        {
+          label: "Configuração de IA",
+          icon: Sparkles,
+          href: "/configuracoes/ia",
+        },
       ];
     }
 
