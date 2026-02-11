@@ -341,27 +341,44 @@ class PropertyScraper:
         
         return contacts
     
-    async def _fetch_page_content(self, url: str) -> Optional[str]:
+    async def _fetch_page_content(self, url: str, use_proxy: bool = True) -> Optional[str]:
         """
         Faz download do conteúdo HTML de uma URL.
+        
+        Args:
+            url: URL para fazer download
+            use_proxy: Se True, usa rotação de proxies (se disponíveis)
         
         Returns:
             Conteúdo HTML ou None se falhar
         """
+        proxy = self._get_next_proxy() if use_proxy else None
+        
         for verify_ssl in [True, False]:
             try:
                 await asyncio.sleep(0.5)  # Delay para evitar bloqueios
                 
-                async with httpx.AsyncClient(
-                    timeout=self.timeout,
-                    follow_redirects=True,
-                    verify=verify_ssl,
-                    http2=True
-                ) as client:
+                client_kwargs = {
+                    "timeout": self.timeout,
+                    "follow_redirects": True,
+                    "verify": verify_ssl,
+                    "http2": not proxy  # HTTP2 pode não funcionar com proxies
+                }
+                
+                if proxy:
+                    client_kwargs["proxy"] = proxy
+                    logger.debug(f"Usando proxy: {proxy[:30]}...")
+                
+                async with httpx.AsyncClient(**client_kwargs) as client:
                     response = await client.get(url, headers=self._get_headers())
                     
                     if response.status_code == 200:
                         return response.text
+                    elif response.status_code in [403, 429]:
+                        # Se bloqueado e temos proxies, tenta com próxima
+                        if proxy and self._proxies:
+                            logger.warning(f"Proxy bloqueada ({response.status_code}), tentando próxima...")
+                            continue
                     
             except Exception as e:
                 if verify_ssl:
