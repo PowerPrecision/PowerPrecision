@@ -212,6 +212,16 @@ function App() {
             }
           />
           
+          {/* Notification Settings - Admin only */}
+          <Route
+            path="/configuracoes/notificacoes"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <NotificationSettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
