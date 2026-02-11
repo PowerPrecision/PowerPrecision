@@ -238,6 +238,10 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Novo endpoint `DELETE /api/ai/bulk/import-errors/clear` - limpar erros antigos
   - Erros guardados na colecção `import_errors` com: cliente, ficheiro, tipo, erro, timestamp
   - Agrupamento por tipo de erro para identificar padrões
+- ✅ **Sistema de Matching - UI Clientes Sugeridos**:
+  - Botão sparkles (✨) no cartão de lead para ver clientes compatíveis
+  - Dialog mostra clientes com score de match e razões do match
+  - Corrigido bug em `client_match.py` (NoneType error em financial_data)
 
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
