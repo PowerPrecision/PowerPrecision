@@ -49,7 +49,8 @@ class PersonalData(BaseModel):
     
     Campos activos:
     - nif (validado: 9 dígitos), documento_id, naturalidade, nacionalidade, morada_fiscal
-    - birth_date, estado_civil, compra_tipo, menor_35_anos
+    - birth_date/data_nascimento, estado_civil, compra_tipo, menor_35_anos
+    - data_validade_cc, sexo, altura, nome_pai, nome_mae
     """
     # Dados básicos (activos)
     nif: Optional[str] = None
@@ -58,9 +59,17 @@ class PersonalData(BaseModel):
     nacionalidade: Optional[str] = None
     morada_fiscal: Optional[str] = None
     birth_date: Optional[str] = None
+    data_nascimento: Optional[str] = None  # Alias para birth_date (usado pelo frontend)
     estado_civil: Optional[str] = None
     compra_tipo: Optional[str] = None
     menor_35_anos: Optional[bool] = None  # Checkbox apoio ao estado
+    # Novos campos - Identificação completa
+    data_validade_cc: Optional[str] = None  # Validade do Cartão de Cidadão
+    sexo: Optional[str] = None  # M ou F
+    altura: Optional[str] = None  # Altura em metros
+    # Filiação
+    nome_pai: Optional[str] = None
+    nome_mae: Optional[str] = None
     
     @field_validator('nif', mode='before')
     @classmethod
