@@ -144,6 +144,7 @@ async def create_task(
 @router.get("", response_model=List[TaskResponse])
 async def get_tasks(
     process_id: Optional[str] = Query(None, description="Filtrar por processo"),
+    user_id: Optional[str] = Query(None, description="Filtrar por utilizador (admin/ceo: 'all' para todos)"),
     assigned_to_me: bool = Query(False, description="Apenas tarefas atribuídas a mim"),
     created_by_me: bool = Query(False, description="Apenas tarefas criadas por mim"),
     include_completed: bool = Query(False, description="Incluir tarefas concluídas"),
@@ -154,18 +155,45 @@ async def get_tasks(
     
     Filtros:
     - process_id: Filtrar por processo específico
+    - user_id: Filtrar por utilizador específico ou 'all' para todos (apenas admin/ceo)
     - assigned_to_me: Apenas tarefas atribuídas ao utilizador atual
     - created_by_me: Apenas tarefas criadas pelo utilizador atual
     - include_completed: Incluir tarefas já concluídas
+    
+    Calendário Global (admin/ceo):
+    - Se user_id='all', retorna tarefas de toda a equipa
+    - Se user_id=<id_especifico>, retorna tarefas desse utilizador
     """
     query = {}
+    
+    # Verificar se é admin/ceo para acesso global
+    is_admin_or_ceo = current_user.get("role") in ["admin", "ceo", "diretor"]
     
     # Filtro por processo
     if process_id:
         query["process_id"] = process_id
     
-    # Filtro por atribuição
-    if assigned_to_me:
+    # Filtro por user_id (calendário global para admin/ceo)
+    if user_id:
+        if user_id.lower() == "all":
+            if not is_admin_or_ceo:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Apenas administradores podem ver tarefas de todos os utilizadores"
+                )
+            # Não adicionar filtro - retorna todas as tarefas
+            logger.info(f"Calendário global: {current_user['email']} a aceder a todas as tarefas")
+        else:
+            # Filtrar por utilizador específico
+            if not is_admin_or_ceo and user_id != current_user["id"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Não tem permissão para ver tarefas de outros utilizadores"
+                )
+            query["assigned_to"] = user_id
+    
+    # Filtro por atribuição (próprio utilizador)
+    elif assigned_to_me:
         query["assigned_to"] = current_user["id"]
     
     # Filtro por criador
