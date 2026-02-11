@@ -461,14 +461,11 @@ async def test_ai_configuration(
     
     try:
         if provider == "gemini":
-            from litellm import completion
-            response = completion(
-                model=f"gemini/{model}",
-                api_key=GEMINI_API_KEY,
-                messages=[{"role": "user", "content": "Responde apenas: OK"}],
-                max_tokens=10
-            )
-            result = response.choices[0].message.content.strip()
+            import google.generativeai as genai
+            genai.configure(api_key=GEMINI_API_KEY)
+            model_instance = genai.GenerativeModel("gemini-2.0-flash")
+            response = model_instance.generate_content("Responde apenas: OK")
+            result = response.text.strip()
             return {"success": True, "model": model, "response": result}
         
         elif provider == "openai":
