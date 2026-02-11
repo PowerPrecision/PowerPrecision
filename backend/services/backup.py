@@ -27,7 +27,7 @@ class BackupService:
         
         logger.info(f"Iniciando backup em: {backup_path}")
         
-        client = AsyncIOMotorClient(MONGODB_URL)
+        client = AsyncIOMotorClient(MONGO_URL)
         db = client[DB_NAME]
         
         try:
