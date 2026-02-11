@@ -93,7 +93,7 @@ class AIImprovementAgent:
                 if isinstance(created_at, str):
                     try:
                         created_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                    except:
+                    except ValueError:
                         continue
                 else:
                     created_dt = created_at
@@ -113,7 +113,7 @@ class AIImprovementAgent:
                         last_dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
                         if (now - last_dt).days > 7:
                             stalled_count += 1
-                    except:
+                    except ValueError:
                         pass
         
         return {
