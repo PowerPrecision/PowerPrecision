@@ -56,7 +56,7 @@ import TasksPanel from "../components/TasksPanel";
 import ProcessSummaryCard from "../components/ProcessSummaryCard";
 import EmailHistoryPanel from "../components/EmailHistoryPanel";
 import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
-import DocumentChecklist from "../components/DocumentChecklist";
+import S3FileManager from "../components/S3FileManager";
 import ProcessTimeline from "../components/ProcessTimeline";
 import ClientPropertyMatch from "../components/ClientPropertyMatch";
 import {
