@@ -843,12 +843,13 @@ async def update_process(process_id: str, data: ProcessUpdate, user: dict = Depe
             await log_history(process_id, user, "Alterou estado", "status", process["status"], data.status)
             update_data["status"] = data.status
             
-            # Send email notification
+            # Send email notification (com verificação de preferências)
             if process.get("client_email"):
-                await send_email_notification(
+                await send_notification_with_preference_check(
                     process["client_email"],
                     "Estado do Processo Atualizado",
-                    f"O estado do seu processo foi atualizado para: {data.status}"
+                    f"O estado do seu processo foi atualizado para: {data.status}",
+                    notification_type="status_change"
                 )
     
     await db.processes.update_one({"id": process_id}, {"$set": update_data})
