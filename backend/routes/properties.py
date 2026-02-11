@@ -32,7 +32,7 @@ async def get_next_reference() -> str:
         try:
             num = int(last["internal_reference"].split("-")[1])
             return f"IMO-{num + 1:03d}"
-        except:
+        except (ValueError, IndexError):
             pass
     return "IMO-001"
 
