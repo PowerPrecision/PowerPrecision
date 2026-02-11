@@ -66,7 +66,24 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
    - Alerta amarelo aparece automaticamente quando limite é atingido
    - Endpoints: `GET/PUT /api/admin/cache-settings`
 
-8. **Correcções Técnicas**
+8. **Log de Uso de IA (Tracking de Custos) - NOVO**
+   - Novo serviço `ai_usage_tracker.py` regista cada chamada à IA
+   - Métricas: chamadas, tokens (input/output), custo estimado, tempo de resposta, taxa de sucesso
+   - Resumos diários guardados na colecção `ai_usage_summary`
+   - Endpoints:
+     - `GET /api/admin/ai-usage/summary` - Resumo geral
+     - `GET /api/admin/ai-usage/by-task` - Agregado por tarefa
+     - `GET /api/admin/ai-usage/by-model` - Agregado por modelo
+     - `GET /api/admin/ai-usage/trend` - Tendência diária
+   - Nova tab "Uso & Custos" na página de configuração de IA
+   - Filtro por período: Hoje, Última Semana, Este Mês, Tudo
+   - Gráfico de barras para tendência diária
+
+9. **Correcção de Segurança Bandit - CORRIGIDO**
+   - Substituído MD5 por SHA-256 no hash de URLs do cache
+   - **0 problemas de alta severidade** no Bandit
+
+10. **Correcções Técnicas**
    - Instalado `libmagic1` para validação de ficheiros
    - Instalado `h2` para suporte HTTP/2 no scraper
    - Nova chave Gemini API configurada no `.env`
