@@ -103,8 +103,8 @@ async def cleanup_test_data(dry_run: bool = True):
     mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
     db_name = os.environ.get('DB_NAME', 'test_database')
     
-    client = AsyncIOMotorClient(mongo_url)
-    db = client[db_name]
+    mongo_client = AsyncIOMotorClient(mongo_url)
+    db = mongo_client[db_name]
     
     print("=" * 60)
     print("CLEANUP DE DADOS DE TESTE - CreditoIMO")
@@ -366,7 +366,7 @@ async def cleanup_test_data(dry_run: bool = True):
         print("LIMPEZA CONCLUÍDA!")
         print("=" * 60)
     
-    client.close()
+    mongo_client.close()
     return stats
 
 
