@@ -1877,16 +1877,16 @@ const ProcessDetails = () => {
                 </AccordionContent>
               </AccordionItem>
 
-              {/* Documentos OneDrive */}
+              {/* Documentos S3 */}
               <AccordionItem value="docs" className="border rounded-lg">
                 <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
                   <span className="flex items-center gap-2">
                     <FolderOpen className="h-4 w-4" />
-                    Checklist Documentos
+                    Documentos
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pb-3">
-                  <DocumentChecklist 
+                  <S3FileManager 
                     processId={id}
                     clientName={process?.client_name}
                   />
