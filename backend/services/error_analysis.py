@@ -125,7 +125,7 @@ async def analyze_weekly_errors() -> Dict[str, Any]:
         "suggestions": suggestions,
         "action_items": action_items,
         "ai_analysis": ai_analysis,
-        "ai_model": "claude-3-5-sonnet-20241022" if ai_analysis and not ai_analysis.get("error") else "fallback",
+        "ai_model": "gpt-4o" if ai_analysis and not ai_analysis.get("error") else "fallback",
         "generated_at": now.isoformat()
     }
     
