@@ -6,7 +6,7 @@ Endpoints para análise preditiva e prescritiva de processos.
 """
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
-from middleware.auth import get_current_user
+from services.auth import get_current_user
 from services.ai_improvement_agent import ai_agent, run_weekly_analysis, analyze_process
 
 router = APIRouter(prefix="/ai-agent", tags=["AI Agent"])
