@@ -508,17 +508,18 @@ async def notify_cpcv_or_deed_document_check(process: dict, new_status: str):
             process_id=process["id"]
         )
         
-        # Email
+        # Email (com verificação de preferências)
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user:
-            await send_email_notification(
+            await send_notification_with_preference_check(
                 user["email"],
                 f"{title} - {client_name}",
                 f"Olá {user['name']},\n\n"
                 f"{description} para o cliente {client_name}.\n\n"
                 f"Por favor, aceda ao sistema para verificar se toda a documentação está em ordem "
                 f"antes de prosseguir com o processo.{missing_info}\n\n"
-                f"Aceda ao processo: /process/{process['id']}"
+                f"Aceda ao processo: /process/{process['id']}",
+                notification_type="document_upload"
             )
 
 
@@ -550,13 +551,15 @@ async def notify_pre_approval_countdown(process: dict):
     for user_id in user_ids:
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user:
-            await send_email_notification(
+            await send_notification_with_preference_check(
                 user["email"],
-                f"⏰ Alerta de Prazo: {process.get('client_name')}",
+                f"Alerta de Prazo: {process.get('client_name')}",
                 f"{countdown['message']}\n\n"
                 f"Cliente: {process.get('client_name')}\n"
                 f"{countdown.get('details', '')}\n\n"
-                f"Por favor, tome as medidas necessárias."
+                f"Por favor, tome as medidas necessárias.",
+                notification_type="deadline_reminder",
+                is_urgent=(countdown.get("priority") == "critical")
             )
 
 
