@@ -15,18 +15,6 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 class TestAuth:
     """Authentication tests with provided credentials"""
     
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        """Login with admin credentials provided"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        assert response.status_code == 200, f"Login failed: {response.text}"
-        data = response.json()
-        assert "token" in data, "Token not in response"
-        return data["token"]
-    
     def test_admin_login_success(self):
         """Test admin login with geral@powerealestate.pt/admin2026"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
@@ -35,28 +23,30 @@ class TestAuth:
         })
         assert response.status_code == 200
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data, "access_token should be in response"
         assert "user" in data
         print(f"✅ Admin login successful: {data.get('user', {}).get('email')}")
+
+
+def get_admin_token():
+    """Helper to get admin token"""
+    response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "email": "geral@powerealestate.pt",
+        "password": "admin2026"
+    })
+    return response.json().get("access_token")
 
 
 class TestKanbanEndpoint:
     """Test Kanban endpoint that provides compact card data"""
     
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        return response.json().get("token")
-    
-    def test_kanban_endpoint_returns_processes(self, admin_token):
+    def test_kanban_endpoint_returns_processes(self):
         """Test /api/processes/kanban returns process data for compact cards"""
-        headers = {"Authorization": f"Bearer {admin_token}"}
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"{BASE_URL}/api/processes/kanban", headers=headers)
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Kanban endpoint failed: {response.text}"
         data = response.json()
         
         # Should return columns with processes
@@ -79,20 +69,13 @@ class TestKanbanEndpoint:
 class TestPropertiesImportEndpoints:
     """Test Excel import related endpoints"""
     
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        return response.json().get("token")
-    
-    def test_import_template_endpoint_exists(self, admin_token):
+    def test_import_template_endpoint_exists(self):
         """Test /api/properties/bulk/import-template returns template info"""
-        headers = {"Authorization": f"Bearer {admin_token}"}
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"{BASE_URL}/api/properties/bulk/import-template", headers=headers)
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Import template endpoint failed: {response.text}"
         data = response.json()
         
         # Should contain instructions and column definitions
@@ -110,9 +93,10 @@ class TestPropertiesImportEndpoints:
         print(f"✅ Import template endpoint returns {len(mandatory_cols)} mandatory columns")
         print(f"   Optional columns: {len(data.get('colunas_opcionais', []))}")
     
-    def test_import_excel_endpoint_exists(self, admin_token):
+    def test_import_excel_endpoint_exists(self):
         """Test /api/properties/bulk/import-excel endpoint exists (without file)"""
-        headers = {"Authorization": f"Bearer {admin_token}"}
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
         
         # Without a file, should return 422 (Unprocessable Entity) not 404
         response = requests.post(f"{BASE_URL}/api/properties/bulk/import-excel", headers=headers)
@@ -125,17 +109,10 @@ class TestPropertiesImportEndpoints:
 class TestAISuggestionsEndpoint:
     """Test AI suggestions for import errors endpoint"""
     
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        return response.json().get("token")
-    
-    def test_import_errors_suggestions_endpoint(self, admin_token):
+    def test_import_errors_suggestions_endpoint(self):
         """Test /api/ai/bulk/import-errors/suggestions endpoint"""
-        headers = {"Authorization": f"Bearer {admin_token}"}
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"{BASE_URL}/api/ai/bulk/import-errors/suggestions", headers=headers)
         
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
@@ -161,14 +138,6 @@ class TestAISuggestionsEndpoint:
 
 class TestNIFValidationBackend:
     """Test NIF validation in backend routes"""
-    
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        return response.json().get("token")
     
     def test_nif_validation_function_logic(self):
         """Test that NIF starting with 5 is considered invalid for individuals"""
@@ -210,17 +179,10 @@ class TestNIFValidationBackend:
 class TestPropertiesStats:
     """Test properties stats endpoint"""
     
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        return response.json().get("token")
-    
-    def test_properties_stats_endpoint(self, admin_token):
+    def test_properties_stats_endpoint(self):
         """Test /api/properties/stats returns stats data"""
-        headers = {"Authorization": f"Bearer {admin_token}"}
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"{BASE_URL}/api/properties/stats", headers=headers)
         
         assert response.status_code == 200
@@ -233,17 +195,10 @@ class TestPropertiesStats:
 class TestPropertiesList:
     """Test properties listing endpoint"""
     
-    @pytest.fixture(scope="class")
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "geral@powerealestate.pt",
-            "password": "admin2026"
-        })
-        return response.json().get("token")
-    
-    def test_properties_list_endpoint(self, admin_token):
+    def test_properties_list_endpoint(self):
         """Test /api/properties returns list of properties"""
-        headers = {"Authorization": f"Bearer {admin_token}"}
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"{BASE_URL}/api/properties", headers=headers)
         
         assert response.status_code == 200
