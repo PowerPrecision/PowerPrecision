@@ -852,3 +852,149 @@ async def test_ai_configuration(
         
     except Exception as e:
         return {"success": False, "model": model, "error": str(e)}
+
+
+# ============== NOTIFICATION PREFERENCES ==============
+
+# Default notification preferences
+DEFAULT_NOTIFICATION_PREFS = {
+    "email_new_process": False,  # Novo processo criado
+    "email_status_change": False,  # Mudança de status de processo
+    "email_document_upload": False,  # Documento carregado
+    "email_task_assigned": False,  # Tarefa atribuída
+    "email_deadline_reminder": True,  # Lembrete de prazo (importante)
+    "email_urgent_only": True,  # Apenas urgentes
+    "email_daily_summary": True,  # Resumo diário
+    "email_weekly_report": True,  # Relatório semanal
+    "inapp_new_process": True,
+    "inapp_status_change": True,
+    "inapp_document_upload": True,
+    "inapp_task_assigned": True,
+    "inapp_comments": True,
+    "is_test_user": False,  # Se true, não recebe emails
+}
+
+
+@router.get("/notification-preferences/{user_id}")
+async def get_notification_preferences(
+    user_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém as preferências de notificação de um utilizador.
+    Admin pode ver/editar de qualquer utilizador.
+    """
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # Obter preferências da DB ou usar defaults
+    prefs = await db.notification_preferences.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not prefs:
+        prefs = {**DEFAULT_NOTIFICATION_PREFS, "user_id": user_id}
+    
+    return {
+        "user_id": user_id,
+        "user_email": target_user.get("email"),
+        "user_name": target_user.get("name"),
+        "preferences": prefs
+    }
+
+
+@router.put("/notification-preferences/{user_id}")
+async def update_notification_preferences(
+    user_id: str,
+    preferences: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualiza as preferências de notificação de um utilizador.
+    Admin pode editar de qualquer utilizador.
+    """
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # Filtrar apenas campos válidos
+    valid_keys = set(DEFAULT_NOTIFICATION_PREFS.keys())
+    filtered_prefs = {k: v for k, v in preferences.items() if k in valid_keys}
+    
+    filtered_prefs["user_id"] = user_id
+    filtered_prefs["updated_at"] = datetime.now(timezone.utc).isoformat()
+    filtered_prefs["updated_by"] = user.get("email", "admin")
+    
+    await db.notification_preferences.update_one(
+        {"user_id": user_id},
+        {"$set": filtered_prefs},
+        upsert=True
+    )
+    
+    return {"success": True, "preferences": filtered_prefs}
+
+
+@router.get("/notification-preferences")
+async def get_all_notification_preferences(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Lista preferências de todos os utilizadores."""
+    users = await db.users.find({}, {"_id": 0, "id": 1, "email": 1, "name": 1, "role": 1}).to_list(500)
+    
+    result = []
+    for u in users:
+        prefs = await db.notification_preferences.find_one({"user_id": u["id"]}, {"_id": 0})
+        if not prefs:
+            prefs = {**DEFAULT_NOTIFICATION_PREFS, "user_id": u["id"]}
+        
+        result.append({
+            "user_id": u["id"],
+            "email": u.get("email"),
+            "name": u.get("name"),
+            "role": u.get("role"),
+            "receives_email": not prefs.get("is_test_user", False) and (
+                prefs.get("email_urgent_only") or 
+                prefs.get("email_daily_summary") or
+                prefs.get("email_weekly_report")
+            ),
+            "is_test_user": prefs.get("is_test_user", False)
+        })
+    
+    return result
+
+
+@router.post("/notification-preferences/bulk-update")
+async def bulk_update_notification_preferences(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualiza preferências de múltiplos utilizadores de uma vez.
+    
+    Body:
+    {
+        "user_ids": ["id1", "id2"],
+        "preferences": {"is_test_user": true}
+    }
+    """
+    user_ids = data.get("user_ids", [])
+    preferences = data.get("preferences", {})
+    
+    if not user_ids:
+        raise HTTPException(status_code=400, detail="user_ids é obrigatório")
+    
+    valid_keys = set(DEFAULT_NOTIFICATION_PREFS.keys())
+    filtered_prefs = {k: v for k, v in preferences.items() if k in valid_keys}
+    filtered_prefs["updated_at"] = datetime.now(timezone.utc).isoformat()
+    filtered_prefs["updated_by"] = user.get("email", "admin")
+    
+    updated = 0
+    for uid in user_ids:
+        result = await db.notification_preferences.update_one(
+            {"user_id": uid},
+            {"$set": {**filtered_prefs, "user_id": uid}},
+            upsert=True
+        )
+        if result.modified_count > 0 or result.upserted_id:
+            updated += 1
+    
+    return {"success": True, "updated_count": updated}
