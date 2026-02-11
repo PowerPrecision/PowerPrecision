@@ -11,6 +11,64 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping)
 
+## Última Actualização - 11 Fevereiro 2026 (Sessão 6)
+
+### ✅ Implementações Completas (11 Fevereiro 2026 - Noite)
+
+#### 1. S3 File Manager - Gestão de Documentos AWS S3
+- **Componente Frontend**: `/app/frontend/src/components/S3FileManager.js`
+- **Serviço Backend**: `/app/backend/services/s3_storage.py`
+- **Rotas API**: `/app/backend/routes/documents.py`
+- **Funcionalidades**:
+  - Upload de ficheiros organizado por categorias (Pessoais, Financeiros, Imóvel, Bancários, Outros)
+  - Download com URLs temporários (presigned URLs)
+  - Eliminação de ficheiros
+  - Criação automática de estrutura de pastas
+  - Barra de progresso para uploads
+  - Interface com tabs por categoria
+- **Configuração AWS** (em `/app/backend/.env`):
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+  - `AWS_BUCKET_NAME=powerprecision-docs-storage`
+  - `AWS_REGION=eu-north-1`
+
+#### 2. Agente de Melhoria com IA
+- **Serviço Backend**: `/app/backend/services/ai_improvement_agent.py`
+- **Rotas API**: `/app/backend/routes/ai_agent.py`
+- **Página Frontend**: `/app/frontend/src/pages/AIInsightsPage.js`
+- **Rota**: `/ai-insights` (apenas admin e CEO)
+- **Funcionalidades**:
+  - Análise preditiva de todos os processos activos
+  - Estatísticas: total analisado, parados, tempo médio
+  - Distribuição por estado e consultor
+  - Sistema de alertas com prioridades (high, medium, low)
+  - Sugestões automáticas baseadas em regras
+  - Integração com LLM para insights personalizados
+  - Análise de processo individual
+- **Endpoints**:
+  - `GET /api/ai-agent/analyze` - Análise completa
+  - `GET /api/ai-agent/analyze/{process_id}` - Análise de processo
+  - `GET /api/ai-agent/suggestions` - Apenas sugestões
+  - `GET /api/ai-agent/alerts` - Alertas filtráveis
+  - `GET /api/ai-agent/stats` - Estatísticas
+
+### Análise do ficheiro `ideias CreditoIMO.txt`
+
+| Funcionalidade | Estado |
+|---------------|--------|
+| 1. Página Imóveis + Scraping | ✅ Implementado |
+| 2. Deep Scraping (nome agente) | ✅ Implementado |
+| 3. Painel Imobiliário (dados comercial) | ✅ Implementado |
+| 4. Gestão de Leads/Kanban | ✅ Implementado |
+| 5. Checklist Docs (agora S3) | ✅ Implementado |
+| 6. Minutas/Templates | ✅ Implementado |
+| 7. Entidades Cliente + Imóvel | ✅ Implementado |
+| 8. Dashboard/Estatísticas | ✅ Implementado |
+| Agente IA - Nível 1 (Descritivo) | ✅ Implementado |
+| Agente IA - Nível 2 (Preditivo) | ✅ Implementado |
+| Agente IA - Nível 3 (Prescritivo) | ✅ Implementado |
+| Integração HCPRO | ❌ Não implementado (requer documentação externa) |
+
 ## Última Actualização - 11 Fevereiro 2026 (Sessão 5)
 
 ### ✅ Implementação Completa do Ponto 2 (11 Fevereiro 2026 - Noite)
