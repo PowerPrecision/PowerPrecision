@@ -638,34 +638,6 @@ const KanbanBoard = ({ token, user }) => {
                             </CardContent>
                           </Card>
                         ))
-                                    size="icon"
-                                    className="h-7 w-7 hover:bg-blue-50"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEmailClient(process.client_email, process.client_name);
-                                    }}
-                                    title="Enviar Email"
-                                    data-testid={`email-btn-${process.id}`}
-                                  >
-                                    <Mail className="h-3.5 w-3.5 text-blue-600" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/process/${process.id}`);
-                                    }}
-                                    title="Ver Detalhes"
-                                  >
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))
                       )}
                     </div>
                   </ScrollArea>
