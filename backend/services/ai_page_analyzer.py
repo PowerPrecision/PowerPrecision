@@ -55,12 +55,12 @@ async def analyze_page_with_claude(
         if len(html_content) > max_html_length:
             html_content = html_content[:max_html_length] + "...[truncated]"
         
-        # Configurar chat com Claude
+        # Configurar chat com GPT-4o
         chat = LlmChat(
             api_key=api_key,
             session_id=f"page-analysis-{url[:50]}",
             system_message=get_system_prompt(extraction_type)
-        ).with_model(CLAUDE_PROVIDER, CLAUDE_MODEL)
+        ).with_model(AI_PROVIDER, AI_MODEL)
         
         # Criar mensagem
         user_message = UserMessage(
