@@ -383,25 +383,25 @@ async def find_matching_clients_for_lead(lead_id: str) -> List[Dict[str, Any]]:
         score = 0
         match_reasons = []
         
-        financial = process.get("financial_data", {})
-        real_estate = process.get("real_estate_data", {})
+        financial = process.get("financial_data") or {}
+        real_estate = process.get("real_estate_data") or {}
         
         # Obter orçamento do cliente
         client_budget = None
-        if financial.get("valor_pretendido"):
+        if financial and financial.get("valor_pretendido"):
             try:
                 client_budget = float(str(financial["valor_pretendido"]).replace("€", "").replace(" ", "").replace(",", "."))
             except:
                 pass
-        if not client_budget and real_estate.get("valor_imovel"):
+        if not client_budget and real_estate and real_estate.get("valor_imovel"):
             try:
                 client_budget = float(str(real_estate["valor_imovel"]).replace("€", "").replace(" ", "").replace(",", "."))
             except:
                 pass
         
-        client_location_raw = real_estate.get("localizacao") or ""
+        client_location_raw = (real_estate.get("localizacao") if real_estate else "") or ""
         client_location = client_location_raw.lower() if isinstance(client_location_raw, str) else ""
-        client_typology_raw = real_estate.get("tipologia") or ""
+        client_typology_raw = (real_estate.get("tipologia") if real_estate else "") or ""
         client_typology = client_typology_raw.upper() if isinstance(client_typology_raw, str) else ""
         
         # Match por preço
