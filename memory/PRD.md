@@ -244,6 +244,32 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**11 Fevereiro 2026 - Sessão 2**
+- ✅ **Bug Fix - Validação Email/Telefone (P0)**: Corrigido erro "Input should be a valid number" ao guardar ficha de cliente:
+  - Adicionado `@field_validator` no modelo `ProcessUpdate` para converter `client_email` e `client_phone` para string
+  - Frontend converte explicitamente para `String()` antes de enviar
+  - Testado e verificado: guardar funciona sem erros de validação
+- ✅ **Nova Funcionalidade - Criação de Leads via URL (P0)**:
+  - Novo endpoint `POST /api/leads/from-url` que extrai dados e cria lead automaticamente
+  - Verifica duplicados antes de criar
+  - Regista erros de scraping no sistema de logs
+  - Retorna lead criado com dados extraídos
+- ✅ **Nova Funcionalidade - Página de Logs do Sistema (P0)**:
+  - Nova página `/admin/logs` para visualizar erros do sistema
+  - Endpoints implementados:
+    - `GET /api/admin/system-logs` - Lista com filtros e paginação
+    - `GET /api/admin/system-logs/stats` - Estatísticas (total, não lidos, críticos)
+    - `POST /api/admin/system-logs/mark-read` - Marcar como lido
+    - `POST /api/admin/system-logs/{id}/resolve` - Resolver erro
+    - `DELETE /api/admin/system-logs/cleanup` - Limpar antigos
+  - UI com:
+    - Cards de estatísticas (Total, Não Lidos, Por Resolver, Críticos)
+    - Filtros por severidade, componente, estado, período
+    - Tabela paginada com detalhes
+    - Dialog para ver detalhes e resolver erros
+  - Link adicionado no menu Admin
+- ✅ **Serviço de Error Logging**: Novo serviço `system_error_logger.py` centralizado
+
 **10 Fevereiro 2026**
 - ✅ **Bug Fix Crítico - Extração NIF de CC**: Corrigido bug onde NIF era extraído incorretamente de documentos CC (começava por 5 em vez do valor real):
   - Alterado `detail` de `'low'` para `'high'` na API de visão para documentos CC/CPCV
