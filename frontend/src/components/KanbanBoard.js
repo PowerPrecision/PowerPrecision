@@ -589,38 +589,45 @@ const KanbanBoard = ({ token, user }) => {
                             }}
                             data-testid={`process-card-${process.id}`}
                           >
-                            <CardContent className="p-1.5">
-                              {/* Layout ultra-compacto */}
-                              <div className="flex items-center gap-1">
-                                <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                <div className="flex-1 min-w-0 flex items-center justify-between">
-                                  {/* Nome + Número inline */}
-                                  <p className="font-medium text-[11px] truncate" title={process.client_name}>
+                            <CardContent className="p-2">
+                              {/* Layout compacto mas legível */}
+                              <div className="space-y-1">
+                                {/* Linha 1: Nome + Número */}
+                                <div className="flex items-center gap-1">
+                                  <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                  <p className="font-medium text-xs flex-1 truncate" title={process.client_name}>
                                     {process.client_name}
                                   </p>
-                                  <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
-                                    <span className="text-[9px] text-muted-foreground">
-                                      #{process.process_number || '—'}
-                                    </span>
+                                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                                    #{process.process_number || '—'}
+                                  </span>
+                                </div>
+                                {/* Linha 2: Badges + Ações */}
+                                <div className="flex items-center justify-between pl-4">
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {process.consultor_name && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                                        {process.consultor_name.split(' ')[0]}
+                                      </Badge>
+                                    )}
                                     {process.prioridade && (
-                                      <Badge variant="destructive" className="text-[8px] px-0.5 py-0 h-3 leading-none">!</Badge>
+                                      <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">!</Badge>
                                     )}
                                   </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/process/${process.id}`);
+                                    }}
+                                    title="Ver processo"
+                                    data-testid={`view-process-${process.id}`}
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                                {/* Botão Ver */}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-4 w-4 flex-shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/process/${process.id}`);
-                                  }}
-                                  title="Ver processo"
-                                  data-testid={`view-process-${process.id}`}
-                                >
-                                  <Eye className="h-2.5 w-2.5" />
-                                </Button>
                               </div>
                             </CardContent>
                           </Card>
