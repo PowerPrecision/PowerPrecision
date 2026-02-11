@@ -162,10 +162,10 @@ async def get_supported_sites(user: dict = Depends(get_current_user)):
         "generic_support": True,
         "ai_analysis": {
             "available": True,
-            "model": "gpt-4o",
-            "description": "Análise IA disponível para sites não suportados"
+            "model": "gemini-1.5-flash (configurable)",
+            "description": "Análise IA disponível para sites não suportados (Gemini por defeito)"
         },
-        "notes": "Sites não listados são processados com extração genérica ou IA (GPT-4o)"
+        "notes": "Sites não listados são processados com extração genérica ou IA"
     }
 
 
@@ -175,18 +175,23 @@ async def analyze_page_with_ai_endpoint(
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
 ):
     """
-    Analisa uma página usando GPT-4o.
+    Analisa uma página usando IA configurada (Gemini por defeito).
     
     Útil para sites que bloqueiam scraping ou têm estrutura complexa.
     A IA extrai automaticamente informações de imóveis do HTML.
     
-    Custo: Usa créditos do EMERGENT_LLM_KEY
+    Custo: Usa créditos da API configurada (Gemini é muito económico)
     """
     try:
         from services.scraper import analyze_page_with_ai
+        from services.ai_page_analyzer import get_ai_config
         import httpx
         
         logger.info(f"Análise IA solicitada para: {request.url}")
+        
+        # Obter modelo configurado
+        config = await get_ai_config()
+        model = config.get("scraper_extraction", "gemini-1.5-flash")
         
         # Primeiro, obter o HTML da página
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
@@ -208,7 +213,7 @@ async def analyze_page_with_ai_endpoint(
         return {
             "success": True,
             "url": request.url,
-            "ai_model": "gpt-4o",
+            "ai_model": model,
             "data": result
         }
         
