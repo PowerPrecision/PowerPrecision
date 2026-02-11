@@ -382,32 +382,52 @@ export default function ClientsPage() {
               <div className="flex justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : clients.length === 0 ? (
+            ) : filteredClients.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">Nenhum cliente encontrado</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setShowCreateDialog(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar primeiro cliente
-                </Button>
+                <p className="text-muted-foreground">
+                  {clients.length === 0 ? "Nenhum cliente encontrado" : "Nenhum cliente corresponde aos filtros"}
+                </p>
+                {clients.length === 0 && (
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setShowCreateDialog(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar primeiro cliente
+                  </Button>
+                )}
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50" 
+                      onClick={() => toggleSort("nome")}
+                    >
+                      <span className="flex items-center">
+                        Cliente
+                        <SortIcon field="nome" />
+                      </span>
+                    </TableHead>
                     <TableHead>Contacto</TableHead>
                     <TableHead>NIF</TableHead>
-                    <TableHead className="text-center">Processos</TableHead>
+                    <TableHead 
+                      className="text-center cursor-pointer hover:bg-muted/50"
+                      onClick={() => toggleSort("process_count")}
+                    >
+                      <span className="flex items-center justify-center">
+                        Processos
+                        <SortIcon field="process_count" />
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right">Acções</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((client) => (
+                  {filteredClients.map((client) => (
                     <TableRow key={client.id} data-testid={`client-row-${client.id}`}>
                       <TableCell>
                         <div className="flex items-center gap-3">
