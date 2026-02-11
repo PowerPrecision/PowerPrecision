@@ -658,7 +658,7 @@ async def import_properties_from_excel(
     return results
 
 
-@router.get("/import-template")
+@router.get("/bulk/import-template")
 async def get_import_template(user: dict = Depends(get_current_user)):
     """
     Retorna instruções para o template de importação Excel.
