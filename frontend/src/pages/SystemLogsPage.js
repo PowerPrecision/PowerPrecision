@@ -375,12 +375,12 @@ const SystemLogsPage = () => {
               </div>
               <div>
                 <Label className="text-xs">Estado</Label>
-                <Select value={resolvedFilter} onValueChange={setResolvedFilter}>
+                <Select value={resolvedFilter || "all"} onValueChange={(v) => setResolvedFilter(v === "all" ? "" : v)}>
                   <SelectTrigger data-testid="resolved-filter">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="false">Por Resolver</SelectItem>
                     <SelectItem value="true">Resolvidos</SelectItem>
                   </SelectContent>
