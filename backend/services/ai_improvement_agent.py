@@ -25,11 +25,11 @@ class AIImprovementAgent:
     """Agente de IA para análise e melhoria de processos."""
     
     def __init__(self):
-        self.openai_client = None
+        self.llm_client = None
         if EMERGENT_LLM_KEY:
             try:
-                from emergentintegrations.llm.openai import OpenAIChat
-                self.openai_client = OpenAIChat(api_key=EMERGENT_LLM_KEY)
+                from emergentintegrations.llm.openai import LlmChat
+                self.llm_client = LlmChat(api_key=EMERGENT_LLM_KEY)
                 logger.info("AI Agent inicializado com sucesso")
             except Exception as e:
                 logger.error(f"Erro ao inicializar AI Agent: {e}")
