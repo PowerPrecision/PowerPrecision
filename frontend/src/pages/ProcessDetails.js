@@ -833,11 +833,21 @@ const ProcessDetails = () => {
                               <Label className="text-xs text-muted-foreground">NIF</Label>
                               <Input
                                 value={personalData.nif || ""}
-                                onChange={(e) => setPersonalData({ ...personalData, nif: e.target.value })}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setPersonalData({ ...personalData, nif: value });
+                                  // Validar NIF em tempo real
+                                  const validation = validateNIF(value);
+                                  setNifError(validation.error);
+                                }}
                                 disabled={!canEditPersonal}
                                 data-testid="personal-nif"
-                                className="h-9"
+                                className={`h-9 ${nifError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                placeholder="9 dígitos"
                               />
+                              {nifError && (
+                                <p className="text-xs text-red-500 mt-1">{nifError}</p>
+                              )}
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs text-muted-foreground">Nº Documento (CC)</Label>
