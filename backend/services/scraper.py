@@ -582,16 +582,22 @@ Conteúdo:
             return {"_error": str(e)}
     
     # ================================================================
-    # SCRAPING PRINCIPAL (HÍBRIDO COM DEEP LINK)
+    # SCRAPING PRINCIPAL (HÍBRIDO COM DEEP LINK E CACHE)
     # ================================================================
     
-    async def scrape_url(self, url: str) -> Dict[str, Any]:
+    async def scrape_url(self, url: str, use_cache: bool = True) -> Dict[str, Any]:
         """
         Extrai dados de uma URL imobiliária usando abordagem híbrida:
-        1. Tenta parsers específicos (BeautifulSoup)
-        2. Se falhar, usa Gemini como fallback
-        3. Se faltar contacto do agente, usa Deep Link
+        1. Verifica cache local (se use_cache=True)
+        2. Tenta parsers específicos (BeautifulSoup)
+        3. Se falhar, usa Gemini como fallback
+        4. Se faltar contacto do agente, usa Deep Link
+        5. Guarda resultado em cache
         
+        Args:
+            url: URL a processar
+            use_cache: Se deve usar/guardar cache (default: True)
+            
         Returns:
             Dict com dados do imóvel
         """
@@ -601,6 +607,14 @@ Conteúdo:
         # Normalizar URL
         if not url.startswith("http"):
             url = "https://" + url
+        
+        # ============================================================
+        # VERIFICAR CACHE
+        # ============================================================
+        if use_cache:
+            cached = await self._get_cached_result(url)
+            if cached:
+                return cached
         
         html_content = None
         parser_used = None
