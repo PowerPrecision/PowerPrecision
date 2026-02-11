@@ -27,6 +27,7 @@ import {
   Home,
   LayoutGrid,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import NotificationsDropdown from "../components/NotificationsDropdown";
