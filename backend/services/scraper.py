@@ -72,7 +72,7 @@ class PropertyScraper:
     
     async def _extract_with_gemini(self, html_content: str, url: str) -> Dict[str, Any]:
         """
-        Usa Gemini 1.5 Flash para extrair dados de imóveis quando 
+        Usa Gemini 2.0 Flash para extrair dados de imóveis quando 
         os parsers específicos falham.
         
         Args:
@@ -87,7 +87,10 @@ class PropertyScraper:
             return {}
         
         try:
-            from litellm import completion
+            import google.generativeai as genai
+            
+            # Configurar API
+            genai.configure(api_key=GEMINI_API_KEY)
             
             # Limitar HTML para poupar tokens (15k chars ~= 3-4k tokens)
             clean_html = self._clean_text(html_content)[:15000]
@@ -114,16 +117,11 @@ IMPORTANTE: Responde APENAS com o JSON, sem explicações ou markdown.
 Conteúdo:
 {clean_html}"""
             
-            response = completion(
-                model="gemini/gemini-1.5-flash",
-                api_key=GEMINI_API_KEY,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,  # Baixa temperatura para respostas mais consistentes
-                max_tokens=1000
-            )
+            # Usar Gemini 2.0 Flash
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(prompt)
             
-            # Extrair resposta
-            result_text = response.choices[0].message.content.strip()
+            result_text = response.text.strip()
             
             # Limpar possíveis markdown code blocks
             if result_text.startswith("```json"):
@@ -150,7 +148,7 @@ Conteúdo:
                 "certificado_energetico": data.get("certificacao_energetica"),
                 "ano_construcao": data.get("ano_construcao"),
                 "estado": data.get("estado"),
-                "_extracted_by": "gemini-1.5-flash"
+                "_extracted_by": "gemini-2.0-flash"
             }
             
         except json.JSONDecodeError as e:
