@@ -696,10 +696,67 @@ const LeadsKanban = () => {
             onStatusChange={handleStatusChange}
             onDelete={handleDelete}
             onRefreshPrice={handleRefreshPrice}
+            onShowSuggestions={handleShowSuggestedClients}
             clients={clients}
           />
         ))}
       </div>
+
+      {/* Dialog de Clientes Sugeridos */}
+      <Dialog open={suggestedClientsDialog} onOpenChange={setSuggestedClientsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              Clientes Sugeridos
+            </DialogTitle>
+            <DialogDescription>
+              {selectedLeadForSuggestions && (
+                <span>Clientes compatíveis com: {selectedLeadForSuggestions.title || "Lead"}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {loadingSuggestions ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+              </div>
+            ) : suggestedClients.length > 0 ? (
+              suggestedClients.map((match, index) => (
+                <Card key={index} className="p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <p className="font-medium">{match.client_name}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {match.match_reasons?.map((reason, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {reason}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Score: {match.match_score}%
+                      </p>
+                    </div>
+                    <Badge variant={match.match_score >= 70 ? "default" : "secondary"}>
+                      {match.match_score >= 70 ? "Alta" : match.match_score >= 50 ? "Média" : "Baixa"}
+                    </Badge>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum cliente compatível encontrado</p>
+                <p className="text-xs mt-2">
+                  Verifique se há clientes com preferências de tipologia, preço e localização semelhantes
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog para criar/editar lead */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
