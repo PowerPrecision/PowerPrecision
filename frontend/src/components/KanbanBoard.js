@@ -588,96 +588,56 @@ const KanbanBoard = ({ token, user }) => {
                               }
                             }}
                           >
-                            <CardContent className="p-3">
-                              {/* Layout principal: grid com 2 colunas - conteúdo flexível + botões fixos */}
-                              <div className="grid grid-cols-[1fr_auto] gap-2">
-                                {/* Coluna do conteúdo - pode crescer e encolher */}
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <p className="font-medium text-sm truncate" title={process.client_name}>
+                            <CardContent className="p-2">
+                              {/* Layout compacto */}
+                              <div className="flex items-start gap-1">
+                                <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  {/* Nome + Número */}
+                                  <div className="flex items-center justify-between gap-1">
+                                    <p className="font-medium text-xs truncate" title={process.client_name}>
                                       {process.client_name}
                                     </p>
+                                    <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                                      #{process.process_number || '—'}
+                                    </span>
                                   </div>
                                   
-                                  {/* Número do Processo */}
-                                  <p className="text-xs text-muted-foreground ml-6 font-semibold">
-                                    #{process.process_number || '—'}
-                                  </p>
-                                  
-                                  {/* Labels */}
-                                  <div className="flex flex-wrap gap-1 mt-1 ml-6">
-                                    {process.has_property && (
-                                      <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
-                                        <Home className="h-3 w-3 mr-1" />
-                                        Imóvel
-                                      </Badge>
-                                    )}
-                                    {process.prioridade && (
-                                      <Badge variant="destructive" className="text-xs">
-                                        <AlertCircle className="h-3 w-3 mr-1" />
-                                        Prioritário
-                                      </Badge>
-                                    )}
-                                    {process.idade_menos_35 && (
-                                      <Badge variant="outline" className="text-xs bg-yellow-50">
-                                        &lt;35
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Contact Info */}
-                                  {process.client_phone && (
-                                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground ml-6">
-                                      <Phone className="h-3 w-3 flex-shrink-0" />
-                                      <span className="truncate">{process.client_phone}</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Value */}
-                                  {process.valor_financiado && (
-                                    <p className="text-xs text-emerald-600 font-medium mt-1 ml-6">
-                                      {process.valor_financiado}
-                                    </p>
-                                  )}
-                                  
-                                  {/* Assigned Staff */}
-                                  <div className="flex flex-wrap gap-1 mt-2 ml-6">
+                                  {/* Badges compactos numa linha */}
+                                  <div className="flex flex-wrap gap-0.5 mt-0.5">
                                     {process.trello_card_id && (
-                                      <Badge variant="outline" className="text-xs bg-sky-50 border-sky-200 text-sky-700">
-                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 bg-sky-50 border-sky-200 text-sky-700">
                                         Trello
                                       </Badge>
                                     )}
                                     {process.consultor_name && (
-                                      <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200">
-                                        <User className="h-3 w-3 mr-1" />
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 bg-blue-50 border-blue-200">
                                         {process.consultor_name.split(' ')[0]}
                                       </Badge>
                                     )}
-                                    {process.mediador_name && (
-                                      <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200">
-                                        <User className="h-3 w-3 mr-1" />
-                                        Int. {process.mediador_name.split(' ')[0]}
-                                      </Badge>
+                                    {process.prioridade && (
+                                      <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">!</Badge>
                                     )}
                                   </div>
                                 </div>
                                 
-                                {/* Coluna dos botões - largura fixa, nunca encolhe */}
-                                <div className="flex flex-col gap-1 w-8">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 hover:bg-purple-50"
-                                    onClick={(e) => openAssignDialog(process, e)}
-                                    title="Gerir atribuições"
-                                    data-testid={`assign-btn-${process.id}`}
-                                  >
-                                    <Users className="h-3.5 w-3.5 text-purple-600" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
+                                {/* Botão Ver */}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/process/${process.id}`);
+                                  }}
+                                  title="Ver processo"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
                                     size="icon"
                                     className="h-7 w-7 hover:bg-blue-50"
                                     onClick={(e) => {
