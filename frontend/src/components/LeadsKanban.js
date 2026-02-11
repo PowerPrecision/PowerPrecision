@@ -130,6 +130,9 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onEdit(lead)} title="Editar">
               <Edit className="h-2.5 w-2.5" />
             </Button>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-purple-500" onClick={() => onShowSuggestions(lead)} title="Clientes Sugeridos">
+              <Sparkles className="h-2.5 w-2.5" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={() => onDelete(lead.id)} title="Eliminar">
               <Trash2 className="h-2.5 w-2.5" />
             </Button>
