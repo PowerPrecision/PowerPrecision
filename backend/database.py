@@ -42,6 +42,11 @@ def get_database():
     return _db
 
 
+def get_db():
+    """Alias para get_database() - compatibilidade com testes."""
+    return get_database()
+
+
 class DatabaseProxy:
     """
     Proxy para acesso à DB que cria a conexão on-demand.
