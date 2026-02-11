@@ -466,9 +466,12 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
 
 
 @router.get("/my-clients")
-async def get_my_clients(user: dict = Depends(require_roles([UserRole.CONSULTOR, UserRole.ADMIN, UserRole.CEO]))):
+async def get_my_clients(user: dict = Depends(require_roles([
+    UserRole.CONSULTOR, UserRole.MEDIADOR, UserRole.INTERMEDIARIO, 
+    UserRole.ADMIN, UserRole.CEO
+]))):
     """
-    Obter lista de clientes atribuídos ao consultor atual.
+    Obter lista de clientes atribuídos ao utilizador atual.
     
     Retorna uma lista com:
     - Nome do cliente
@@ -476,7 +479,8 @@ async def get_my_clients(user: dict = Depends(require_roles([UserRole.CONSULTOR,
     - Ações pendentes (tarefas, documentos a atualizar)
     
     Permissões:
-    - Consultor: Apenas os seus clientes
+    - Consultor: Apenas os seus clientes (assigned_consultor_id)
+    - Intermediário/Mediador: Apenas os seus clientes (assigned_mediador_id)
     - Admin/CEO: Todos os clientes (para supervisão)
     """
     user_id = user["id"]
@@ -485,6 +489,8 @@ async def get_my_clients(user: dict = Depends(require_roles([UserRole.CONSULTOR,
     # Construir query baseada no papel do utilizador
     if role == UserRole.CONSULTOR:
         query = {"assigned_consultor_id": user_id}
+    elif role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
+        query = {"assigned_mediador_id": user_id}
     else:
         # Admin/CEO vêem todos
         query = {}
