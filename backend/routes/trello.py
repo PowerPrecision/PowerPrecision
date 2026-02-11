@@ -1020,6 +1020,14 @@ async def trello_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Endpoint para receber webhooks do Trello.
     O Trello envia notificações quando há alterações no board.
+    
+    Eventos processados:
+    - createCard: Cartão criado
+    - updateCard: Cartão atualizado/movido
+    - deleteCard: Cartão eliminado
+    - moveCardToBoard: Cartão movido
+    - addMemberToCard: Membro adicionado ao cartão
+    - removeMemberFromCard: Membro removido do cartão
     """
     try:
         body = await request.json()
@@ -1037,6 +1045,10 @@ async def trello_webhook(request: Request, background_tasks: BackgroundTasks):
             await handle_card_deleted(action)
         elif action_type == "moveCardToBoard":
             await handle_card_moved(action)
+        elif action_type == "addMemberToCard":
+            await handle_member_added_to_card(action)
+        elif action_type == "removeMemberFromCard":
+            await handle_member_removed_from_card(action)
         
         return {"status": "ok"}
         
