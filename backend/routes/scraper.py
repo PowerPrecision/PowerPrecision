@@ -46,11 +46,14 @@ async def scrape_single_url(
     Extrai dados de uma única URL de imóvel.
     
     Suporta: Idealista, Imovirtual, Casa Sapo, SuperCasa, ERA, Remax, KW, etc.
+    
+    O sistema usa cache por 7 dias - URLs já processadas retornam
+    resultado em cache para economizar recursos.
     """
     try:
-        logger.info(f"Scraping URL: {request.url} (user: {user.get('email')})")
+        logger.info(f"Scraping URL: {request.url} (user: {user.get('email')}, cache: {request.use_cache})")
         
-        result = await scrape_property_url(request.url)
+        result = await property_scraper.scrape_url(request.url, use_cache=request.use_cache)
         
         if result.get("error"):
             return ScrapeResponse(
