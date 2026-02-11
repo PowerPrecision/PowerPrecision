@@ -250,7 +250,7 @@ class AIImprovementAgent:
     async def _get_ai_insight(self, stats: Dict, alerts: List[Dict]) -> Optional[Dict]:
         """Usa LLM para gerar insights personalizados."""
         
-        if not self.openai_client:
+        if not self.llm_client:
             return None
         
         # Preparar contexto para a IA
