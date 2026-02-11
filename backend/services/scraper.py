@@ -7,6 +7,7 @@ Este serviço extrai dados de portais imobiliários usando:
 2. Gemini 2.0 Flash como fallback para sites desconhecidos ou 
    quando a extração falha
 3. "Deep Link" - Segue links externos para encontrar dados de contacto
+4. Cache local - Guarda resultados para evitar chamadas repetidas
 
 Configuração:
 - GEMINI_API_KEY: Chave API do Google Gemini
@@ -17,6 +18,10 @@ Deep Link Logic:
 - Após extracção inicial, se faltar telefone/email do agente
 - Procura links para sites de agências (remax, era, century21, etc.)
 - Faz scraping da página do agente para encontrar contactos
+
+Cache:
+- Resultados são guardados na colecção `scraper_cache` por 7 dias
+- URLs já processadas retornam o resultado em cache
 ====================================================================
 """
 import logging
@@ -24,12 +29,14 @@ import re
 import json
 import ssl
 import httpx
+import hashlib
 from bs4 import BeautifulSoup
 from typing import Optional, Dict, Any, List
 from fake_useragent import UserAgent
 from urllib.parse import urlparse, urljoin
 from collections import deque
 import asyncio
+from datetime import datetime, timezone, timedelta
 
 from config import GEMINI_API_KEY
 
@@ -52,6 +59,9 @@ PHONE_PATTERNS = [
 ]
 
 EMAIL_PATTERN = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+
+# Cache settings
+CACHE_EXPIRY_DAYS = 7
 
 
 class PropertyScraper:
