@@ -1,14 +1,15 @@
 """
 ====================================================================
-SERVIÇO DE ANÁLISE SEMANAL DE ERROS
+SERVIÇO DE ANÁLISE SEMANAL DE ERROS (COM IA)
 ====================================================================
 Este serviço analisa os erros de importação semanalmente e envia
 sugestões de resolução ao admin via notificação e email.
 
 Funcionalidades:
 - Agregação de erros por tipo e padrão
-- Geração de sugestões automáticas
-- Envio de relatório semanal ao admin
+- Análise IA com Claude 3.5 Sonnet para sugestões inteligentes
+- Geração de relatório semanal automático
+- Envio de notificações ao admin
 ====================================================================
 """
 import logging
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 async def analyze_weekly_errors() -> Dict[str, Any]:
     """
     Analisa os erros da última semana e gera um relatório com sugestões.
+    Usa Claude 3.5 Sonnet para análise inteligente.
     
     Returns:
         Dict com análise e sugestões
@@ -52,7 +54,8 @@ async def analyze_weekly_errors() -> Dict[str, Any]:
             "total_errors": 0,
             "summary": "Sem erros na última semana. Excelente!",
             "suggestions": [],
-            "action_items": []
+            "action_items": [],
+            "ai_analysis": None
         }
     
     # Agrupar por tipo de erro
@@ -77,32 +80,37 @@ async def analyze_weekly_errors() -> Dict[str, Any]:
                 error_patterns[msg] = 0
             error_patterns[msg] += 1
     
-    # Gerar sugestões baseadas nos padrões
+    # Análise IA com Claude
+    ai_analysis = None
+    try:
+        from services.ai_page_analyzer import page_analyzer
+        ai_analysis = await page_analyzer.analyze_errors(all_errors, error_patterns)
+        logger.info("Análise IA concluída com sucesso")
+    except Exception as e:
+        logger.warning(f"Análise IA falhou (usando fallback): {e}")
+        ai_analysis = {"error": str(e), "fallback": True}
+    
+    # Gerar sugestões (fallback se IA falhar)
     suggestions = []
     action_items = []
     
-    # Analisar padrões comuns
-    for pattern, count in sorted(error_patterns.items(), key=lambda x: -x[1])[:10]:
-        if count >= 3:  # Padrão recorrente
-            suggestion = generate_suggestion_for_pattern(pattern, count)
-            if suggestion:
-                suggestions.append(suggestion)
-    
-    # Analisar tipos de erro
-    for source, data in sorted(error_types.items(), key=lambda x: -x[1]["count"])[:5]:
-        if data["count"] >= 5:
-            action = generate_action_for_source(source, data["count"], data["examples"])
-            if action:
-                action_items.append(action)
-    
-    # Se não há sugestões específicas, dar sugestões gerais
-    if not suggestions:
-        suggestions.append({
-            "priority": "info",
-            "title": "Análise de Erros",
-            "description": f"Foram detectados {len(all_errors)} erros na última semana.",
-            "recommendation": "Reveja os logs de importação para identificar padrões."
-        })
+    if ai_analysis and not ai_analysis.get("error"):
+        # Usar sugestões da IA
+        suggestions = ai_analysis.get("suggestions", [])
+        action_items = ai_analysis.get("priority_actions", [])
+    else:
+        # Fallback para análise manual
+        for pattern, count in sorted(error_patterns.items(), key=lambda x: -x[1])[:10]:
+            if count >= 3:
+                suggestion = generate_suggestion_for_pattern(pattern, count)
+                if suggestion:
+                    suggestions.append(suggestion)
+        
+        for source, data in sorted(error_types.items(), key=lambda x: -x[1]["count"])[:5]:
+            if data["count"] >= 5:
+                action = generate_action_for_source(source, data["count"], data["examples"])
+                if action:
+                    action_items.append(action)
     
     report = {
         "period": {
@@ -112,9 +120,12 @@ async def analyze_weekly_errors() -> Dict[str, Any]:
         "total_errors": len(all_errors),
         "errors_by_type": error_types,
         "top_patterns": dict(sorted(error_patterns.items(), key=lambda x: -x[1])[:5]),
-        "summary": generate_summary(len(all_errors), error_types),
+        "summary": ai_analysis.get("summary") if ai_analysis and not ai_analysis.get("error") else generate_summary(len(all_errors), error_types),
+        "root_causes": ai_analysis.get("root_causes", []) if ai_analysis else [],
         "suggestions": suggestions,
         "action_items": action_items,
+        "ai_analysis": ai_analysis,
+        "ai_model": "claude-3-5-sonnet-20241022" if ai_analysis and not ai_analysis.get("error") else "fallback",
         "generated_at": now.isoformat()
     }
     
