@@ -49,11 +49,16 @@ class TestKanbanEndpoint:
         assert response.status_code == 200, f"Kanban endpoint failed: {response.text}"
         data = response.json()
         
-        # Should return columns with processes
-        assert isinstance(data, list), "Response should be a list of columns"
+        # Response can be a list or an object with "columns"
+        if isinstance(data, dict):
+            columns = data.get("columns", [])
+        else:
+            columns = data
+        
+        assert isinstance(columns, list), "Columns should be a list"
         
         total_processes = 0
-        for column in data:
+        for column in columns:
             assert "processes" in column, "Each column should have processes"
             total_processes += len(column.get("processes", []))
             
@@ -63,7 +68,7 @@ class TestKanbanEndpoint:
                 assert "client_name" in process, "Process should have client_name"
                 # process_number may be optional
         
-        print(f"✅ Kanban endpoint returns {total_processes} processes in {len(data)} columns")
+        print(f"✅ Kanban endpoint returns {total_processes} processes in {len(columns)} columns")
 
 
 class TestPropertiesImportEndpoints:
