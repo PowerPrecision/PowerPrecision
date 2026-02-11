@@ -351,12 +351,12 @@ const SystemLogsPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <Label className="text-xs">Severidade</Label>
-                <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                <Select value={severityFilter || "all"} onValueChange={(v) => setSeverityFilter(v === "all" ? "" : v)}>
                   <SelectTrigger data-testid="severity-filter">
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="info">Info</SelectItem>
                     <SelectItem value="warning">Aviso</SelectItem>
                     <SelectItem value="error">Erro</SelectItem>
