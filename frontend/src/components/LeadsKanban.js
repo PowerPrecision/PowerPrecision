@@ -178,7 +178,7 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
 };
 
 // Componente de coluna do Kanban
-const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete, onRefreshPrice, clients }) => {
+const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete, onRefreshPrice, onShowSuggestions, clients }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = (e) => {
