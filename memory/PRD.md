@@ -249,6 +249,37 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Handling correcto de erros SSL
 - ✅ **Bug login consultor VERIFICADO**: Consultor consegue aceder a processos atribuídos
 
+**11 Fevereiro 2026**
+- ✅ **Cartões do Quadro Geral de Processos Ultra-Compactos**:
+  - Reduzido padding de p-2 para p-1.5
+  - Fonte do nome de text-xs para text-[11px]
+  - Número do processo de text-[10px] para text-[9px]
+  - Removidos badges de Trello e Consultor para economizar espaço
+  - Layout em linha única: nome + número + badge prioridade + botão ver
+  - Adicionado data-testid para testes automatizados
+- ✅ **Validação de NIF para Clientes Particulares**:
+  - Backend: função `validate_nif()` actualizada para rejeitar NIFs começados por 5 (empresas)
+  - Frontend: validação em tempo real no campo NIF com mensagem de erro
+  - Erro mostrado: "NIF de empresa (começa por 5) não é permitido para clientes particulares"
+  - Campo fica com borda vermelha quando inválido
+  - Validação também bloqueia guardar o processo se NIF for inválido
+- ✅ **Importar Imóveis via Excel**:
+  - Novo endpoint `POST /api/properties/bulk/import-excel`
+  - Aceita ficheiros .xlsx e .xls
+  - Colunas obrigatórias: titulo, preco, distrito, concelho, proprietario_nome
+  - 14 colunas opcionais: tipo, quartos, area_util, estado, etc.
+  - Retorna estatísticas: total, importados, erros com linha
+  - Erros são logados na colecção `error_logs` para análise
+  - Novo endpoint `GET /api/properties/bulk/import-template` com instruções
+  - Botão "Importar Excel" na página de Imóveis
+  - Dialog mostra resultados da importação com erros detalhados
+- ✅ **Sistema de Sugestões de Melhoria (Aprender com Erros)**:
+  - Novo endpoint `GET /api/ai/bulk/import-errors/suggestions`
+  - Analisa padrões nos erros de importação
+  - Gera sugestões categorizadas por: validation, format, data_quality, geography, owner_data
+  - Cada sugestão tem: título, descrição, acção recomendada, prioridade
+  - Identifica erros de: campos em falta, formato errado, NIFs inválidos, localização
+
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
   - Lista de clientes com pesquisa por nome/email/NIF
