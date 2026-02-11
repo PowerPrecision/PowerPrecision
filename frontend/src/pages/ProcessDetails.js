@@ -499,6 +499,16 @@ const ProcessDetails = () => {
   };
 
   const handleSave = async () => {
+    // Validar NIF antes de guardar
+    if (personalData.nif) {
+      const validation = validateNIF(personalData.nif);
+      if (!validation.valid) {
+        toast.error(validation.error);
+        setNifError(validation.error);
+        return;
+      }
+    }
+    
     setSaving(true);
     try {
       const updateData = {};
