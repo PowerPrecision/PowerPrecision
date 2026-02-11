@@ -201,6 +201,16 @@ function App() {
             }
           />
           
+          {/* AI Configuration - Admin only */}
+          <Route
+            path="/configuracoes/ia"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AIConfigPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
