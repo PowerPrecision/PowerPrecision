@@ -44,15 +44,30 @@ import {
   Trash2,
   Link2,
   RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function ClientsPage() {
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
