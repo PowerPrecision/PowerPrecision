@@ -104,6 +104,14 @@ const AIConfigPage = () => {
   const [cacheSettings, setCacheSettings] = useState({ cache_limit: 1000, notify_at_percentage: 80 });
   const [clearingCache, setClearingCache] = useState(false);
   
+  // Estado do uso de IA
+  const [usageSummary, setUsageSummary] = useState(null);
+  const [usageByTask, setUsageByTask] = useState([]);
+  const [usageByModel, setUsageByModel] = useState([]);
+  const [usageTrend, setUsageTrend] = useState([]);
+  const [usagePeriod, setUsagePeriod] = useState("month");
+  const [loadingUsage, setLoadingUsage] = useState(false);
+  
   // Diálogos
   const [showModelDialog, setShowModelDialog] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
