@@ -238,14 +238,60 @@ async def get_cache_stats(
     """
     Retorna estatísticas do cache de scraping.
     
+    Inclui verificação de limite e notificações.
+    
     Returns:
         - total_entries: Total de URLs em cache
         - valid_entries: URLs ainda válidas (não expiradas)
         - expired_entries: URLs expiradas
         - cache_expiry_days: Dias de validade do cache
+        - limit_status: Informação sobre limite do cache
     """
+    from database import db
+    
     stats = await property_scraper.get_cache_stats()
-    return stats
+    
+    # Obter configurações de limite
+    cache_config = await db.system_config.find_one({"type": "cache_settings"}, {"_id": 0})
+    cache_limit = cache_config.get("cache_limit", 1000) if cache_config else 1000
+    notify_percentage = cache_config.get("notify_at_percentage", 80) if cache_config else 80
+    
+    total = stats.get("total_entries", 0)
+    percentage_used = (total / cache_limit * 100) if cache_limit > 0 else 0
+    
+    # Verificar se deve notificar
+    should_notify = percentage_used >= notify_percentage
+    notification = None
+    
+    if should_notify:
+        notification = {
+            "type": "warning",
+            "message": f"Cache de scraping está a {percentage_used:.0f}% da capacidade ({total}/{cache_limit})",
+            "action": "Considere limpar o cache ou aumentar o limite"
+        }
+        
+        # Guardar notificação na DB
+        await db.notifications.update_one(
+            {"type": "cache_limit_warning", "dismissed": False},
+            {
+                "$set": {
+                    "type": "cache_limit_warning",
+                    "message": notification["message"],
+                    "percentage": percentage_used,
+                    "created_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                    "dismissed": False
+                }
+            },
+            upsert=True
+        )
+    
+    return {
+        **stats,
+        "cache_limit": cache_limit,
+        "percentage_used": round(percentage_used, 1),
+        "should_notify": should_notify,
+        "notification": notification
+    }
 
 
 @router.delete("/cache/clear")
