@@ -67,6 +67,9 @@ class PersonalData(BaseModel):
     def validate_nif_field(cls, v):
         if v is None or v == '':
             return None
+        # Converter para string se for número
+        if isinstance(v, (int, float)):
+            v = str(int(v))
         return validate_nif(v)
 
 
