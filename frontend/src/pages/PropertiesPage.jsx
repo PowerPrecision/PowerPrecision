@@ -1030,6 +1030,62 @@ const PropertiesPage = () => {
             ))}
           </div>
         )}
+        
+        {/* Dialog de Resultados de Importação */}
+        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet size={20} />
+                Resultado da Importação
+              </DialogTitle>
+            </DialogHeader>
+            
+            {importResults && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold">{importResults.total}</div>
+                    <div className="text-sm text-gray-600">Total linhas</div>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{importResults.importados}</div>
+                    <div className="text-sm text-gray-600">Importados</div>
+                  </div>
+                  <div className="p-3 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">{importResults.erros?.length || 0}</div>
+                    <div className="text-sm text-gray-600">Erros</div>
+                  </div>
+                </div>
+                
+                {importResults.erros?.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-sm mb-2">Erros encontrados:</h4>
+                    <div className="max-h-48 overflow-y-auto space-y-1 text-sm">
+                      {importResults.erros.map((err, idx) => (
+                        <div key={idx} className="p-2 bg-red-50 rounded text-red-700">
+                          <span className="font-medium">Linha {err.linha}:</span> {err.erro}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="text-sm text-gray-500 mt-4 p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium mb-1">Formato do ficheiro Excel:</p>
+                  <p>Colunas obrigatórias: titulo, preco, distrito, concelho, proprietario_nome</p>
+                  <p className="text-xs mt-1">Outras colunas opcionais: tipo, localidade, quartos, area_util, etc.</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end mt-4">
+              <Button onClick={() => setImportDialogOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
