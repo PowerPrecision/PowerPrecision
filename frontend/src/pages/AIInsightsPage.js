@@ -3,7 +3,7 @@
  * Mostra análise preditiva e prescritiva dos processos
  */
 import React, { useState, useEffect, useCallback } from "react";
-import DashboardLayout from "../layouts/dashboard/DashboardLayout";
+import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
