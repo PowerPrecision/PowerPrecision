@@ -222,16 +222,18 @@ async def public_client_registration(request: Request, data: PublicClientRegistr
     # Criar alertas no sistema de notificações
     await notify_new_client_registration(process_doc, has_property)
     
-    # Enviar emails para admins e CEOs (em background via Task Queue)
+    # Enviar email apenas para o PRIMEIRO admin/CEO (evitar spam)
+    # Os outros são notificados via sistema de alertas interno
     staff = await db.users.find(
         {"role": {"$in": [UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]}}, 
         {"_id": 0}
     ).to_list(100)
     
-    for member in staff:
-        # Tentar enfileirar notificação de staff
+    # Enviar email apenas para o primeiro membro (reduz spam)
+    if staff:
+        first_admin = staff[0]
         staff_job = await task_queue.send_email(
-            to=member["email"],
+            to=first_admin["email"],
             subject=f"Novo Cliente: {data.name}",
             body=f"Foi registado um novo cliente:\n\nNome: {data.name}\nEmail: {clean_email}\nTelefone: {data.phone}\nTipo: {data.process_type}"
         )
@@ -243,8 +245,8 @@ async def public_client_registration(request: Request, data: PublicClientRegistr
                 client_email=clean_email,
                 client_phone=data.phone,
                 process_type=data.process_type,
-                staff_email=member["email"],
-                staff_name=member["name"]
+                staff_email=first_admin["email"],
+                staff_name=first_admin["name"]
             )
     
     return {
