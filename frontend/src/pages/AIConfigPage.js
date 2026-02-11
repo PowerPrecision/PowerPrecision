@@ -546,6 +546,10 @@ const AIConfigPage = () => {
               <Bot className="h-4 w-4" />
               Modelos de IA
             </TabsTrigger>
+            <TabsTrigger value="usage" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Uso & Custos
+            </TabsTrigger>
             <TabsTrigger value="cache" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
               Cache & Notificações
