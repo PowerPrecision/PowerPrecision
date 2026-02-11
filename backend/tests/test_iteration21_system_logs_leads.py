@@ -66,7 +66,7 @@ class TestProcessUpdateStringFields:
             "client_phone": "912345678"
         }
         
-        response = requests.patch(
+        response = requests.put(
             f"{BASE_URL}/api/processes/{process_id}",
             json=update_data,
             headers=headers
@@ -93,7 +93,7 @@ class TestProcessUpdateStringFields:
             "client_email": "test@test.pt"  # Valid email string
         }
         
-        response = requests.patch(
+        response = requests.put(
             f"{BASE_URL}/api/processes/{process_id}",
             json=update_data,
             headers=headers
