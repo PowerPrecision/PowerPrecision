@@ -6,7 +6,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorClient
-from config import MONGODB_URL, DB_NAME
+from config import MONGO_URL, DB_NAME
 
 logger = logging.getLogger(__name__)
 
