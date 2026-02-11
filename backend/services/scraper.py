@@ -63,12 +63,38 @@ EMAIL_PATTERN = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 # Cache settings
 CACHE_EXPIRY_DAYS = 7
 
+# Proxy settings (configuráveis via variáveis de ambiente)
+import os
+PROXY_LIST = os.environ.get('SCRAPER_PROXIES', '').split(',') if os.environ.get('SCRAPER_PROXIES') else []
+PROXY_ENABLED = bool(PROXY_LIST and PROXY_LIST[0])
+
 
 class PropertyScraper:
     def __init__(self):
         self.ua = UserAgent()
         self.timeout = 30.0
         self._db = None
+        self._proxy_index = 0
+        self._proxies = [p.strip() for p in PROXY_LIST if p.strip()]
+    
+    def _get_next_proxy(self) -> Optional[str]:
+        """
+        Retorna o próximo proxy da lista (rotação round-robin).
+        
+        Formato esperado das proxies:
+        - http://user:pass@host:port
+        - http://host:port
+        - socks5://host:port
+        
+        Returns:
+            URL do proxy ou None se não houver proxies configuradas
+        """
+        if not self._proxies:
+            return None
+        
+        proxy = self._proxies[self._proxy_index % len(self._proxies)]
+        self._proxy_index += 1
+        return proxy
     
     async def _get_db(self):
         """Lazy load database connection."""
