@@ -628,20 +628,82 @@ const ProcessDetails = () => {
       fetchData();
     } catch (error) {
       console.error("Error saving process:", error);
-      // Handle validation errors properly
+      // Handle validation errors properly with field-specific messages
       let errorMessage = "Erro ao guardar processo";
+      
+      // Mapeamento de campos para nomes amigáveis em português
+      const fieldLabels = {
+        "client_email": "Email do Cliente",
+        "client_phone": "Telefone do Cliente",
+        "nif": "NIF",
+        "nome": "Nome",
+        "data_nascimento": "Data de Nascimento",
+        "nacionalidade": "Nacionalidade",
+        "morada": "Morada",
+        "codigo_postal": "Código Postal",
+        "valor_pretendido": "Valor Pretendido",
+        "valor_entrada": "Valor de Entrada",
+        "capital_proprio": "Capital Próprio",
+        "personal_data": "Dados Pessoais",
+        "financial_data": "Dados Financeiros",
+        "real_estate_data": "Dados do Imóvel",
+        "credit_data": "Dados de Crédito",
+      };
+      
       if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
         if (typeof detail === 'string') {
           errorMessage = detail;
         } else if (Array.isArray(detail)) {
-          // Pydantic validation errors come as array
-          errorMessage = detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
+          // Pydantic validation errors come as array with field location
+          const errorMessages = detail.map(err => {
+            // Get the field path (e.g., ["body", "personal_data", "nif"])
+            const fieldPath = err.loc || [];
+            const fieldName = fieldPath[fieldPath.length - 1] || "campo";
+            const friendlyName = fieldLabels[fieldName] || fieldName;
+            
+            // Build user-friendly message
+            let msg = err.msg || "Valor inválido";
+            
+            // Translate common Pydantic messages
+            if (msg.includes("Input should be a valid string")) {
+              msg = "deve ser texto";
+            } else if (msg.includes("Input should be a valid number")) {
+              msg = "deve ser um número";
+            } else if (msg.includes("unable to parse string as a number")) {
+              msg = "formato de número inválido";
+            } else if (msg.includes("Input should be a valid email")) {
+              msg = "email inválido";
+            } else if (msg.includes("Field required")) {
+              msg = "campo obrigatório";
+            } else if (msg.includes("String should have at")) {
+              msg = "tamanho inválido";
+            }
+            
+            return `${friendlyName}: ${msg}`;
+          });
+          
+          errorMessage = errorMessages.join('\n');
         } else if (typeof detail === 'object') {
           errorMessage = detail.msg || detail.message || JSON.stringify(detail);
         }
       }
-      toast.error(errorMessage);
+      
+      // Show toast with multi-line support for multiple errors
+      if (errorMessage.includes('\n')) {
+        const errors = errorMessage.split('\n');
+        toast.error(
+          <div>
+            <strong>Erro ao guardar:</strong>
+            <ul style={{margin: '8px 0 0 0', paddingLeft: '16px'}}>
+              {errors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          </div>,
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setSaving(false);
     }
