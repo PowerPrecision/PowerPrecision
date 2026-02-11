@@ -352,7 +352,7 @@ Conteúdo:
             return {"_error": str(e)}
     
     # ================================================================
-    # SCRAPING PRINCIPAL (HÍBRIDO)
+    # SCRAPING PRINCIPAL (HÍBRIDO COM DEEP LINK)
     # ================================================================
     
     async def scrape_url(self, url: str) -> Dict[str, Any]:
@@ -360,6 +360,7 @@ Conteúdo:
         Extrai dados de uma URL imobiliária usando abordagem híbrida:
         1. Tenta parsers específicos (BeautifulSoup)
         2. Se falhar, usa Gemini como fallback
+        3. Se faltar contacto do agente, usa Deep Link
         
         Returns:
             Dict com dados do imóvel
@@ -465,10 +466,51 @@ Conteúdo:
                         result[key] = value
                 
                 result["_extracted_by"] = "hybrid (parser + gemini)"
+            elif gemini_result.get("_error") == "quota_exceeded":
+                # Quota excedida - continuar sem Gemini
+                logger.info("Quota Gemini excedida - continuando apenas com parser")
+                result["_extracted_by"] = parser_used
+                result["_gemini_quota_exceeded"] = True
             else:
                 result["_extracted_by"] = parser_used
         else:
             result["_extracted_by"] = parser_used
+        
+        # ============================================================
+        # DEEP LINK: Se faltar contacto do agente
+        # ============================================================
+        has_agent_contact = (
+            result.get("agente_telefone") or 
+            result.get("agente_email") or
+            result.get("telefone_agente")
+        )
+        
+        if not has_agent_contact:
+            logger.info(f"Contacto de agente em falta - iniciando Deep Link para {url}")
+            
+            # Primeiro tentar extrair contactos da página actual com regex
+            page_contacts = self._extract_contacts_from_text(self._clean_text(html_content))
+            
+            if page_contacts["telefones"]:
+                result["agente_telefone"] = page_contacts["telefones"][0]
+                result["_contact_source"] = "regex_current_page"
+            
+            if page_contacts["emails"]:
+                result["agente_email"] = page_contacts["emails"][0]
+                result["_contact_source"] = "regex_current_page"
+            
+            # Se ainda não tiver contactos, tentar Deep Link
+            if not result.get("agente_telefone") and not result.get("agente_email"):
+                deep_contacts = await self._deep_link_contacts(soup, url)
+                
+                if deep_contacts.get("telefones"):
+                    result["agente_telefone"] = deep_contacts["telefones"][0]
+                    result["_contact_source"] = "deep_link"
+                    result["_deep_link_source"] = deep_contacts.get("deep_link_sources", [])
+                
+                if deep_contacts.get("emails"):
+                    result["agente_email"] = deep_contacts["emails"][0]
+                    result["_contact_source"] = "deep_link"
         
         # Adicionar URL e metadados
         result["url"] = url
