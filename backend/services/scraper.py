@@ -1,6 +1,7 @@
 import logging
 import re
 import json
+import ssl
 import httpx
 from bs4 import BeautifulSoup
 from typing import Optional, Dict, Any
