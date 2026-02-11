@@ -1501,7 +1501,7 @@ async def handle_card_update(action: dict, process: dict):
     new_status = trello_list_to_status(new_list_name)
     
     if not new_status:
-        logger.warning(f"Lista \\"{new_list_name}\\" não mapeada para status")
+        logger.warning(f'Lista "{new_list_name}" não mapeada para status')
         return
     
     # Verificar se é diferente do status actual
@@ -1527,15 +1527,15 @@ async def handle_card_update(action: dict, process: dict):
                     "from_status": process.get("status"),
                     "to_status": new_status,
                     "source": "trello_webhook",
-                    "details": f"Cartão movido de \\"{old_list_name}\\" para \\"{new_list_name}\\""
+                    "details": f'Cartão movido de "{old_list_name}" para "{new_list_name}"'
                 }
             }
         }
     )
     
     logger.info(
-        f"Processo {process[\"id\"]} ({process.get(\"client_name\")}) "
-        f"atualizado via Trello: {process.get(\"status\")} → {new_status}"
+        f'Processo {process["id"]} ({process.get("client_name")}) '
+        f'atualizado via Trello: {process.get("status")} -> {new_status}'
     )
 
 
