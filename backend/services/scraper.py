@@ -590,6 +590,33 @@ class PropertyScraper:
             return self._parse_supercasa(soup)
         else:
             return self._parse_generic(soup)
+    
+    async def analyze_with_ai(self, url: str, html_content: str) -> Dict[str, Any]:
+        """
+        Usa Claude 3.5 Sonnet para analisar página quando parsers normais falham.
+        
+        Args:
+            url: URL da página
+            html_content: Conteúdo HTML
+            
+        Returns:
+            Dict com dados extraídos pela IA
+        """
+        try:
+            from services.ai_page_analyzer import page_analyzer
+            
+            result = await page_analyzer.analyze(html_content, url, "property")
+            
+            if result.get("success") and result.get("data"):
+                logger.info(f"Análise IA bem sucedida para {url}")
+                return result["data"]
+            else:
+                logger.warning(f"Análise IA falhou: {result.get('error')}")
+                return {"error": result.get("error", "Análise IA falhou")}
+                
+        except Exception as e:
+            logger.error(f"Erro na análise IA: {e}")
+            return {"error": str(e)}
 
 
 from datetime import datetime, timezone
@@ -598,3 +625,4 @@ from datetime import datetime, timezone
 property_scraper = PropertyScraper()
 scrape_property_url = property_scraper.scrape_url
 crawl_properties = property_scraper.crawl_recursive
+analyze_page_with_ai = property_scraper.analyze_with_ai
