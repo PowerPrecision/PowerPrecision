@@ -590,26 +590,15 @@ const KanbanBoard = ({ token, user }) => {
                             data-testid={`process-card-${process.id}`}
                           >
                             <CardContent className="p-2">
-                              {/* Layout compacto mas legível */}
-                              <div className="space-y-1">
-                                {/* Linha 1: Nome */}
-                                <div className="flex items-start gap-1">
-                                  <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
-                                  <p className="font-medium text-xs leading-tight line-clamp-2 min-h-[2rem]" title={process.client_name}>
-                                    {process.client_name}
-                                  </p>
-                                </div>
-                                {/* Linha 2: Número + Badges + Ações */}
-                                <div className="flex items-center justify-between pl-4">
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[10px] text-muted-foreground">
+                              {/* Layout com nome visível */}
+                              <div className="space-y-1.5">
+                                {/* Linha 1: Número do processo */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0 cursor-grab" />
+                                    <span className="text-[10px] font-medium text-muted-foreground bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
                                       #{process.process_number || '—'}
                                     </span>
-                                    {process.consultor_name && (
-                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
-                                        {process.consultor_name.split(' ')[0]}
-                                      </Badge>
-                                    )}
                                     {process.prioridade && (
                                       <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">!</Badge>
                                     )}
@@ -628,6 +617,23 @@ const KanbanBoard = ({ token, user }) => {
                                     <Eye className="h-3 w-3" />
                                   </Button>
                                 </div>
+                                {/* Linha 2: Nome do cliente - SEMPRE VISÍVEL */}
+                                <p 
+                                  className="font-semibold text-sm leading-snug break-words whitespace-normal min-w-0" 
+                                  style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                                  title={process.client_name}
+                                >
+                                  {process.client_name}
+                                </p>
+                                {/* Linha 3: Consultor (se existir) */}
+                                {process.consultor_name && (
+                                  <div className="flex items-center gap-1">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-[10px] text-muted-foreground truncate">
+                                      {process.consultor_name}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </CardContent>
                           </Card>
