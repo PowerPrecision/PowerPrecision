@@ -748,6 +748,10 @@ const ProcessDetails = () => {
                       <Building2 className="h-4 w-4" />
                       <span className="hidden sm:inline">Imobiliário</span>
                     </TabsTrigger>
+                    <TabsTrigger value="cpcv" className="gap-2">
+                      <FileSignature className="h-4 w-4" />
+                      <span className="hidden sm:inline">CPCV</span>
+                    </TabsTrigger>
                     <TabsTrigger value="credit" className="gap-2">
                       <CreditCard className="h-4 w-4" />
                       <span className="hidden sm:inline">Crédito</span>
