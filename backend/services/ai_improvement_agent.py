@@ -270,7 +270,7 @@ class AIImprovementAgent:
         """
         
         try:
-            response = await self.openai_client.chat(
+            response = await self.llm_client.chat(
                 user_message=context,
                 system_prompt="És um consultor especializado em optimização de processos de crédito habitação. Dá sugestões práticas e accionáveis.",
                 model="gpt-4o-mini"
