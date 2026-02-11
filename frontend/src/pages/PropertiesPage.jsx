@@ -832,7 +832,7 @@ const PropertiesPage = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/properties/import-excel`, {
+      const response = await fetch(`${API_URL}/api/properties/bulk/import-excel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
