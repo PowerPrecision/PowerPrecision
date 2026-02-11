@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="10" failures="2" skipped="0" tests="13" time="1.096" timestamp="2026-02-11T16:32:42.304131+00:00" hostname="agent-env-6c157387-104a-42e4-bf85-369c1244ded9"><testcase classname="tests.test_iteration22_nif_validation_notifications.TestAuth" name="test_admin_login" time="0.062"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;error&quot;:&quot;Rate limit exceeded: 10 per 1 minute&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:29: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"error":"Rate limit exceeded: 10 per 1 minute"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNIFValidation" name="test_nif_numeric_value_converted" time="0.075"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:66: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNIFValidation" name="test_nif_string_value_works" time="0.079"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:66: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNIFValidation" name="test_nif_empty_value_allowed" time="0.076"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:66: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestEmailPhoneCoercion" name="test_email_string_value" time="0.075"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:160: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestEmailPhoneCoercion" name="test_phone_numeric_string_converted" time="0.076"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:160: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestValidationErrorMessages" name="test_invalid_nif_shows_field_in_error" time="0.072"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:211: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNotificationPreferencesEndpoint" name="test_get_notification_preferences" time="0.072"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:264: in admin_user_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNotificationPreferencesEndpoint" name="test_update_notification_preferences" time="0.076"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:264: in admin_user_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNotificationServicePreferenceCheck" name="test_notification_service_exists" time="0.071"><failure message="AssertionError: Kanban endpoint should work: {&quot;detail&quot;:&quot;Token inválido&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_iteration22_nif_validation_notifications.py:336: in test_notification_service_exists
+    assert response.status_code == 200, f"Kanban endpoint should work: {response.text}"
+E   AssertionError: Kanban endpoint should work: {"detail":"Token inválido"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestNotificationServicePreferenceCheck" name="test_process_move_triggers_notification" time="0.077"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_iteration22_nif_validation_notifications.py:345: in test_process_move_triggers_notification
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestTitular2NIFValidation" name="test_titular2_nif_numeric_converted" time="0.075"><error message="failed on setup with &quot;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">backend/tests/test_iteration22_nif_validation_notifications.py:410: in test_process_id
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_iteration22_nif_validation_notifications.TestErrorFormatterIntegration" name="test_validation_error_structure" time="0.075" /></testsuite></testsuites>
