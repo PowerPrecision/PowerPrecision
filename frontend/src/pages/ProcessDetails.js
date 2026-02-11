@@ -108,6 +108,29 @@ const typeLabels = {
   ambos: "Crédito + Imobiliária",
 };
 
+// Função para validar NIF português
+const validateNIF = (nif) => {
+  if (!nif) return { valid: true, error: null };
+  
+  // Remover espaços e caracteres especiais
+  const nifClean = nif.replace(/[^\d]/g, '');
+  
+  if (nifClean.length !== 9) {
+    return { valid: false, error: `NIF deve ter 9 dígitos (tem ${nifClean.length})` };
+  }
+  
+  if (!/^\d+$/.test(nifClean)) {
+    return { valid: false, error: "NIF deve conter apenas dígitos" };
+  }
+  
+  // NIFs que começam com 5 são de empresas
+  if (nifClean.startsWith('5')) {
+    return { valid: false, error: "NIF de empresa (começa por 5) não é permitido para clientes particulares" };
+  }
+  
+  return { valid: true, error: null };
+};
+
 const ProcessDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -125,6 +148,9 @@ const ProcessDetails = () => {
   const [sideTab, setSideTab] = useState("deadlines");
 
   const [accessDenied, setAccessDenied] = useState(false);
+  
+  // Estado de erro de validação do NIF
+  const [nifError, setNifError] = useState(null);
 
   // Form states
   const [personalData, setPersonalData] = useState({});
