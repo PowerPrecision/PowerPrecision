@@ -91,6 +91,162 @@ class PropertyScraper:
         return text.strip()
     
     # ================================================================
+    # DEEP LINK - EXTRAÇÃO DE CONTACTOS DE PÁGINAS EXTERNAS
+    # ================================================================
+    
+    def _find_agency_links(self, soup: BeautifulSoup, current_domain: str) -> List[str]:
+        """
+        Encontra links para sites de agências imobiliárias na página.
+        
+        Returns:
+            Lista de URLs de páginas de agentes/agências
+        """
+        agency_links = []
+        
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag.get('href', '')
+            if not href or href.startswith('#') or href.startswith('javascript:'):
+                continue
+            
+            # Normalizar URL
+            if not href.startswith('http'):
+                continue  # Ignorar links relativos - queremos externos
+            
+            parsed = urlparse(href)
+            link_domain = parsed.netloc.lower()
+            
+            # Ignorar links para o mesmo domínio
+            if current_domain in link_domain:
+                continue
+            
+            # Verificar se é um domínio de agência
+            for agency_pattern in AGENCY_DOMAINS:
+                if agency_pattern in link_domain:
+                    agency_links.append(href)
+                    break
+        
+        return list(set(agency_links))[:5]  # Max 5 links únicos
+    
+    def _extract_contacts_from_text(self, text: str) -> Dict[str, Any]:
+        """
+        Extrai telefones e emails de texto usando regex.
+        
+        Returns:
+            Dict com telefones e emails encontrados
+        """
+        contacts = {
+            "telefones": [],
+            "emails": []
+        }
+        
+        # Extrair telefones
+        for pattern in PHONE_PATTERNS:
+            matches = re.findall(pattern, text)
+            for match in matches:
+                # Normalizar telefone
+                phone = re.sub(r'\s+', '', match)
+                if len(phone) >= 9 and phone not in contacts["telefones"]:
+                    contacts["telefones"].append(phone)
+        
+        # Extrair emails
+        email_matches = re.findall(EMAIL_PATTERN, text, re.IGNORECASE)
+        for email in email_matches:
+            email_lower = email.lower()
+            # Filtrar emails genéricos/inválidos
+            if any(x in email_lower for x in ['@example', '@test', 'noreply', 'info@', 'geral@']):
+                continue
+            if email_lower not in contacts["emails"]:
+                contacts["emails"].append(email_lower)
+        
+        return contacts
+    
+    async def _fetch_page_content(self, url: str) -> Optional[str]:
+        """
+        Faz download do conteúdo HTML de uma URL.
+        
+        Returns:
+            Conteúdo HTML ou None se falhar
+        """
+        for verify_ssl in [True, False]:
+            try:
+                await asyncio.sleep(0.5)  # Delay para evitar bloqueios
+                
+                async with httpx.AsyncClient(
+                    timeout=self.timeout,
+                    follow_redirects=True,
+                    verify=verify_ssl,
+                    http2=True
+                ) as client:
+                    response = await client.get(url, headers=self._get_headers())
+                    
+                    if response.status_code == 200:
+                        return response.text
+                    
+            except Exception as e:
+                if verify_ssl:
+                    continue
+                logger.debug(f"Erro ao buscar {url}: {e}")
+        
+        return None
+    
+    async def _deep_link_contacts(self, soup: BeautifulSoup, current_url: str) -> Dict[str, Any]:
+        """
+        Segue links externos para encontrar dados de contacto.
+        
+        Este método implementa a lógica "Deep Link":
+        1. Procura links para sites de agências na página actual
+        2. Visita cada link encontrado
+        3. Extrai telefones e emails dessas páginas
+        
+        Returns:
+            Dict com contactos encontrados via deep link
+        """
+        parsed_url = urlparse(current_url)
+        current_domain = parsed_url.netloc.lower()
+        
+        # Encontrar links de agências
+        agency_links = self._find_agency_links(soup, current_domain)
+        
+        if not agency_links:
+            logger.debug(f"Nenhum link de agência encontrado em {current_url}")
+            return {}
+        
+        logger.info(f"Deep Link: Encontrados {len(agency_links)} links de agência em {current_url}")
+        
+        all_contacts = {
+            "telefones": [],
+            "emails": [],
+            "deep_link_sources": []
+        }
+        
+        for link in agency_links[:3]:  # Limitar a 3 para não sobrecarregar
+            try:
+                html_content = await self._fetch_page_content(link)
+                
+                if not html_content:
+                    continue
+                
+                # Extrair contactos do texto limpo
+                clean_text = self._clean_text(html_content)
+                contacts = self._extract_contacts_from_text(clean_text)
+                
+                if contacts["telefones"] or contacts["emails"]:
+                    logger.info(f"Deep Link: Encontrados contactos em {link}")
+                    all_contacts["telefones"].extend(contacts["telefones"])
+                    all_contacts["emails"].extend(contacts["emails"])
+                    all_contacts["deep_link_sources"].append(link)
+                
+            except Exception as e:
+                logger.debug(f"Deep Link erro em {link}: {e}")
+                continue
+        
+        # Remover duplicados
+        all_contacts["telefones"] = list(set(all_contacts["telefones"]))[:3]
+        all_contacts["emails"] = list(set(all_contacts["emails"]))[:3]
+        
+        return all_contacts
+    
+    # ================================================================
     # EXTRAÇÃO COM GEMINI (FALLBACK IA)
     # ================================================================
     
