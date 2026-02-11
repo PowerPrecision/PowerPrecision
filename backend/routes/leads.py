@@ -259,6 +259,139 @@ async def extract_url_data(
             "data": {"url": url}
         }
 
+
+@router.post("/from-url")
+async def create_lead_from_url(
+    payload: Dict[str, str],
+    user: dict = Depends(get_current_user)
+):
+    """
+    Extrair dados de um URL e criar um lead automaticamente.
+    Combina extração de dados e criação do lead num único passo.
+    """
+    url = payload.get("url")
+    if not url:
+        raise HTTPException(status_code=400, detail="URL é obrigatório")
+    
+    # Adicionar https se faltar
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    
+    # Verificar duplicados
+    existing = await db.property_leads.find_one({"url": url})
+    if existing:
+        return {
+            "success": False,
+            "message": "Já existe um lead com este URL",
+            "lead": existing
+        }
+    
+    logger.info(f"A criar lead de: {url}")
+    
+    try:
+        # Extrair dados usando o scraper
+        raw_data = await scrape_property_url(url)
+        
+        # Verificar se houve erro no scraper
+        if raw_data.get("error"):
+            await _log_system_error(
+                error_type="scraper_error",
+                message=f"Erro ao extrair dados de {url}: {raw_data.get('error')}",
+                details={"url": url, "error": raw_data.get("error")},
+                severity="warning"
+            )
+            return {
+                "success": False,
+                "message": f"Erro ao extrair: {raw_data.get('error')}. Pode criar o lead manualmente.",
+                "data": {"url": url}
+            }
+        
+        # Mapear dados do scraper para o formato do lead
+        # O scraper retorna: titulo, preco, localizacao, tipologia, area, agente_nome, agente_telefone, agente_email, agencia_nome
+        consultant_data = None
+        if raw_data.get("agente_nome") or raw_data.get("agente_telefone") or raw_data.get("agente_email"):
+            consultant_data = {
+                "name": raw_data.get("agente_nome"),
+                "phone": raw_data.get("agente_telefone"),
+                "email": raw_data.get("agente_email"),
+                "agency_name": raw_data.get("agencia_nome"),
+                "source_url": raw_data.get("url")
+            }
+        
+        # Também verificar campos antigos do scraper (compatibilidade)
+        if not consultant_data and raw_data.get("consultor"):
+            raw_consultor = raw_data.get("consultor")
+            consultant_data = {
+                "name": raw_consultor.get("nome"),
+                "phone": raw_consultor.get("telefone"),
+                "email": raw_consultor.get("email"),
+                "agency_name": raw_consultor.get("agencia"),
+                "source_url": raw_consultor.get("url_origem")
+            }
+        
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Criar o lead com os dados extraídos
+        lead_dict = {
+            "id": str(uuid.uuid4()),
+            "url": url,
+            "title": raw_data.get("titulo"),
+            "price": raw_data.get("preco"),
+            "location": raw_data.get("localizacao"),
+            "typology": raw_data.get("tipologia"),
+            "area": raw_data.get("area"),
+            "bedrooms": raw_data.get("quartos"),
+            "bathrooms": raw_data.get("casas_banho"),
+            "description": raw_data.get("descricao"),
+            "photo_url": raw_data.get("foto_principal"),
+            "consultant": consultant_data,
+            "source": raw_data.get("fonte", raw_data.get("_parser", "auto")),
+            "status": LeadStatus.NOVO.value,
+            "created_at": now,
+            "updated_at": now,
+            "created_by": user.get("email"),
+            "created_by_id": user.get("id"),
+            "history": [{
+                "timestamp": now,
+                "event": "Lead criado automaticamente via URL",
+                "user": user.get("email")
+            }]
+        }
+        
+        # Inserir na base de dados
+        await db.property_leads.insert_one(lead_dict)
+        
+        # Verificar se extraiu dados úteis
+        has_useful_data = lead_dict.get("title") or lead_dict.get("price") or lead_dict.get("location")
+        
+        if not has_useful_data:
+            await _log_system_error(
+                error_type="scraper_no_data",
+                message=f"Lead criado mas com poucos dados de {url}",
+                details={"url": url, "lead_id": lead_dict["id"]},
+                severity="info"
+            )
+        
+        # Remover _id do MongoDB antes de retornar
+        lead_dict.pop("_id", None)
+        
+        return {
+            "success": True,
+            "message": "Lead criado com sucesso" if has_useful_data else "Lead criado mas com poucos dados extraídos - edite manualmente",
+            "lead": lead_dict
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao criar lead de URL: {e}")
+        await _log_system_error(
+            error_type="scraper_exception",
+            message=f"Excepção ao criar lead de {url}",
+            details={"url": url, "error": str(e), "error_type": type(e).__name__},
+            severity="error"
+        )
+        raise HTTPException(status_code=500, detail=f"Erro ao criar lead: {str(e)}")
+
+
 @router.post("", response_model=PropertyLead)
 async def create_lead(
     lead_data: PropertyLeadCreate,
