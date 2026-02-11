@@ -1172,6 +1172,116 @@ async def handle_card_moved(action: dict):
     await handle_card_updated(action)
 
 
+async def handle_member_added_to_card(action: dict):
+    """
+    Processar adição de membro ao cartão.
+    Tenta atribuir como consultor ou mediador baseado no mapeamento.
+    """
+    card = action.get("data", {}).get("card", {})
+    member = action.get("member", {})
+    
+    if not card.get("id") or not member.get("username"):
+        return
+    
+    trello_username = member.get("username", "").lower()
+    
+    # Encontrar processo
+    process = await db.processes.find_one(
+        {"trello_card_id": card["id"]},
+        {"_id": 0}
+    )
+    
+    if not process:
+        logger.warning(f"Processo não encontrado para card {card['id']}")
+        return
+    
+    # Procurar mapeamento de utilizador
+    mapping = await db.trello_member_mappings.find_one(
+        {"trello_username": trello_username},
+        {"_id": 0}
+    )
+    
+    if not mapping:
+        logger.info(f"Membro @{trello_username} não mapeado")
+        return
+    
+    user_id = mapping.get("user_id")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    
+    if not user:
+        return
+    
+    # Determinar se é consultor ou mediador
+    update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if user.get("role") in ["consultor", "admin", "ceo", "diretor"]:
+        update_fields["assigned_consultor_id"] = user_id
+        update_fields["consultor_name"] = user.get("name")
+        logger.info(f"Consultor {user['name']} atribuído a {process['client_name']} via Trello")
+    elif user.get("role") == "mediador":
+        update_fields["assigned_mediador_id"] = user_id
+        update_fields["mediador_name"] = user.get("name")
+        logger.info(f"Mediador {user['name']} atribuído a {process['client_name']} via Trello")
+    
+    if len(update_fields) > 1:
+        await db.processes.update_one(
+            {"id": process["id"]},
+            {"$set": update_fields}
+        )
+
+
+async def handle_member_removed_from_card(action: dict):
+    """
+    Processar remoção de membro do cartão.
+    """
+    card = action.get("data", {}).get("card", {})
+    member = action.get("member", {})
+    
+    if not card.get("id") or not member.get("username"):
+        return
+    
+    trello_username = member.get("username", "").lower()
+    
+    # Encontrar processo
+    process = await db.processes.find_one(
+        {"trello_card_id": card["id"]},
+        {"_id": 0}
+    )
+    
+    if not process:
+        return
+    
+    # Procurar mapeamento
+    mapping = await db.trello_member_mappings.find_one(
+        {"trello_username": trello_username},
+        {"_id": 0}
+    )
+    
+    if not mapping:
+        return
+    
+    user_id = mapping.get("user_id")
+    
+    # Verificar se era o consultor ou mediador atribuído
+    update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if process.get("assigned_consultor_id") == user_id:
+        update_fields["assigned_consultor_id"] = None
+        update_fields["consultor_name"] = None
+        logger.info(f"Consultor removido de {process['client_name']} via Trello")
+    
+    if process.get("assigned_mediador_id") == user_id:
+        update_fields["assigned_mediador_id"] = None
+        update_fields["mediador_name"] = None
+        logger.info(f"Mediador removido de {process['client_name']} via Trello")
+    
+    if len(update_fields) > 1:
+        await db.processes.update_one(
+            {"id": process["id"]},
+            {"$set": update_fields}
+        )
+
+
 # === Gestão de Webhooks ===
 
 @router.post("/webhook/setup")
