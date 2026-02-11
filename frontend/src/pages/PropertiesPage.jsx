@@ -814,6 +814,62 @@ const PropertiesPage = () => {
     setDialogOpen(true);
   };
 
+  // Função para importar ficheiro Excel
+  const handleImportExcel = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('Por favor, selecione um ficheiro Excel (.xlsx ou .xls)');
+      return;
+    }
+    
+    setImporting(true);
+    setImportResults(null);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/properties/import-excel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setImportResults(data);
+        setImportDialogOpen(true);
+        
+        if (data.importados > 0) {
+          toast.success(`${data.importados} imóveis importados com sucesso!`);
+          fetchProperties();
+          fetchStats();
+        }
+        
+        if (data.erros?.length > 0) {
+          toast.warning(`${data.erros.length} linhas com erros`);
+        }
+      } else {
+        toast.error(data.detail || 'Erro na importação');
+      }
+    } catch (error) {
+      console.error('Erro na importação:', error);
+      toast.error('Erro ao importar ficheiro');
+    } finally {
+      setImporting(false);
+      // Limpar input para permitir reimportar o mesmo ficheiro
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <DashboardLayout title="Imóveis Angariados">
       <div data-testid="properties-page">
@@ -824,26 +880,59 @@ const PropertiesPage = () => {
               <p className="text-gray-600">Gestão de imóveis listados pela agência</p>
             </div>
             
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => setEditingProperty(null)} data-testid="new-property-btn">
-                  <Plus size={18} className="mr-2" /> Novo Imóvel
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingProperty ? 'Editar Imóvel' : 'Novo Imóvel'}
-                  </DialogTitle>
-                </DialogHeader>
-                <PropertyForm
-                  property={editingProperty}
-                  onSave={handleSaveProperty}
-                  onCancel={() => setDialogOpen(false)}
-                  users={users}
+            <div className="flex gap-2">
+              {/* Botão Importar Excel */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                  ref={fileInputRef}
+                  className="hidden"
+                  id="excel-import"
+                  data-testid="excel-import-input"
                 />
-              </DialogContent>
-            </Dialog>
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                  data-testid="import-excel-btn"
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 size={18} className="mr-2 animate-spin" />
+                      A importar...
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet size={18} className="mr-2" />
+                      Importar Excel
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => setEditingProperty(null)} data-testid="new-property-btn">
+                    <Plus size={18} className="mr-2" /> Novo Imóvel
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingProperty ? 'Editar Imóvel' : 'Novo Imóvel'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <PropertyForm
+                    property={editingProperty}
+                    onSave={handleSaveProperty}
+                    onCancel={() => setDialogOpen(false)}
+                    users={users}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {/* Stats Cards */}
