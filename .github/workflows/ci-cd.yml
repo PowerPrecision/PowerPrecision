@@ -123,7 +123,9 @@ jobs:
           CORS_ORIGINS: http://localhost:3000
         run: |
           cd backend
-          # Executar apenas os testes principais
+          # Criar utilizadores de teste
+          python seed.py
+          # Executar testes
           pytest tests/test_auth.py tests/test_admin.py tests/test_processes.py tests/test_activities.py tests/test_public.py -v
 
       - name: Upload coverage
