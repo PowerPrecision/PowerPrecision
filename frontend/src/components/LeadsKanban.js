@@ -60,7 +60,7 @@ const LEAD_STATUSES = [
 ];
 
 // Componente de cartão de lead
-const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, clients }) => {
+const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onShowSuggestions, clients }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
