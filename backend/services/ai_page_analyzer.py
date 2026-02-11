@@ -174,7 +174,7 @@ Responde em JSON."""
             
             return json.loads(clean_response.strip())
         except json.JSONDecodeError:
-            return {"summary": response, "ai_model": CLAUDE_MODEL}
+            return {"summary": response, "ai_model": AI_MODEL}
             
     except Exception as e:
         logger.error(f"Erro na análise IA de erros: {e}")
