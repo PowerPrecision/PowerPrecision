@@ -94,7 +94,6 @@ async def get_download_url(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     # Verificar se o ficheiro pertence ao cliente (segurança)
-    client_name = process.get("client_name", "Cliente")
     expected_prefix = f"clientes/{client_id}_"
     
     if not file_path.startswith(expected_prefix):
