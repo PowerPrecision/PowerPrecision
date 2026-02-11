@@ -550,7 +550,20 @@ const ProcessDetails = () => {
       fetchData();
     } catch (error) {
       console.error("Error saving process:", error);
-      toast.error(error.response?.data?.detail || "Erro ao guardar processo");
+      // Handle validation errors properly
+      let errorMessage = "Erro ao guardar processo";
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // Pydantic validation errors come as array
+          errorMessage = detail.map(err => err.msg || err.message || JSON.stringify(err)).join(', ');
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
