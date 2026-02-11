@@ -90,7 +90,7 @@ Extrai as informações relevantes e retorna em formato JSON estruturado."""
                 clean_response = clean_response[:-3]
             
             data = json.loads(clean_response.strip())
-            return {"success": True, "data": data, "model": CLAUDE_MODEL}
+            return {"success": True, "data": data, "model": AI_MODEL}
         except json.JSONDecodeError:
             # Se não for JSON válido, retornar texto
             return {"success": True, "data": {"raw_analysis": response}, "model": CLAUDE_MODEL}
