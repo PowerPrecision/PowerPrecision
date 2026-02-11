@@ -11,9 +11,61 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping)
 
-## Última Actualização - 11 Fevereiro 2026 (Sessão 4)
+## Última Actualização - 11 Fevereiro 2026 (Sessão 5)
 
-### ✅ Correcções Bug Batch (11 Fevereiro 2026 - Noite)
+### ✅ Implementação Completa do Ponto 2 (11 Fevereiro 2026 - Noite)
+
+#### Novas Funcionalidades Implementadas:
+
+1. **c) Deep Link Melhorado - Extracção Nome do Agente**
+   - Scraper agora extrai o nome do consultor/agente a partir do link adicional
+   - Novas funções: `_extract_agent_name()`, `_extract_agency_name()`
+   - Procura em selectores CSS típicos e padrões de texto
+   - Ficheiro: `/app/backend/services/scraper.py`
+
+2. **d) UI de Gestão de Backups**
+   - Nova página `/admin/backups` (apenas admin)
+   - Interface para criar backups manualmente
+   - Visualização de estatísticas e histórico
+   - Verificação de integridade dos backups
+   - Ficheiros: `/app/frontend/src/pages/BackupsPage.js`, `/app/backend/routes/backup.py`
+
+3. **e) Mensagens Amigáveis no Scraper**
+   - Quando o scraping falha, retorna mensagem user-friendly em português
+   - Códigos de erro: `blocked`, `timeout`, `not_found`, `quota_exceeded`, `parse_error`, `ssl_error`
+   - Flag `suggest_manual` para indicar quando inserir dados manualmente
+   - Flag `can_retry` para indicar se vale a pena tentar novamente
+   - Ficheiro: `/app/backend/routes/scraper.py`
+
+4. **f) Suporte a Proxies no Scraper**
+   - Configurável via variável de ambiente `SCRAPER_PROXIES`
+   - Formato: lista separada por vírgulas (ex: `http://host1:port,http://host2:port`)
+   - Rotação round-robin automática entre proxies
+   - Fallback quando proxy é bloqueada
+   - Ficheiro: `/app/backend/services/scraper.py`
+
+5. **g) Limpeza Automática de Ficheiros Temporários**
+   - Nova tarefa `cleanup_temp_files()` nas tarefas agendadas
+   - Limpa ficheiros com mais de 24 horas em `/tmp/creditoimo_*`
+   - Nova tarefa `cleanup_scraper_cache()` para cache expirado
+   - Ficheiro: `/app/backend/services/scheduled_tasks.py`
+
+6. **l) Secção Minutas**
+   - Nova página `/minutas` (disponível para todos os staff)
+   - CRUD completo para minutas/templates de documentos
+   - Categorias: Contratos, Procurações, Declarações, Cartas, Outros
+   - Funcionalidades: copiar, descarregar, pesquisar, filtrar por categoria, tags
+   - Suporte a placeholders (ex: `[NOME_CLIENTE]`, `[DATA]`)
+   - Ficheiros: `/app/frontend/src/pages/MinutasPage.js`, `/app/backend/routes/minutas.py`
+
+#### Menu Lateral Actualizado:
+- **Admin**: Vê "Minutas" e "Backups" no menu
+- **Staff**: Vê "Minutas" no menu
+- **Intermediários/Mediadores**: Não vêem "Imóveis" nem "Todos os Processos"
+
+---
+
+### ✅ Correcções Bug Batch (11 Fevereiro 2026 - Tarde)
 
 1. **Bug h - Dados Pessoais Não Guardados (CORRIGIDO)**
    - Adicionados novos campos ao modelo `PersonalData`: `data_nascimento`, `data_validade_cc`, `sexo`, `altura`, `nome_pai`, `nome_mae`
