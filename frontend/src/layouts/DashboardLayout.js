@@ -31,6 +31,7 @@ import {
   AlertCircle,
   Database,
   FileArchive,
+  Brain,
 } from "lucide-react";
 import { useState } from "react";
 import NotificationsDropdown from "../components/NotificationsDropdown";
