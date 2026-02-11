@@ -3,7 +3,7 @@
  * Lista, cria e edita imóveis listados pela agência
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Search, MapPin, Home, Ruler, User, Building2, MoreHorizontal, Trash2, Edit, Upload, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Plus, Search, MapPin, Home, Ruler, User, Building2, MoreHorizontal, Trash2, Edit, Upload, FileSpreadsheet, Loader2, ExternalLink } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -28,6 +28,7 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const HCPRO_URL = "https://crmhcpro.pt/login";
 
 const STATUS_CONFIG = {
   disponivel: { label: 'Disponível', color: 'bg-green-100 text-green-800' },
