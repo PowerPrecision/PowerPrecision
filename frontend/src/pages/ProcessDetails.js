@@ -498,6 +498,59 @@ const ProcessDetails = () => {
     }
   };
 
+  // Helper para converter data em formato português para ISO
+  const convertPortugueseDateToISO = (dateStr) => {
+    if (!dateStr) return dateStr;
+    
+    // Se já está em formato ISO (yyyy-MM-dd), retornar como está
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // Meses em português
+    const monthsMap = {
+      'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
+      'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+      'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+    };
+    
+    // Tentar parsear formato "DD de MMMM de YYYY"
+    const match = dateStr.toLowerCase().match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/);
+    if (match) {
+      const day = match[1].padStart(2, '0');
+      const month = monthsMap[match[2]];
+      const year = match[3];
+      if (month) {
+        return `${year}-${month}-${day}`;
+      }
+    }
+    
+    // Se não conseguir parsear, retornar null para evitar erros
+    return null;
+  };
+
+  // Helper para limpar dados pessoais antes de enviar
+  const cleanPersonalDataForSubmit = (data) => {
+    const cleaned = { ...data };
+    
+    // Converter datas para formato ISO
+    if (cleaned.data_nascimento) {
+      cleaned.data_nascimento = convertPortugueseDateToISO(cleaned.data_nascimento);
+    }
+    if (cleaned.data_validade_cc) {
+      cleaned.data_validade_cc = convertPortugueseDateToISO(cleaned.data_validade_cc);
+    }
+    
+    // Remover campos undefined ou vazios que podem causar problemas
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === undefined || cleaned[key] === '') {
+        delete cleaned[key];
+      }
+    });
+    
+    return cleaned;
+  };
+
   const handleSave = async () => {
     // Validar NIF antes de guardar
     if (personalData.nif) {
@@ -512,6 +565,9 @@ const ProcessDetails = () => {
     setSaving(true);
     try {
       const updateData = {};
+      
+      // Limpar dados pessoais antes de enviar
+      const cleanedPersonalData = cleanPersonalDataForSubmit(personalData);
 
       // Sempre incluir email e telefone do cliente se foram alterados
       if (process?.client_email !== undefined) {
@@ -522,18 +578,18 @@ const ProcessDetails = () => {
       }
 
       if (user.role === "cliente" || user.role === "admin") {
-        updateData.personal_data = personalData;
+        updateData.personal_data = cleanedPersonalData;
         updateData.financial_data = financialData;
       }
 
       if (user.role === "consultor" || user.role === "admin") {
-        updateData.personal_data = personalData;
+        updateData.personal_data = cleanedPersonalData;
         updateData.financial_data = financialData;
         updateData.real_estate_data = realEstateData;
       }
 
       if (user.role === "mediador" || user.role === "admin") {
-        updateData.personal_data = personalData;
+        updateData.personal_data = cleanedPersonalData;
         updateData.financial_data = financialData;
         const allowedStatuses = workflowStatuses.filter(s => s.order >= 3).map(s => s.name);
         if (allowedStatuses.includes(process.status) || process.status === "autorizacao_bancaria" || process.status === "aprovado") {
