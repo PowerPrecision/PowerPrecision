@@ -206,6 +206,28 @@ const AIConfigPage = () => {
     }
   }, [token]);
 
+  // Carregar estatísticas de uso de IA
+  const loadUsageStats = useCallback(async (period = usagePeriod) => {
+    setLoadingUsage(true);
+    try {
+      const [summaryRes, byTaskRes, byModelRes, trendRes] = await Promise.all([
+        fetch(`${API_URL}/api/admin/ai-usage/summary?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/admin/ai-usage/by-task?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/admin/ai-usage/by-model?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/admin/ai-usage/trend?days=30`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      
+      if (summaryRes.ok) setUsageSummary(await summaryRes.json());
+      if (byTaskRes.ok) setUsageByTask(await byTaskRes.json());
+      if (byModelRes.ok) setUsageByModel(await byModelRes.json());
+      if (trendRes.ok) setUsageTrend(await trendRes.json());
+    } catch (error) {
+      console.error("Erro ao carregar uso de IA:", error);
+    } finally {
+      setLoadingUsage(false);
+    }
+  }, [token, usagePeriod]);
+
   useEffect(() => {
     loadConfig();
     loadModels();
