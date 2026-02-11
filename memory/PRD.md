@@ -11,9 +11,32 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping)
 
-## Última Actualização - 11 Fevereiro 2026
+## Última Actualização - 11 Fevereiro 2026 (Sessão 4)
 
-### ✅ Correcções e Melhorias Implementadas
+### ✅ Correcções Bug Batch (11 Fevereiro 2026 - Noite)
+
+1. **Bug h - Dados Pessoais Não Guardados (CORRIGIDO)**
+   - Adicionados novos campos ao modelo `PersonalData`: `data_nascimento`, `data_validade_cc`, `sexo`, `altura`, `nome_pai`, `nome_mae`
+   - Campos são agora correctamente guardados via PUT /api/processes/{id}
+   - Ficheiro: `/app/backend/models/process.py`
+
+2. **Bug i - Consultores Redirecionados para Login (CORRIGIDO)**
+   - Função `can_view_process()` actualizada para verificar `created_by` tanto por ID como por email
+   - Adicionado suporte para role `INTERMEDIARIO` na verificação de permissões
+   - Ficheiro: `/app/backend/routes/processes.py`
+
+3. **Bug j - "Os Meus Clientes" Mostra Clientes Errados (CORRIGIDO)**
+   - Endpoint `/api/processes/my-clients` agora suporta `MEDIADOR` e `INTERMEDIARIO`
+   - Filtra correctamente por `assigned_consultor_id` ou `assigned_mediador_id` dependendo do papel
+   - API `/api/clients` corrigida para filtrar por campos correctos (antes usava `assigned_to` genérico)
+   - Ficheiros: `/app/backend/routes/processes.py`, `/app/backend/routes/clients.py`
+
+4. **Bug k - Menu Lateral para Intermediários (CORRIGIDO)**
+   - Intermediários e Mediadores agora não vêem "Imóveis" nem "Todos os Processos" no menu
+   - Menu "Os Meus Clientes" adicionado para intermediários e mediadores
+   - Ficheiro: `/app/frontend/src/layouts/DashboardLayout.js`
+
+### ✅ Correcções e Melhorias Anteriores
 
 1. **UI Kanban - Visibilidade de Nomes de Clientes (P0)**
    - Nomes de clientes agora são **totalmente visíveis** mesmo quando longos
