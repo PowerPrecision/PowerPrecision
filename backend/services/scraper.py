@@ -17,12 +17,18 @@ class PropertyScraper:
         """Gera headers realistas para evitar bloqueios."""
         return {
             "User-Agent": self.ua.random,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
             "Accept-Language": "pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer": "https://www.google.com/",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Referer": "https://www.google.pt/",
             "DNT": "1",
             "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1"
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "cross-site",
+            "Sec-Fetch-User": "?1",
+            "Cache-Control": "max-age=0",
         }
 
     async def scrape_url(self, url: str) -> Dict[str, Any]:
@@ -40,10 +46,16 @@ class PropertyScraper:
         # Tentar primeiro com SSL, depois sem verificação (alguns sites têm certificados problemáticos)
         for verify_ssl in [True, False]:
             try:
+                # Pequeno delay aleatório para parecer mais humano
+                import asyncio
+                import random
+                await asyncio.sleep(random.uniform(0.3, 1.0))
+                
                 async with httpx.AsyncClient(
                     timeout=self.timeout,
                     follow_redirects=True,
-                    verify=verify_ssl
+                    verify=verify_ssl,
+                    http2=True  # Suporte HTTP/2 como browsers modernos
                 ) as client:
                     response = await client.get(url, headers=self._get_headers())
                     
