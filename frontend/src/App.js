@@ -235,6 +235,26 @@ function App() {
             }
           />
           
+          {/* Backups Management - Admin only */}
+          <Route
+            path="/admin/backups"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <BackupsPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Minutas - All staff */}
+          <Route
+            path="/minutas"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <MinutasPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
