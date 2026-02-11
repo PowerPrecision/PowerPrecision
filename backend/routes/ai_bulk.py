@@ -1342,3 +1342,37 @@ async def get_import_improvement_suggestions(
         "patterns": [{"pattern": p["_id"][:100], "count": p["count"]} for p in patterns],
         "sources": [{"source": s["_id"], "count": s["count"]} for s in sources]
     }
+
+@router.get("/weekly-report")
+async def get_weekly_error_report(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Obtém o relatório semanal de análise de erros.
+    
+    A IA analisa os erros da última semana e gera:
+    - Sumário dos erros por tipo e padrão
+    - Sugestões de resolução prioritizadas
+    - Itens de acção recomendados
+    
+    Este relatório é gerado automaticamente semanalmente e pode ser
+    consultado a qualquer momento.
+    """
+    from services.error_analysis import get_latest_weekly_report
+    
+    report = await get_latest_weekly_report()
+    return report
+
+
+@router.post("/weekly-report/generate")
+async def generate_weekly_error_report(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Força a geração de um novo relatório semanal.
+    Útil para testar ou gerar análise actualizada.
+    """
+    from services.error_analysis import send_weekly_report_to_admin
+    
+    result = await send_weekly_report_to_admin()
+    return result
