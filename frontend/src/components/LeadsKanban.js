@@ -377,6 +377,35 @@ const LeadsKanban = () => {
     }
   };
 
+  // Buscar clientes sugeridos para um lead
+  const handleShowSuggestedClients = async (lead) => {
+    setSelectedLeadForSuggestions(lead);
+    setLoadingSuggestions(true);
+    setSuggestedClientsDialog(true);
+    setSuggestedClients([]);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/match/lead/${lead.id}/clients`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestedClients(data.matches || []);
+        if (data.matches?.length === 0) {
+          toast.info("Nenhum cliente compatível encontrado");
+        }
+      } else {
+        toast.error("Erro ao buscar clientes sugeridos");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar clientes sugeridos:", error);
+      toast.error("Erro ao buscar clientes sugeridos");
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
   // Extrair dados do URL
   const handleExtractUrl = async () => {
     if (!formData.url) {
