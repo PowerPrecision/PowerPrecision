@@ -433,6 +433,11 @@ class PropertyScraper:
             logger.warning("GEMINI_API_KEY não configurada - fallback IA desactivado")
             return {}
         
+        import time
+        start_time = time.time()
+        input_tokens = 0
+        output_tokens = 0
+        
         try:
             import google.generativeai as genai
             
@@ -441,6 +446,7 @@ class PropertyScraper:
             
             # Limitar HTML para poupar tokens (15k chars ~= 3-4k tokens)
             clean_html = self._clean_text(html_content)[:15000]
+            input_tokens = len(clean_html) // 4  # Estimativa: ~4 chars por token
             
             prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai os dados em formato JSON estrito.
 
