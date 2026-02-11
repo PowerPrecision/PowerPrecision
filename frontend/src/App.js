@@ -256,6 +256,16 @@ function App() {
             }
           />
           
+          {/* AI Insights - Admin and CEO only */}
+          <Route
+            path="/ai-insights"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "ceo"]}>
+                <AIInsightsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
