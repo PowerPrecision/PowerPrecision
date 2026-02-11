@@ -256,17 +256,12 @@ async def create_process(data: ProcessCreate, user: dict = Depends(get_current_u
     # Registar no histórico
     await log_history(process_id, user, "Criou processo")
     
-    # Notificar administradores e CEO
-    staff = await db.users.find(
-        {"role": {"$in": [UserRole.ADMIN, UserRole.CEO]}}, 
-        {"_id": 0}
-    ).to_list(100)
-    for s in staff:
-        await send_email_notification(
-            s["email"],
-            "Novo Processo Criado",
-            f"O cliente {user['name']} criou um novo processo de {data.process_type}."
-        )
+    # Notificar administradores e CEO (com verificação de preferências)
+    await send_to_admins(
+        "Novo Processo Criado",
+        f"O cliente {user['name']} criou um novo processo de {data.process_type}.",
+        notification_type="new_process"
+    )
     
     return ProcessResponse(**{k: v for k, v in process_doc.items() if k != "_id"})
 
