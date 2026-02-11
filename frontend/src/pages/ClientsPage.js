@@ -106,6 +106,67 @@ export default function ClientsPage() {
     fetchClients();
   }, [fetchClients]);
 
+  // Aplicar filtros e ordenação
+  useEffect(() => {
+    let result = [...clients];
+    
+    // Filtrar por status
+    if (filterStatus !== "all") {
+      result = result.filter(c => {
+        if (filterStatus === "with_process") return c.process_count > 0;
+        if (filterStatus === "without_process") return !c.process_count || c.process_count === 0;
+        return true;
+      });
+    }
+    
+    // Ordenar
+    result.sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      
+      // Handle dates
+      if (sortField === "created_at" || sortField === "updated_at") {
+        aVal = new Date(aVal || 0).getTime();
+        bVal = new Date(bVal || 0).getTime();
+      }
+      
+      // Handle strings
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+      
+      // Handle numbers
+      if (sortField === "process_count") {
+        aVal = aVal || 0;
+        bVal = bVal || 0;
+      }
+      
+      if (sortOrder === "asc") {
+        return aVal > bVal ? 1 : -1;
+      }
+      return aVal < bVal ? 1 : -1;
+    });
+    
+    setFilteredClients(result);
+  }, [clients, sortField, sortOrder, filterStatus]);
+
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    return sortOrder === "asc" 
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
   const handleCreateClient = async () => {
     if (!newClient.nome.trim()) {
       toast.error("Nome é obrigatório");
