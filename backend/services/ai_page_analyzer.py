@@ -102,25 +102,27 @@ async def analyze_with_configured_ai(
 
 
 async def _call_gemini(content: str, task_type: str, context: str, model: str) -> Dict[str, Any]:
-    """Chama Gemini via litellm."""
+    """Chama Gemini via google.generativeai."""
     if not GEMINI_API_KEY:
         return {"error": "GEMINI_API_KEY não configurada"}
     
     try:
-        from litellm import completion
+        import google.generativeai as genai
         import json
+        
+        genai.configure(api_key=GEMINI_API_KEY)
         
         prompt = _get_prompt_for_task(task_type, content, context)
         
-        response = completion(
-            model=f"gemini/{model}",
-            api_key=GEMINI_API_KEY,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=2000
-        )
+        # Mapear nome do modelo
+        gemini_model = "gemini-2.0-flash"  # Default
+        if "2.0" in model:
+            gemini_model = model.replace("gemini-", "gemini-")
         
-        result_text = response.choices[0].message.content.strip()
+        model_instance = genai.GenerativeModel(gemini_model)
+        response = model_instance.generate_content(prompt)
+        
+        result_text = response.text.strip()
         
         # Limpar markdown
         if result_text.startswith("```json"):
