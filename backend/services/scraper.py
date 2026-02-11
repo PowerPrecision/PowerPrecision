@@ -341,6 +341,111 @@ class PropertyScraper:
         
         return contacts
     
+    def _extract_agent_name(self, soup: BeautifulSoup, text: str) -> Optional[str]:
+        """
+        Tenta extrair o nome do agente/consultor imobiliário da página.
+        
+        Estratégias:
+        1. Procura elementos com classes típicas (agent-name, consultant, etc.)
+        2. Procura headers com nomes próprios portugueses
+        3. Procura padrões de texto comuns (Consultor: X, Agente: X)
+        
+        Returns:
+            Nome do agente ou None
+        """
+        # Selectores comuns para nome de agente
+        agent_selectors = [
+            '.agent-name', '.agente-nome', '.consultant-name', '.consultor-nome',
+            '.realtor-name', '.team-member-name', '.employee-name',
+            '[data-agent-name]', '[itemprop="name"]',
+            'h1.nome', 'h2.nome', 'h1.name', 'h2.name',
+            '.card-title', '.profile-name'
+        ]
+        
+        for selector in agent_selectors:
+            try:
+                element = soup.select_one(selector)
+                if element:
+                    name = element.get_text(strip=True)
+                    # Validar que parece um nome próprio (2-4 palavras, com maiúsculas)
+                    if self._is_valid_name(name):
+                        return name
+            except Exception:
+                continue
+        
+        # Procurar padrões no texto
+        name_patterns = [
+            r'(?:Consultor|Agente|Responsável|Contacto)\s*[:\-]\s*([A-Z][a-záàâãéêíóôõúç]+(?:\s+[A-Z][a-záàâãéêíóôõúç]+){1,3})',
+            r'(?:Fale com|Contacte)\s+([A-Z][a-záàâãéêíóôõúç]+(?:\s+[A-Z][a-záàâãéêíóôõúç]+){1,3})',
+        ]
+        
+        for pattern in name_patterns:
+            match = re.search(pattern, text)
+            if match:
+                name = match.group(1).strip()
+                if self._is_valid_name(name):
+                    return name
+        
+        return None
+    
+    def _extract_agency_name(self, soup: BeautifulSoup, url: str) -> Optional[str]:
+        """
+        Tenta extrair o nome da agência imobiliária.
+        
+        Returns:
+            Nome da agência ou None
+        """
+        # Tentar extrair do título da página
+        title_tag = soup.find('title')
+        if title_tag:
+            title = title_tag.get_text(strip=True)
+            # Remover partes comuns
+            for remove in ['| Imóveis', '- Imóveis', 'Home', 'Início']:
+                title = title.replace(remove, '').strip()
+            if title and len(title) > 3 and len(title) < 100:
+                return title.split('|')[0].split('-')[0].strip()
+        
+        # Tentar extrair de meta tags
+        meta_site = soup.find('meta', {'property': 'og:site_name'})
+        if meta_site and meta_site.get('content'):
+            return meta_site['content']
+        
+        # Extrair do domínio como fallback
+        parsed = urlparse(url)
+        domain_parts = parsed.netloc.replace('www.', '').split('.')
+        if domain_parts:
+            agency = domain_parts[0].replace('-', ' ').replace('_', ' ').title()
+            if len(agency) > 2:
+                return agency
+        
+        return None
+    
+    def _is_valid_name(self, name: str) -> bool:
+        """
+        Verifica se uma string parece ser um nome próprio válido.
+        
+        Returns:
+            True se parecer um nome válido
+        """
+        if not name or len(name) < 4 or len(name) > 60:
+            return False
+        
+        # Deve ter 2-4 palavras
+        words = name.split()
+        if len(words) < 2 or len(words) > 4:
+            return False
+        
+        # Cada palavra deve começar com maiúscula
+        for word in words:
+            if not word[0].isupper():
+                return False
+        
+        # Não deve conter números ou caracteres especiais (exceto acentos)
+        if re.search(r'[0-9@#$%^&*()+=\[\]{}|\\/<>]', name):
+            return False
+        
+        return True
+    
     async def _fetch_page_content(self, url: str, use_proxy: bool = True) -> Optional[str]:
         """
         Faz download do conteúdo HTML de uma URL.
