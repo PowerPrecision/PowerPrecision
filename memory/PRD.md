@@ -36,7 +36,22 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
    - Base de dados limpa: apenas dados reais de produção permanecem
    - Script suporta modo dry-run para pré-visualização
 
-4. **Correcções Técnicas**
+4. **Configuração Dinâmica de IA (P1) - NOVO**
+   - Admin pode agora escolher qual modelo usar para cada tarefa via `/api/admin/ai-config`
+   - Modelos disponíveis: `gemini-2.0-flash`, `gpt-4o-mini`, `gpt-4o`
+   - Tarefas configuráveis: scraping, análise de documentos, relatório semanal, análise de erros
+   - Scraper e serviços de IA lêem configuração dinamicamente da DB
+
+5. **Sistema de Cache para Scraping - NOVO**
+   - Cache local guarda resultados de scraping por 7 dias
+   - Evita chamadas repetidas à API Gemini/OpenAI
+   - Novos endpoints:
+     - `GET /api/scraper/cache/stats` - estatísticas do cache
+     - `DELETE /api/scraper/cache/clear` - limpar cache
+     - `POST /api/scraper/cache/refresh` - forçar refresh
+   - Parâmetro `use_cache` no endpoint `/api/scraper/single`
+
+6. **Correcções Técnicas**
    - Instalado `libmagic1` para validação de ficheiros
    - Instalado `h2` para suporte HTTP/2 no scraper
    - Nova chave Gemini API configurada no `.env`
