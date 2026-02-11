@@ -381,24 +381,330 @@ async def get_ai_configuration(user: dict = Depends(require_roles([UserRole.ADMI
     if EMERGENT_LLM_KEY:
         available_providers.append("openai")
     
-    # Filtrar modelos disponíveis
-    available_models = {}
-    for model_key, model_info in AI_MODELS.items():
-        if model_info["provider"] in available_providers:
-            available_models[model_key] = model_info
+    # Obter modelos da DB (se existirem) ou usar config padrão
+    db_models = await db.ai_models.find({}, {"_id": 0}).to_list(100)
+    if db_models:
+        available_models = {m["key"]: m for m in db_models if m.get("provider") in available_providers}
+    else:
+        # Fallback para config hardcoded (migração)
+        available_models = {}
+        for model_key, model_info in AI_MODELS.items():
+            if model_info["provider"] in available_providers:
+                available_models[model_key] = model_info
     
-    return {
-        "current_config": current_config,
-        "defaults": AI_CONFIG_DEFAULTS,
-        "available_models": available_models,
-        "available_providers": available_providers,
-        "task_descriptions": {
+    # Obter tarefas da DB (se existirem) ou usar defaults
+    db_tasks = await db.ai_tasks.find({}, {"_id": 0}).to_list(100)
+    if db_tasks:
+        task_descriptions = {t["key"]: t["description"] for t in db_tasks}
+        task_defaults = {t["key"]: t.get("default_model") for t in db_tasks}
+    else:
+        task_descriptions = {
             "scraper_extraction": "Extração de dados de páginas imobiliárias (scraping)",
             "document_analysis": "Análise e extração de dados de documentos",
             "weekly_report": "Geração do relatório semanal de erros",
             "error_analysis": "Análise de erros de importação"
         }
+        task_defaults = AI_CONFIG_DEFAULTS
+    
+    # Obter configuração de cache
+    cache_config = await db.system_config.find_one({"type": "cache_settings"}, {"_id": 0})
+    cache_settings = cache_config or {"cache_limit": 1000, "notify_at_percentage": 80}
+    
+    return {
+        "current_config": current_config,
+        "defaults": task_defaults,
+        "available_models": available_models,
+        "available_providers": available_providers,
+        "task_descriptions": task_descriptions,
+        "cache_settings": cache_settings
     }
+
+
+# ============== AI MODELS CRUD ==============
+
+@router.get("/ai-models")
+async def list_ai_models(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Lista todos os modelos de IA configurados."""
+    from config import AI_MODELS, GEMINI_API_KEY, EMERGENT_LLM_KEY
+    
+    # Tentar obter da DB
+    db_models = await db.ai_models.find({}, {"_id": 0}).to_list(100)
+    
+    if not db_models:
+        # Migrar modelos do config para DB
+        for key, model in AI_MODELS.items():
+            model_doc = {
+                "key": key,
+                "name": model["name"],
+                "provider": model["provider"],
+                "cost_per_1k_tokens": model["cost_per_1k_tokens"],
+                "best_for": model["best_for"],
+                "requires_key": model.get("requires_key", ""),
+                "is_default": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.ai_models.insert_one(model_doc)
+        
+        db_models = await db.ai_models.find({}, {"_id": 0}).to_list(100)
+    
+    # Verificar quais providers estão disponíveis
+    available_providers = []
+    if GEMINI_API_KEY:
+        available_providers.append("gemini")
+    if EMERGENT_LLM_KEY:
+        available_providers.append("openai")
+    
+    return {
+        "models": db_models,
+        "available_providers": available_providers
+    }
+
+
+@router.post("/ai-models")
+async def create_ai_model(
+    model_data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Adiciona um novo modelo de IA.
+    
+    Body:
+    {
+        "key": "claude-3-sonnet",
+        "name": "Claude 3 Sonnet",
+        "provider": "anthropic",
+        "cost_per_1k_tokens": 0.003,
+        "best_for": ["analysis", "coding"]
+    }
+    """
+    required_fields = ["key", "name", "provider"]
+    for field in required_fields:
+        if field not in model_data:
+            raise HTTPException(status_code=400, detail=f"Campo '{field}' é obrigatório")
+    
+    # Verificar se já existe
+    existing = await db.ai_models.find_one({"key": model_data["key"]})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Modelo '{model_data['key']}' já existe")
+    
+    model_doc = {
+        "key": model_data["key"],
+        "name": model_data["name"],
+        "provider": model_data["provider"],
+        "cost_per_1k_tokens": model_data.get("cost_per_1k_tokens", 0.001),
+        "best_for": model_data.get("best_for", []),
+        "requires_key": model_data.get("requires_key", ""),
+        "is_default": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user.get("email", "admin")
+    }
+    
+    await db.ai_models.insert_one(model_doc)
+    
+    return {"success": True, "model": {k: v for k, v in model_doc.items() if k != "_id"}}
+
+
+@router.put("/ai-models/{model_key}")
+async def update_ai_model(
+    model_key: str,
+    model_data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Actualiza um modelo de IA existente."""
+    existing = await db.ai_models.find_one({"key": model_key})
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Modelo '{model_key}' não encontrado")
+    
+    update_fields = {}
+    allowed_fields = ["name", "provider", "cost_per_1k_tokens", "best_for", "requires_key"]
+    
+    for field in allowed_fields:
+        if field in model_data:
+            update_fields[field] = model_data[field]
+    
+    if update_fields:
+        update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+        update_fields["updated_by"] = user.get("email", "admin")
+        await db.ai_models.update_one({"key": model_key}, {"$set": update_fields})
+    
+    updated = await db.ai_models.find_one({"key": model_key}, {"_id": 0})
+    return {"success": True, "model": updated}
+
+
+@router.delete("/ai-models/{model_key}")
+async def delete_ai_model(
+    model_key: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Remove um modelo de IA."""
+    existing = await db.ai_models.find_one({"key": model_key})
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Modelo '{model_key}' não encontrado")
+    
+    if existing.get("is_default"):
+        raise HTTPException(status_code=400, detail="Não é possível eliminar modelos padrão do sistema")
+    
+    # Verificar se o modelo está em uso
+    ai_config = await db.ai_config.find_one({}, {"_id": 0})
+    if ai_config:
+        for task, model in ai_config.items():
+            if model == model_key:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Modelo está em uso pela tarefa '{task}'. Altere a configuração primeiro."
+                )
+    
+    await db.ai_models.delete_one({"key": model_key})
+    return {"success": True, "message": f"Modelo '{model_key}' eliminado"}
+
+
+# ============== AI TASKS CRUD ==============
+
+@router.get("/ai-tasks")
+async def list_ai_tasks(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Lista todas as tarefas de IA configuradas."""
+    from config import AI_CONFIG_DEFAULTS
+    
+    db_tasks = await db.ai_tasks.find({}, {"_id": 0}).to_list(100)
+    
+    if not db_tasks:
+        # Migrar tarefas padrão para DB
+        default_tasks = [
+            {"key": "scraper_extraction", "description": "Extração de dados de páginas imobiliárias (scraping)", "default_model": "gemini-2.0-flash"},
+            {"key": "document_analysis", "description": "Análise e extração de dados de documentos", "default_model": "gpt-4o-mini"},
+            {"key": "weekly_report", "description": "Geração do relatório semanal de erros", "default_model": "gpt-4o-mini"},
+            {"key": "error_analysis", "description": "Análise de erros de importação", "default_model": "gpt-4o-mini"},
+        ]
+        
+        for task in default_tasks:
+            task["is_default"] = True
+            task["created_at"] = datetime.now(timezone.utc).isoformat()
+            await db.ai_tasks.insert_one(task)
+        
+        db_tasks = await db.ai_tasks.find({}, {"_id": 0}).to_list(100)
+    
+    return {"tasks": db_tasks}
+
+
+@router.post("/ai-tasks")
+async def create_ai_task(
+    task_data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Adiciona uma nova tarefa de IA.
+    
+    Body:
+    {
+        "key": "lead_scoring",
+        "description": "Pontuação automática de leads",
+        "default_model": "gpt-4o-mini"
+    }
+    """
+    required_fields = ["key", "description"]
+    for field in required_fields:
+        if field not in task_data:
+            raise HTTPException(status_code=400, detail=f"Campo '{field}' é obrigatório")
+    
+    existing = await db.ai_tasks.find_one({"key": task_data["key"]})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Tarefa '{task_data['key']}' já existe")
+    
+    task_doc = {
+        "key": task_data["key"],
+        "description": task_data["description"],
+        "default_model": task_data.get("default_model", "gpt-4o-mini"),
+        "is_default": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user.get("email", "admin")
+    }
+    
+    await db.ai_tasks.insert_one(task_doc)
+    return {"success": True, "task": {k: v for k, v in task_doc.items() if k != "_id"}}
+
+
+@router.put("/ai-tasks/{task_key}")
+async def update_ai_task(
+    task_key: str,
+    task_data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Actualiza uma tarefa de IA existente."""
+    existing = await db.ai_tasks.find_one({"key": task_key})
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Tarefa '{task_key}' não encontrada")
+    
+    update_fields = {}
+    if "description" in task_data:
+        update_fields["description"] = task_data["description"]
+    if "default_model" in task_data:
+        update_fields["default_model"] = task_data["default_model"]
+    
+    if update_fields:
+        update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.ai_tasks.update_one({"key": task_key}, {"$set": update_fields})
+    
+    updated = await db.ai_tasks.find_one({"key": task_key}, {"_id": 0})
+    return {"success": True, "task": updated}
+
+
+@router.delete("/ai-tasks/{task_key}")
+async def delete_ai_task(
+    task_key: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Remove uma tarefa de IA."""
+    existing = await db.ai_tasks.find_one({"key": task_key})
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"Tarefa '{task_key}' não encontrada")
+    
+    if existing.get("is_default"):
+        raise HTTPException(status_code=400, detail="Não é possível eliminar tarefas padrão do sistema")
+    
+    await db.ai_tasks.delete_one({"key": task_key})
+    return {"success": True, "message": f"Tarefa '{task_key}' eliminada"}
+
+
+# ============== CACHE SETTINGS ==============
+
+@router.get("/cache-settings")
+async def get_cache_settings(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """Obtém as configurações de cache."""
+    config = await db.system_config.find_one({"type": "cache_settings"}, {"_id": 0})
+    return config or {
+        "type": "cache_settings",
+        "cache_limit": 1000,
+        "notify_at_percentage": 80,
+        "auto_cleanup_enabled": False
+    }
+
+
+@router.put("/cache-settings")
+async def update_cache_settings(
+    settings: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualiza as configurações de cache.
+    
+    Body:
+    {
+        "cache_limit": 1000,
+        "notify_at_percentage": 80,
+        "auto_cleanup_enabled": false
+    }
+    """
+    settings["type"] = "cache_settings"
+    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    settings["updated_by"] = user.get("email", "admin")
+    
+    await db.system_config.update_one(
+        {"type": "cache_settings"},
+        {"$set": settings},
+        upsert=True
+    )
+    
+    return {"success": True, "settings": settings}
 
 
 @router.put("/ai-config")
