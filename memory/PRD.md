@@ -9,7 +9,44 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Base de Dados**: MongoDB Atlas (Cluster: cluster0.c8livu.mongodb.net)
   - **Desenvolvimento/Testes**: `powerprecision_dev`
   - **Produção**: `powerprecision`
-- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping)
+- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
+
+## Última Actualização - 12 Fevereiro 2026 (Sessão 7)
+
+### ✅ Bug Fix: Atribuições - Dropdowns Vazios (CORRIGIDO)
+
+**Problema**: Na página de detalhes do processo, ao clicar no botão "Atribuições", os dropdowns para selecionar Consultor e Mediador apareciam vazios.
+
+**Causa Raiz**: A função `openAssignDialog()` abria o dialog e chamava `fetchUsers()` de forma assíncrona, mas não esperava pelo resultado. Quando o dialog renderizava, o estado `appUsers` ainda estava vazio.
+
+**Solução Implementada** (Ficheiro: `/app/frontend/src/pages/ProcessDetails.js`):
+1. Convertida função `openAssignDialog` para `async`
+2. Adicionado `await` ao `fetchUsers()` para garantir que os dados são carregados antes de mostrar o dialog
+3. Adicionado estado `loadingUsers` com indicador visual de loading
+4. Adicionados `data-testid` aos componentes Select para facilitar testes
+
+**Código Alterado**:
+```javascript
+// Antes (bugado)
+const openAssignDialog = () => {
+  setShowAssignDialog(true);
+  if (appUsers.length === 0) fetchUsers(); // Não esperava
+};
+
+// Depois (corrigido)
+const openAssignDialog = async () => {
+  setShowAssignDialog(true);
+  if (appUsers.length === 0) await fetchUsers(); // Agora espera
+};
+```
+
+**Verificação**:
+- ✅ Dropdown de Consultor mostra 9 utilizadores (admin, ceo, consultor, diretor)
+- ✅ Dropdown de Mediador mostra 4 utilizadores (mediador, intermediario, diretor)
+- ✅ API `/api/admin/users` retorna dados correctamente
+- ✅ Screenshots confirmam funcionamento
+
+---
 
 ## Última Actualização - 11 Fevereiro 2026 (Sessão 6)
 
