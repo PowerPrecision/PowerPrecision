@@ -155,12 +155,16 @@ const DashboardLayout = ({ children, title }) => {
         });
       }
       
-      items.push(
-        {
+      // "Todos os Processos" apenas para roles que não são consultor
+      if (user?.role !== "consultor") {
+        items.push({
           label: "Todos os Processos",
           icon: FileText,
           href: "/processos",
-        },
+        });
+      }
+      
+      items.push(
         {
           label: "Clientes",
           icon: User,
