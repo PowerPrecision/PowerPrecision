@@ -727,7 +727,7 @@ const LeadsKanban = () => {
                 <Card key={index} className="p-3">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                      <p className="font-medium">{match.client_name}</p>
+                      <p className="font-medium">{match.process?.client_name || match.client_name || "Cliente"}</p>
                       <div className="flex flex-wrap gap-1">
                         {match.match_reasons?.map((reason, i) => (
                           <Badge key={i} variant="outline" className="text-xs">
@@ -736,11 +736,11 @@ const LeadsKanban = () => {
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Score: {match.match_score}%
+                        Score: {match.score}%
                       </p>
                     </div>
-                    <Badge variant={match.match_score >= 70 ? "default" : "secondary"}>
-                      {match.match_score >= 70 ? "Alta" : match.match_score >= 50 ? "Média" : "Baixa"}
+                    <Badge variant={match.score >= 70 ? "default" : "secondary"}>
+                      {match.score >= 70 ? "Alta" : match.score >= 50 ? "Média" : "Baixa"}
                     </Badge>
                   </div>
                 </Card>
