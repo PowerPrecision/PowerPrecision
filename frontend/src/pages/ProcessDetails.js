@@ -188,22 +188,28 @@ const ProcessDetails = () => {
       });
       if (response.ok) {
         const users = await response.json();
-        setAppUsers(users.filter(u => u.is_active !== false));
+        const activeUsers = users.filter(u => u.is_active !== false);
+        setAppUsers(activeUsers);
+        return activeUsers;
       }
     } catch (error) {
       console.error("Erro ao buscar utilizadores:", error);
     }
+    return [];
   };
 
   // Abrir dialog de atribuição
-  const openAssignDialog = () => {
+  const openAssignDialog = async () => {
     if (process) {
       setSelectedConsultor(process.assigned_consultor_id || "");
       setSelectedMediador(process.assigned_mediador_id || "");
-      setShowAssignDialog(true);
+      
+      // Buscar utilizadores ANTES de abrir o dialog
       if (appUsers.length === 0) {
-        fetchUsers();
+        await fetchUsers();
       }
+      
+      setShowAssignDialog(true);
     }
   };
 
