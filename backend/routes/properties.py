@@ -7,7 +7,7 @@ import logging
 import asyncio
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks, UploadFile, File
 
 from database import db
 from models.property import (
