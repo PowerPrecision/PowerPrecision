@@ -578,6 +578,104 @@ class ScheduledTasksService:
         
         logger.info(f"Email mensal enviado para {to_email}")
     
+    async def cleanup_temp_files(self, max_age_hours: int = 24) -> int:
+        """
+        Limpar ficheiros temporários antigos.
+        
+        Remove ficheiros de directórios temporários que tenham mais de X horas.
+        
+        Directórios limpos:
+        - /tmp/creditoimo_*
+        - /app/backend/temp/
+        - Ficheiros de upload temporários
+        
+        Args:
+            max_age_hours: Idade máxima dos ficheiros em horas
+            
+        Returns:
+            Número de ficheiros eliminados
+        """
+        import shutil
+        
+        logger.info(f"A limpar ficheiros temporários com mais de {max_age_hours}h...")
+        
+        files_deleted = 0
+        bytes_freed = 0
+        
+        temp_dirs = [
+            Path("/tmp"),
+            Path("/app/backend/temp"),
+            Path("/app/backend/uploads/temp"),
+        ]
+        
+        cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
+        
+        for temp_dir in temp_dirs:
+            if not temp_dir.exists():
+                continue
+            
+            try:
+                for item in temp_dir.iterdir():
+                    # Apenas limpar ficheiros/pastas que comecem com creditoimo_ ou sejam .tmp
+                    if not (
+                        item.name.startswith("creditoimo_") or
+                        item.name.startswith("tmp_") or
+                        item.name.endswith(".tmp") or
+                        item.name.endswith(".temp")
+                    ):
+                        continue
+                    
+                    try:
+                        # Verificar idade
+                        mtime = datetime.fromtimestamp(item.stat().st_mtime)
+                        
+                        if mtime < cutoff_time:
+                            if item.is_file():
+                                bytes_freed += item.stat().st_size
+                                item.unlink()
+                                files_deleted += 1
+                            elif item.is_dir():
+                                for f in item.rglob("*"):
+                                    if f.is_file():
+                                        bytes_freed += f.stat().st_size
+                                shutil.rmtree(item)
+                                files_deleted += 1
+                            
+                            logger.debug(f"Removido: {item}")
+                    
+                    except Exception as e:
+                        logger.debug(f"Erro ao remover {item}: {e}")
+                        continue
+            
+            except Exception as e:
+                logger.debug(f"Erro ao processar {temp_dir}: {e}")
+                continue
+        
+        mb_freed = bytes_freed / (1024 * 1024)
+        logger.info(f"Ficheiros temporários removidos: {files_deleted} ({mb_freed:.2f} MB libertados)")
+        
+        return files_deleted
+    
+    async def cleanup_scraper_cache(self, days: int = 7) -> int:
+        """
+        Limpar cache de scraping expirado.
+        
+        Remove entradas de cache com mais de X dias.
+        
+        Returns:
+            Número de entradas eliminadas
+        """
+        logger.info(f"A limpar cache de scraping com mais de {days} dias...")
+        
+        cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        
+        result = await self.db.scraper_cache.delete_many({
+            "created_at": {"$lt": cutoff_date}
+        })
+        
+        logger.info(f"Cache de scraping limpo: {result.deleted_count} entradas")
+        return result.deleted_count
+    
     async def run_all_tasks(self):
         """Executar todas as tarefas agendadas."""
         logger.info("=" * 50)
@@ -596,6 +694,8 @@ class ScheduledTasksService:
             waiting_count = await self.check_clients_waiting_too_long()
             monthly_count = await self.send_monthly_document_reminder()
             cleanup_count = await self.cleanup_old_notifications()
+            temp_files_count = await self.cleanup_temp_files()
+            cache_count = await self.cleanup_scraper_cache()
             
             logger.info("=" * 50)
             logger.info("RESUMO DAS TAREFAS")
@@ -606,6 +706,8 @@ class ScheduledTasksService:
             logger.info(f"- Alertas clientes em espera: {waiting_count}")
             logger.info(f"- Lembretes mensais: {monthly_count}")
             logger.info(f"- Notificações limpas: {cleanup_count}")
+            logger.info(f"- Ficheiros temp. limpos: {temp_files_count}")
+            logger.info(f"- Cache scraper limpo: {cache_count}")
             logger.info("=" * 50)
             
         except Exception as e:
