@@ -46,7 +46,10 @@ async def test_public_registration_invalid_email(client):
 async def test_public_registration_with_personal_data(client):
     """Test public registration with optional personal data"""
     import uuid
+    import random
     unique_email = f"test_full_{uuid.uuid4().hex[:8]}@email.pt"
+    # Gerar NIF único que não começa com 5 (empresas)
+    unique_nif = f"{random.choice([1,2,3,4])}{random.randint(10000000, 99999999)}"
     
     response = await client.post("/public/client-registration", json={
         "name": "Test Cliente Full",
@@ -54,7 +57,7 @@ async def test_public_registration_with_personal_data(client):
         "phone": "+351 888 777 666",
         "process_type": "ambos",
         "personal_data": {
-            "nif": "123456789",
+            "nif": unique_nif,
             "address": "Rua de Teste, 123",
             "nationality": "Portuguesa"
         },
@@ -65,8 +68,8 @@ async def test_public_registration_with_personal_data(client):
     })
     assert response.status_code == 200
     data = response.json()
-    # success pode ser True ou False (se email falhar mas processo foi criado)
-    assert "process_id" in data or data.get("success") is True
+    # success deve ser True para registo bem sucedido
+    assert data.get("success") is True or "process_id" in data
 
 
 @pytest.mark.asyncio
