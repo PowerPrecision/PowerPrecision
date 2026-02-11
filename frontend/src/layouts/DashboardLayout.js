@@ -148,6 +148,11 @@ const DashboardLayout = ({ children, title }) => {
           icon: Settings,
           href: "/configuracoes/notificacoes",
         },
+        {
+          label: "Logs do Sistema",
+          icon: AlertCircle,
+          href: "/admin/logs",
+        },
       ];
     }
 
