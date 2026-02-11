@@ -244,6 +244,24 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - OneDrive usa **link partilhado** - não requer OAuth (configurar ONEDRIVE_SHARED_LINK no .env)
 
 ## Última Actualização
+**11 Fevereiro 2026 - Sessão 3**
+- ✅ **P1 Completo - Sistema de Notificações com Preferências**:
+  - Novo serviço `services/notification_service.py` que verifica preferências antes de enviar emails
+  - Função `send_notification_with_preference_check()` substitui chamadas directas de email
+  - Integrado em: `routes/processes.py`, `routes/deadlines.py`, `services/alerts.py`
+  - Tipos de notificação suportados: new_process, status_change, document_upload, task_assigned, deadline_reminder
+  - Admin pode configurar preferências via `/api/admin/notification-preferences/{user_id}`
+  - Utilizadores marcados como `is_test_user` não recebem emails
+- ✅ **Melhoria - Mensagens de Erro Claras por Campo**:
+  - Novo utilitário `frontend/src/utils/errorFormatter.js` para traduzir erros Pydantic
+  - Mapeamento de campos para nomes em português (client_email → "Email do Cliente")
+  - Tradução de mensagens comuns (e.g., "Input should be a valid number" → "deve ser um número")
+  - Erros mostram lista de campos com problema em vez de mensagem genérica
+  - Implementado em `ProcessDetails.js` e `LeadsKanban.js`
+- ✅ **Bug Fix - NIF aceita números**:
+  - Validators em `PersonalData` e `Titular2Data` convertem int/float para string antes de validar
+  - Corrige erro quando frontend envia NIF como número em vez de string
+
 **11 Fevereiro 2026 - Sessão 2**
 - ✅ **Bug Fix - Validação Email/Telefone (P0)**: Corrigido erro "Input should be a valid number" ao guardar ficha de cliente:
   - Adicionado `@field_validator` no modelo `ProcessUpdate` para converter `client_email` e `client_phone` para string
