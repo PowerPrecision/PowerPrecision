@@ -35,7 +35,8 @@ async def list_clients(
     """
     Listar clientes.
     - Admin/CEO: vê todos os clientes
-    - Consultor/Intermediário: vê clientes dos seus processos (ou todos se não houver atribuição)
+    - Consultor: vê clientes dos seus processos (assigned_consultor_id)
+    - Intermediário/Mediador: vê clientes dos seus processos (assigned_mediador_id)
     """
     user_role = user.get("role", "")
     user_id = user.get("id", "")
@@ -43,26 +44,35 @@ async def list_clients(
     
     # Para roles não-admin, buscar clientes a partir dos processos
     if user_role not in ["admin", "ceo", "diretor"]:
-        # Primeiro verificar se há processos atribuídos a este utilizador
-        my_processes_count = await db.processes.count_documents({
-            "$or": [
-                {"assigned_to": user_id},
-                {"assigned_to": user_email},
-                {"created_by": user_email}
-            ]
-        })
-        
-        # Se não houver processos atribuídos, mostrar todos os processos (legado)
-        if my_processes_count == 0:
-            process_query = {}
-        else:
-            process_query = {
+        # Construir query baseada no papel do utilizador
+        if user_role == "consultor":
+            # Consultores vêem processos atribuídos a eles como consultor
+            role_query = {
                 "$or": [
-                    {"assigned_to": user_id},
-                    {"assigned_to": user_email},
+                    {"assigned_consultor_id": user_id},
                     {"created_by": user_email}
                 ]
             }
+        elif user_role in ["mediador", "intermediario"]:
+            # Intermediários vêem processos atribuídos a eles como mediador
+            role_query = {
+                "$or": [
+                    {"assigned_mediador_id": user_id},
+                    {"created_by": user_email}
+                ]
+            }
+        else:
+            # Outros roles - mostrar apenas processos que criou
+            role_query = {"created_by": user_email}
+        
+        # Verificar se há processos atribuídos a este utilizador
+        my_processes_count = await db.processes.count_documents(role_query)
+        
+        # Se não houver processos atribuídos, NÃO mostrar todos (correcção de segurança)
+        if my_processes_count == 0:
+            process_query = role_query  # Manter o filtro mesmo se não tiver resultados
+        else:
+            process_query = role_query
         
         if search:
             search_filter = {
@@ -72,10 +82,7 @@ async def list_clients(
                     {"personal_data.nif": {"$regex": search, "$options": "i"}}
                 ]
             }
-            if process_query:
-                process_query = {"$and": [process_query, search_filter]}
-            else:
-                process_query = search_filter
+            process_query = {"$and": [process_query, search_filter]}
         
         # Buscar processos e transformar em "clientes"
         processes = await db.processes.find(
