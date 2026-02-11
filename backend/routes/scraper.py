@@ -162,10 +162,10 @@ async def get_supported_sites(user: dict = Depends(get_current_user)):
         "generic_support": True,
         "ai_analysis": {
             "available": True,
-            "model": "claude-3-5-sonnet-20241022",
+            "model": "gpt-4o",
             "description": "Análise IA disponível para sites não suportados"
         },
-        "notes": "Sites não listados são processados com extração genérica ou IA (Claude)"
+        "notes": "Sites não listados são processados com extração genérica ou IA (GPT-4o)"
     }
 
 
@@ -175,7 +175,7 @@ async def analyze_page_with_ai_endpoint(
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
 ):
     """
-    Analisa uma página usando Claude 3.5 Sonnet.
+    Analisa uma página usando GPT-4o.
     
     Útil para sites que bloqueiam scraping ou têm estrutura complexa.
     A IA extrai automaticamente informações de imóveis do HTML.
@@ -208,7 +208,7 @@ async def analyze_page_with_ai_endpoint(
         return {
             "success": True,
             "url": request.url,
-            "ai_model": "claude-3-5-sonnet-20241022",
+            "ai_model": "gpt-4o",
             "data": result
         }
         
