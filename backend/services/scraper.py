@@ -291,6 +291,10 @@ Extrai APENAS os seguintes campos (usa null se não encontrares):
 - certificacao_energetica: certificado energético (A, B, C, D, E, F, G)
 - ano_construcao: ano de construção
 - estado: estado do imóvel (novo, usado, para renovar)
+- agente_nome: nome do agente/consultor imobiliário
+- agente_telefone: telefone do agente (formato +351 XXX XXX XXX)
+- agente_email: email do agente
+- agencia_nome: nome da agência imobiliária
 
 IMPORTANTE: Responde APENAS com o JSON, sem explicações ou markdown.
 
@@ -328,6 +332,10 @@ Conteúdo:
                 "certificado_energetico": data.get("certificacao_energetica"),
                 "ano_construcao": data.get("ano_construcao"),
                 "estado": data.get("estado"),
+                "agente_nome": data.get("agente_nome"),
+                "agente_telefone": data.get("agente_telefone"),
+                "agente_email": data.get("agente_email"),
+                "agencia_nome": data.get("agencia_nome"),
                 "_extracted_by": "gemini-2.0-flash"
             }
             
@@ -335,6 +343,11 @@ Conteúdo:
             logger.error(f"Gemini retornou JSON inválido: {e}")
             return {"_error": "JSON inválido da IA"}
         except Exception as e:
+            error_str = str(e).lower()
+            # Tratamento específico para quota excedida
+            if "quota" in error_str or "rate" in error_str or "resource" in error_str or "exhausted" in error_str:
+                logger.warning(f"Gemini quota excedida - continuando sem IA: {e}")
+                return {"_error": "quota_exceeded", "_fallback": True}
             logger.error(f"Erro Gemini: {type(e).__name__}: {e}")
             return {"_error": str(e)}
     
