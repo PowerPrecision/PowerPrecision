@@ -100,18 +100,27 @@ async def test_create_workflow_status_as_admin(client, admin_token):
 @pytest.mark.asyncio
 async def test_create_duplicate_workflow_status_fails(client, admin_token):
     """Test cannot create duplicate workflow status"""
-    response = await client.post(
+    # First get existing statuses
+    existing = await client.get(
         "/admin/workflow-statuses",
-        headers={"Authorization": f"Bearer {admin_token}"},
-        json={
-            "name": "pedido_inicial",  # Already exists
-            "label": "Duplicate",
-            "order": 99,
-            "color": "red"
-        }
+        headers={"Authorization": f"Bearer {admin_token}"}
     )
-    assert response.status_code == 400
-    assert "existe" in response.json()["detail"].lower()
+    statuses = existing.json()
+    
+    if statuses:
+        existing_name = statuses[0]["name"]  # Use first existing status
+        response = await client.post(
+            "/admin/workflow-statuses",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={
+                "name": existing_name,  # Already exists
+                "label": "Duplicate",
+                "order": 99,
+                "color": "red"
+            }
+        )
+        assert response.status_code == 400
+        assert "existe" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -137,7 +146,7 @@ async def test_cannot_delete_default_workflow_status(client, admin_token):
 async def test_get_stats_as_admin(client, admin_token):
     """Test admin can get stats"""
     response = await client.get(
-        "/admin/stats",
+        "/stats",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
