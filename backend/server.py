@@ -41,6 +41,7 @@ from routes.gdpr import router as gdpr_router
 from routes.backup import router as backup_router
 from routes.scraper import router as scraper_router
 from routes.minutas import router as minutas_router
+from routes.ai_agent import router as ai_agent_router
 
 # Configuração Sentry
 if SENTRY_DSN:
