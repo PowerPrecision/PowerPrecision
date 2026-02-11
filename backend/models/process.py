@@ -212,6 +212,14 @@ class ProcessUpdate(BaseModel):
     co_applicants: Optional[List[dict]] = None  # Co-proponentes de simulação/IRS
     vendedor: Optional[dict] = None  # Dados do vendedor do CPCV
     mediador: Optional[dict] = None  # Dados do mediador imobiliário
+    
+    @field_validator('client_email', 'client_phone', mode='before')
+    @classmethod
+    def coerce_to_string(cls, v):
+        """Converter valores para string para evitar erros de validação."""
+        if v is None:
+            return None
+        return str(v)
 
 
 class ProcessResponse(BaseModel):
