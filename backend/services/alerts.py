@@ -366,16 +366,18 @@ async def create_deed_reminder(process: dict, deed_date: str, user: dict) -> Opt
         
         await db.deadlines.insert_one(deadline_doc)
         
-        # Notificar utilizadores envolvidos
+        # Notificar utilizadores envolvidos (com verificação de preferências)
         for user_id in assigned_users:
             assigned_user = await db.users.find_one({"id": user_id}, {"_id": 0})
             if assigned_user:
-                await send_email_notification(
+                await send_notification_with_preference_check(
                     assigned_user["email"],
                     f"Lembrete: Escritura em 15 dias - {process.get('client_name')}",
                     f"A escritura do cliente {process.get('client_name')} está agendada para {deed_datetime.strftime('%d/%m/%Y')}.\n\n"
                     f"Por favor, verifique se toda a documentação necessária está pronta.\n\n"
-                    f"Este lembrete foi criado automaticamente."
+                    f"Este lembrete foi criado automaticamente.",
+                    notification_type="deadline_reminder",
+                    is_urgent=True
                 )
         
         return deadline_id
