@@ -760,6 +760,12 @@ Conteúdo:
         result["url"] = url
         result["_parser"] = parser_used
         
+        # ============================================================
+        # GUARDAR EM CACHE
+        # ============================================================
+        if use_cache and not result.get("error"):
+            await self._save_to_cache(url, result)
+        
         return result
     
     # ================================================================
