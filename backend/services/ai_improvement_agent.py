@@ -152,7 +152,7 @@ class AIImprovementAgent:
                                 "days_stalled": days_stalled,
                                 "suggestion": "Contactar cliente ou banco para actualização"
                             })
-                    except:
+                    except ValueError:
                         pass
             
             # 2. Documentos em falta ou a expirar
