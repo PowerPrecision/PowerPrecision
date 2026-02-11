@@ -156,6 +156,11 @@ const DashboardLayout = ({ children, title }) => {
           href: "/configuracoes/ia",
         },
         {
+          label: "Agente IA",
+          icon: Sparkles,
+          href: "/ai-insights",
+        },
+        {
           label: "Notificações",
           icon: Settings,
           href: "/configuracoes/notificacoes",
