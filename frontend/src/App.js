@@ -223,6 +223,16 @@ function App() {
             }
           />
           
+          {/* System Logs - Admin only */}
+          <Route
+            path="/admin/logs"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <SystemLogsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
