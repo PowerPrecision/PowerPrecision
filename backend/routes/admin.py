@@ -354,3 +354,132 @@ async def migrate_process_numbers(user: dict = Depends(require_roles([UserRole.A
     }
 
 
+
+
+# ============== AI CONFIGURATION ROUTES (Admin Only) ==============
+
+@router.get("/ai-config")
+async def get_ai_configuration(user: dict = Depends(require_roles([UserRole.ADMIN]))):
+    """
+    Obtém a configuração actual de IA.
+    
+    Retorna qual modelo é usado para cada tarefa:
+    - scraper_extraction: Extração de dados de páginas web
+    - document_analysis: Análise de documentos
+    - weekly_report: Relatório semanal de erros
+    - error_analysis: Análise de erros
+    """
+    from config import AI_MODELS, AI_CONFIG_DEFAULTS, GEMINI_API_KEY, EMERGENT_LLM_KEY
+    from services.ai_page_analyzer import get_ai_config
+    
+    current_config = await get_ai_config()
+    
+    # Verificar quais chaves estão configuradas
+    available_providers = []
+    if GEMINI_API_KEY:
+        available_providers.append("gemini")
+    if EMERGENT_LLM_KEY:
+        available_providers.append("openai")
+    
+    # Filtrar modelos disponíveis
+    available_models = {}
+    for model_key, model_info in AI_MODELS.items():
+        if model_info["provider"] in available_providers:
+            available_models[model_key] = model_info
+    
+    return {
+        "current_config": current_config,
+        "defaults": AI_CONFIG_DEFAULTS,
+        "available_models": available_models,
+        "available_providers": available_providers,
+        "task_descriptions": {
+            "scraper_extraction": "Extração de dados de páginas imobiliárias (scraping)",
+            "document_analysis": "Análise e extração de dados de documentos",
+            "weekly_report": "Geração do relatório semanal de erros",
+            "error_analysis": "Análise de erros de importação"
+        }
+    }
+
+
+@router.put("/ai-config")
+async def update_ai_configuration(
+    config: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualiza a configuração de IA.
+    
+    Body:
+    {
+        "scraper_extraction": "gemini-1.5-flash",
+        "document_analysis": "gpt-4o-mini",
+        "weekly_report": "gpt-4o-mini",
+        "error_analysis": "gpt-4o-mini"
+    }
+    """
+    from config import AI_MODELS
+    from services.ai_page_analyzer import save_ai_config
+    
+    # Validar modelos
+    for task, model in config.items():
+        if model not in AI_MODELS:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Modelo '{model}' não existe. Disponíveis: {list(AI_MODELS.keys())}"
+            )
+    
+    await save_ai_config(config, user.get("email", "admin"))
+    
+    return {
+        "success": True,
+        "message": "Configuração de IA actualizada",
+        "new_config": config
+    }
+
+
+@router.post("/ai-test")
+async def test_ai_configuration(
+    model: str = "gemini-1.5-flash",
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Testa se um modelo de IA está a funcionar correctamente.
+    """
+    from config import AI_MODELS, GEMINI_API_KEY, EMERGENT_LLM_KEY
+    
+    if model not in AI_MODELS:
+        raise HTTPException(status_code=400, detail=f"Modelo '{model}' não existe")
+    
+    model_info = AI_MODELS[model]
+    provider = model_info["provider"]
+    
+    # Verificar se a chave está configurada
+    if provider == "gemini" and not GEMINI_API_KEY:
+        return {"success": False, "error": "GEMINI_API_KEY não configurada"}
+    if provider == "openai" and not EMERGENT_LLM_KEY:
+        return {"success": False, "error": "EMERGENT_LLM_KEY não configurada"}
+    
+    try:
+        if provider == "gemini":
+            from litellm import completion
+            response = completion(
+                model=f"gemini/{model}",
+                api_key=GEMINI_API_KEY,
+                messages=[{"role": "user", "content": "Responde apenas: OK"}],
+                max_tokens=10
+            )
+            result = response.choices[0].message.content.strip()
+            return {"success": True, "model": model, "response": result}
+        
+        elif provider == "openai":
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id="test",
+                system_message="Responde apenas: OK"
+            ).with_model("openai", model)
+            response = await chat.send_message(UserMessage(text="Teste"))
+            return {"success": True, "model": model, "response": response.strip()}
+        
+    except Exception as e:
+        return {"success": False, "model": model, "error": str(e)}
