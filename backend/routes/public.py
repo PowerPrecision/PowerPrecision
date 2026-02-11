@@ -13,11 +13,14 @@ SEGURANÇA: Rate limiting aplicado para prevenir abusos.
 """
 import re
 import uuid
+import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
+logger = logging.getLogger(__name__)
 from starlette.requests import Request
 
 from database import db
