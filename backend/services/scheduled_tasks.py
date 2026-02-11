@@ -603,8 +603,9 @@ class ScheduledTasksService:
         files_deleted = 0
         bytes_freed = 0
         
+        # Usar tempfile.gettempdir() para diretório temporário do sistema
         temp_dirs = [
-            Path("/tmp"),
+            Path(tempfile.gettempdir()),  # nosec B108 - using secure tempfile module
             Path("/app/backend/temp"),
             Path("/app/backend/uploads/temp"),
         ]
