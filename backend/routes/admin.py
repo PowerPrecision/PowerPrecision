@@ -998,3 +998,121 @@ async def bulk_update_notification_preferences(
             updated += 1
     
     return {"success": True, "updated_count": updated}
+
+
+# ============== SYSTEM ERROR LOGS ==============
+
+@router.get("/system-logs")
+async def get_system_error_logs(
+    page: int = 1,
+    limit: int = 50,
+    severity: str = None,
+    component: str = None,
+    error_type: str = None,
+    resolved: bool = None,
+    days: int = 7,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém logs de erros do sistema com filtros e paginação.
+    
+    Query params:
+    - page: Página (default 1)
+    - limit: Items por página (default 50)
+    - severity: Filtrar por severidade (info, warning, error, critical)
+    - component: Filtrar por componente (scraper, auth, processes, etc.)
+    - error_type: Filtrar por tipo de erro
+    - resolved: True/False para filtrar resolvidos/não resolvidos
+    - days: Últimos N dias (default 7)
+    """
+    from services.system_error_logger import system_error_logger
+    return await system_error_logger.get_errors(
+        page=page,
+        limit=limit,
+        severity=severity,
+        component=component,
+        error_type=error_type,
+        resolved=resolved,
+        days=days
+    )
+
+
+@router.get("/system-logs/stats")
+async def get_system_logs_stats(
+    days: int = 7,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Obtém estatísticas de erros dos últimos N dias."""
+    from services.system_error_logger import system_error_logger
+    return await system_error_logger.get_stats(days)
+
+
+@router.get("/system-logs/{error_id}")
+async def get_system_log_detail(
+    error_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Obtém detalhes de um erro específico."""
+    from services.system_error_logger import system_error_logger
+    error = await system_error_logger.get_error_by_id(error_id)
+    if not error:
+        raise HTTPException(status_code=404, detail="Erro não encontrado")
+    return error
+
+
+@router.post("/system-logs/mark-read")
+async def mark_errors_as_read(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Marca erros como lidos.
+    
+    Body: {"error_ids": ["id1", "id2"]}
+    """
+    error_ids = data.get("error_ids", [])
+    if not error_ids:
+        raise HTTPException(status_code=400, detail="error_ids é obrigatório")
+    
+    from services.system_error_logger import system_error_logger
+    count = await system_error_logger.mark_as_read(error_ids)
+    return {"success": True, "marked_count": count}
+
+
+@router.post("/system-logs/{error_id}/resolve")
+async def resolve_system_error(
+    error_id: str,
+    data: dict = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Marca um erro como resolvido.
+    
+    Body (opcional): {"notes": "Corrigido em versão X"}
+    """
+    data = data or {}
+    notes = data.get("notes")
+    
+    from services.system_error_logger import system_error_logger
+    success = await system_error_logger.mark_as_resolved(
+        error_id=error_id,
+        resolved_by=user.get("email", "admin"),
+        notes=notes
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Erro não encontrado")
+    
+    return {"success": True, "message": "Erro marcado como resolvido"}
+
+
+@router.delete("/system-logs/cleanup")
+async def cleanup_old_system_logs(
+    days: int = 90,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Remove logs antigos (mais de N dias)."""
+    from services.system_error_logger import system_error_logger
+    count = await system_error_logger.cleanup_old_errors(days)
+    return {"success": True, "deleted_count": count}
+
