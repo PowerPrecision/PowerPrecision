@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import the function directly to test
 from services.ai_document import build_update_data_from_extraction
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://realtor-ai-hub-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-real-estate.preview.emergentagent.com')
 
 
 class TestBuildUpdateDataFromExtraction:
