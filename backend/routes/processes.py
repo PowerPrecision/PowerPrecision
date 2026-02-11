@@ -44,7 +44,12 @@ from models.process import (
     ProcessType, ProcessCreate, ProcessUpdate, ProcessResponse
 )
 from services.auth import get_current_user, require_roles, require_staff
-from services.email import send_email_notification
+from services.notification_service import (
+    send_notification_with_preference_check,
+    send_status_change_notification,
+    send_new_process_notification,
+    send_to_admins
+)
 from services.history import log_history, log_data_changes
 from services.alerts import (
     get_process_alerts,
