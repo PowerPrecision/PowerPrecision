@@ -82,6 +82,55 @@ async def initialize_folders(client_id: str, user: dict = Depends(get_current_us
     return {"success": success}
 
 
+@router.get("/client/{client_id}/download")
+async def get_download_url(
+    client_id: str,
+    file_path: str,
+    user: dict = Depends(get_current_user)
+):
+    """Gera um URL temporário para download de um ficheiro."""
+    process = await db.processes.find_one({"id": client_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    # Verificar se o ficheiro pertence ao cliente (segurança)
+    client_name = process.get("client_name", "Cliente")
+    expected_prefix = f"clientes/{client_id}_"
+    
+    if not file_path.startswith(expected_prefix):
+        raise HTTPException(status_code=403, detail="Acesso não autorizado a este ficheiro")
+    
+    url = s3_service.get_presigned_url(file_path)
+    if not url:
+        raise HTTPException(status_code=500, detail="Erro ao gerar link de download")
+    
+    return {"success": True, "url": url}
+
+
+@router.delete("/client/{client_id}/file")
+async def delete_file_s3(
+    client_id: str,
+    file_path: str,
+    user: dict = Depends(get_current_user)
+):
+    """Elimina um ficheiro do S3."""
+    process = await db.processes.find_one({"id": client_id})
+    if not process:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    # Verificar se o ficheiro pertence ao cliente (segurança)
+    expected_prefix = f"clientes/{client_id}_"
+    
+    if not file_path.startswith(expected_prefix):
+        raise HTTPException(status_code=403, detail="Acesso não autorizado a este ficheiro")
+    
+    success = s3_service.delete_file(file_path)
+    if not success:
+        raise HTTPException(status_code=500, detail="Erro ao eliminar ficheiro")
+    
+    return {"success": True, "message": "Ficheiro eliminado"}
+
+
 # ====================================================================
 # PARTE 2: GESTÃO DE VALIDADES (EXISTENTE)
 # ====================================================================
