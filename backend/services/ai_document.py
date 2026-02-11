@@ -88,8 +88,8 @@ MIN_TEXT_LENGTH = 100
 # Tamanho máximo de imagem (lado maior)
 MAX_IMAGE_SIZE = 1024
 
-# Tamanho máximo de ficheiro (10MB)
-MAX_FILE_SIZE = 10 * 1024 * 1024
+# Tamanho máximo de ficheiro (20MB)
+MAX_FILE_SIZE = 20 * 1024 * 1024
 
 # Número máximo de ficheiros a processar em paralelo
 MAX_CONCURRENT_ANALYSIS = 5
