@@ -15,6 +15,7 @@ import FilteredProcessList from "./pages/FilteredProcessList";
 import PendingItemsList from "./pages/PendingItemsList";
 import SystemConfigPage from "./pages/SystemConfigPage";
 import AIConfigPage from "./pages/AIConfigPage";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import PropertiesPage from "./pages/PropertiesPage";
 import ClientsPage from "./pages/ClientsPage";
 import LeadsPage from "./pages/LeadsPage";
