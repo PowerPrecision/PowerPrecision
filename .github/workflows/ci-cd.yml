@@ -121,11 +121,10 @@ jobs:
           DB_NAME: test_db
           JWT_SECRET: test-secret-key-for-ci
           CORS_ORIGINS: http://localhost:3000
+          TESTING: "true"
         run: |
           cd backend
-          # Criar utilizadores de teste
-          python seed.py
-          # Executar testes
+          # Executar testes (conftest.py cria os utilizadores de teste automaticamente)
           pytest tests/test_auth.py tests/test_admin.py tests/test_processes.py tests/test_activities.py tests/test_public.py -v
 
       - name: Upload coverage
