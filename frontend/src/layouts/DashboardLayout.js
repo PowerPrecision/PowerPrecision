@@ -142,6 +142,11 @@ const DashboardLayout = ({ children, title }) => {
           icon: Sparkles,
           href: "/configuracoes/ia",
         },
+        {
+          label: "Notificações",
+          icon: Settings,
+          href: "/configuracoes/notificacoes",
+        },
       ];
     }
 
