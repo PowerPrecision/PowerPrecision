@@ -776,14 +776,231 @@ async def analyze_single_file(
         else:
             result.error = analysis_result.get("error", "Erro na análise")
             logger.warning(f"❌ Falha ao analisar {doc_filename}: {result.error}")
+            
+            # Guardar erro no log de importação
+            await log_import_error(
+                client_name=actual_client_name,
+                process_id=process_id,
+                filename=doc_filename,
+                document_type=document_type,
+                error=result.error,
+                user_email=user.get("email")
+            )
         
     except ValueError as e:
         result.error = str(e)
+        await log_import_error(
+            client_name=client_name,
+            process_id=process_id if 'process_id' in dir() else None,
+            filename=doc_filename,
+            document_type=document_type if 'document_type' in dir() else "desconhecido",
+            error=str(e),
+            user_email=user.get("email")
+        )
     except Exception as e:
         result.error = f"Erro inesperado: {str(e)}"
         logger.error(f"Erro ao processar {filename}: {e}", exc_info=True)
+        await log_import_error(
+            client_name=client_name,
+            process_id=process_id if 'process_id' in dir() else None,
+            filename=doc_filename,
+            document_type=document_type if 'document_type' in dir() else "desconhecido",
+            error=str(e),
+            user_email=user.get("email")
+        )
     
     return result
+
+
+async def log_import_error(
+    client_name: str,
+    process_id: Optional[str],
+    filename: str,
+    document_type: str,
+    error: str,
+    user_email: str = None
+):
+    """
+    Guardar erro de importação na base de dados para análise posterior.
+    """
+    try:
+        error_log = {
+            "id": str(uuid.uuid4()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "client_name": client_name,
+            "process_id": process_id,
+            "filename": filename,
+            "document_type": document_type,
+            "error": error,
+            "user_email": user_email,
+            "resolved": False
+        }
+        
+        await db.import_errors.insert_one(error_log)
+        logger.info(f"Erro de importação registado: {filename} -> {error[:50]}...")
+        
+    except Exception as e:
+        logger.error(f"Falha ao registar erro de importação: {e}")
+
+
+@router.get("/import-errors")
+async def get_import_errors(
+    limit: int = 100,
+    document_type: Optional[str] = None,
+    resolved: Optional[bool] = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obter lista de erros de importação para análise.
+    
+    Parâmetros:
+    - limit: Número máximo de erros a retornar (default 100)
+    - document_type: Filtrar por tipo de documento
+    - resolved: Filtrar por estado (True=resolvidos, False=pendentes)
+    """
+    query = {}
+    
+    if document_type:
+        query["document_type"] = document_type
+    if resolved is not None:
+        query["resolved"] = resolved
+    
+    errors = await db.import_errors.find(
+        query,
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(length=limit)
+    
+    # Agrupar por tipo de erro para análise
+    error_summary = {}
+    for err in errors:
+        error_key = err.get("error", "Desconhecido")[:100]  # Truncar para agrupar
+        if error_key not in error_summary:
+            error_summary[error_key] = {
+                "count": 0,
+                "document_types": set(),
+                "clients": set()
+            }
+        error_summary[error_key]["count"] += 1
+        error_summary[error_key]["document_types"].add(err.get("document_type", "?"))
+        error_summary[error_key]["clients"].add(err.get("client_name", "?"))
+    
+    # Converter sets para listas
+    for key in error_summary:
+        error_summary[key]["document_types"] = list(error_summary[key]["document_types"])
+        error_summary[key]["clients"] = list(error_summary[key]["clients"])[:5]  # Limitar a 5 exemplos
+    
+    return {
+        "total_errors": len(errors),
+        "errors": errors,
+        "summary": error_summary
+    }
+
+
+@router.get("/import-errors/summary")
+async def get_import_errors_summary(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obter resumo estatístico dos erros de importação.
+    Útil para identificar padrões e áreas de melhoria.
+    """
+    # Agregação por tipo de documento
+    pipeline_by_type = [
+        {"$group": {"_id": "$document_type", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    
+    # Agregação por erro (primeiros 50 caracteres)
+    pipeline_by_error = [
+        {"$project": {
+            "error_prefix": {"$substr": ["$error", 0, 80]},
+            "document_type": 1
+        }},
+        {"$group": {"_id": "$error_prefix", "count": {"$sum": 1}, "types": {"$addToSet": "$document_type"}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]
+    
+    # Agregação temporal (últimas 24h, 7 dias, 30 dias)
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    
+    errors_24h = await db.import_errors.count_documents({
+        "timestamp": {"$gte": (now - timedelta(hours=24)).isoformat()}
+    })
+    errors_7d = await db.import_errors.count_documents({
+        "timestamp": {"$gte": (now - timedelta(days=7)).isoformat()}
+    })
+    errors_30d = await db.import_errors.count_documents({
+        "timestamp": {"$gte": (now - timedelta(days=30)).isoformat()}
+    })
+    total_errors = await db.import_errors.count_documents({})
+    unresolved = await db.import_errors.count_documents({"resolved": False})
+    
+    by_type_cursor = db.import_errors.aggregate(pipeline_by_type)
+    by_type = [doc async for doc in by_type_cursor]
+    
+    by_error_cursor = db.import_errors.aggregate(pipeline_by_error)
+    by_error = [doc async for doc in by_error_cursor]
+    
+    return {
+        "total_errors": total_errors,
+        "unresolved": unresolved,
+        "temporal": {
+            "last_24h": errors_24h,
+            "last_7d": errors_7d,
+            "last_30d": errors_30d
+        },
+        "by_document_type": [{"type": d["_id"], "count": d["count"]} for d in by_type],
+        "top_errors": [{"error": d["_id"], "count": d["count"], "types": d["types"]} for d in by_error]
+    }
+
+
+@router.post("/import-errors/{error_id}/resolve")
+async def resolve_import_error(
+    error_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Marcar um erro de importação como resolvido."""
+    result = await db.import_errors.update_one(
+        {"id": error_id},
+        {"$set": {"resolved": True, "resolved_by": user.get("email"), "resolved_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count > 0:
+        return {"success": True, "message": "Erro marcado como resolvido"}
+    else:
+        return {"success": False, "message": "Erro não encontrado"}
+
+
+@router.delete("/import-errors/clear")
+async def clear_import_errors(
+    older_than_days: int = 30,
+    only_resolved: bool = True,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Limpar erros de importação antigos.
+    
+    Parâmetros:
+    - older_than_days: Limpar erros mais antigos que X dias (default 30)
+    - only_resolved: Se True, limpa apenas erros resolvidos (default True)
+    """
+    from datetime import timedelta
+    
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=older_than_days)).isoformat()
+    
+    query = {"timestamp": {"$lt": cutoff_date}}
+    if only_resolved:
+        query["resolved"] = True
+    
+    result = await db.import_errors.delete_many(query)
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"{result.deleted_count} erros removidos (anteriores a {older_than_days} dias)"
+    }
 
 
 @router.get("/check-client")
