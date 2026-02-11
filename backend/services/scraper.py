@@ -410,6 +410,9 @@ class PropertyScraper:
         Usa Gemini 2.0 Flash para extrair dados de imóveis quando 
         os parsers específicos falham.
         
+        O modelo usado é determinado pela configuração do admin em
+        /api/admin/ai-config.
+        
         Args:
             html_content: Conteúdo HTML da página
             url: URL da página (para contexto)
@@ -417,6 +420,15 @@ class PropertyScraper:
         Returns:
             Dict com dados extraídos ou erro
         """
+        # Obter modelo configurado
+        configured_model = await self._get_ai_model_for_scraping()
+        logger.info(f"Usando modelo configurado: {configured_model}")
+        
+        # Verificar se é Gemini ou OpenAI
+        if configured_model.startswith("gpt"):
+            return await self._extract_with_openai(html_content, url, configured_model)
+        
+        # Gemini (default)
         if not GEMINI_API_KEY:
             logger.warning("GEMINI_API_KEY não configurada - fallback IA desactivado")
             return {}
@@ -504,6 +516,69 @@ Conteúdo:
                 logger.warning(f"Gemini quota excedida - continuando sem IA: {e}")
                 return {"_error": "quota_exceeded", "_fallback": True}
             logger.error(f"Erro Gemini: {type(e).__name__}: {e}")
+            return {"_error": str(e)}
+    
+    async def _extract_with_openai(self, html_content: str, url: str, model: str) -> Dict[str, Any]:
+        """
+        Usa OpenAI como alternativa ao Gemini para extracção.
+        
+        Args:
+            html_content: Conteúdo HTML da página
+            url: URL da página
+            model: Modelo OpenAI a usar (ex: 'gpt-4o-mini')
+            
+        Returns:
+            Dict com dados extraídos ou erro
+        """
+        from config import EMERGENT_LLM_KEY
+        
+        if not EMERGENT_LLM_KEY:
+            logger.warning("EMERGENT_LLM_KEY não configurada - OpenAI desactivado")
+            return {"_error": "EMERGENT_LLM_KEY não configurada"}
+        
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            
+            clean_html = self._clean_text(html_content)[:15000]
+            
+            prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai os dados em formato JSON.
+
+URL: {url}
+
+Extrai: titulo, preco (número), localizacao, tipologia, area, quartos, casas_banho, descricao, certificacao_energetica, ano_construcao, estado, agente_nome, agente_telefone, agente_email, agencia_nome
+
+Responde APENAS com JSON. Usa null para campos não encontrados.
+
+Conteúdo:
+{clean_html}"""
+            
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id="scraper-extraction",
+                system_message="Extrais dados de páginas imobiliárias. Respondes sempre em JSON válido."
+            ).with_model("openai", model)
+            
+            response = await chat.send_message(UserMessage(text=prompt))
+            
+            result_text = response.strip()
+            if result_text.startswith("```json"):
+                result_text = result_text[7:]
+            if result_text.startswith("```"):
+                result_text = result_text[3:]
+            if result_text.endswith("```"):
+                result_text = result_text[:-3]
+            
+            data = json.loads(result_text.strip())
+            
+            logger.info(f"✓ OpenAI ({model}) extraiu dados de {url}")
+            
+            return {
+                **data,
+                "_extracted_by": f"openai-{model}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro OpenAI: {e}")
             return {"_error": str(e)}
     
     # ================================================================
