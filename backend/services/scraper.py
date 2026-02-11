@@ -1,19 +1,40 @@
+"""
+====================================================================
+SCRAPER SERVICE - EXTRAÇÃO HÍBRIDA (BeautifulSoup + Gemini)
+====================================================================
+Este serviço extrai dados de portais imobiliários usando:
+1. Parsers específicos (BeautifulSoup) para sites conhecidos
+2. Gemini 1.5 Flash como fallback para sites desconhecidos ou 
+   quando a extração falha
+
+Configuração:
+- GEMINI_API_KEY: Chave API do Google Gemini
+- Os parsers específicos são gratuitos (sem custo de API)
+- O Gemini é usado apenas quando necessário (custo muito baixo)
+====================================================================
+"""
 import logging
 import re
 import json
 import ssl
 import httpx
 from bs4 import BeautifulSoup
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from fake_useragent import UserAgent
+from urllib.parse import urlparse, urljoin
+from collections import deque
+import asyncio
+
+from config import GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
+
 
 class PropertyScraper:
     def __init__(self):
         self.ua = UserAgent()
         self.timeout = 30.0
-
+    
     def _get_headers(self) -> Dict[str, str]:
         """Gera headers realistas para evitar bloqueios."""
         return {
@@ -31,24 +52,140 @@ class PropertyScraper:
             "Sec-Fetch-User": "?1",
             "Cache-Control": "max-age=0",
         }
+    
+    def _clean_text(self, text: str) -> str:
+        """Limpa texto HTML removendo scripts, estilos e whitespace extra."""
+        if not text:
+            return ""
+        # Remover tags script e style
+        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        # Remover tags HTML
+        text = re.sub(r'<[^>]+>', ' ', text)
+        # Normalizar whitespace
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+    
+    # ================================================================
+    # EXTRAÇÃO COM GEMINI (FALLBACK IA)
+    # ================================================================
+    
+    async def _extract_with_gemini(self, html_content: str, url: str) -> Dict[str, Any]:
+        """
+        Usa Gemini 1.5 Flash para extrair dados de imóveis quando 
+        os parsers específicos falham.
+        
+        Args:
+            html_content: Conteúdo HTML da página
+            url: URL da página (para contexto)
+            
+        Returns:
+            Dict com dados extraídos ou erro
+        """
+        if not GEMINI_API_KEY:
+            logger.warning("GEMINI_API_KEY não configurada - fallback IA desactivado")
+            return {}
+        
+        try:
+            from litellm import completion
+            
+            # Limitar HTML para poupar tokens (15k chars ~= 3-4k tokens)
+            clean_html = self._clean_text(html_content)[:15000]
+            
+            prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai os dados em formato JSON estrito.
 
+URL: {url}
+
+Extrai APENAS os seguintes campos (usa null se não encontrares):
+- titulo: título/nome do imóvel
+- preco: preço em número (sem €, sem pontos de milhar)
+- localizacao: localização completa (freguesia, concelho, distrito)
+- tipologia: tipo (T0, T1, T2, T3, etc. ou moradia, terreno, loja)
+- area: área útil em m² (apenas número)
+- quartos: número de quartos
+- casas_banho: número de casas de banho
+- descricao: descrição breve (max 200 chars)
+- certificacao_energetica: certificado energético (A, B, C, D, E, F, G)
+- ano_construcao: ano de construção
+- estado: estado do imóvel (novo, usado, para renovar)
+
+IMPORTANTE: Responde APENAS com o JSON, sem explicações ou markdown.
+
+Conteúdo:
+{clean_html}"""
+            
+            response = completion(
+                model="gemini/gemini-1.5-flash",
+                api_key=GEMINI_API_KEY,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,  # Baixa temperatura para respostas mais consistentes
+                max_tokens=1000
+            )
+            
+            # Extrair resposta
+            result_text = response.choices[0].message.content.strip()
+            
+            # Limpar possíveis markdown code blocks
+            if result_text.startswith("```json"):
+                result_text = result_text[7:]
+            if result_text.startswith("```"):
+                result_text = result_text[3:]
+            if result_text.endswith("```"):
+                result_text = result_text[:-3]
+            
+            # Parsear JSON
+            data = json.loads(result_text.strip())
+            
+            logger.info(f"✓ Gemini extraiu dados de {url}: {data.get('titulo', 'N/A')}")
+            
+            return {
+                "titulo": data.get("titulo"),
+                "preco": data.get("preco"),
+                "localizacao": data.get("localizacao"),
+                "tipologia": data.get("tipologia"),
+                "area": data.get("area"),
+                "quartos": data.get("quartos"),
+                "casas_banho": data.get("casas_banho"),
+                "descricao": data.get("descricao"),
+                "certificado_energetico": data.get("certificacao_energetica"),
+                "ano_construcao": data.get("ano_construcao"),
+                "estado": data.get("estado"),
+                "_extracted_by": "gemini-1.5-flash"
+            }
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Gemini retornou JSON inválido: {e}")
+            return {"_error": "JSON inválido da IA"}
+        except Exception as e:
+            logger.error(f"Erro Gemini: {type(e).__name__}: {e}")
+            return {"_error": str(e)}
+    
+    # ================================================================
+    # SCRAPING PRINCIPAL (HÍBRIDO)
+    # ================================================================
+    
     async def scrape_url(self, url: str) -> Dict[str, Any]:
         """
-        Extrai dados de uma URL imobiliária.
-        Suporta Idealista, Imovirtual, Casa Sapo, SuperCasa, etc.
+        Extrai dados de uma URL imobiliária usando abordagem híbrida:
+        1. Tenta parsers específicos (BeautifulSoup)
+        2. Se falhar, usa Gemini como fallback
+        
+        Returns:
+            Dict com dados do imóvel
         """
         if not url:
             return {"error": "URL vazia"}
-
+        
         # Normalizar URL
         if not url.startswith("http"):
             url = "https://" + url
-
-        # Tentar primeiro com SSL, depois sem verificação (alguns sites têm certificados problemáticos)
+        
+        html_content = None
+        parser_used = None
+        
+        # Tentar obter HTML (primeiro com SSL, depois sem)
         for verify_ssl in [True, False]:
             try:
-                # Pequeno delay aleatório para parecer mais humano
-                import asyncio
                 import random
                 await asyncio.sleep(random.uniform(0.3, 1.0))
                 
@@ -56,309 +193,337 @@ class PropertyScraper:
                     timeout=self.timeout,
                     follow_redirects=True,
                     verify=verify_ssl,
-                    http2=True  # Suporte HTTP/2 como browsers modernos
+                    http2=True
                 ) as client:
                     response = await client.get(url, headers=self._get_headers())
                     
-                    if response.status_code != 200:
-                        logger.warning(f"Erro ao aceder {url}: Status {response.status_code}")
-                        if response.status_code == 403:
-                            return {
-                                "url": url,
-                                "error": "Site bloqueou o acesso (código 403). Tente novamente mais tarde.",
-                                "fonte": "erro"
-                            }
-                        return {
-                            "url": url,
-                            "error": f"Erro HTTP {response.status_code}",
-                            "fonte": "erro"
-                        }
-
-                    html_content = response.text
-                    soup = BeautifulSoup(html_content, 'html.parser')
-                    
-                    # Detectar fonte e extrair dados específicos
-                    domain = url.lower()
-                    data = {}
-
-                    if "idealista.pt" in domain:
-                        data = self._parse_idealista(soup, html_content)
-                    elif "imovirtual.com" in domain:
-                        data = self._parse_imovirtual(soup)
-                    elif "supercasa.pt" in domain:
-                        data = self._parse_supercasa(soup)
-                    elif "casasapo.pt" in domain:
-                        data = self._parse_casasapo(soup)
-                    elif "remax.pt" in domain:
-                        data = self._parse_remax(soup)
-                    elif "era.pt" in domain:
-                        data = self._parse_era(soup, html_content)
-                    elif "kwportugal.pt" in domain:
-                        data = self._parse_kw(soup)
-                    else:
-                        data = self._parse_generic(soup)
-
-                # Adicionar metadados comuns
-                    data["url"] = url
-                    data["scraped_at"] = datetime.now(timezone.utc).isoformat()
-                    
-                    # Se não extraiu consultor, tentar genérico
-                    if not data.get("consultor"):
-                        data["consultor"] = self._extract_generic_contacts(soup)
-
-                    return data
-
-            except ssl.SSLError as e:
+                    if response.status_code == 200:
+                        html_content = response.text
+                        break
+                    elif response.status_code == 403:
+                        return {"error": "Acesso bloqueado (403). Site pode ter protecção anti-bot."}
+                    elif response.status_code == 404:
+                        return {"error": "Página não encontrada (404)"}
+                        
+            except httpx.ConnectError:
                 if verify_ssl:
-                    logger.warning(f"Erro SSL para {url}, a tentar sem verificação...")
-                    continue  # Tentar sem SSL
-                else:
-                    logger.error(f"Erro SSL ao fazer scraping de {url}: {str(e)}")
-                    return {"url": url, "error": f"Erro SSL: {str(e)}"}
-            except httpx.ConnectError as e:
-                if verify_ssl and "SSL" in str(e):
-                    logger.warning(f"Erro SSL para {url}, a tentar sem verificação...")
+                    logger.warning(f"SSL error em {url}, tentando sem verificação")
                     continue
-                logger.error(f"Erro de conexão ao fazer scraping de {url}: {str(e)}")
-                return {"url": url, "error": f"Erro de conexão: {str(e)}"}
-            except httpx.RequestError as e:
-                logger.error(f"Erro de rede ao fazer scraping de {url}: {str(e)}")
-                return {"url": url, "error": f"Erro de rede: {str(e)}"}
             except Exception as e:
-                logger.error(f"Erro inesperado no scraping de {url}: {str(e)}")
-                return {"url": url, "error": f"Erro interno: {str(e)}"}
+                logger.error(f"Erro HTTP: {e}")
+                return {"error": f"Erro de conexão: {str(e)}"}
         
-        return {"url": url, "error": "Não foi possível aceder ao site"}
-
-    def _clean_price(self, price_str: str) -> Optional[float]:
-        """Limpa string de preço para float."""
-        if not price_str:
-            return None
-        # Remover símbolos e texto
-        clean = re.sub(r'[^\d,.]', '', price_str)
-        # Normalizar separadores (assumindo formato PT 1.000,00 ou EN 1,000.00)
-        if ',' in clean and '.' in clean:
-            if clean.find(',') > clean.find('.'): # 1.000,00
-                clean = clean.replace('.', '').replace(',', '.')
-            else: # 1,000.00
-                clean = clean.replace(',', '')
-        elif ',' in clean:
-            clean = clean.replace(',', '.')
+        if not html_content:
+            return {"error": "Não foi possível obter o conteúdo da página"}
         
-        try:
-            return float(clean)
-        except ValueError:
-            return None
-
-    def _clean_text(self, text: str) -> str:
-        """Limpa espaços extras e quebras de linha."""
-        if not text:
-            return ""
-        return " ".join(text.split())
-
-    # --- Parsers Específicos (Lógica de Extração) ---
-
-    def _parse_idealista(self, soup: BeautifulSoup, html_content: str = "") -> Dict[str, Any]:
-        data = {"fonte": "idealista"}
+        # Parsear HTML
+        soup = BeautifulSoup(html_content, 'html.parser')
         
-        # Título
-        title_elem = soup.find('h1', class_='txt-bold') or soup.find('span', class_='main-info__title-main')
-        if title_elem:
-            data["titulo"] = self._clean_text(title_elem.get_text())
-
-        # Preço - múltiplas estratégias
-        price_elem = soup.find('span', class_='txt-bold', string=re.compile(r'€')) or soup.find('span', class_='info-data-price')
-        if not price_elem:
-            price_elem = soup.find('span', class_='h2-simulated')
-        if price_elem:
-            data["preco"] = self._clean_price(price_elem.get_text())
+        # Detectar fonte e usar parser específico
+        url_lower = url.lower()
+        result = {}
         
-        # Fallback: procurar no JSON-LD
-        if not data.get("preco"):
-            try:
-                json_ld = soup.find('script', type='application/ld+json')
-                if json_ld:
-                    ld_data = json.loads(json_ld.string)
-                    if isinstance(ld_data, list):
-                        ld_data = ld_data[0]
-                    if 'offers' in ld_data:
-                        data["preco"] = self._clean_price(str(ld_data['offers'].get('price', '')))
-            except:
-                pass
-
-        # Localização
-        loc_elem = soup.find('div', id='headerMap') or soup.find('span', class_='main-info__title-minor')
-        if not loc_elem:
-            loc_elem = soup.find('span', class_='txt-regular') 
-        if loc_elem:
-            data["localizacao"] = self._clean_text(loc_elem.get_text())
-
-        # Características (Tipologia, Área)
-        features = soup.find_all('span', class_='txt-big')
-        for feat in features:
-            text = feat.get_text().lower()
-            if 't' in text and any(c.isdigit() for c in text):
-                data["tipologia"] = self._clean_text(text)
-            elif 'm²' in text or 'm2' in text:
-                area_text = self._clean_text(text)
-                # Extrair só o número
-                area_match = re.search(r'(\d+)', area_text)
-                if area_match:
-                    data["area"] = area_match.group(1)
-
-        # Foto Principal
-        img_elem = soup.find('img', class_='main-image_img')
-        if img_elem and img_elem.get('src'):
-            data["foto_principal"] = img_elem.get('src')
-        # Fallback: OpenGraph
-        if not data.get("foto_principal"):
-            og_img = soup.find('meta', property='og:image')
-            if og_img:
-                data["foto_principal"] = og_img.get('content')
-
-        # Consultor / Agência
-        advertiser = soup.find('div', class_='advertiser-name')
-        if advertiser:
-            data["consultor"] = {
-                "nome": self._clean_text(advertiser.get_text()),
-                "tipo": "Agência/Profissional"
-            }
+        if "idealista" in url_lower:
+            result = self._parse_idealista(soup, html_content)
+            parser_used = "idealista"
+        elif "imovirtual" in url_lower:
+            result = self._parse_imovirtual(soup)
+            parser_used = "imovirtual"
+        elif "casasapo" in url_lower or "casa.sapo" in url_lower:
+            result = self._parse_casasapo(soup)
+            parser_used = "casasapo"
+        elif "remax" in url_lower:
+            result = self._parse_remax(soup)
+            parser_used = "remax"
+        elif "era.pt" in url_lower:
+            result = self._parse_era(soup, html_content)
+            parser_used = "era"
+        elif "kw.com" in url_lower or "kwportugal" in url_lower:
+            result = self._parse_kw(soup)
+            parser_used = "kw"
+        elif "supercasa" in url_lower:
+            result = self._parse_supercasa(soup)
+            parser_used = "supercasa"
+        else:
+            result = self._parse_generic(soup)
+            parser_used = "generic"
+        
+        # ============================================================
+        # FALLBACK GEMINI: Se dados essenciais estiverem em falta
+        # ============================================================
+        needs_gemini = False
+        
+        # Verificar se dados essenciais foram extraídos
+        if not result.get("titulo") and not result.get("preco"):
+            needs_gemini = True
+            logger.info(f"Parser {parser_used} falhou - título e preço em falta")
+        elif parser_used == "generic":
+            # Para sites genéricos, sempre tentar Gemini para melhor extração
+            needs_gemini = True
+            logger.info(f"Site genérico detectado - usando Gemini para melhor extração")
+        
+        if needs_gemini:
+            gemini_result = await self._extract_with_gemini(html_content, url)
             
-        phone_btn = soup.find('a', class_='phone-cta')
-        if phone_btn and phone_btn.get('href'):
-             if not data.get("consultor"): data["consultor"] = {}
-             data["consultor"]["telefone"] = phone_btn.get('href').replace('tel:', '')
-
-        return data
-
-    def _parse_imovirtual(self, soup: BeautifulSoup) -> Dict[str, Any]:
-        data = {"fonte": "imovirtual"}
+            if gemini_result and not gemini_result.get("_error"):
+                # Fundir resultados (Gemini tem prioridade para campos nulos)
+                for key, value in gemini_result.items():
+                    if key.startswith("_"):
+                        continue
+                    if value is not None and (not result.get(key) or result.get(key) == "N/A"):
+                        result[key] = value
+                
+                result["_extracted_by"] = "hybrid (parser + gemini)"
+            else:
+                result["_extracted_by"] = parser_used
+        else:
+            result["_extracted_by"] = parser_used
         
-        # Implementação básica para Imovirtual (estrutura muda frequentemente)
-        title = soup.find('h1', {'data-cy': 'adPageAdTitle'})
-        if title: data["titulo"] = self._clean_text(title.get_text())
+        # Adicionar URL e metadados
+        result["url"] = url
+        result["_parser"] = parser_used
         
-        price = soup.find('strong', {'data-cy': 'adPageHeaderPrice'})
-        if price: data["preco"] = self._clean_price(price.get_text())
-        
-        return data
-
-    def _parse_supercasa(self, soup: BeautifulSoup) -> Dict[str, Any]:
-        data = {"fonte": "supercasa"}
-        title = soup.find('h1', class_='property-title')
-        if title: data["titulo"] = self._clean_text(title.get_text())
-        
-        price = soup.find('div', class_='property-price')
-        if price: data["preco"] = self._clean_price(price.get_text())
-        
-        return data
-        
-    def _parse_casasapo(self, soup: BeautifulSoup) -> Dict[str, Any]:
-        data = {"fonte": "casasapo"}
-        # Lógica Casa Sapo
-        return data
-
-    def _parse_remax(self, soup: BeautifulSoup) -> Dict[str, Any]:
-        data = {"fonte": "remax"}
-        # Lógica Remax
-        return data
-        
-    def _parse_era(self, soup: BeautifulSoup, html_content: str = "") -> Dict[str, Any]:
-        data = {"fonte": "era"}
+        return result
+    
+    # ================================================================
+    # PARSERS ESPECÍFICOS
+    # ================================================================
+    
+    def _parse_idealista(self, soup: BeautifulSoup, raw_html: str = "") -> Dict[str, Any]:
+        """Parser para Idealista.pt"""
+        data = {}
         
         # Título
-        title = soup.find('h1', class_='property-title') or soup.find('h1')
+        title = soup.find('h1', class_='main-info__title')
         if title:
-            data["titulo"] = self._clean_text(title.get_text())
+            data["titulo"] = title.get_text(strip=True)
         
         # Preço
-        price_elem = soup.find('span', class_='property-price') or soup.find('div', class_='price')
-        if price_elem:
-            data["preco"] = self._clean_price(price_elem.get_text())
+        price = soup.find('span', class_='info-data-price')
+        if not price:
+            price = soup.find('span', {'class': lambda x: x and 'price' in x.lower()})
+        if price:
+            price_text = re.sub(r'[^\d]', '', price.get_text())
+            if price_text:
+                data["preco"] = int(price_text)
         
         # Localização
-        loc = soup.find('div', class_='property-location') or soup.find('span', class_='location')
-        if loc:
-            data["localizacao"] = self._clean_text(loc.get_text())
+        location = soup.find('span', class_='main-info__title-minor')
+        if location:
+            data["localizacao"] = location.get_text(strip=True)
         
         # Características
-        features = soup.find_all('li', class_='property-feature')
-        for f in features:
-            text = f.get_text().lower()
-            if 't' in text and any(c.isdigit() for c in text):
-                data["tipologia"] = self._clean_text(text)
-            elif 'm²' in text:
-                data["area"] = self._clean_text(re.sub(r'[^\d]', '', text))
+        features = soup.find_all('li', class_='info-features-item')
+        for feat in features:
+            text = feat.get_text(strip=True).lower()
+            if 'm²' in text or 'm2' in text:
+                area = re.search(r'(\d+)', text)
+                if area:
+                    data["area"] = int(area.group(1))
+            elif 'quarto' in text or 'hab' in text:
+                rooms = re.search(r'(\d+)', text)
+                if rooms:
+                    data["quartos"] = int(rooms.group(1))
+            elif 'wc' in text or 'banho' in text:
+                baths = re.search(r'(\d+)', text)
+                if baths:
+                    data["casas_banho"] = int(baths.group(1))
         
-        # Foto
-        og_img = soup.find('meta', property='og:image')
-        if og_img:
-            data["foto_principal"] = og_img.get('content')
+        # Tipologia
+        if data.get("quartos"):
+            data["tipologia"] = f"T{data['quartos']}"
         
-        # Consultor
-        agent = soup.find('div', class_='agent-info') or soup.find('div', class_='consultant')
-        if agent:
-            name = agent.find('span', class_='name') or agent.find('h4')
-            phone = agent.find('a', href=re.compile(r'^tel:'))
-            data["consultor"] = {}
-            if name:
-                data["consultor"]["nome"] = self._clean_text(name.get_text())
-            if phone:
-                data["consultor"]["telefone"] = phone.get('href').replace('tel:', '')
+        # Descrição
+        desc = soup.find('div', class_='comment')
+        if desc:
+            data["descricao"] = desc.get_text(strip=True)[:500]
         
         return data
-        
-    def _parse_kw(self, soup: BeautifulSoup) -> Dict[str, Any]:
-        data = {"fonte": "kw"}
-        # Lógica KW
-        return data
-
-    def _parse_generic(self, soup: BeautifulSoup) -> Dict[str, Any]:
-        """Tentativa de extração genérica usando meta tags OpenGraph."""
-        data = {"fonte": "generico"}
+    
+    def _parse_imovirtual(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Parser para Imovirtual.com"""
+        data = {}
         
         # Título
-        og_title = soup.find('meta', property='og:title')
-        if og_title: data["titulo"] = og_title.get('content')
-        else: 
-            title = soup.find('title')
-            if title: data["titulo"] = title.get_text()
-
-        # Imagem
-        og_image = soup.find('meta', property='og:image')
-        if og_image: data["foto_principal"] = og_image.get('content')
-
-        # Descrição
-        og_desc = soup.find('meta', property='og:description')
-        if og_desc: data["descricao"] = og_desc.get('content')
+        title = soup.find('h1', {'data-cy': 'adPageAdTitle'})
+        if not title:
+            title = soup.find('h1')
+        if title:
+            data["titulo"] = title.get_text(strip=True)
         
-        # Tentar encontrar preço (procura por símbolo € e dígitos)
-        # Muito rudimentar, apenas fallback
-        body_text = soup.get_text()
-        price_match = re.search(r'€\s?[\d.,]+', body_text)
-        if price_match:
-            data["preco"] = self._clean_price(price_match.group(0))
-
+        # Preço
+        price = soup.find('strong', {'data-cy': 'adPageHeaderPrice'})
+        if not price:
+            price = soup.find('strong', class_=lambda x: x and 'price' in str(x).lower())
+        if price:
+            price_text = re.sub(r'[^\d]', '', price.get_text())
+            if price_text:
+                data["preco"] = int(price_text)
+        
+        # Localização
+        location = soup.find('a', {'data-cy': 'adPageHeaderBreadcrumb'})
+        if location:
+            data["localizacao"] = location.get_text(strip=True)
+        
+        # Área
+        area_elem = soup.find('div', {'data-testid': 'table-value-area'})
+        if area_elem:
+            area = re.search(r'(\d+)', area_elem.get_text())
+            if area:
+                data["area"] = int(area.group(1))
+        
+        # Quartos
+        rooms_elem = soup.find('div', {'data-testid': 'table-value-rooms_num'})
+        if rooms_elem:
+            rooms = re.search(r'(\d+)', rooms_elem.get_text())
+            if rooms:
+                data["quartos"] = int(rooms.group(1))
+                data["tipologia"] = f"T{data['quartos']}"
+        
         return data
-
-    def _extract_generic_contacts(self, soup: BeautifulSoup) -> Dict[str, str]:
-        """Tenta encontrar contactos telefónicos e emails na página."""
-        contacts = {}
+    
+    def _parse_casasapo(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Parser para Casa.sapo.pt"""
+        data = {}
         
-        text = soup.get_text()
+        title = soup.find('h1')
+        if title:
+            data["titulo"] = title.get_text(strip=True)
         
-        # Email regex simples
-        emails = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', text)
-        if emails:
-            contacts["email"] = emails[0] # Pega o primeiro encontrado
-            
-        # Telefone PT regex (9 digitos começando por 9, 2 ou 3)
-        phones = re.findall(r'\b(?:9[1236]|2\d|3\d)\d{7}\b', text.replace(' ', ''))
-        if phones:
-            contacts["telefone"] = phones[0]
-            
-        return contacts
-
+        price = soup.find('span', class_='priceValue')
+        if not price:
+            price = soup.find(class_=lambda x: x and 'price' in str(x).lower())
+        if price:
+            price_text = re.sub(r'[^\d]', '', price.get_text())
+            if price_text:
+                data["preco"] = int(price_text)
+        
+        return data
+    
+    def _parse_remax(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Parser para Remax.pt"""
+        data = {}
+        
+        title = soup.find('h1', class_='details-title')
+        if not title:
+            title = soup.find('h1')
+        if title:
+            data["titulo"] = title.get_text(strip=True)
+        
+        price = soup.find('div', class_='details-price')
+        if price:
+            price_text = re.sub(r'[^\d]', '', price.get_text())
+            if price_text:
+                data["preco"] = int(price_text)
+        
+        return data
+    
+    def _parse_era(self, soup: BeautifulSoup, raw_html: str = "") -> Dict[str, Any]:
+        """Parser para ERA.pt"""
+        data = {}
+        
+        # Tentar JSON-LD primeiro
+        scripts = soup.find_all('script', type='application/ld+json')
+        for script in scripts:
+            try:
+                json_data = json.loads(script.string)
+                if isinstance(json_data, dict):
+                    if json_data.get('@type') == 'Product' or json_data.get('@type') == 'RealEstateListing':
+                        if json_data.get('name'):
+                            data["titulo"] = json_data['name']
+                        if json_data.get('offers', {}).get('price'):
+                            data["preco"] = int(float(json_data['offers']['price']))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                continue
+        
+        # Fallback para HTML
+        if not data.get("titulo"):
+            title = soup.find('h1')
+            if title:
+                data["titulo"] = title.get_text(strip=True)
+        
+        return data
+    
+    def _parse_kw(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Parser para KW Portugal"""
+        data = {}
+        
+        title = soup.find('h1')
+        if title:
+            data["titulo"] = title.get_text(strip=True)
+        
+        price = soup.find(class_=lambda x: x and 'price' in str(x).lower())
+        if price:
+            price_text = re.sub(r'[^\d]', '', price.get_text())
+            if price_text:
+                data["preco"] = int(price_text)
+        
+        return data
+    
+    def _parse_supercasa(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Parser para SuperCasa.pt"""
+        data = {}
+        
+        title = soup.find('h1')
+        if title:
+            data["titulo"] = title.get_text(strip=True)
+        
+        price = soup.find(class_=lambda x: x and 'price' in str(x).lower())
+        if price:
+            price_text = re.sub(r'[^\d]', '', price.get_text())
+            if price_text:
+                data["preco"] = int(price_text)
+        
+        return data
+    
+    def _parse_generic(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Parser genérico usando meta tags OpenGraph e Schema.org"""
+        data = {}
+        
+        # OpenGraph
+        og_title = soup.find('meta', property='og:title')
+        if og_title:
+            data["titulo"] = og_title.get('content', '')
+        
+        og_desc = soup.find('meta', property='og:description')
+        if og_desc:
+            data["descricao"] = og_desc.get('content', '')[:500]
+        
+        # Schema.org
+        for script in soup.find_all('script', type='application/ld+json'):
+            try:
+                json_data = json.loads(script.string)
+                if isinstance(json_data, dict):
+                    if json_data.get('name'):
+                        data["titulo"] = json_data['name']
+                    if json_data.get('offers', {}).get('price'):
+                        data["preco"] = int(float(json_data['offers']['price']))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                continue
+        
+        # Fallback: H1
+        if not data.get("titulo"):
+            h1 = soup.find('h1')
+            if h1:
+                data["titulo"] = h1.get_text(strip=True)
+        
+        # Tentar encontrar preço no texto
+        if not data.get("preco"):
+            text = soup.get_text()
+            prices = re.findall(r'(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*€', text)
+            if prices:
+                price_text = prices[0].replace('.', '').replace(',', '.')
+                try:
+                    data["preco"] = int(float(price_text))
+                except ValueError:
+                    pass
+        
+        return data
+    
+    # ================================================================
+    # CRAWLING RECURSIVO
+    # ================================================================
+    
     async def crawl_recursive(
         self, 
         start_url: str, 
@@ -367,53 +532,34 @@ class PropertyScraper:
     ) -> Dict[str, Any]:
         """
         Crawler recursivo que navega por várias páginas do mesmo domínio.
-        
-        Args:
-            start_url: URL inicial
-            max_pages: Número máximo de páginas a visitar
-            max_depth: Profundidade máxima de navegação
-            
-        Returns:
-            Dict com lista de imóveis encontrados e estatísticas
         """
-        from urllib.parse import urlparse, urljoin
-        from collections import deque
-        import asyncio
-        
-        # Normalizar URL
         if not start_url.startswith("http"):
             start_url = "https://" + start_url
-            
+        
         parsed_start = urlparse(start_url)
         base_domain = parsed_start.netloc
         
-        # Fila de URLs: (url, profundidade_atual)
         queue = deque([(start_url, 0)])
         visited = set()
         properties = []
         errors = []
         
-        logger.info(f"Iniciando crawl recursivo em {base_domain} (max_pages={max_pages}, max_depth={max_depth})")
+        logger.info(f"Iniciando crawl em {base_domain} (max_pages={max_pages})")
         
         while queue and len(visited) < max_pages:
             current_url, depth = queue.popleft()
             
-            # Skip se já visitada
             if current_url in visited:
                 continue
-                
+            
             visited.add(current_url)
-            logger.info(f"Crawling [{len(visited)}/{max_pages}] depth={depth}: {current_url}")
             
             try:
-                # Delay para não sobrecarregar o servidor
                 import random
                 await asyncio.sleep(random.uniform(0.5, 1.5))
                 
-                # Tentar primeiro com SSL habilitado
-                ssl_settings = [True, False]  # Fallback para sites com SSL problemático
-                
-                for verify_ssl in ssl_settings:
+                # Tentar com SSL primeiro
+                for verify_ssl in [True, False]:
                     try:
                         async with httpx.AsyncClient(
                             timeout=self.timeout,
@@ -424,53 +570,36 @@ class PropertyScraper:
                             response = await client.get(current_url, headers=self._get_headers())
                             
                             if response.status_code != 200:
-                                errors.append({
-                                    "url": current_url,
-                                    "error": f"HTTP {response.status_code}"
-                                })
+                                errors.append({"url": current_url, "error": f"HTTP {response.status_code}"})
                                 break
                             
                             html_content = response.text
                             soup = BeautifulSoup(html_content, 'html.parser')
                             
-                            # Verificar se é uma página de detalhe de imóvel
-                            property_data = self._detect_and_parse(current_url, soup, html_content)
+                            # Extrair dados
+                            property_data = await self.scrape_url(current_url)
                             
                             if property_data and not property_data.get("error"):
-                                # Verificar se tem dados mínimos (título ou preço)
                                 if property_data.get("titulo") or property_data.get("preco"):
-                                    property_data["url"] = current_url
                                     property_data["crawl_depth"] = depth
                                     properties.append(property_data)
-                                    logger.info(f"✓ Encontrado imóvel: {property_data.get('titulo', 'Sem título')}")
                             
-                            # Se ainda não atingimos a profundidade máxima, encontrar mais links
-                            if depth < max_depth and len(visited) < max_pages:
+                            # Encontrar mais links se não atingimos profundidade máxima
+                            if depth < max_depth:
                                 new_links = self._extract_property_links(soup, base_domain, current_url)
-                                
                                 for link in new_links:
-                                    if link not in visited and len(queue) + len(visited) < max_pages * 2:
+                                    if link not in visited:
                                         queue.append((link, depth + 1))
                             
-                            break  # Sucesso, sair do loop de SSL
+                            break  # Sucesso
                             
-                    except httpx.ConnectError as ssl_err:
+                    except httpx.ConnectError:
                         if verify_ssl:
-                            # Se falhou com SSL, tentar sem
-                            logger.warning(f"SSL error em {current_url}, tentando sem verificação")
                             continue
-                        else:
-                            raise ssl_err
-                                
-            except httpx.TimeoutException:
-                errors.append({"url": current_url, "error": "Timeout"})
-            except httpx.RequestError as e:
-                errors.append({"url": current_url, "error": str(e)})
+                        raise
+                        
             except Exception as e:
-                logger.error(f"Erro ao processar {current_url}: {e}")
                 errors.append({"url": current_url, "error": str(e)})
-        
-        logger.info(f"Crawl concluído: {len(properties)} imóveis, {len(visited)} páginas, {len(errors)} erros")
         
         return {
             "success": True,
@@ -478,145 +607,57 @@ class PropertyScraper:
             "pages_visited": len(visited),
             "properties_found": len(properties),
             "properties": properties,
-            "errors": errors if errors else None,
-            "max_pages_reached": len(visited) >= max_pages
+            "errors": errors if errors else None
         }
     
-    def _extract_property_links(
-        self, 
-        soup: BeautifulSoup, 
-        base_domain: str, 
-        current_url: str
-    ) -> list:
-        """
-        Extrai links de imóveis de uma página.
-        Filtra apenas links relevantes do mesmo domínio.
-        """
-        from urllib.parse import urlparse, urljoin
-        
+    def _extract_property_links(self, soup: BeautifulSoup, base_domain: str, current_url: str) -> List[str]:
+        """Extrai links de imóveis de uma página."""
         links = []
         
-        # Padrões comuns de URLs de imóveis
         property_patterns = [
-            r'/imovel/',
-            r'/property/',
-            r'/anuncio/',
-            r'/listing/',
-            r'/detalhe/',
-            r'/ficha/',
-            r'/ad/',
-            r'/casa-',
-            r'/apartamento-',
-            r'/moradia-',
-            r'/terreno-',
-            r'/loja-',
-            r'/armazem-',
-            r'/escritorio-',
-            r'/comprar/',
-            r'/venda/',
-            r'/arrendar/',
+            r'/imovel/', r'/property/', r'/anuncio/', r'/listing/',
+            r'/detalhe/', r'/ficha/', r'/ad/', r'/casa-', r'/apartamento-',
+            r'/moradia-', r'/terreno-', r'/comprar/', r'/venda/'
         ]
         
-        # Padrões a evitar (paginação, filtros, etc.)
         skip_patterns = [
-            r'page=',
-            r'pagina=',
-            r'/login',
-            r'/registo',
-            r'/register',
-            r'/contacto',
-            r'/sobre',
-            r'/about',
-            r'/privacy',
-            r'/terms',
-            r'#',
-            r'javascript:',
-            r'mailto:',
-            r'tel:',
+            r'page=', r'/login', r'/registo', r'/contacto', r'/sobre',
+            r'#', r'javascript:', r'mailto:', r'tel:'
         ]
         
         for a_tag in soup.find_all('a', href=True):
             href = a_tag.get('href', '')
-            
-            # Ignorar links vazios ou de âncora
-            if not href or href == '#':
+            if not href:
                 continue
             
-            # Converter para URL absoluta
             full_url = urljoin(current_url, href)
             parsed = urlparse(full_url)
             
-            # Verificar se é do mesmo domínio
             if base_domain not in parsed.netloc:
                 continue
             
-            # Verificar se deve ser ignorado
-            should_skip = any(re.search(pattern, full_url.lower()) for pattern in skip_patterns)
-            if should_skip:
+            if any(re.search(p, full_url.lower()) for p in skip_patterns):
                 continue
             
-            # Verificar se parece uma página de imóvel
-            is_property_link = any(re.search(pattern, full_url.lower()) for pattern in property_patterns)
+            is_property = any(re.search(p, full_url.lower()) for p in property_patterns)
+            has_id = re.search(r'/\d{4,}', full_url)
             
-            # Também aceitar links com números (geralmente IDs de imóveis)
-            has_id_pattern = re.search(r'/\d{4,}', full_url)
-            
-            if is_property_link or has_id_pattern:
-                # Limpar URL (remover parâmetros desnecessários)
+            if is_property or has_id:
                 clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
                 if clean_url not in links:
                     links.append(clean_url)
         
-        logger.debug(f"Extraídos {len(links)} links de imóveis de {current_url}")
-        return links[:50]  # Limitar a 50 links por página
+        return links[:50]
     
-    def _detect_and_parse(self, url: str, soup: BeautifulSoup, html_content: str) -> Dict[str, Any]:
-        """Detecta a fonte e aplica o parser adequado."""
-        url_lower = url.lower()
-        
-        if "idealista" in url_lower:
-            return self._parse_idealista(soup, html_content)
-        elif "imovirtual" in url_lower:
-            return self._parse_imovirtual(soup)
-        elif "casasapo" in url_lower or "casa.sapo" in url_lower:
-            return self._parse_casasapo(soup)
-        elif "remax" in url_lower:
-            return self._parse_remax(soup)
-        elif "era.pt" in url_lower:
-            return self._parse_era(soup, html_content)
-        elif "kw.com" in url_lower or "kwportugal" in url_lower:
-            return self._parse_kw(soup)
-        elif "supercasa" in url_lower:
-            return self._parse_supercasa(soup)
-        else:
-            return self._parse_generic(soup)
+    # ================================================================
+    # ANÁLISE DIRECTA COM IA
+    # ================================================================
     
     async def analyze_with_ai(self, url: str, html_content: str) -> Dict[str, Any]:
         """
-        Usa Claude 3.5 Sonnet para analisar página quando parsers normais falham.
-        
-        Args:
-            url: URL da página
-            html_content: Conteúdo HTML
-            
-        Returns:
-            Dict com dados extraídos pela IA
+        Usa Gemini directamente para analisar uma página.
         """
-        try:
-            from services.ai_page_analyzer import page_analyzer
-            
-            result = await page_analyzer.analyze(html_content, url, "property")
-            
-            if result.get("success") and result.get("data"):
-                logger.info(f"Análise IA bem sucedida para {url}")
-                return result["data"]
-            else:
-                logger.warning(f"Análise IA falhou: {result.get('error')}")
-                return {"error": result.get("error", "Análise IA falhou")}
-                
-        except Exception as e:
-            logger.error(f"Erro na análise IA: {e}")
-            return {"error": str(e)}
+        return await self._extract_with_gemini(html_content, url)
 
 
 from datetime import datetime, timezone
