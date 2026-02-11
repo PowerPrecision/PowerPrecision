@@ -412,19 +412,21 @@ async def notify_new_client_registration(process: dict, has_property: bool = Fal
     else:
         assignment_note = "\n\nAtribuir consultor imobiliário e/ou intermediário de crédito conforme necessário."
     
-    # Enviar email apenas para o PRIMEIRO admin (evitar spam)
+    # Enviar email apenas para o PRIMEIRO admin (evitar spam) - com verificação de preferências
     if admins:
         admin = admins[0]
-        await send_email_notification(
+        await send_notification_with_preference_check(
             admin["email"],
-            f"🆕 Novo Registo de Cliente: {process.get('client_name', 'Cliente')}",
+            f"Novo Registo de Cliente: {process.get('client_name', 'Cliente')}",
             f"Um novo cliente registou-se no sistema:\n\n"
             f"Nome: {process.get('client_name')}\n"
             f"Email: {process.get('client_email')}\n"
             f"Telefone: {process.get('client_phone')}\n"
             f"Tipo: {process.get('process_type')}\n"
             f"{assignment_note}\n\n"
-            f"Por favor, aceda ao sistema para atribuir os responsáveis."
+            f"Por favor, aceda ao sistema para atribuir os responsáveis.",
+            notification_type="new_process",
+            is_urgent=True
         )
     
     # Criar notificação no sistema para TODOS os admins
