@@ -20,7 +20,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 
 from database import db
-from services.email import send_email_notification
+from services.notification_service import send_notification_with_preference_check, send_deadline_reminder
 
 
 # ====================================================================
