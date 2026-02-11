@@ -410,42 +410,57 @@ class PropertyScraper:
                 import random
                 await asyncio.sleep(random.uniform(0.5, 1.5))
                 
-                async with httpx.AsyncClient(
-                    timeout=self.timeout,
-                    follow_redirects=True,
-                    verify=False,  # Alguns sites têm SSL problemático
-                    http2=True
-                ) as client:
-                    response = await client.get(current_url, headers=self._get_headers())
-                    
-                    if response.status_code != 200:
-                        errors.append({
-                            "url": current_url,
-                            "error": f"HTTP {response.status_code}"
-                        })
-                        continue
-                    
-                    html_content = response.text
-                    soup = BeautifulSoup(html_content, 'html.parser')
-                    
-                    # Verificar se é uma página de detalhe de imóvel
-                    property_data = self._detect_and_parse(current_url, soup, html_content)
-                    
-                    if property_data and not property_data.get("error"):
-                        # Verificar se tem dados mínimos (título ou preço)
-                        if property_data.get("titulo") or property_data.get("preco"):
-                            property_data["url"] = current_url
-                            property_data["crawl_depth"] = depth
-                            properties.append(property_data)
-                            logger.info(f"✓ Encontrado imóvel: {property_data.get('titulo', 'Sem título')}")
-                    
-                    # Se ainda não atingimos a profundidade máxima, encontrar mais links
-                    if depth < max_depth and len(visited) < max_pages:
-                        new_links = self._extract_property_links(soup, base_domain, current_url)
-                        
-                        for link in new_links:
-                            if link not in visited and len(queue) + len(visited) < max_pages * 2:
-                                queue.append((link, depth + 1))
+                # Tentar primeiro com SSL habilitado
+                ssl_settings = [True, False]  # Fallback para sites com SSL problemático
+                
+                for verify_ssl in ssl_settings:
+                    try:
+                        async with httpx.AsyncClient(
+                            timeout=self.timeout,
+                            follow_redirects=True,
+                            verify=verify_ssl,
+                            http2=True
+                        ) as client:
+                            response = await client.get(current_url, headers=self._get_headers())
+                            
+                            if response.status_code != 200:
+                                errors.append({
+                                    "url": current_url,
+                                    "error": f"HTTP {response.status_code}"
+                                })
+                                break
+                            
+                            html_content = response.text
+                            soup = BeautifulSoup(html_content, 'html.parser')
+                            
+                            # Verificar se é uma página de detalhe de imóvel
+                            property_data = self._detect_and_parse(current_url, soup, html_content)
+                            
+                            if property_data and not property_data.get("error"):
+                                # Verificar se tem dados mínimos (título ou preço)
+                                if property_data.get("titulo") or property_data.get("preco"):
+                                    property_data["url"] = current_url
+                                    property_data["crawl_depth"] = depth
+                                    properties.append(property_data)
+                                    logger.info(f"✓ Encontrado imóvel: {property_data.get('titulo', 'Sem título')}")
+                            
+                            # Se ainda não atingimos a profundidade máxima, encontrar mais links
+                            if depth < max_depth and len(visited) < max_pages:
+                                new_links = self._extract_property_links(soup, base_domain, current_url)
+                                
+                                for link in new_links:
+                                    if link not in visited and len(queue) + len(visited) < max_pages * 2:
+                                        queue.append((link, depth + 1))
+                            
+                            break  # Sucesso, sair do loop de SSL
+                            
+                    except httpx.ConnectError as ssl_err:
+                        if verify_ssl:
+                            # Se falhou com SSL, tentar sem
+                            logger.warning(f"SSL error em {current_url}, tentando sem verificação")
+                            continue
+                        else:
+                            raise ssl_err
                                 
             except httpx.TimeoutException:
                 errors.append({"url": current_url, "error": "Timeout"})
