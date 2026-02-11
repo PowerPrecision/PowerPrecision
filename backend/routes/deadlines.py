@@ -7,7 +7,7 @@ from database import db
 from models.auth import UserRole
 from models.deadline import DeadlineCreate, DeadlineUpdate, DeadlineResponse
 from services.auth import get_current_user, require_roles
-from services.email import send_email_notification
+from services.notification_service import send_notification_with_preference_check, send_deadline_reminder
 from services.history import log_history
 
 
