@@ -460,7 +460,7 @@ async def remove_property_photo(
     return {"success": True, "message": "Foto removida"}
 
 
-@router.post("/import-excel")
+@router.post("/bulk/import-excel")
 async def import_properties_from_excel(
     file: UploadFile,
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
