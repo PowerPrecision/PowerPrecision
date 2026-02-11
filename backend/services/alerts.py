@@ -652,7 +652,7 @@ async def notify_property_match(
         
         await db.notifications.insert_one(notification)
     
-    # Se há agente responsável, enviar email
+    # Se há agente responsável, enviar email (com verificação de preferências)
     if agent_email and matching_clients:
         top_matches = [m for m in matching_clients if m.get("score", 0) >= MATCH_SCORE_THRESHOLD][:3]
         if top_matches:
@@ -662,10 +662,11 @@ async def notify_property_match(
             ])
             
             try:
-                await send_email_notification(
+                await send_notification_with_preference_check(
                     agent_email,
                     f"Novos Matches para {property_title}",
-                    f"Foram encontrados {len(top_matches)} clientes com alta compatibilidade:\n\n{match_list}\n\nAceda ao sistema para ver mais detalhes."
+                    f"Foram encontrados {len(top_matches)} clientes com alta compatibilidade:\n\n{match_list}\n\nAceda ao sistema para ver mais detalhes.",
+                    notification_type="task_assigned"
                 )
             except Exception as e:
                 pass  # Não falhar se email não enviar
