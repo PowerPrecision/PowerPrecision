@@ -201,3 +201,53 @@ def get_redis_settings():
 TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY', '')
 TRELLO_TOKEN = os.environ.get('TRELLO_TOKEN', '')
 TRELLO_BOARD_ID = os.environ.get('TRELLO_BOARD_ID', '')
+
+
+# ====================================================================
+# AI CONFIG - CONFIGURAÇÃO DE MODELOS DE IA
+# ====================================================================
+# Chaves de API para diferentes providers
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+
+# Modelos disponíveis e seus custos (apenas informativos)
+AI_MODELS = {
+    "gemini-1.5-flash": {
+        "provider": "gemini",
+        "name": "Gemini 1.5 Flash",
+        "cost_per_1k_tokens": 0.0001,  # Muito económico
+        "best_for": ["scraping", "extraction"],
+        "requires_key": "GEMINI_API_KEY"
+    },
+    "gpt-4o-mini": {
+        "provider": "openai",
+        "name": "GPT-4o Mini",
+        "cost_per_1k_tokens": 0.00015,
+        "best_for": ["documents", "analysis"],
+        "requires_key": "EMERGENT_LLM_KEY"
+    },
+    "gpt-4o": {
+        "provider": "openai", 
+        "name": "GPT-4o",
+        "cost_per_1k_tokens": 0.005,
+        "best_for": ["complex_analysis", "reports"],
+        "requires_key": "EMERGENT_LLM_KEY"
+    }
+}
+
+# Configurações padrão de qual IA usar para cada tarefa
+# Pode ser alterado via admin
+AI_CONFIG_DEFAULTS = {
+    "scraper_extraction": "gemini-1.5-flash",  # Extração de dados de páginas
+    "document_analysis": "gpt-4o-mini",        # Análise de documentos
+    "weekly_report": "gpt-4o-mini",            # Relatório semanal
+    "error_analysis": "gpt-4o-mini",           # Análise de erros
+}
+
+# Log de configuração de IA
+if GEMINI_API_KEY:
+    print(f"✅ Gemini API configurada", file=sys.stderr)
+if EMERGENT_LLM_KEY:
+    print(f"✅ Emergent LLM Key configurada (OpenAI)", file=sys.stderr)
+
