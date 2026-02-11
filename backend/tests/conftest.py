@@ -146,6 +146,9 @@ async def client():
     # Garantir que os utilizadores de teste existem
     await ensure_test_users_exist()
     
+    # Garantir que os workflow statuses existem
+    await ensure_workflow_statuses_exist()
+    
     # Garantia extra de que o rate limit está off
     limiter.enabled = False
     
