@@ -189,6 +189,10 @@ async def update_user(user_id: str, data: UserUpdate, user: dict = Depends(requi
             raise HTTPException(status_code=400, detail="Role inválido")
         update_data["role"] = data.role
     if data.is_active is not None:
+        # Proteger admin de ser desactivado
+        target_user = await db.users.find_one({"id": user_id})
+        if target_user and target_user.get("role") == "admin" and data.is_active == False:
+            raise HTTPException(status_code=400, detail="Não é possível desactivar o utilizador administrador")
         update_data["is_active"] = data.is_active
     if data.onedrive_folder is not None:
         update_data["onedrive_folder"] = data.onedrive_folder
