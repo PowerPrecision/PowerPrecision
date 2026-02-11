@@ -1,171 +1,311 @@
 <analysis>**original_problem_statement:**
-The user provided two files. One file, , detailed a list of new features to be implemented. The second file, , described failing tests in the existing application that needed to be fixed.
+The user initially requested the implementation of four P0 tasks. Subsequently, the user provided a list of new features, including a Smart Crawler, Document Validation engine, a Global Calendar view, and Trello Webhook integration. The user also reported several UI bugs, requested an AI-powered weekly error analysis feature, and asked for fixes to CI/CD pipeline failures. Most recently, the user requested a major refactor of the web scraper to use a hybrid approach (BeautifulSoup + Gemini) with a Deep Link logic for finding contact information, provided a Gemini API key, and reiterated a persistent UI issue with the Kanban board. The user also requested the deletion of all test data.
 
-The main feature requests and bug fixes are:
-- **Fix Failing Tests:** Resolve issues related to  event loops, incorrect HTTP status codes in tests (401 vs. 403), and JWT security warnings.
-- **Lead Management Module:**
-    - Add a Refresh Price button for each lead.
-    - Implement filters for leads by consultant and status.
-    - Display the lead's entry date and highlight older leads.
-    - Implement an endpoint to list all consultants.
-    - Store the ID of the user who created a lead.
-- **Automatic Matching System:**
-    - Add a Suggested Clients feature to the lead view.
-- **Statistics Page:**
-    - Add new statistics for leads, including a conversion funnel and consultant rankings.
-- **Process Details:**
-    - Create a dedicated UI section for CPCV (Promissory Contract of Purchase and Sale) data.
-- **General Improvements & Bugs:**
-    - Improve the web scraper to handle SSL errors and add specific parsers for real estate websites.
-    - Fix an issue where notification toasts cover UI buttons.
-    - Fix a bug that incorrectly redirects consultants to the login page when they try to view a process.
-    - Make Kanban cards on the main dashboard and process board more compact.
-    - Add an option to import properties from an Excel file.
-    - Implement a system to log errors during mass document imports and use this data to suggest improvements.
-    - Add a validation rule to prevent client NIFs (Portuguese Tax ID) from starting with the number '5', as this is reserved for companies.
+**PRODUCT REQUIREMENTS:**
+1.  **Fix CI/CD:** Ensure  runs before tests in the pipeline. (DONE)
+2.  **Smart Crawler:** Implement recursive crawling in . (DONE)
+3.  **Document Processor:** Convert uploaded images to PDF and validate document age (max 6 months). (DONE)
+4.  **Global Calendar:** Allow admin/ceo to view tasks for all users. (DONE)
+5.  **Trello Integration:** Implement a webhook for bidirectional updates. (DONE)
+6.  **Reduce Admin Emails:** Limit the number of notification emails sent to admins. (DONE)
+7.  **AI Weekly Analysis:** Create a weekly report where an AI analyzes import errors and provides suggestions. (DONE)
+8.  **UI Bug Fixes:**
+    *   Align the Crédito tab in the process details view. (DONE)
+    *   Improve visibility of information on Kanban cards. (IN PROGRESS - Recurring Issue)
+    *   Remove the Todos os Processos menu for consultants. (DONE)
+9.  **Security Fix:** Resolve the Bandit  high-severity issue. (DONE)
+10. **File Upload Limit:** Increase the limit to 20MB. (DONE)
+11. **Configurable AI:** Allow an admin to select the AI model (e.g., GPT, Gemini) for different tasks. (IN PROGRESS)
+12. **Hybrid Scraper (Deep Link):** Refactor the scraper to use BeautifulSoup and fallback to Gemini, with logic to follow external links to find contact details. (IN PROGRESS)
+13. **Delete Test Data:** Clean the database of all test entries. (NOT STARTED)
 
-**User's preferred language**:
-Português (Portuguese). The next agent MUST respond in Portuguese.
+**User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-The project is a Real Estate CRM with a FastAPI backend and a React frontend. It uses MongoDB for its database. Key features include user authentication (Admins, Consultants), a Kanban board for managing client processes, lead management, and a statistics dashboard. The codebase is structured with frontend and backend code within the same  directory.
+The application consists of a FastAPI backend and a React frontend. The initial set of features and bug fixes, including NIF validation, Excel import, CI/CD corrections, and Trello integration enhancements, have been implemented. An admin panel for configuring AI models has been created, and the backend has been prepared to use different AI providers (OpenAI, Gemini). The web scraper has been partially updated to include a fallback to the Gemini model, but the integration is hampered by API key quota limits. Several UI bugs have been addressed, but the issue with text visibility on Kanban cards persists.
 
 **Last working item**:
-- **Last item agent was working:** The agent began implementing a new set of user requests. The immediate task was to make the process cards on the Quadro Geral (General Board) more compact. The agent had identified the relevant frontend components ( and ) and was analyzing the code to reduce their size.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** Frontend testing agent (using the screenshot tool) to verify the visual changes to the Kanban cards.
-- **User Testing Done:** N
+-   **Last item agent was working:** The agent was working on the user's request to refactor the web scraper () to implement a hybrid scraping model (BeautifulSoup + Gemini) with a Deep Link logic. This was part of a larger request that also included fixing the Kanban board UI and deleting test data. The agent successfully integrated the  library but encountered a quota limit error with the user's provided Gemini API key.
+-   **Status:** IN PROGRESS
+-   **Agent Testing Done:** N (Blocked by API quota error)
+-   **Which testing method agent to use?** backend testing agent for the scraper logic and screenshot tool for the UI fix.
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Scraper is ineffective against modern websites (P1)**
-    - **Description:** The current web scraper, built with , is blocked (403 Forbidden) or fails to extract data from sites like Idealista that heavily rely on JavaScript for content rendering. While the agent improved it with better headers and error handling, the fundamental limitation remains.
-    - **Attempted fixes:** Added realistic  headers, retries with exponential backoff, and SSL error handling. This solved access issues for some sites but not the data extraction problem on JS-rendered pages.
-    - **Next debug checklist:**
-        1.  Integrate a browser automation library like Playwright into .
-        2.  Replace  calls with browser-based page loading and content extraction for problematic domains.
-    - **Why fix this issue and what will be achieved with the fix?** This will make the lead creation via URL scraping, a core feature, reliable for major real estate portals.
-    - **Status:** NOT STARTED
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** Backend
-    - **Blocked on other issue:** None
+-   Issue 1: Kanban board client name visibility (P0)
+-   Issue 2: Gemini API key has insufficient quota (P1)
+-   Issue 3: Test data needs to be deleted (P2)
+
+**Issues Detail:**
+-   **Issue 1:**
+    -   **Description:** On the Kanban board (specifically in the Clientes em espera column), client names that are too long are truncated or become illegible, preventing users from identifying the process at a glance. This is a recurring issue.
+    -   **Attempted fixes:** The agent previously applied a  CSS utility to allow the text to wrap to a second line. This was not sufficient for the user.
+    -   **Next debug checklist:**
+        1.  Inspect  and the associated CSS.
+        2.  Experiment with different text-wrapping, word-breaking, and layout properties (, , etc.) on the card's title element.
+        3.  Consider using a tooltip for the full name on hover, while ensuring the visible portion is as clear as possible.
+        4.  Use the screenshot tool to verify the fix with long client names.
+    -   **Why fix this issue and what will be achieved with the fix?** Fixing this will improve the usability of the main Kanban dashboard, which is a central part of the user workflow.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** Frontend
+
+-   **Issue 2:**
+    -   **Description:** The  provided by the user is hitting its rate/quota limit, which prevents the successful execution and testing of the hybrid scraper feature.
+    -   **Attempted fixes:** The agent confirmed the key works but is rate-limited. The code was refactored to use the  library directly.
+    -   **Next debug checklist:**
+        1.  The agent cannot fix the quota. The implementation in  should include robust  blocks to handle the  error from the Google API.
+        2.  The code should gracefully fall back to BeautifulSoup-only data if the Gemini call fails.
+        3.  Inform the user that the feature is implemented but will only work fully with a new API key that has a higher quota.
+    -   **Why fix this issue and what will be achieved with the fix?** Implementing robust error handling will make the scraper functional even with a limited key, although with reduced capabilities.
+    -   **Status:** BLOCKED (on user providing a new key)
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Backend
+    -   **Blocked on other issue:** None
+
+-   **Issue 3:**
+    -   **Description:** The user has requested that all test data be deleted from the database.
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  Create a new, temporary script (e.g., ).
+        2.  The script should connect to the database and contain logic to identify and delete test entries (e.g., users with  emails, processes created by those users).
+        3.  **Crucially, use  to confirm with the user the exact criteria for deletion before running the script.**
+        4.  Execute the script once confirmed.
+    -   **Why fix this issue and what will be achieved with the fix?** This will clean the production or staging environment, leaving only real data.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Backend (to verify data is gone)
 
 **In progress Task List**:
-- **Task 1: Implement new user requests (P0)**
-    - **Description:** The user has requested four new features/improvements.
-    - **Status:** IN PROGRESS
-    - **Where to resume:**
-        1.  **(IN PROGRESS)** **Compact Process Cards:** Modify  to reduce its size by adjusting padding, font sizes, or removing less critical information.
-        2.  **(NOT STARTED)** **NIF Validation:** Add validation logic in the backend (Pydantic model in ) and the frontend form to prevent client NIFs from starting with '5'.
-        3.  **(NOT STARTED)** **Import Properties from Excel:** Create a new backend endpoint (e.g., in ) to handle file uploads and use a library like  to parse the Excel file and create property records. Add a file upload UI to the Imóveis page in the frontend.
-        4.  **(NOT STARTED)** **Learning from Import Errors:** Design a mechanism to analyze the  collection. This could be a new service and endpoint (e.g., ) that identifies common error patterns and returns actionable suggestions to be displayed in the UI.
-    - **What will be achieved with this?** This will improve UI density, data integrity, and user workflow efficiency.
-    - **Should Test frontend/backend/both after fix?** Both
-    - **Blocked on something:** None
+-   Task 1: Complete the Hybrid Scraper with Deep Link Logic (P0)
+
+**Task Detail:**
+-   **Task 1:**
+    -   **Where to resume:** Refactor  based on the user's latest detailed prompt.
+        1.  Verify the Gemini integration handles the quota error gracefully.
+        2.  Implement the Deep Link logic:
+            -   Inside the main scraping method, after the initial parse, search for external links (e.g., to an agency website).
+            -   If contact info is missing and a link is found, make a second  request to that link.
+            -   Parse the HTML of the second page (using regex or another Gemini call) to find phone numbers/emails.
+            -   Merge the newly found contact details into the final data object.
+        3.  Update the  method to orchestrate this entire flow.
+    -   **What will be achieved with this?** A highly robust scraper that significantly increases the chances of capturing complete property and agent contact information.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Backend
+    -   **Blocked on something:** Blocked by Issue 2 (Gemini Quota) for full functionality, but the logic can be implemented and tested with mocked data or by handling the error.
 
 **Upcoming and Future Tasks**
-- None beyond what is listed in the pending tasks.
+-   **Upcoming Tasks:**
+    -   **P1 - Complete AI Configuration:** Connect the AI configuration endpoints () to the services that use AI (, , ). The services should dynamically read the chosen model from the configuration before making an API call.
 
 **Completed work in this session**
-- **Test Suite Fixed:** All initial test failures related to  event loops (Motor driver), and incorrect status code assertions (401 vs 403) were resolved. The test suite is now stable and passing.
-- **Lead Management Features (DONE):**
-    - Implemented a Refresh Price button and backend endpoint ().
-    - Added filters for Consultor and Estado to the leads Kanban board ().
-    - Lead cards now display their age (e.g., Há 2 dias).
-- **Statistics Page Upgraded (DONE):**
-    - Added Funil de Leads (Leads Funnel) and Ranking Consultores (Consultant Ranking) tabs and charts to the statistics page ().
-- **Bug Fixes (DONE):**
-    - Corrected the  notification position to  in , preventing it from blocking header buttons.
-    - Resolved the consultant login bug by fixing the permission logic in , allowing creators of a process to view it.
-- **Automatic Matching UI (DONE):**
-    - Implemented a Clientes Sugeridos (Suggested Clients) button on lead cards, which opens a dialog displaying a list of matching clients fetched from the backend.
-    - Fixed a backend bug in  that caused a 500 error.
-- **CPCV Tab (DONE):**
-    - Added a new CPCV tab to the process details page () to display contract data.
-- **Import Error Logging (DONE):**
-    - Created a new database collection () and API endpoints () to log errors from document imports.
-- **UI Compaction (DONE):**
-    - The cards on the **Leads Kanban** board () were made more compact.
+-   **P0 Feature Implementation:**
+    -   Compacted cards on Kanban board (first pass).
+    -   NIF validation on frontend and backend.
+    -   Excel import for properties via .
+    -   AI-powered suggestions endpoint for import errors.
+-   **CI/CD & Testing:**
+    -   Fixed the GitHub Actions workflow by adding  dependency and a step to run .
+    -   Made tests independent of pre-existing DB state by creating test users in .
+    -   Corrected numerous incorrect API paths in ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: locust-2.43.2, anyio-4.12.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 261 items / 2 errors
 
-**Earlier issues found/mentioned but not fixed**
-- None that are not already listed in the All Pending/In progress Issue list.
+==================================== ERRORS ====================================
+_____________ ERROR collecting backend/tests/e2e/test_frontend.py ______________
+ImportError while importing test module '/app/backend/tests/e2e/test_frontend.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/e2e/test_frontend.py:6: in <module>
+    from playwright.sync_api import Page, expect
+E   ModuleNotFoundError: No module named 'playwright'
+_______ ERROR collecting backend/tests/test_iteration16_leads_trello.py ________
+ImportError while importing test module '/app/backend/tests/test_iteration16_leads_trello.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_iteration16_leads_trello.py:14: in <module>
+    from server import app
+backend/server.py:34: in <module>
+    from routes.ai_bulk import router as ai_bulk_router
+backend/routes/ai_bulk.py:35: in <module>
+    from services.file_validation import validate_file_content, validate_file_upload
+backend/services/file_validation.py:26: in <module>
+    import magic
+/root/.venv/lib/python3.11/site-packages/magic/__init__.py:209: in <module>
+    libmagic = loader.load_lib()
+               ^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/magic/loader.py:49: in load_lib
+    raise ImportError('failed to find libmagic.  Check your installation')
+E   ImportError: failed to find libmagic.  Check your installation
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
 
-**Known issue recurrence from previous fork**
-- None.
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/e2e/test_frontend.py
+ERROR backend/tests/test_iteration16_leads_trello.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+========================= 1 warning, 2 errors in 3.58s ========================= files.
+-   **New Features & Enhancements:**
+    -   **Smart Crawler:** Implemented in .
+    -   **Document Processor:** Added image-to-PDF conversion and 6-month expiry validation in .
+    -   **Global Calendar:** Enhanced  for admin/ceo roles.
+    -   **Trello Webhooks:** Improved webhook logic in .
+    -   **AI Weekly Report:** Created service and endpoint for weekly AI analysis of errors.
+    -   **Admin Panel:** Added endpoints for AI model configuration in .
+-   **Bug Fixes:**
+    -   Resolved UI alignment issue for tabs in the process detail view.
+    -   Removed Todos os Processos menu item for the 'consultor' role.
+    -   Fixed a high-severity security issue () in .
+    -   Increased file upload limit to 20MB.
+    -   Reduced the volume of admin email notifications.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Backend:** Python, FastAPI, Motor (async MongoDB driver), Pydantic
-- **Frontend:** JavaScript, React, shadcn/ui, recharts, lucide-react, sonner
-- **Database:** MongoDB
-- **Testing:** pytest, pytest-asyncio
+-   **Backend:** FastAPI, Pydantic, Motor (for async MongoDB), , ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: locust-2.43.2, anyio-4.12.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 261 items / 2 errors
+
+==================================== ERRORS ====================================
+_____________ ERROR collecting backend/tests/e2e/test_frontend.py ______________
+ImportError while importing test module '/app/backend/tests/e2e/test_frontend.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/e2e/test_frontend.py:6: in <module>
+    from playwright.sync_api import Page, expect
+E   ModuleNotFoundError: No module named 'playwright'
+_______ ERROR collecting backend/tests/test_iteration16_leads_trello.py ________
+ImportError while importing test module '/app/backend/tests/test_iteration16_leads_trello.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_iteration16_leads_trello.py:14: in <module>
+    from server import app
+backend/server.py:34: in <module>
+    from routes.ai_bulk import router as ai_bulk_router
+backend/routes/ai_bulk.py:35: in <module>
+    from services.file_validation import validate_file_content, validate_file_upload
+backend/services/file_validation.py:26: in <module>
+    import magic
+/root/.venv/lib/python3.11/site-packages/magic/__init__.py:209: in <module>
+    libmagic = loader.load_lib()
+               ^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/magic/loader.py:49: in load_lib
+    raise ImportError('failed to find libmagic.  Check your installation')
+E   ImportError: failed to find libmagic.  Check your installation
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/e2e/test_frontend.py
+ERROR backend/tests/test_iteration16_leads_trello.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+========================= 1 warning, 2 errors in 1.22s =========================.
+-   **Frontend:** React, TailwindCSS.
+-   **Asynchronous Tasks:** .
+-   **AI Integration:**  for Gemini,  for OpenAI,  as an attempted abstraction layer.
+-   **File Handling:** , .
 
 **key DB schema**
-- **processes:** 
-- **leads:** 
-- **users:** 
-- **error_logs:** 
+-   **users:** 
+-   **processes:** 
+-   **documents:** 
+-   **properties:** 
+-   **import_errors:** 
 
 **changes in tech stack**
-- None.
+-    was added for direct integration with the Gemini API.
+-    was installed but its use was superseded by direct library calls due to API key and model availability issues.
 
 **All files of reference**
-- : The component for process cards on the general board, which needs to be made more compact.
-- : The page containing the general process Kanban board.
-- : Location to add backend NIF validation.
-- : A potential location for the new Excel import endpoint.
-- : Contains the error logging endpoints, relevant for the learn from errors task.
-
-**Areas that need refactoring**:
-- : Needs to be refactored to use a browser automation tool (e.g., Playwright) instead of  to handle JavaScript-heavy websites effectively.
+-   : Primary file to be modified for the hybrid scraping and Deep Link logic.
+-   : Contains the UI for the Kanban cards that need a visual fix.
+-   : Contains environment variable loading, including .
+-   : Contains the admin endpoints for AI configuration.
+-   : Used to populate the database, especially in the CI/CD pipeline.
+-   : Defines the CI/CD pipeline.
 
 **key api endpoints**
-- 
-- 
-- 
-- 
-- 
+-   : Initiates a recursive web scrape.
+-   : Fetches tasks for all users (admin/ceo only).
+-   : Endpoint for receiving Trello events.
+-   : Generates an AI-powered analysis of recent import errors.
+-   : Retrieves the current AI model configuration.
+-   : Updates the AI model configuration.
 
 **Critical Info for New Agent**
-- **Language:** All user-facing communication must be in **Português (Portuguese)**.
-- **Async Testing:** The project had significant issues with  event loops during testing. This was fixed by refactoring  to initialize the  client on-demand and adding a reset fixture in . Be mindful of this if new tests exhibit strange, non-deterministic, or event-loop-related failures.
-- **User Priorities:** The user has provided a clear list of new tasks. The highest priority (P0) is to implement the four items requested in their last message, starting with compacting the Kanban cards.
+-   The user's  is rate-limited. The scraper implementation must handle  errors gracefully and fall back to non-AI parsing. Do not get stuck on this; implement the logic and inform the user about the key's limitation.
+-   The Kanban board UI issue is a high-priority, recurring problem. The user is not satisfied with the current state, so this requires careful attention.
+-   The request to delete test data is destructive. You MUST confirm with the user the exact criteria for what constitutes test data before proceeding.
 
 **documents and test reports created in this job**
-- 
-- 
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **continua**: Continue. (Pending: Agent acknowledged and is continuing).
-2.  **o quadro geral de processos tem os cartoes a ocupar muito espaço...**: The general process board has cards that take up too much space.... New requests: compact process cards, import properties via Excel, learn from import errors, validate client NIF. (Pending: This is the current P0 task).
-3.  **...Vou actualizar o PRD.md e finalizar com um resumo:** User acknowledges the consultant login bug is fixed. (Completed).
-4.  **continua**: Continue. (Completed).
-5.  **...Vou actualizar o PRD.md e finalizar:** User acknowledges the Suggested Clients feature is working. (Completed).
-6.  **continua com as tarefas. Vou fazer um import de muitos documentos. Cria um log...**: Continue with the tasks. Im going to import many documents. Create a log...". (Completed: Error logging system was created).
-7.  **...Todas as funcionalidades estão implementadas! Vou actualizar o PRD.md e finalizar:** User acknowledges the CPCV tab is working. (Completed).
-8.  **limpa os ficheiros de teste temporários . O khaban do dashboard n precisa de ter cartoes tao grandes. continua**: "clean the temporary test files. The dashboard kanban doesnt need such big cards. continue. (Completed: Temp files were cleaned, and lead cards were compacted. Process cards are now pending).
-9.  **1. concordo 2. penso que ja existe um scrapper 3. apenas exibido em tempo real.**: 1. I agree 2. I think a scraper already exists 3. only displayed in real time. User feedback on the initial plan. (Completed).
-10. **o ficheiro novo 3 contem as novas funcionalidades...**: The initial problem statement providing feature and bug fix requests. (Completed).
+1.  **User (latest):** I still cant see the clients properly on the general process board - Clients on hold. Delete the test data. [repeats detailed prompt for hybrid scraper with Deep Link]" - **Status: In Progress.**
+2.  **User (duplicate):** Same as above. - **Status: In Progress.**
+3.  **User:** "If Claude 3.5 Sonnet has costs, I dont want to use it. But you can prepare things so that in the settings, I can configure which AI is used in each process. Only available for the admin. Save this key in the environment variables: . [provides detailed prompt for hybrid scraper] - **Status: In Progress.**
+4.  **User:** Configure the weekly report with AI analysis. Can I use one AI for documents and another for page analysis? I recommend Claude 3.5 Sonnet for page analysis. - **Status: Implemented (using GPT-4o due to key issues).**
+5.  **User:** Increase the limit to 20MB. The clients name when its very long is no longer visible in the Kanban board. - **Status: Limit increased, UI fix attempted but issue persists.**
+6.  **User:** It gave this error [provides Bandit security report output showing issue]. - **Status: Fixed.**
+7.  **User:** continue - **Status: Completed.**
+8.  **User:** [Lists several tasks] analyze errors weekly with AI, check production import errors, Crédito tab is misaligned, cant see all info on some Kanban cards, Todos os Processos tab is no longer needed." - **Status: All addressed.**
+9.  **User:** "yes. I dont want to receive so many admin emails. - **Status: Implemented.**
+10. **User:** [Lists major features] Fix CI/CD with seed, Smart Crawler, Document Validation, Global Calendar, Trello Webhooks. - **Status: All Implemented.**
 
 **Project Health Check:**
-- **Broken:** The web scraping functionality is unreliable for major real estate portals due to JavaScript rendering, which the current implementation cannot handle.
-- **Mocked:** N/A.
+-   **Broken:**
+    -   Gemini integration is non-functional for the user due to API key quota.
+    -   Kanban board UI for long client names does not meet user requirements.
+-   **Mocked:** None.
 
 **3rd Party Integrations**
-- None.
+-   **OpenAI (GPT-4o, GPT-4o-mini):** For document and error analysis. — uses Emergent LLM Key.
+-   **Google Gemini (gemini-2.0-flash):** For hybrid web scraping. — requires User LLM Key (). Currently facing quota issues.
+-   **Trello:** For bidirectional process management. — requires User API Key.
 
 **Testing status**
-- **Testing agent used after significant changes:** YES
-- **Troubleshoot agent used after agent stuck in loop:** NO
-- **Test files created:** None, but existing test files  and  were heavily modified and are now passing.
-- **Known regressions:** None.
+-   **Testing agent used after significant changes:** YES
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:**
+    -   
+    -   
+    -   
+    -   
+    -   
+-   **Known regressions:** The Kanban board card UI for long text is a recurring issue that has not been fully resolved to the user's satisfaction.
 
 **Credentials to test flow:**
-Test users are created via test fixtures.
-- **Admin:**  / 
-- **Consultant:**  / 
+-   The test suite is self-sufficient and creates users via the  fixture. For manual testing:
+    -   Admin:  / 
+    -   Consultant:  / 
 
 **What agent forgot to execute**
-- Nothing was forgotten. All user requests were addressed or are currently in the pending task list.</analysis>
+-   The request to **delete test data** has not been started.
+-   The full implementation of the **Deep Link logic** within the scraper was not completed; the agent focused on the Gemini fallback part before being interrupted by the quota error.
+-   The **Kanban UI fix** was attempted but was not successful, and needs to be addressed again as a high-priority issue.</analysis>
