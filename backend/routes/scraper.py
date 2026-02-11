@@ -2,6 +2,7 @@
 Rotas para Web Scraping de Imóveis
 ==================================
 Endpoints para extrair dados de portais imobiliários.
+Inclui sistema de cache para evitar chamadas repetidas.
 """
 import logging
 from typing import Optional
@@ -9,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
 from services.auth import get_current_user, require_roles, UserRole
-from services.scraper import scrape_property_url, crawl_properties
+from services.scraper import scrape_property_url, crawl_properties, property_scraper
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/scraper", tags=["Scraper"])
 class ScrapeRequest(BaseModel):
     """Request para scraping de uma única URL."""
     url: str
+    use_cache: bool = True  # Se deve usar cache
 
 
 class CrawlRequest(BaseModel):
