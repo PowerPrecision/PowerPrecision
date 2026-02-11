@@ -132,7 +132,7 @@ async def create_task(
                 title="📋 Nova Tarefa Atribuída",
                 message=f"{current_user['name']} atribuiu-lhe uma tarefa: {title}{due_info}",
                 notification_type="task_assigned",
-                link=f"/tasks" if not task_data.process_id else f"/process/{task_data.process_id}",
+                link="/tasks" if not task_data.process_id else f"/process/{task_data.process_id}",
                 process_id=task_data.process_id
             )
     
@@ -284,7 +284,7 @@ async def update_task(
                     title="📋 Nova Tarefa Atribuída",
                     message=f"{current_user['name']} atribuiu-lhe uma tarefa: {task['title']}",
                     notification_type="task_assigned",
-                    link=f"/tasks" if not task.get("process_id") else f"/process/{task['process_id']}",
+                    link="/tasks" if not task.get("process_id") else f"/process/{task['process_id']}",
                     process_id=task.get("process_id")
                 )
     
@@ -327,7 +327,7 @@ async def complete_task(
             title="✅ Tarefa Concluída",
             message=f"{current_user['name']} concluiu a tarefa: {task['title']}",
             notification_type="task_completed",
-            link=f"/tasks" if not task.get("process_id") else f"/process/{task['process_id']}",
+            link="/tasks" if not task.get("process_id") else f"/process/{task['process_id']}",
             process_id=task.get("process_id")
         )
     
