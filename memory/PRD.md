@@ -318,6 +318,39 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Novos campos no processo: `co_buyers`, `co_applicants`
   - Endpoint de diagnóstico mostra co-compradores se existirem
 
+**11 Fevereiro 2026** (continuação)
+- ✅ **Pipeline CI/CD Corrigida**:
+  - Adicionado `seed.py` ao workflow para criar utilizadores de teste
+  - Adicionado `libmagic1` como dependência de sistema
+  - Adicionado `arq` ao requirements.txt
+  - Testes agora passam no GitHub Actions
+- ✅ **Redução de Emails para Admin**:
+  - Emails de novo cliente enviados apenas para o PRIMEIRO admin/ceo
+  - Outros admins recebem notificação via sistema interno (sem spam)
+- ✅ **Smart Crawler (Navegação Recursiva)**:
+  - Novo método `crawl_recursive(start_url, max_pages, max_depth)` em `scraper.py`
+  - Novo endpoint `POST /api/scraper/crawl` para crawling de múltiplas páginas
+  - Extrai automaticamente links de imóveis dentro do mesmo domínio
+  - Suporta até 50 páginas e profundidade 3
+  - Endpoint `GET /api/scraper/supported-sites` lista sites suportados
+- ✅ **Motor de Validação de Documentos**:
+  - Novo serviço `document_processor.py`
+  - Conversão automática de imagens para PDF (img2pdf)
+  - Campo `data_emissao` adicionado ao modelo de documento
+  - Validação de validade: documentos com mais de 180 dias (6 meses) são alertados
+  - Função `validate_document_for_process()` verifica todos os documentos
+- ✅ **Calendário Global (Visão CEO)**:
+  - Endpoint `GET /api/tasks` aceita `?user_id=all` para admin/ceo
+  - Retorna tarefas de toda a equipa para calendário global
+  - Filtro `?user_id=<id>` para ver tarefas de utilizador específico
+  - Permissões: apenas admin/ceo/diretor podem ver tarefas de outros
+- ✅ **Webhooks Trello Bidirecionais**:
+  - Endpoint `POST /api/trello/webhook` melhorado
+  - Processa `addMemberToCard`: atribui consultor/mediador automaticamente
+  - Processa `removeMemberFromCard`: remove atribuição
+  - Movimento de cartões actualiza status do processo
+  - Usa mapeamento `trello_member_mappings` para identificar utilizadores
+
 **8 Fevereiro 2026**
 - ✅ **Upload de Fotos para Imóveis**: Novos endpoints `/api/properties/{id}/upload-photo` e `DELETE /photo`
 - ✅ **Notificações Automáticas de Match**: Sistema notifica quando imóvel novo tem clientes compatíveis (score ≥50%)
