@@ -308,7 +308,7 @@ class ScheduledTasksService:
             
             try:
                 approval_date = datetime.fromisoformat(approval_date_str.replace('Z', '+00:00'))
-            except:
+            except (ValueError, TypeError):
                 continue
             
             # Calcular dias restantes (90 dias desde aprovação)
