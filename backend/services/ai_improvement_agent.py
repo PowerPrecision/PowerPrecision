@@ -308,7 +308,7 @@ class AIImprovementAgent:
                 try:
                     created_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                     days_in_system = (now - created_dt).days
-                except:
+                except ValueError:
                     pass
         
         # Verificar última actividade
@@ -319,7 +319,7 @@ class AIImprovementAgent:
                 try:
                     last_dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
                     days_since_update = (now - last_dt).days
-                except:
+                except ValueError:
                     pass
         
         # Gerar recomendações específicas
