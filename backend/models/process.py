@@ -9,10 +9,20 @@ class ProcessType:
     AMBOS = "ambos"
 
 
-def validate_nif(nif: str) -> str:
+def validate_nif(nif: str, allow_company: bool = False) -> str:
     """
     Validar NIF português (9 dígitos numéricos).
-    Retorna o NIF se válido, ou levanta ValueError se inválido.
+    Por defeito, não permite NIFs de empresas (começam por 5).
+    
+    Args:
+        nif: O NIF a validar
+        allow_company: Se True, permite NIFs de empresas (5xxxxxxxx)
+    
+    Returns:
+        O NIF limpo se válido
+        
+    Raises:
+        ValueError: Se o NIF for inválido
     """
     if not nif:
         return nif
@@ -25,6 +35,10 @@ def validate_nif(nif: str) -> str:
     
     if not nif_clean.isdigit():
         raise ValueError("NIF deve conter apenas dígitos")
+    
+    # Validar primeiro dígito - NIFs que começam com 5 são de empresas
+    if not allow_company and nif_clean.startswith('5'):
+        raise ValueError("NIF de empresa (começado por 5) não é permitido para clientes particulares")
     
     return nif_clean
 
