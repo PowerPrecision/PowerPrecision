@@ -503,12 +503,29 @@ async def send_email_notification(
     to_email: str, 
     subject: str, 
     body: str, 
-    html_body: str = None
+    html_body: str = None,
+    notification_type: str = "general",
+    check_preferences: bool = True
 ) -> bool:
     """
     Função de conveniência para enviar emails.
     Mantém compatibilidade com código existente.
+    
+    Args:
+        to_email: Email de destino
+        subject: Assunto do email
+        body: Corpo em texto
+        html_body: Corpo em HTML (opcional)
+        notification_type: Tipo de notificação para verificar preferências
+        check_preferences: Se deve verificar preferências (default: True)
     """
+    # Verificar preferências de notificação
+    if check_preferences:
+        should_send = await _check_email_preference(to_email, notification_type)
+        if not should_send:
+            logger.info(f"[EMAIL] Skipped (preference disabled) to {to_email}, type: {notification_type}")
+            return True  # Retorna True para não causar erros no código chamador
+    
     message = EmailMessage(
         to=to_email,
         subject=subject,
@@ -517,6 +534,71 @@ async def send_email_notification(
     )
     result = await email_service.send(message)
     return result.success
+
+
+async def _check_email_preference(email: str, notification_type: str) -> bool:
+    """
+    Verifica se o utilizador quer receber este tipo de email.
+    
+    Args:
+        email: Email do utilizador
+        notification_type: Tipo de notificação (new_process, status_change, etc.)
+        
+    Returns:
+        True se deve enviar, False se não deve
+    """
+    try:
+        from database import db
+        
+        # Encontrar utilizador pelo email
+        user = await db.users.find_one({"email": email}, {"id": 1})
+        if not user:
+            # Utilizador não encontrado - pode ser cliente externo, enviar
+            return True
+        
+        # Buscar preferências
+        prefs = await db.notification_preferences.find_one(
+            {"user_id": user["id"]}, 
+            {"_id": 0}
+        )
+        
+        if not prefs:
+            # Sem preferências definidas - usar defaults (não enviar a maioria)
+            # Por default, só enviamos emails importantes
+            important_types = ["deadline_reminder", "urgent", "daily_summary", "weekly_report"]
+            return notification_type in important_types
+        
+        # Se é utilizador de teste, não enviar emails
+        if prefs.get("is_test_user", False):
+            return False
+        
+        # Mapear tipo de notificação para preferência
+        type_to_pref = {
+            "new_process": "email_new_process",
+            "status_change": "email_status_change",
+            "document_upload": "email_document_upload",
+            "task_assigned": "email_task_assigned",
+            "deadline_reminder": "email_deadline_reminder",
+            "daily_summary": "email_daily_summary",
+            "weekly_report": "email_weekly_report",
+            "urgent": "email_urgent_only",
+        }
+        
+        pref_key = type_to_pref.get(notification_type, None)
+        
+        if pref_key:
+            return prefs.get(pref_key, False)
+        
+        # Para tipos não mapeados, verificar se só quer urgentes
+        if prefs.get("email_urgent_only", True):
+            return notification_type == "urgent"
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error checking email preference: {e}")
+        # Em caso de erro, enviar para não perder emails importantes
+        return True
 
 
 def is_email_configured() -> bool:
