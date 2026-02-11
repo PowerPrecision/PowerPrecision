@@ -1586,8 +1586,8 @@ async def handle_member_added(action: dict, process: dict):
         )
         
         logger.info(
-            f"Processo {process[\"id\"]}: atribuído {user.get(\"name\")} "
-            f"({user.get(\"role\")}) via Trello"
+            f'Processo {process["id"]}: atribuído {user.get("name")} '
+            f'({user.get("role")}) via Trello'
         )
 
 
@@ -1632,5 +1632,5 @@ async def handle_member_removed(action: dict, process: dict):
             {"$set": update_fields}
         )
         
-        logger.info(f"Processo {process[\"id\"]}: membro removido via Trello")
+        logger.info(f'Processo {process["id"]}: membro removido via Trello')
 
