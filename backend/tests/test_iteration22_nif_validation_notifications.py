@@ -27,7 +27,7 @@ class TestAuth:
             "password": "admin123"
         })
         assert response.status_code == 200, f"Admin login failed: {response.text}"
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def consultor_token(self):
@@ -37,7 +37,7 @@ class TestAuth:
             "password": "consultor123"
         })
         assert response.status_code == 200, f"Consultor login failed: {response.text}"
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     def test_admin_login(self, admin_token):
         """Verify admin can login"""
@@ -55,7 +55,7 @@ class TestNIFValidation:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def test_process_id(self, admin_token):
@@ -149,7 +149,7 @@ class TestEmailPhoneCoercion:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def test_process_id(self, admin_token):
@@ -200,7 +200,7 @@ class TestValidationErrorMessages:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def test_process_id(self, admin_token):
@@ -253,7 +253,7 @@ class TestNotificationPreferencesEndpoint:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def admin_user_id(self, admin_token):
@@ -323,7 +323,7 @@ class TestNotificationServicePreferenceCheck:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     def test_notification_service_exists(self, admin_token):
         """Verify notification service module exists and is imported"""
@@ -399,7 +399,7 @@ class TestTitular2NIFValidation:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def test_process_id(self, admin_token):
@@ -448,7 +448,7 @@ class TestErrorFormatterIntegration:
             "email": "admin@sistema.pt",
             "password": "admin123"
         })
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     def test_validation_error_structure(self, admin_token):
         """Test that validation errors have proper structure for frontend parsing"""
