@@ -179,9 +179,11 @@ const ProcessDetails = () => {
   const [selectedConsultor, setSelectedConsultor] = useState("");
   const [selectedMediador, setSelectedMediador] = useState("");
   const [savingAssignment, setSavingAssignment] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Buscar utilizadores
   const fetchUsers = async () => {
+    setLoadingUsers(true);
     try {
       const response = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -194,6 +196,9 @@ const ProcessDetails = () => {
       }
     } catch (error) {
       console.error("Erro ao buscar utilizadores:", error);
+      toast.error("Erro ao carregar utilizadores");
+    } finally {
+      setLoadingUsers(false);
     }
     return [];
   };
@@ -204,12 +209,11 @@ const ProcessDetails = () => {
       setSelectedConsultor(process.assigned_consultor_id || "");
       setSelectedMediador(process.assigned_mediador_id || "");
       
-      // Buscar utilizadores ANTES de abrir o dialog
+      // Abrir dialog e buscar utilizadores se necessário
+      setShowAssignDialog(true);
       if (appUsers.length === 0) {
         await fetchUsers();
       }
-      
-      setShowAssignDialog(true);
     }
   };
 
