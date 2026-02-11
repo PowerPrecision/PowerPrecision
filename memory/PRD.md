@@ -223,6 +223,14 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - ✅ **Correção de Bug de Acesso**: Consultores podem agora aceder a processos que criaram
   - Função `can_view_process()` actualizada para verificar `created_by`
 - ✅ **Melhorias no Scraper**: Adicionado fallback SSL, parser ERA melhorado
+- ✅ **Tab CPCV na página de detalhes**: Nova secção dedicada ao Contrato Promessa Compra e Venda com:
+  - Dados do Imóvel (valor, tipologia, área, morada)
+  - Dados do Vendedor (nome, NIF, telefone, email, morada)
+  - Compradores (principal + co-compradores do CPCV)
+  - Valores e Datas (entrada, sinal, data CPCV, escritura prevista)
+  - Mediador (se existir)
+- ✅ **Cartões do Kanban compactados**: Tamanho reduzido para melhor visualização
+- ✅ **Ficheiros de teste temporários limpos**
 
 **8 Fevereiro 2026** (noite - final)
 - ✅ **UI Gestão de Clientes**: Nova página `/clientes` com:
