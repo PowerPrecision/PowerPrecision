@@ -282,6 +282,8 @@ async def cleanup_test_data(dry_run: bool = True):
         print("MODO DRY RUN - Nenhum dado foi eliminado.")
         print("Para eliminar, execute: python cleanup_test_data.py --execute")
         print("=" * 60)
+        client.close()
+        return stats
     else:
         print("\n" + "=" * 60)
         print("A ELIMINAR DADOS...")
