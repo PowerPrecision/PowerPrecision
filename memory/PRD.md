@@ -25,26 +25,46 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 3. Adicionado estado `loadingUsers` com indicador visual de loading
 4. Adicionados `data-testid` aos componentes Select para facilitar testes
 
-**Código Alterado**:
-```javascript
-// Antes (bugado)
-const openAssignDialog = () => {
-  setShowAssignDialog(true);
-  if (appUsers.length === 0) fetchUsers(); // Não esperava
-};
-
-// Depois (corrigido)
-const openAssignDialog = async () => {
-  setShowAssignDialog(true);
-  if (appUsers.length === 0) await fetchUsers(); // Agora espera
-};
-```
-
 **Verificação**:
 - ✅ Dropdown de Consultor mostra 9 utilizadores (admin, ceo, consultor, diretor)
 - ✅ Dropdown de Mediador mostra 4 utilizadores (mediador, intermediario, diretor)
 - ✅ API `/api/admin/users` retorna dados correctamente
 - ✅ Screenshots confirmam funcionamento
+
+---
+
+### ✅ Integração HCPro (IMPLEMENTADA)
+
+**Funcionalidades Implementadas**:
+
+#### 1. Upload de Ficheiro Excel para Criar Imóveis
+- **Endpoint**: `POST /api/properties/bulk/import-excel`
+- **Frontend**: Botão "Importar Excel" na página de Imóveis
+- **Colunas do Excel suportadas**:
+  - `titulo` (obrigatório)
+  - `preco` (obrigatório)
+  - `distrito` (obrigatório)
+  - `concelho` (obrigatório)
+  - `proprietario_nome` (obrigatório)
+  - `tipo`, `localidade`, `morada`, `codigo_postal`, `quartos`, `casas_banho`, `area_util`, `area_bruta`, `ano_construcao`, `certificado_energetico`, `estado`, `proprietario_telefone`, `proprietario_email`, `descricao`, `notas`
+- **Resultado**: Imóveis criados com referências sequenciais (IMO-001, IMO-002, etc.)
+
+#### 2. Botão Login HCPro no Formulário de Novo Imóvel
+- **Localização**: Topo do formulário "Novo Imóvel"
+- **URL**: https://crmhcpro.pt/login
+- **Comportamento**: Abre numa nova janela do browser
+- **UI**: Secção destacada em azul com ícone de link externo
+
+**Ficheiros Alterados**:
+- `/app/frontend/src/pages/PropertiesPage.jsx`:
+  - Adicionada constante `HCPRO_URL`
+  - Adicionado ícone `ExternalLink` aos imports
+  - Adicionada secção "Integração HCPro" no `PropertyForm`
+
+**Teste Realizado**:
+- ✅ Importação Excel: 2 imóveis importados com sucesso
+- ✅ Botão HCPro: Visível e funcional no formulário
+- ✅ Referências automáticas: IMO-004, IMO-005 criados
 
 ---
 
