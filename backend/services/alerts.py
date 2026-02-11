@@ -425,7 +425,7 @@ async def notify_new_client_registration(process: dict, has_property: bool = Fal
             f"Por favor, aceda ao sistema para atribuir os responsáveis."
         )
     
-    # Criar notificação no sistema
+    # Criar notificação no sistema para TODOS os admins
     notification = {
         "id": str(uuid.uuid4()),
         "type": ALERT_TYPES["NEW_CLIENT_REGISTRATION"],
