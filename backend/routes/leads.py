@@ -139,45 +139,89 @@ async def extract_url_data(
     logger.info(f"A iniciar Deep Scraping de: {url}")
     
     try:
-        # CORREÇÃO: Usar a função do scraper novo
+        # Usar scraper híbrido
         raw_data = await scrape_property_url(url)
         
-        # CORREÇÃO: Mapeamento de dados (Scraper -> Modelo)
-        # O scraper devolve 'url_origem', mas o modelo ConsultantInfo usa 'source_url'
-        consultant_data = None
-        # raw_data é um dict, não um objeto, por causa do to_dict() no scraper
-        raw_consultor = raw_data.get('consultor')
+        # Verificar se houve erro
+        if raw_data.get("error"):
+            logger.warning(f"Scraper retornou erro: {raw_data.get('error')}")
+            # Log para admin
+            await _log_system_error(
+                error_type="scraper_error",
+                message=f"Erro ao extrair dados de {url}: {raw_data.get('error')}",
+                details={"url": url, "error": raw_data.get("error")}
+            )
+            return {
+                "success": False,
+                "message": f"Erro ao extrair: {raw_data.get('error')}",
+                "data": {"url": url}
+            }
         
-        if raw_consultor:
+        # Mapear dados do scraper para o formato esperado pelo lead
+        # O scraper retorna: titulo, preco, localizacao, tipologia, area, agente_nome, agente_telefone, agente_email, agencia_nome
+        consultant_data = None
+        if raw_data.get("agente_nome") or raw_data.get("agente_telefone") or raw_data.get("agente_email"):
             consultant_data = {
-                "name": raw_consultor.get('nome'),
-                "phone": raw_consultor.get('telefone'),
-                "email": raw_consultor.get('email'),
-                "agency_name": raw_consultor.get('agencia'),
-                "source_url": raw_consultor.get('url_origem') # Mapear campo
+                "name": raw_data.get("agente_nome"),
+                "phone": raw_data.get("agente_telefone"),
+                "email": raw_data.get("agente_email"),
+                "agency_name": raw_data.get("agencia_nome"),
+                "source_url": raw_data.get("url")
+            }
+        
+        # Também verificar campos antigos do scraper (compatibilidade)
+        if not consultant_data and raw_data.get("consultor"):
+            raw_consultor = raw_data.get("consultor")
+            consultant_data = {
+                "name": raw_consultor.get("nome"),
+                "phone": raw_consultor.get("telefone"),
+                "email": raw_consultor.get("email"),
+                "agency_name": raw_consultor.get("agencia"),
+                "source_url": raw_consultor.get("url_origem")
             }
 
         cleaned_data = {
             "url": url,
-            "title": raw_data.get('titulo'),
-            "price": raw_data.get('preco'),
-            "location": raw_data.get('localizacao'),
-            "typology": raw_data.get('tipologia'),
-            "area": raw_data.get('area'),
-            "photo_url": raw_data.get('foto_principal'),
+            "title": raw_data.get("titulo"),
+            "price": raw_data.get("preco"),
+            "location": raw_data.get("localizacao"),
+            "typology": raw_data.get("tipologia"),
+            "area": raw_data.get("area"),
+            "bedrooms": raw_data.get("quartos"),
+            "bathrooms": raw_data.get("casas_banho"),
+            "description": raw_data.get("descricao"),
+            "photo_url": raw_data.get("foto_principal"),
             "consultant": consultant_data,
-            "source": raw_data.get('fonte', 'auto')
+            "source": raw_data.get("fonte", raw_data.get("_parser", "auto")),
+            "_extracted_by": raw_data.get("_extracted_by"),
+            "_raw_fields": list(raw_data.keys())  # Para debug
         }
         
+        # Verificar se extraiu dados úteis
+        has_useful_data = cleaned_data.get("title") or cleaned_data.get("price") or cleaned_data.get("location")
+        
+        if not has_useful_data:
+            logger.warning(f"Scraper não extraiu dados úteis de {url}")
+            await _log_system_error(
+                error_type="scraper_no_data",
+                message=f"Não foi possível extrair dados de {url}",
+                details={"url": url, "raw_keys": list(raw_data.keys()), "extracted_by": raw_data.get("_extracted_by")}
+            )
+        
         return {
-            "success": True,
+            "success": has_useful_data,
             "data": cleaned_data,
-            "message": "Dados extraídos com sucesso"
+            "message": "Dados extraídos com sucesso" if has_useful_data else "Poucos dados extraídos - preencha manualmente"
         }
         
     except Exception as e:
         logger.error(f"Erro no scraping: {e}")
-        # Não falhar completamente, permitir preenchimento manual
+        # Log para admin
+        await _log_system_error(
+            error_type="scraper_exception",
+            message=f"Excepção ao extrair dados de {url}",
+            details={"url": url, "error": str(e), "error_type": type(e).__name__}
+        )
         return {
             "success": False, 
             "message": f"Não foi possível extrair dados automáticos: {str(e)}",
