@@ -707,6 +707,68 @@ async def update_cache_settings(
     return {"success": True, "settings": settings}
 
 
+# ============== AI USAGE TRACKING ==============
+
+@router.get("/ai-usage/summary")
+async def get_ai_usage_summary(
+    period: str = "month",
+    task: str = None,
+    model: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Obtém resumo de uso de IA.
+    
+    Args:
+        period: "today", "week", "month", "all"
+        task: Filtrar por tarefa específica
+        model: Filtrar por modelo específico
+    """
+    from services.ai_usage_tracker import ai_usage_tracker
+    return await ai_usage_tracker.get_usage_summary(period, task, model)
+
+
+@router.get("/ai-usage/by-task")
+async def get_ai_usage_by_task(
+    period: str = "month",
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """Obtém uso agregado por tarefa."""
+    from services.ai_usage_tracker import ai_usage_tracker
+    return await ai_usage_tracker.get_usage_by_task(period)
+
+
+@router.get("/ai-usage/by-model")
+async def get_ai_usage_by_model(
+    period: str = "month",
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """Obtém uso agregado por modelo."""
+    from services.ai_usage_tracker import ai_usage_tracker
+    return await ai_usage_tracker.get_usage_by_model(period)
+
+
+@router.get("/ai-usage/trend")
+async def get_ai_usage_trend(
+    days: int = 30,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """Obtém tendência diária de uso dos últimos N dias."""
+    from services.ai_usage_tracker import ai_usage_tracker
+    return await ai_usage_tracker.get_daily_trend(days)
+
+
+@router.get("/ai-usage/logs")
+async def get_ai_usage_logs(
+    limit: int = 50,
+    task: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Obtém logs recentes de chamadas à IA."""
+    from services.ai_usage_tracker import ai_usage_tracker
+    return await ai_usage_tracker.get_recent_logs(limit, task)
+
+
 @router.put("/ai-config")
 async def update_ai_configuration(
     config: dict,
