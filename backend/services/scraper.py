@@ -4,13 +4,19 @@ SCRAPER SERVICE - EXTRAÇÃO HÍBRIDA (BeautifulSoup + Gemini)
 ====================================================================
 Este serviço extrai dados de portais imobiliários usando:
 1. Parsers específicos (BeautifulSoup) para sites conhecidos
-2. Gemini 1.5 Flash como fallback para sites desconhecidos ou 
+2. Gemini 2.0 Flash como fallback para sites desconhecidos ou 
    quando a extração falha
+3. "Deep Link" - Segue links externos para encontrar dados de contacto
 
 Configuração:
 - GEMINI_API_KEY: Chave API do Google Gemini
 - Os parsers específicos são gratuitos (sem custo de API)
 - O Gemini é usado apenas quando necessário (custo muito baixo)
+
+Deep Link Logic:
+- Após extracção inicial, se faltar telefone/email do agente
+- Procura links para sites de agências (remax, era, century21, etc.)
+- Faz scraping da página do agente para encontrar contactos
 ====================================================================
 """
 import logging
@@ -28,6 +34,24 @@ import asyncio
 from config import GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
+
+# Padrões de domínios de agências imobiliárias
+AGENCY_DOMAINS = [
+    "remax", "era.pt", "century21", "coldwellbanker", "kw.com", "kwportugal",
+    "engel", "sothebys", "christies", "savills", "cbre", "jll", "cushwake",
+    "iad-", "iadportugal", "zome", "comprarcasa", "casasdobarlavento"
+]
+
+# Padrões regex para contactos
+PHONE_PATTERNS = [
+    r'\+351\s*\d{3}\s*\d{3}\s*\d{3}',
+    r'\+351\s*\d{9}',
+    r'9[1236]\d{7}',
+    r'2[1-9]\d{7}',
+    r'\d{3}\s*\d{3}\s*\d{3}',
+]
+
+EMAIL_PATTERN = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 
 
 class PropertyScraper:
