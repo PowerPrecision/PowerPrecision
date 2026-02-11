@@ -29,6 +29,8 @@ import {
   Search,
   Sparkles,
   AlertCircle,
+  Database,
+  FileArchive,
 } from "lucide-react";
 import { useState } from "react";
 import NotificationsDropdown from "../components/NotificationsDropdown";
