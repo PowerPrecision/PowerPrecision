@@ -107,13 +107,19 @@ class PropertyScraper:
 
                     return data
 
-            except httpx.SSLError as e:
+            except ssl.SSLError as e:
                 if verify_ssl:
                     logger.warning(f"Erro SSL para {url}, a tentar sem verificação...")
                     continue  # Tentar sem SSL
                 else:
                     logger.error(f"Erro SSL ao fazer scraping de {url}: {str(e)}")
                     return {"url": url, "error": f"Erro SSL: {str(e)}"}
+            except httpx.ConnectError as e:
+                if verify_ssl and "SSL" in str(e):
+                    logger.warning(f"Erro SSL para {url}, a tentar sem verificação...")
+                    continue
+                logger.error(f"Erro de conexão ao fazer scraping de {url}: {str(e)}")
+                return {"url": url, "error": f"Erro de conexão: {str(e)}"}
             except httpx.RequestError as e:
                 logger.error(f"Erro de rede ao fazer scraping de {url}: {str(e)}")
                 return {"url": url, "error": f"Erro de rede: {str(e)}"}
