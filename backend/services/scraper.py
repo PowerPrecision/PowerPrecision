@@ -490,6 +490,26 @@ Conteúdo:
             
             # Parsear JSON
             data = json.loads(result_text.strip())
+            output_tokens = len(result_text) // 4  # Estimativa
+            
+            # Registar uso de IA
+            response_time = int((time.time() - start_time) * 1000)
+            try:
+                from services.ai_usage_tracker import ai_usage_tracker, estimate_cost
+                cost = estimate_cost("gemini-2.0-flash", input_tokens, output_tokens)
+                await ai_usage_tracker.log_usage(
+                    task="scraper_extraction",
+                    model="gemini-2.0-flash",
+                    provider="gemini",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    cost=cost,
+                    response_time_ms=response_time,
+                    success=True,
+                    metadata={"url": url[:100]}
+                )
+            except Exception as track_err:
+                logger.debug(f"Erro ao registar uso: {track_err}")
             
             logger.info(f"✓ Gemini extraiu dados de {url}: {data.get('titulo', 'N/A')}")
             
