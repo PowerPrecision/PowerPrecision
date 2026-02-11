@@ -163,8 +163,8 @@ const DashboardLayout = ({ children, title }) => {
         statsItem,
       ];
       
-      // Adicionar "Os Meus Clientes" apenas para consultores
-      if (user?.role === "consultor") {
+      // Adicionar "Os Meus Clientes" para consultores e intermediários
+      if (["consultor", "intermediario", "mediador"].includes(user?.role)) {
         items.push({
           label: "Os Meus Clientes",
           icon: Users,
@@ -172,8 +172,8 @@ const DashboardLayout = ({ children, title }) => {
         });
       }
       
-      // "Todos os Processos" apenas para roles que não são consultor
-      if (user?.role !== "consultor") {
+      // "Todos os Processos" apenas para roles que não são consultor nem intermediário/mediador
+      if (!["consultor", "intermediario", "mediador"].includes(user?.role)) {
         items.push({
           label: "Todos os Processos",
           icon: FileText,
@@ -181,23 +181,28 @@ const DashboardLayout = ({ children, title }) => {
         });
       }
       
-      items.push(
-        {
-          label: "Clientes",
-          icon: User,
-          href: "/clientes",
-        },
-        {
-          label: "Leads",
-          icon: Search,
-          href: "/leads",
-        },
-        {
+      // Clientes para todos
+      items.push({
+        label: "Clientes",
+        icon: User,
+        href: "/clientes",
+      });
+      
+      // Leads para todos
+      items.push({
+        label: "Leads",
+        icon: Search,
+        href: "/leads",
+      });
+      
+      // Imóveis apenas para roles que não são intermediário/mediador
+      if (!["intermediario", "mediador"].includes(user?.role)) {
+        items.push({
           label: "Imóveis",
           icon: Building2,
           href: "/imoveis",
-        }
-      );
+        });
+      }
       
       return items;
     }
