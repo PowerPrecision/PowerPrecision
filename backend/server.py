@@ -96,6 +96,7 @@ app.include_router(properties_router, prefix="/api")
 app.include_router(clients_router, prefix="/api")
 app.include_router(gdpr_router, prefix="/api")
 app.include_router(backup_router, prefix="/api")
+app.include_router(scraper_router, prefix="/api")
 
 @app.get("/health")
 async def health_check():
