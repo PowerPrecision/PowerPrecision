@@ -8,9 +8,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
-from services.auth import get_current_user, require_roles
+from services.auth import get_current_user, require_roles, UserRole
 from services.scraper import scrape_property_url, crawl_properties
-from models.user import UserRole
 
 logger = logging.getLogger(__name__)
 
