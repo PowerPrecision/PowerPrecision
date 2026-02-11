@@ -9,7 +9,37 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Base de Dados**: MongoDB Atlas (Cluster: cluster0.c8livu.mongodb.net)
   - **Desenvolvimento/Testes**: `powerprecision_dev`
   - **Produção**: `powerprecision`
-- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado)
+- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping)
+
+## Última Actualização - 11 Fevereiro 2026
+
+### ✅ Correcções e Melhorias Implementadas
+
+1. **UI Kanban - Visibilidade de Nomes de Clientes (P0)**
+   - Nomes de clientes agora são **totalmente visíveis** mesmo quando longos
+   - Layout reestruturado: Número do processo em cima, nome do cliente em destaque abaixo
+   - Texto usa `break-words` e `overflow-wrap: anywhere` para evitar truncamento
+   - Fonte aumentada para `text-sm` com `font-semibold` para melhor legibilidade
+   - Consultor mostrado em linha separada com ícone de utilizador
+
+2. **Hybrid Scraper com Deep Link (P0)**
+   - Implementada lógica "Deep Link" para encontrar contactos de agentes
+   - Scraper agora segue links externos para sites de agências (Remax, ERA, Century21, etc.)
+   - Extracção de contactos via regex: telefones (+351, 9XX, 2XX) e emails
+   - Fallback gracioso quando quota Gemini está excedida
+   - Novos campos extraídos: `agente_nome`, `agente_telefone`, `agente_email`, `agencia_nome`
+   - Tratamento de erro `quota_exceeded` - scraper continua apenas com BeautifulSoup
+
+3. **Limpeza de Dados de Teste (P2)**
+   - Script `cleanup_test_data.py` criado para eliminar dados de teste
+   - **33 registos eliminados**: 3 utilizadores de teste + 30 processos de teste
+   - Base de dados limpa: apenas dados reais de produção permanecem
+   - Script suporta modo dry-run para pré-visualização
+
+4. **Correcções Técnicas**
+   - Instalado `libmagic1` para validação de ficheiros
+   - Instalado `h2` para suporte HTTP/2 no scraper
+   - Nova chave Gemini API configurada no `.env`
 
 ## Funcionalidades Implementadas
 
