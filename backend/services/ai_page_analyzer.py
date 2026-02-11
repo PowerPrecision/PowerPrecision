@@ -26,22 +26,34 @@ from config import GEMINI_API_KEY, EMERGENT_LLM_KEY, AI_CONFIG_DEFAULTS, AI_MODE
 
 async def get_ai_config() -> Dict[str, Any]:
     """
-    Obtém a configuração actual de IA.
-    Pode ser sobrescrita pelas definições guardadas na DB.
+    Obtém a configuração actual de IA para cada tarefa.
+    
+    Retorna sempre TODAS as tarefas, mesclando DB com defaults.
     """
     from database import db
     
-    # Tentar obter configuração da DB
+    # Começar com os defaults
+    result = dict(AI_CONFIG_DEFAULTS)
+    
+    # Obter tarefas da DB (se existirem) e adicionar defaults
+    db_tasks = await db.ai_tasks.find({}, {"_id": 0}).to_list(100)
+    if db_tasks:
+        for task in db_tasks:
+            if task["key"] not in result:
+                result[task["key"]] = task.get("default_model", "gpt-4o-mini")
+    
+    # Obter configuração personalizada da DB
     config = await db.system_config.find_one(
         {"key": "ai_config"},
         {"_id": 0}
     )
     
+    # Mesclar configuração guardada (tem prioridade)
     if config and config.get("value"):
-        return config["value"]
+        for key, value in config["value"].items():
+            result[key] = value
     
-    # Usar defaults
-    return AI_CONFIG_DEFAULTS
+    return result
 
 
 async def save_ai_config(config: Dict[str, str], user_email: str) -> bool:
