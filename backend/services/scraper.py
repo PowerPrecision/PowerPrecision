@@ -394,7 +394,7 @@ class PropertyScraper:
         Este método implementa a lógica "Deep Link":
         1. Procura links para sites de agências na página actual
         2. Visita cada link encontrado
-        3. Extrai telefones e emails dessas páginas
+        3. Extrai telefones, emails E NOME DO CONSULTOR dessas páginas
         
         Returns:
             Dict com contactos encontrados via deep link
@@ -414,6 +414,8 @@ class PropertyScraper:
         all_contacts = {
             "telefones": [],
             "emails": [],
+            "agente_nome": None,
+            "agencia_nome": None,
             "deep_link_sources": []
         }
         
@@ -424,9 +426,23 @@ class PropertyScraper:
                 if not html_content:
                     continue
                 
+                # Parse HTML
+                link_soup = BeautifulSoup(html_content, 'html.parser')
+                
                 # Extrair contactos do texto limpo
                 clean_text = self._clean_text(html_content)
                 contacts = self._extract_contacts_from_text(clean_text)
+                
+                # Tentar extrair nome do consultor
+                agent_name = self._extract_agent_name(link_soup, clean_text)
+                if agent_name and not all_contacts["agente_nome"]:
+                    all_contacts["agente_nome"] = agent_name
+                    logger.info(f"Deep Link: Nome do agente encontrado: {agent_name}")
+                
+                # Tentar extrair nome da agência
+                agency_name = self._extract_agency_name(link_soup, link)
+                if agency_name and not all_contacts["agencia_nome"]:
+                    all_contacts["agencia_nome"] = agency_name
                 
                 if contacts["telefones"] or contacts["emails"]:
                     logger.info(f"Deep Link: Encontrados contactos em {link}")
