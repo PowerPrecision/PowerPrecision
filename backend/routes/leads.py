@@ -20,6 +20,37 @@ from models.auth import UserRole
 router = APIRouter(prefix="/leads", tags=["Property Leads"])
 logger = logging.getLogger(__name__)
 
+
+async def _log_system_error(
+    error_type: str,
+    message: str,
+    details: dict = None,
+    severity: str = "warning"
+):
+    """
+    Regista um erro no sistema para o admin visualizar.
+    
+    Args:
+        error_type: Tipo de erro (scraper_error, api_error, validation_error, etc.)
+        message: Mensagem descritiva do erro
+        details: Detalhes adicionais (dict)
+        severity: Nível (info, warning, error, critical)
+    """
+    try:
+        error_log = {
+            "id": str(uuid.uuid4()),
+            "type": error_type,
+            "message": message,
+            "details": details or {},
+            "severity": severity,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "read": False,
+            "resolved": False
+        }
+        await db.system_error_logs.insert_one(error_log)
+    except Exception as e:
+        logger.error(f"Falha ao registar erro no sistema: {e}")
+
 @router.get("", response_model=List[PropertyLead])
 async def list_leads(
     status: Optional[LeadStatus] = None,
