@@ -213,9 +213,9 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
 # Modelos disponíveis e seus custos (apenas informativos)
 AI_MODELS = {
-    "gemini-1.5-flash": {
+    "gemini-2.0-flash": {
         "provider": "gemini",
-        "name": "Gemini 1.5 Flash",
+        "name": "Gemini 2.0 Flash",
         "cost_per_1k_tokens": 0.0001,  # Muito económico
         "best_for": ["scraping", "extraction"],
         "requires_key": "GEMINI_API_KEY"
@@ -239,7 +239,7 @@ AI_MODELS = {
 # Configurações padrão de qual IA usar para cada tarefa
 # Pode ser alterado via admin
 AI_CONFIG_DEFAULTS = {
-    "scraper_extraction": "gemini-1.5-flash",  # Extração de dados de páginas
+    "scraper_extraction": "gemini-2.0-flash",  # Extração de dados de páginas
     "document_analysis": "gpt-4o-mini",        # Análise de documentos
     "weekly_report": "gpt-4o-mini",            # Relatório semanal
     "error_analysis": "gpt-4o-mini",           # Análise de erros
