@@ -88,6 +88,28 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
    - Instalado `h2` para suporte HTTP/2 no scraper
    - Nova chave Gemini API configurada no `.env`
 
+11. **Sistema de Controlo de Notificações - NOVO**
+   - Admin pode configurar preferências de email/notificação por utilizador
+   - Tipos de notificação configuráveis:
+     - Emails: novo processo, mudança status, documento, tarefa, prazos, urgentes, resumo diário, relatório semanal
+     - In-App: novo processo, mudança status, documento, tarefa, comentários
+   - **Utilizadores de Teste**: Podem ser marcados para não receber emails
+   - Acções em massa: marcar/desmarcar múltiplos utilizadores como teste
+   - Nova página: `/configuracoes/notificacoes`
+   - Endpoints:
+     - `GET /api/admin/notification-preferences` - Lista todos
+     - `GET/PUT /api/admin/notification-preferences/{user_id}` - Individual
+     - `POST /api/admin/notification-preferences/bulk-update` - Em massa
+
+12. **Correcção de Validação de Datas - NOVO**
+   - Datas em formato português ("19 de outubro de 1949") são convertidas para ISO
+   - Erros de validação agora são mostrados correctamente (não causam página em branco)
+
+13. **Filtros na Página de Clientes - NOVO**
+   - Filtros: Todos | Com Processos | Sem Processos
+   - Ordenação: Mais Recentes | Mais Antigos | Nome (A-Z/Z-A) | Processos
+   - Cabeçalhos da tabela clicáveis para ordenar
+
 ## Funcionalidades Implementadas
 
 ### Core
