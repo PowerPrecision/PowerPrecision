@@ -592,19 +592,19 @@ const KanbanBoard = ({ token, user }) => {
                             <CardContent className="p-2">
                               {/* Layout compacto mas legível */}
                               <div className="space-y-1">
-                                {/* Linha 1: Nome + Número */}
-                                <div className="flex items-center gap-1">
-                                  <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                  <p className="font-medium text-xs flex-1 truncate" title={process.client_name}>
+                                {/* Linha 1: Nome */}
+                                <div className="flex items-start gap-1">
+                                  <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                  <p className="font-medium text-xs leading-tight line-clamp-2 min-h-[2rem]" title={process.client_name}>
                                     {process.client_name}
                                   </p>
-                                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                                    #{process.process_number || '—'}
-                                  </span>
                                 </div>
-                                {/* Linha 2: Badges + Ações */}
+                                {/* Linha 2: Número + Badges + Ações */}
                                 <div className="flex items-center justify-between pl-4">
-                                  <div className="flex items-center gap-1 flex-wrap">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      #{process.process_number || '—'}
+                                    </span>
                                     {process.consultor_name && (
                                       <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
                                         {process.consultor_name.split(' ')[0]}
