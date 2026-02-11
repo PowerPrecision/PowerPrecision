@@ -231,6 +231,7 @@ const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete,
               onStatusChange={onStatusChange}
               onDelete={onDelete}
               onRefreshPrice={onRefreshPrice}
+              onShowSuggestions={onShowSuggestions}
               clients={clients}
             />
           ))}
