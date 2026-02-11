@@ -1178,3 +1178,167 @@ async def clear_duplicate_cache(
     )
     document_hash_cache = {}
     return {"message": f"Cache limpo. {count} documentos removidos do cache."}
+
+
+@router.get("/import-errors/suggestions")
+async def get_import_improvement_suggestions(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Analisar padrões de erros de importação e gerar sugestões de melhoria.
+    
+    Este endpoint examina os erros registados e identifica:
+    - Padrões comuns de erro
+    - Tipos de documentos problemáticos
+    - Sugestões específicas para reduzir erros futuros
+    """
+    from datetime import timedelta
+    
+    # Obter estatísticas dos erros
+    total_errors = await db.import_errors.count_documents({})
+    
+    if total_errors == 0:
+        return {
+            "total_errors": 0,
+            "suggestions": [
+                {
+                    "category": "info",
+                    "title": "Sem erros registados",
+                    "description": "Não há erros de importação para analisar. Continue com as boas práticas actuais!",
+                    "priority": "low"
+                }
+            ],
+            "patterns": []
+        }
+    
+    # Agregação por fonte de erro
+    pipeline_sources = [
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    sources_cursor = db.import_errors.aggregate(pipeline_sources)
+    sources = [doc async for doc in sources_cursor]
+    
+    # Agregação por padrão de erro (primeiros 100 chars)
+    pipeline_patterns = [
+        {"$project": {
+            "error_pattern": {"$substr": ["$error_message", 0, 100]},
+            "source": 1
+        }},
+        {"$group": {
+            "_id": "$error_pattern",
+            "count": {"$sum": 1},
+            "sources": {"$addToSet": "$source"}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    patterns_cursor = db.import_errors.aggregate(pipeline_patterns)
+    patterns = [doc async for doc in patterns_cursor]
+    
+    # Gerar sugestões baseadas nos padrões
+    suggestions = []
+    
+    # Analisar padrões específicos e gerar sugestões
+    for pattern in patterns:
+        error_text = pattern["_id"].lower() if pattern["_id"] else ""
+        count = pattern["count"]
+        
+        # Padrão: Título/campos obrigatórios em falta
+        if any(word in error_text for word in ["falta", "obrigatório", "obrigatorio", "required", "missing"]):
+            suggestions.append({
+                "category": "validation",
+                "title": "Campos obrigatórios em falta",
+                "description": f"Detectados {count} erros de campos obrigatórios em falta. Verifique se os ficheiros Excel têm todas as colunas necessárias antes de importar.",
+                "action": "Criar um template Excel padrão com todos os campos obrigatórios destacados.",
+                "priority": "high" if count > 5 else "medium"
+            })
+        
+        # Padrão: Erros de formato/tipo de dados
+        elif any(word in error_text for word in ["formato", "format", "tipo", "type", "invalid", "inválido"]):
+            suggestions.append({
+                "category": "format",
+                "title": "Erros de formato de dados",
+                "description": f"Detectados {count} erros de formato. Dados podem estar no formato errado (ex: texto em campos numéricos).",
+                "action": "Validar formatos antes de importar: preços devem ser números, datas devem seguir o formato português (DD/MM/AAAA).",
+                "priority": "high" if count > 5 else "medium"
+            })
+        
+        # Padrão: Erros de NIF
+        elif "nif" in error_text or "5" in error_text and "empresa" in error_text:
+            suggestions.append({
+                "category": "data_quality",
+                "title": "Problemas com NIFs",
+                "description": f"Detectados {count} erros relacionados com NIFs. Lembre-se: NIFs que começam por 5 são de empresas.",
+                "action": "Verificar NIFs antes de importar. Clientes particulares devem ter NIFs que começam por 1, 2, 3 ou 4.",
+                "priority": "medium"
+            })
+        
+        # Padrão: Erros de distrito/concelho
+        elif any(word in error_text for word in ["distrito", "concelho", "localização", "localizacao"]):
+            suggestions.append({
+                "category": "geography",
+                "title": "Erros de localização",
+                "description": f"Detectados {count} erros de distrito/concelho. Verifique se os nomes estão correctos e completos.",
+                "action": "Usar nomes oficiais dos distritos e concelhos portugueses. Evitar abreviaturas.",
+                "priority": "medium"
+            })
+        
+        # Padrão: Erros de proprietário
+        elif any(word in error_text for word in ["proprietário", "proprietario", "owner"]):
+            suggestions.append({
+                "category": "owner_data",
+                "title": "Dados do proprietário incompletos",
+                "description": f"Detectados {count} erros relacionados com dados do proprietário.",
+                "action": "Certifique-se de que o nome do proprietário está sempre preenchido. Telefone e email são opcionais mas recomendados.",
+                "priority": "medium"
+            })
+        
+        # Padrão genérico
+        else:
+            suggestions.append({
+                "category": "other",
+                "title": "Padrão de erro recorrente",
+                "description": f"Detectados {count} erros com o padrão: '{pattern['_id'][:80]}...'",
+                "action": "Analisar manualmente os ficheiros com este erro para identificar a causa.",
+                "priority": "low"
+            })
+    
+    # Adicionar sugestão baseada nas fontes de erro
+    for source in sources:
+        if source["_id"] == "excel_import" and source["count"] > 5:
+            suggestions.insert(0, {
+                "category": "process",
+                "title": "Muitos erros na importação Excel",
+                "description": f"A importação Excel gerou {source['count']} erros. Considere:",
+                "action": "1. Verificar o formato do ficheiro antes de importar\n2. Usar o template oficial\n3. Pré-validar os dados numa folha de cálculo",
+                "priority": "high"
+            })
+        elif source["_id"] == "document_analysis" and source["count"] > 10:
+            suggestions.insert(0, {
+                "category": "documents",
+                "title": "Erros na análise de documentos",
+                "description": f"A análise de documentos teve {source['count']} erros. Possíveis causas:",
+                "action": "1. Verificar a qualidade das digitalizações\n2. Usar PDFs em vez de imagens\n3. Garantir que o nome do ficheiro corresponde ao cliente",
+                "priority": "high"
+            })
+    
+    # Remover duplicados mantendo ordem
+    seen_titles = set()
+    unique_suggestions = []
+    for s in suggestions:
+        if s["title"] not in seen_titles:
+            seen_titles.add(s["title"])
+            unique_suggestions.append(s)
+    
+    # Ordenar por prioridade
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    unique_suggestions.sort(key=lambda x: priority_order.get(x.get("priority", "low"), 3))
+    
+    return {
+        "total_errors": total_errors,
+        "analyzed_patterns": len(patterns),
+        "suggestions": unique_suggestions[:10],  # Limitar a 10 sugestões
+        "patterns": [{"pattern": p["_id"][:100], "count": p["count"]} for p in patterns],
+        "sources": [{"source": s["_id"], "count": s["count"]} for s in sources]
+    }
