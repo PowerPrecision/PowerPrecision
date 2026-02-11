@@ -221,11 +221,11 @@ Responde em JSON estruturado."""
 
 # Instância para uso global
 class PageAnalyzer:
-    """Wrapper para análise de páginas com Claude."""
+    """Wrapper para análise de páginas com IA (GPT-4o)."""
     
     def __init__(self):
-        self.model = CLAUDE_MODEL
-        self.provider = CLAUDE_PROVIDER
+        self.model = AI_MODEL
+        self.provider = AI_PROVIDER
     
     async def analyze(self, html: str, url: str, type: str = "property") -> Dict:
         return await analyze_page_with_claude(html, url, type)
