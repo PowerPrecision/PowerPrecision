@@ -118,128 +118,55 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, clie
       } ${isStale ? "border-red-400 border-2" : ""}`}
       data-testid={`lead-card-${lead.id}`}
     >
-      <CardContent className="p-3 space-y-2">
-        {/* Imagem */}
-        {lead.photo_url && (
-          <div className="relative h-24 rounded overflow-hidden bg-gray-100">
-            <img
-              src={lead.photo_url}
-              alt={lead.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
-            />
-          </div>
-        )}
-
-        {/* Data de entrada e indicador de antiguidade */}
-        {daysOldText && (
-          <div className={`text-xs ${isStale ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
-            {isStale && "⚠️ "}{daysOldText}
-          </div>
-        )}
-
-        {/* Título */}
-        <div className="flex items-start justify-between gap-2">
-          <h4 className="text-sm font-medium line-clamp-2" title={lead.title}>
+      <CardContent className="p-2 space-y-1">
+        {/* Header: Título + Ações */}
+        <div className="flex items-start justify-between gap-1">
+          <h4 className="text-xs font-medium line-clamp-1 flex-1" title={lead.title}>
             {lead.title || "Sem título"}
           </h4>
-          <div className="flex gap-1 flex-shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => onEdit(lead)}
-              data-testid={`edit-lead-${lead.id}`}
-              title="Editar"
-            >
-              <Edit className="h-3 w-3" />
+          <div className="flex gap-0.5 flex-shrink-0">
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onEdit(lead)} title="Editar">
+              <Edit className="h-2.5 w-2.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-red-500 hover:text-red-700"
-              onClick={() => onDelete(lead.id)}
-              data-testid={`delete-lead-${lead.id}`}
-              title="Eliminar"
-            >
-              <Trash2 className="h-3 w-3" />
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={() => onDelete(lead.id)} title="Eliminar">
+              <Trash2 className="h-2.5 w-2.5" />
             </Button>
           </div>
         </div>
 
-        {/* Preço com botão de refresh */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-green-600 font-semibold">
-            <Euro className="h-4 w-4" />
-            <span>{formatPrice(lead.price)}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={handleRefreshPrice}
-            disabled={isRefreshing}
-            data-testid={`refresh-price-${lead.id}`}
-            title="Verificar preço"
-          >
-            {isRefreshing ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <>🔄</>
-            )}
+        {/* Preço + Localização */}
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-green-600 font-semibold">{formatPrice(lead.price)}</span>
+          {lead.location && (
+            <span className="text-muted-foreground truncate max-w-[80px]" title={lead.location}>
+              {lead.location}
+            </span>
+          )}
+        </div>
+
+        {/* Badges: Tipologia + Área + Data */}
+        <div className="flex flex-wrap gap-1 items-center">
+          {lead.typology && <Badge variant="secondary" className="text-[10px] px-1 py-0">{lead.typology}</Badge>}
+          {lead.area && <Badge variant="outline" className="text-[10px] px-1 py-0">{lead.area}m²</Badge>}
+          {daysOldText && (
+            <span className={`text-[10px] ${isStale ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+              {isStale && "⚠️"}{daysOldText}
+            </span>
+          )}
+          <Button variant="ghost" size="icon" className="h-4 w-4 ml-auto" onClick={handleRefreshPrice} disabled={isRefreshing} title="Verificar preço">
+            {isRefreshing ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <span className="text-[10px]">🔄</span>}
           </Button>
         </div>
 
-        {/* Localização e tipologia */}
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          {lead.location && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[120px]" title={lead.location}>
-                {lead.location}
-              </span>
-            </div>
-          )}
-          {lead.typology && (
-            <Badge variant="secondary" className="text-xs">
-              {lead.typology}
-            </Badge>
-          )}
-          {lead.area && (
-            <Badge variant="outline" className="text-xs">
-              {lead.area}m²
-            </Badge>
-          )}
+        {/* Cliente + Link */}
+        <div className="flex items-center justify-between text-[10px]">
+          {lead.client_name ? (
+            <span className="text-blue-600 truncate max-w-[100px]">{lead.client_name}</span>
+          ) : <span />}
+          <a href={lead.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-0.5">
+            <ExternalLink className="h-2.5 w-2.5" />Ver
+          </a>
         </div>
-
-        {/* Cliente associado */}
-        {lead.client_name && (
-          <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-            <User className="h-3 w-3" />
-            <span className="truncate">{lead.client_name}</span>
-          </div>
-        )}
-
-        {/* Consultor */}
-        {lead.consultant?.name && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Phone className="h-3 w-3" />
-            <span>{lead.consultant.name}</span>
-          </div>
-        )}
-
-        {/* Link original */}
-        <a
-          href={lead.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-blue-500 hover:underline"
-        >
-          <ExternalLink className="h-3 w-3" />
-          <span>Ver anúncio</span>
-        </a>
       </CardContent>
     </Card>
   );
