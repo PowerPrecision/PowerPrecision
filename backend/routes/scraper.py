@@ -225,3 +225,75 @@ async def analyze_page_with_ai_endpoint(
     except Exception as e:
         logger.error(f"Erro na análise IA: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# CACHE MANAGEMENT ENDPOINTS
+# ============================================================
+
+@router.get("/cache/stats")
+async def get_cache_stats(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Retorna estatísticas do cache de scraping.
+    
+    Returns:
+        - total_entries: Total de URLs em cache
+        - valid_entries: URLs ainda válidas (não expiradas)
+        - expired_entries: URLs expiradas
+        - cache_expiry_days: Dias de validade do cache
+    """
+    stats = await property_scraper.get_cache_stats()
+    return stats
+
+
+@router.delete("/cache/clear")
+async def clear_scraper_cache(
+    url: Optional[str] = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Limpa o cache de scraping.
+    
+    Args:
+        url: URL específica a limpar. Se não fornecida, limpa todo o cache.
+        
+    Returns:
+        Número de registos eliminados
+    """
+    deleted = await property_scraper.clear_cache(url)
+    
+    return {
+        "success": True,
+        "deleted_count": deleted,
+        "message": f"Cache {'da URL' if url else 'completo'} limpo"
+    }
+
+
+@router.post("/cache/refresh")
+async def refresh_url_cache(
+    request: ScrapeRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
+):
+    """
+    Força o refresh do cache para uma URL específica.
+    
+    Remove o cache existente e faz novo scraping.
+    """
+    try:
+        # Limpar cache da URL
+        await property_scraper.clear_cache(request.url)
+        
+        # Fazer novo scraping
+        result = await property_scraper.scrape_url(request.url, use_cache=True)
+        
+        return {
+            "success": True,
+            "message": "Cache actualizado",
+            "data": result
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao refrescar cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
