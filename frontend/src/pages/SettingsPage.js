@@ -527,9 +527,14 @@ const SettingsPage = () => {
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleSaveNotifications}
+                      disabled={loading}
                       className="bg-teal-600 hover:bg-teal-700"
                     >
-                      <Save className="h-4 w-4 mr-2" />
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       Guardar Preferências
                     </Button>
                   </div>
