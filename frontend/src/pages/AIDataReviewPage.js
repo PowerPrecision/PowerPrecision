@@ -302,7 +302,8 @@ const AIDataReviewPage = () => {
   useEffect(() => {
     loadPendingReviews();
     loadWeeklyReport();
-  }, [loadPendingReviews, loadWeeklyReport]);
+    loadReportConfig();
+  }, [loadPendingReviews, loadWeeklyReport, loadReportConfig]);
 
   // Formatar data
   const formatDate = (dateStr) => {
