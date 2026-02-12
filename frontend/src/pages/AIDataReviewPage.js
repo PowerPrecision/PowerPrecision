@@ -666,6 +666,15 @@ const AIDataReviewPage = () => {
                     )}
                     {sendingEmail ? "A enviar..." : "Enviar por Email"}
                   </Button>
+                  <Button
+                    onClick={() => setConfigDialogOpen(true)}
+                    variant="outline"
+                    className="gap-2"
+                    data-testid="config-report-btn"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Configurações
+                  </Button>
                 </div>
 
                 {/* Insights */}
