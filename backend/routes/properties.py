@@ -611,14 +611,34 @@ async def import_properties_from_excel(
                         return str(val).strip()
                 return default
             
-            # Helper para converter preço (remove € e espaços)
+            # Helper para converter preço (remove € e espaços, trata formato europeu)
             def parse_price(price_str):
-                if pd.isna(price_str):
+                if price_str is None:
                     return None
-                price_str = str(price_str).replace('€', '').replace('.', '').replace(',', '.').strip()
+                # Se é uma Series, pegar o primeiro valor
+                if hasattr(price_str, 'iloc'):
+                    price_str = price_str.iloc[0] if len(price_str) > 0 else None
+                if price_str is None or pd.isna(price_str):
+                    return None
+                price_str = str(price_str).replace('€', '').strip()
                 # Se tem "/" provavelmente é venda/arrendamento, pegar o primeiro
                 if '/' in price_str:
                     price_str = price_str.split('/')[0].strip()
+                # Formato europeu: 700.000 = 700000, 700,00 = 700.00
+                # Se tem ponto e vírgula, é formato europeu
+                if '.' in price_str and ',' in price_str:
+                    # 700.000,00 -> 700000.00
+                    price_str = price_str.replace('.', '').replace(',', '.')
+                elif '.' in price_str:
+                    # Pode ser 700.000 (europeu) ou 700.00 (americano)
+                    # Se tem mais de 2 dígitos após o ponto, é europeu (separador de milhares)
+                    parts = price_str.split('.')
+                    if len(parts[-1]) == 3 and len(parts) > 1:
+                        # 700.000 -> 700000
+                        price_str = price_str.replace('.', '')
+                elif ',' in price_str:
+                    # 700,00 -> 700.00
+                    price_str = price_str.replace(',', '.')
                 try:
                     return float(price_str)
                 except ValueError:
