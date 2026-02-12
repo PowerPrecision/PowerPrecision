@@ -313,7 +313,7 @@ const BulkDocumentUpload = () => {
     // Resumo final
     const finalSummary = {
       success: processed > 0,
-      total: filesToProcess.length,
+      total: totalFiles,
       processed,
       updated_clients: updatedClients,
       errors_count: errors,
@@ -323,7 +323,7 @@ const BulkDocumentUpload = () => {
 
     // Notificação com toast mais duradouro para resultado final
     if (processed > 0) {
-      let msg = `✅ Upload Massivo Concluído!\n${processed}/${filesToProcess.length} processados\n${updatedClients} fichas actualizadas`;
+      let msg = `✅ Upload Massivo Concluído!\n${processed}/${totalFiles} processados\n${updatedClients} fichas actualizadas`;
       if (skippedClients > 0) {
         msg += `\n⚠️ ${skippedClients} clientes não encontrados`;
       }
@@ -337,8 +337,7 @@ const BulkDocumentUpload = () => {
       toast.error("❌ Upload Massivo Falhou\nNenhum documento foi processado com sucesso.", { duration: 8000 });
     }
     
-    // Limpar estado
-    resetState();
+    // Limpar estado (já foi limpo antes)
   };
 
   // Cancelar processamento
