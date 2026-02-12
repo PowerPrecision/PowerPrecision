@@ -43,6 +43,8 @@ import {
   Calendar,
   Target,
   Info,
+  Mail,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "../services/api";
