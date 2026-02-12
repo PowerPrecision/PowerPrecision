@@ -2,36 +2,20 @@
 ====================================================================
 ROTAS DE GESTÃO DE PROCESSOS - CREDITOIMO
 ====================================================================
-Módulo principal para gestão de processos de crédito habitação
+Endpoints REST para gestão de processos de crédito habitação
 e transações imobiliárias.
 
-FUNCIONALIDADES PRINCIPAIS:
-- Criar e atualizar processos de clientes
-- Visualização em quadro Kanban
-- Movimentação entre fases do workflow
-- Atribuição de consultores e intermediários
-- Filtros por papel do utilizador
+A lógica de negócio está separada em serviços:
+- services/process_service.py - Lógica principal
+- services/process_assignment.py - Atribuições
+- services/process_kanban.py - Kanban
 
 WORKFLOW DE 14 FASES:
-1. Clientes em Espera
-2. Fase Documental
-3. Fase Documental II
-4. Enviado ao Bruno
-5. Enviado ao Luís
-6. Enviado BCP Rui
-7. Entradas Precision
-8. Fase Bancária
-9. Fase de Visitas
-10. CH Aprovado
-11. Fase de Escritura
-12. Escritura Agendada
-13. Concluídos
-14. Desistências
+1. Clientes em Espera → 14. Desistências
 
 Autor: CreditoIMO Development Team
 ====================================================================
 """
-import re
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -60,6 +44,31 @@ from services.alerts import (
 )
 from services.realtime_notifications import notify_process_status_change
 from services.trello import trello_service, status_to_trello_list, build_card_description
+
+# Importar serviços refatorados
+from services.process_service import (
+    sanitize_email,
+    get_next_process_number,
+    can_view_process,
+    build_query_filter,
+    create_process_document,
+    update_process_document,
+    get_process_by_id,
+    get_processes_for_user,
+    get_user_name
+)
+from services.process_assignment import (
+    assign_both_to_process,
+    assign_self_to_process,
+    unassign_self_from_process,
+    get_users_for_assignment
+)
+from services.process_kanban import (
+    get_kanban_response,
+    move_process as move_process_kanban_service,
+    KANBAN_COLUMNS,
+    is_valid_status
+)
 
 logger = logging.getLogger(__name__)
 
