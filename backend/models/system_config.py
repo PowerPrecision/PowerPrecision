@@ -98,6 +98,26 @@ class TrelloConfig(BaseModel):
     webhook_base_url: Optional[str] = None
 
 
+class ReportFrequency(str, Enum):
+    """Frequência de envio do relatório de IA"""
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    DISABLED = "disabled"
+
+
+class AIReportConfig(BaseModel):
+    """Configuração do relatório automático de IA"""
+    enabled: bool = True
+    frequency: ReportFrequency = ReportFrequency.WEEKLY
+    send_day: int = 0  # 0=Segunda, 1=Terça, ... 6=Domingo (para semanal)
+    send_hour: int = 9  # Hora do envio (0-23)
+    recipients_type: str = "admins"  # "admins", "all_staff", "custom"
+    custom_recipients: List[str] = []  # Lista de user IDs se recipients_type="custom"
+    include_insights: bool = True
+    include_charts: bool = True
+
+
 class SystemSettings(BaseModel):
     """Configurações gerais do sistema"""
     company_name: str = "Power Real Estate"
