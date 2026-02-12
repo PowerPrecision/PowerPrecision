@@ -59,6 +59,7 @@ import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
 import S3FileManager from "../components/S3FileManager";
 import ProcessTimeline from "../components/ProcessTimeline";
 import ClientPropertyMatch from "../components/ClientPropertyMatch";
+import TemplatesPanel from "../components/TemplatesPanel";
 import {
   ArrowLeft,
   User,
