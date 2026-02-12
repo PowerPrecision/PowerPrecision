@@ -663,8 +663,7 @@ async def import_properties_from_excel(
             
             # Mapear tipo de imóvel
             if tipologia:
-                # Se tem tipologia, usar para determinar tipo
-                tipologia_lower = str(tipologia).lower()
+                # Se tem tipologia, usar título para determinar tipo
                 if 'moradia' in titulo.lower() or 'moradia' in tipo_raw:
                     tipo = 'moradia'
                 elif 'armazém' in titulo.lower() or 'armazem' in tipo_raw:
