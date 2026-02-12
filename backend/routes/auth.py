@@ -109,3 +109,34 @@ async def get_me(user: dict = Depends(get_current_user)):
         response["impersonated_by_name"] = user.get("impersonated_by_name")
     
     return response
+
+
+
+@router.put("/preferences")
+async def update_preferences(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Atualiza as preferências de notificação do utilizador.
+    """
+    user_id = user["id"]
+    
+    # Extrair preferências de notificação
+    notifications = data.get("notifications", {})
+    
+    update_data = {
+        "notification_preferences": notifications,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    return {"success": True, "message": "Preferências atualizadas"}
