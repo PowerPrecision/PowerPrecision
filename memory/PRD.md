@@ -11,6 +11,38 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
+## Última Actualização - 12 Fevereiro 2026 (Sessão 10)
+
+### ✅ Funcionalidades Implementadas (Sessão 10)
+
+#### 1. Correção de Bugs nas Configurações do Sistema
+- ✅ **Teste de conexão Storage (S3)**: Corrigido erro "Provider não suportado para teste"
+  - Código agora detecta correctamente o provider `aws_s3`
+  - Mensagens de erro mais detalhadas (403, 404, configuração em falta)
+  - Suporte para múltiplos providers: aws_s3, onedrive, google_drive, dropbox, local
+  - **Ficheiro**: `/app/backend/routes/system_config.py`
+
+- ✅ **Teste de conexão Email (SMTP)**: Corrigido erro "please run connect() first"
+  - Validação prévia de credenciais (servidor, utilizador, password)
+  - Mensagens claras quando credenciais estão em falta
+  - Suporte para SSL e STARTTLS
+  - Tratamento de erros específicos (autenticação, conexão, timeout)
+  - **Ficheiro**: `/app/backend/routes/system_config.py`
+
+#### 2. Importação de Imóveis via Excel (formato HCPro/CRM)
+- Actualizado endpoint `POST /api/properties/bulk/import-excel` para suportar formato HCPro
+- Mapeamento automático de colunas com aliases:
+  - `Título` → `titulo`, `Preço` → `preco`, `Freguesia` → `localidade`
+  - `Proprietário` → `proprietario_nome`, `Agência` → `agencia`
+  - `Área útil`, `Área bruta`, `Área terreno` mapeadas automaticamente
+- Parser de preços europeus (700.000€ → 700000)
+- Extracção automática de quartos da tipologia (T1, T2, T3...)
+- Fallback para agência quando proprietário não está preenchido
+- **Ficheiros**: `/app/backend/routes/properties.py`
+- **Teste**: 12 imóveis importados com sucesso do ficheiro do utilizador
+
+---
+
 ## Última Actualização - 12 Fevereiro 2026 (Sessão 9)
 
 ### ✅ Funcionalidades Implementadas (Sessão 9)
