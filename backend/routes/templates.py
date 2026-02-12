@@ -84,10 +84,20 @@ async def download_cpcv_template(
 ):
     """
     Download do template de CPCV como ficheiro de texto.
+    Valida se todos os campos obrigatórios estão preenchidos.
     """
     result = await get_template_for_process(process_id, "cpcv")
     
     if result.get("error"):
+        if result.get("validation_error"):
+            raise HTTPException(
+                status_code=400, 
+                detail={
+                    "message": result["error"],
+                    "missing_fields": result.get("missing_fields", []),
+                    "missing_fields_message": result.get("missing_fields_message", "")
+                }
+            )
         raise HTTPException(status_code=404, detail=result["error"])
     
     client_name = result.get("client_name", "cliente").replace(" ", "_")
