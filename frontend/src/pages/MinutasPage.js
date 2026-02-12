@@ -485,6 +485,7 @@ const MinutasPage = () => {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Filtros */}
