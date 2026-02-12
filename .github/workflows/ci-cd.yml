@@ -59,10 +59,9 @@ jobs:
         run: |
           cd backend
           echo "🔍 A verificar vulnerabilidades em dependências..."
-          safety check --full-report --output json \
-            --ignore 64459 --ignore 64396 \
-            > ../security-reports/safety-report.json 2>&1 || true
-          safety check --full-report --ignore 64459 --ignore 64396
+          # Usando 'safety scan' (o comando 'check' foi deprecado em Junho 2024)
+          safety scan --output json > ../security-reports/safety-report.json 2>&1 || true
+          safety scan --detailed-output
         continue-on-error: false
 
       - name: Upload Security Reports
