@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert.jsx';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
