@@ -678,6 +678,255 @@ class ScheduledTasksService:
         logger.info(f"Cache de scraping limpo: {result.deleted_count} entradas")
         return result.deleted_count
     
+    async def send_weekly_ai_report(self) -> bool:
+        """
+        Envia relatório semanal de extracções de IA aos administradores.
+        Executa apenas às segundas-feiras.
+        
+        Returns:
+            True se o email foi enviado, False caso contrário
+        """
+        today = datetime.now(timezone.utc)
+        
+        # Verificar se é segunda-feira (weekday() = 0)
+        if today.weekday() != 0:
+            logger.info("Não é segunda-feira - ignorando relatório semanal de IA")
+            return False
+        
+        logger.info("A gerar e enviar relatório semanal de IA...")
+        
+        # Gerar dados do relatório
+        week_start = today - timedelta(days=7)
+        prev_week_start = today - timedelta(days=14)
+        
+        # Buscar extracções
+        processes = await self.db.processes.find(
+            {"ai_extraction_history": {"$exists": True, "$ne": []}},
+            {"_id": 0, "ai_extraction_history": 1}
+        ).to_list(None)
+        
+        this_week_extractions = []
+        prev_week_extractions = []
+        
+        for proc in processes:
+            for extraction in proc.get("ai_extraction_history", []):
+                extracted_at = extraction.get("extracted_at", "")
+                if extracted_at:
+                    try:
+                        ext_date = datetime.fromisoformat(extracted_at.replace("Z", "+00:00"))
+                        if ext_date >= week_start:
+                            this_week_extractions.append(extraction)
+                        elif ext_date >= prev_week_start:
+                            prev_week_extractions.append(extraction)
+                    except Exception:
+                        pass
+        
+        # Calcular métricas
+        total_this_week = len(this_week_extractions)
+        successful_this_week = sum(1 for e in this_week_extractions if e.get("extracted_data"))
+        total_prev_week = len(prev_week_extractions)
+        successful_prev_week = sum(1 for e in prev_week_extractions if e.get("extracted_data"))
+        
+        success_rate = (successful_this_week / total_this_week * 100) if total_this_week > 0 else 0
+        prev_success_rate = (successful_prev_week / total_prev_week * 100) if total_prev_week > 0 else 0
+        
+        doc_variation = ((total_this_week - total_prev_week) / total_prev_week * 100) if total_prev_week > 0 else 0
+        success_variation = success_rate - prev_success_rate
+        
+        # Contagem por tipo de documento
+        doc_type_counts = {}
+        for extraction in this_week_extractions:
+            doc_type = extraction.get("document_type", "outro")
+            doc_type_counts[doc_type] = doc_type_counts.get(doc_type, 0) + 1
+        
+        # Top campos extraídos
+        field_counts = {}
+        for extraction in this_week_extractions:
+            extracted_data = extraction.get("extracted_data", {})
+            if isinstance(extracted_data, dict):
+                for field, value in extracted_data.items():
+                    if value:
+                        field_counts[field] = field_counts.get(field, 0) + 1
+        
+        top_fields = sorted(field_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Mapear nomes
+        doc_type_labels = {
+            "cc": "Cartão de Cidadão",
+            "recibo_vencimento": "Recibo de Vencimento",
+            "irs": "Declaração IRS",
+            "contrato_trabalho": "Contrato de Trabalho",
+            "cpcv": "CPCV",
+            "caderneta_predial": "Caderneta Predial",
+            "simulacao": "Simulação de Crédito",
+            "extrato_bancario": "Extrato Bancário",
+            "outro": "Outro Documento",
+        }
+        
+        field_labels = {
+            "personal_data.nome": "Nome Completo",
+            "personal_data.nif": "NIF",
+            "personal_data.cc_number": "Nº CC",
+            "financial_data.rendimento_mensal": "Rendimento Mensal",
+            "financial_data.entidade_patronal": "Entidade Patronal",
+            "real_estate_data.valor_imovel": "Valor do Imóvel",
+            "client_name": "Nome do Cliente",
+            "client_email": "Email",
+        }
+        
+        # Gerar HTML do email
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background-color: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #0f766e 0%, #115e59 100%); color: white; padding: 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 24px; }}
+                .header p {{ margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }}
+                .content {{ padding: 30px; }}
+                .stats-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px; }}
+                .stat-card {{ background: #f8fafc; border-radius: 8px; padding: 15px; text-align: center; }}
+                .stat-value {{ font-size: 32px; font-weight: bold; color: #0f766e; }}
+                .stat-label {{ font-size: 12px; color: #64748b; margin-top: 5px; }}
+                .stat-change {{ font-size: 11px; margin-top: 3px; }}
+                .stat-change.positive {{ color: #16a34a; }}
+                .stat-change.negative {{ color: #dc2626; }}
+                .section {{ margin-top: 25px; }}
+                .section h3 {{ font-size: 14px; color: #334155; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }}
+                .progress-bar {{ background: #e2e8f0; border-radius: 4px; height: 8px; margin: 5px 0; overflow: hidden; }}
+                .progress-fill {{ height: 100%; background: #0f766e; border-radius: 4px; }}
+                .doc-item {{ display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }}
+                .doc-name {{ font-size: 13px; color: #334155; }}
+                .doc-count {{ font-size: 13px; font-weight: bold; color: #0f766e; }}
+                .insight {{ background: #f0fdf4; border-left: 4px solid #16a34a; padding: 12px 15px; margin: 10px 0; border-radius: 0 8px 8px 0; font-size: 13px; }}
+                .insight.warning {{ background: #fffbeb; border-left-color: #f59e0b; }}
+                .insight.info {{ background: #eff6ff; border-left-color: #3b82f6; }}
+                .footer {{ background: #f8fafc; padding: 20px; text-align: center; font-size: 11px; color: #64748b; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Relatório Semanal de IA</h1>
+                    <p>{week_start.strftime('%d/%m/%Y')} - {today.strftime('%d/%m/%Y')}</p>
+                </div>
+                
+                <div class="content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">{total_this_week}</div>
+                            <div class="stat-label">Documentos Analisados</div>
+                            <div class="stat-change {'positive' if doc_variation >= 0 else 'negative'}">
+                                {'+' if doc_variation >= 0 else ''}{doc_variation:.0f}% vs. semana anterior
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{success_rate:.0f}%</div>
+                            <div class="stat-label">Taxa de Sucesso</div>
+                            <div class="stat-change {'positive' if success_variation >= 0 else 'negative'}">
+                                {'+' if success_variation >= 0 else ''}{success_variation:.1f}pp vs. semana anterior
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{successful_this_week}</div>
+                            <div class="stat-label">Extracções com Sucesso</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{total_prev_week}</div>
+                            <div class="stat-label">Total Semana Anterior</div>
+                        </div>
+                    </div>
+                    
+                    {"".join([
+                        f'<div class="insight {"warning" if success_rate < 70 else "info" if total_this_week == 0 else ""}">'
+                        f'{self._get_weekly_insight(total_this_week, success_rate, doc_variation)}</div>'
+                    ])}
+                    
+                    <div class="section">
+                        <h3>Por Tipo de Documento</h3>
+                        {"".join([
+                            f'''<div class="doc-item">
+                                <span class="doc-name">{doc_type_labels.get(doc_type, doc_type)}</span>
+                                <span class="doc-count">{count}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {count/total_this_week*100 if total_this_week > 0 else 0:.0f}%"></div>
+                            </div>'''
+                            for doc_type, count in sorted(doc_type_counts.items(), key=lambda x: x[1], reverse=True)
+                        ]) if doc_type_counts else '<p style="color: #64748b; font-size: 13px;">Nenhum documento analisado</p>'}
+                    </div>
+                    
+                    <div class="section">
+                        <h3>Top 5 Campos Extraídos</h3>
+                        {"".join([
+                            f'<div class="doc-item"><span class="doc-name">{field_labels.get(field, field)}</span><span class="doc-count">{count}</span></div>'
+                            for field, count in top_fields
+                        ]) if top_fields else '<p style="color: #64748b; font-size: 13px;">Nenhum campo extraído</p>'}
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>Este relatório foi gerado automaticamente pelo CreditoIMO</p>
+                    <p>Power Real Estate & Precision Crédito</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Obter emails dos administradores
+        admins = await self.db.users.find(
+            {"role": {"$in": ["admin", "ceo"]}, "is_active": {"$ne": False}},
+            {"_id": 0, "email": 1, "name": 1}
+        ).to_list(50)
+        
+        if not admins:
+            logger.warning("Nenhum administrador encontrado para enviar o relatório")
+            return False
+        
+        admin_emails = [a["email"] for a in admins if a.get("email")]
+        
+        if not admin_emails:
+            logger.warning("Nenhum email de administrador configurado")
+            return False
+        
+        # Enviar email usando o serviço de email existente
+        try:
+            from services.email_service import send_email
+            
+            result = await send_email(
+                account_name="precision",  # Usar conta principal
+                to_emails=admin_emails,
+                subject=f"Relatório Semanal IA - {week_start.strftime('%d/%m')} a {today.strftime('%d/%m/%Y')}",
+                body=f"Relatório semanal de extracções de IA.\n\nDocumentos analisados: {total_this_week}\nTaxa de sucesso: {success_rate:.1f}%",
+                body_html=html_content
+            )
+            
+            if result.get("success"):
+                logger.info(f"Relatório semanal de IA enviado para {len(admin_emails)} administrador(es)")
+                return True
+            else:
+                logger.error(f"Falha ao enviar relatório: {result.get('error')}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Erro ao enviar relatório semanal de IA: {e}")
+            return False
+    
+    def _get_weekly_insight(self, total: int, success_rate: float, doc_variation: float) -> str:
+        """Gera insight para o email."""
+        if total == 0:
+            return "ℹ️ Nenhum documento foi analisado esta semana. Considere testar a funcionalidade de análise de documentos."
+        
+        if success_rate >= 90:
+            return f"✅ Excelente desempenho! Taxa de sucesso de {success_rate:.0f}% nas extracções de IA."
+        elif success_rate >= 70:
+            return f"📊 Bom desempenho com taxa de {success_rate:.0f}%. Há espaço para melhorias na qualidade dos documentos."
+        else:
+            return f"⚠️ Taxa de sucesso baixa ({success_rate:.0f}%). Verifique a qualidade das imagens e PDFs enviados."
+    
     async def run_all_tasks(self):
         """Executar todas as tarefas agendadas."""
         logger.info("=" * 50)
