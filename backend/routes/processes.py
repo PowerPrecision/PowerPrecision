@@ -73,56 +73,6 @@ from services.process_kanban import (
 logger = logging.getLogger(__name__)
 
 
-def sanitize_email(email: str) -> str:
-    """
-    Limpa emails com formatação markdown ou outros artefactos.
-    Extrai o email puro de strings como '[email](mailto:email)' ou 'mailto:email'.
-    """
-    if not email:
-        return ""
-    
-    email = email.strip()
-    
-    # Padrão: [texto](mailto:email) ou [email](mailto:email)
-    markdown_link = re.search(r'\[.*?\]\(mailto:([^)]+)\)', email)
-    if markdown_link:
-        email = markdown_link.group(1)
-    
-    # Padrão: mailto:email
-    if email.startswith('mailto:'):
-        email = email.replace('mailto:', '')
-    
-    # Padrão: <email>
-    angle_brackets = re.search(r'<([^>]+@[^>]+)>', email)
-    if angle_brackets:
-        email = angle_brackets.group(1)
-    
-    # Remover quaisquer caracteres markdown restantes
-    email = re.sub(r'[\[\]\(\)]', '', email)
-    
-    # Validar formato básico de email
-    email = email.strip().lower()
-    if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email, re.IGNORECASE):
-        logger.warning(f"Email inválido após sanitização: {email}")
-        return ""
-    
-    return email
-
-
-async def get_next_process_number() -> int:
-    """Obter o próximo número sequencial para um novo processo."""
-    # Buscar o maior process_number existente
-    result = await db.processes.find_one(
-        {"process_number": {"$exists": True, "$ne": None}},
-        {"process_number": 1},
-        sort=[("process_number", -1)]
-    )
-    
-    if result and result.get("process_number"):
-        return result["process_number"] + 1
-    return 1  # Primeiro processo
-
-
 async def sync_process_to_trello(process: dict):
     """Sincronizar processo com o Trello (nome e descrição do card)."""
     if not process.get("trello_card_id") or not trello_service.api_key:
@@ -146,66 +96,6 @@ async def sync_process_to_trello(process: dict):
 # CONFIGURAÇÃO DO ROUTER
 # ====================================================================
 router = APIRouter(prefix="/processes", tags=["Processes"])
-
-
-# ====================================================================
-# FUNÇÕES AUXILIARES DE PERMISSÕES
-# ====================================================================
-
-def can_view_process(user: dict, process: dict) -> bool:
-    """
-    Verifica se um utilizador pode visualizar um processo específico.
-    
-    REGRAS DE ACESSO:
-    - Admin/CEO/Administrativo: Acesso a todos os processos
-    - Cliente: Apenas o próprio processo
-    - Consultor: Processos onde está atribuído como consultor OU foi o criador
-    - Intermediário/Mediador: Processos onde está atribuído como intermediário OU foi o criador
-    - Diretor: Ambos os tipos de atribuição
-    
-    Args:
-        user: Dados do utilizador autenticado
-        process: Dados do processo a verificar
-    
-    Returns:
-        bool: True se tem permissão, False caso contrário
-    """
-    role = user["role"]
-    user_id = user["id"]
-    user_email = user.get("email", "")
-    
-    # Administradores, CEO e Administrativo têm acesso total
-    if role in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
-        return True
-    
-    # Clientes só vêem os próprios processos
-    if role == UserRole.CLIENTE:
-        return process.get("client_id") == user_id
-    
-    # Helper para verificar se utilizador criou o processo (created_by pode ser ID ou email)
-    def is_creator():
-        created_by = process.get("created_by", "")
-        return created_by == user_id or created_by == user_email
-    
-    # Consultores vêem processos atribuídos OU criados por eles
-    if role == UserRole.CONSULTOR:
-        return (process.get("assigned_consultor_id") == user_id or
-                is_creator() or
-                process.get("consultor_id") == user_id)
-    
-    # Intermediários/Mediadores vêem processos atribuídos OU criados por eles
-    if role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
-        return (process.get("assigned_mediador_id") == user_id or
-                is_creator() or
-                process.get("intermediario_id") == user_id)
-    
-    # Diretor: acesso a ambos os tipos de atribuição (consultor e intermediário)
-    if role == UserRole.DIRETOR:
-        return (process.get("assigned_consultor_id") == user_id or 
-                process.get("assigned_mediador_id") == user_id or
-                is_creator())
-    
-    return False
 
 
 # ====================================================================
