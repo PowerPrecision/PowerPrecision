@@ -209,13 +209,19 @@ async def get_document_checklist(
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
+    # Obter lista de ficheiros já carregados
+    uploaded_files = process.get("uploaded_documents", [])
+    file_names = [f.get("name", f.get("filename", "")) for f in uploaded_files]
+    
     # Usar o serviço de checklist existente
-    checklist_result = await verificar_documentos_processo(process)
+    checklist_result = generate_checklist(file_names, "credito_habitacao")
+    missing_docs = get_documentos_em_falta(checklist_result, apenas_obrigatorios=False)
     
     return {
         "process_id": process_id,
         "client_name": process.get("client_name"),
         "checklist": checklist_result,
+        "missing_documents": missing_docs,
         "webmail_urls": WEBMAIL_URLS
     }
 
