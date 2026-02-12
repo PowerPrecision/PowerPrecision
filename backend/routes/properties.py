@@ -16,6 +16,7 @@ from models.property import (
 )
 from services.auth import get_current_user, require_roles
 from services.alerts import check_and_notify_matches_for_new_property
+from services.background_jobs import background_jobs, JobType, JobStatus
 from models.auth import UserRole
 
 router = APIRouter(prefix="/properties", tags=["Properties"])
