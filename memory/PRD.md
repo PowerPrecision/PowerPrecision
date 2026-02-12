@@ -11,43 +11,81 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 12 Fevereiro 2026 (Sessão 7)
+## Última Actualização - 12 Fevereiro 2026 (Sessão 8)
 
-### ✅ Bug Fix: Atribuições - Dropdowns Vazios (CORRIGIDO)
+### ✅ Optimizações de Segurança e Performance (IMPLEMENTADAS)
 
-**Problema**: Na página de detalhes do processo, ao clicar no botão "Atribuições", os dropdowns para selecionar Consultor e Mediador apareciam vazios.
+#### Parte 3 - Optimizações Técnicas
 
-**Causa Raiz**: A função `openAssignDialog()` abria o dialog e chamava `fetchUsers()` de forma assíncrona, mas não esperava pelo resultado. Quando o dialog renderizava, o estado `appUsers` ainda estava vazio.
+**8. Índices de BD para Performance**
+- Criado ficheiro `/app/backend/services/db_indexes.py`
+- Índices criados automaticamente no startup da app
+- Colecções indexadas: `processes`, `users`, `system_error_logs`, `properties`, `tasks`
+- TTL index de 90 dias para logs (limpeza automática)
 
-**Solução Implementada** (Ficheiro: `/app/frontend/src/pages/ProcessDetails.js`):
-1. Convertida função `openAssignDialog` para `async`
-2. Adicionado `await` ao `fetchUsers()` para garantir que os dados são carregados antes de mostrar o dialog
-3. Adicionado estado `loadingUsers` com indicador visual de loading
-4. Adicionados `data-testid` aos componentes Select para facilitar testes
+**11. Validação JWT Secret Robusta**
+- Verificação de comprimento mínimo (32 chars)
+- Detecção de valores de exemplo inseguros
+- Verificação de complexidade (entropia)
+- Em DEV: apenas aviso | Em PROD: bloqueio fatal
+- Ficheiro: `/app/backend/config.py`
 
-**Verificação**:
-- ✅ Dropdown de Consultor mostra 9 utilizadores (admin, ceo, consultor, diretor)
-- ✅ Dropdown de Mediador mostra 4 utilizadores (mediador, intermediario, diretor)
-- ✅ API `/api/admin/users` retorna dados correctamente
-- ✅ Screenshots confirmam funcionamento
+**12. Validação Checksum NIF Português**
+- Algoritmo completo de validação do dígito de controlo
+- Validação de prefixos válidos (1,2,3,5,6,7,8,9)
+- Opção para permitir/bloquear NIFs de empresa (5xxxxx)
+- Ficheiro: `/app/backend/models/process.py`
+
+**14. Rate Limiting Configurável**
+- Limites por tipo de endpoint: auth, read, write, upload, export, ai
+- Configurável via variáveis de ambiente
+- Headers X-RateLimit-* nas respostas
+- Ficheiro: `/app/backend/middleware/rate_limit.py`
 
 ---
 
-### ✅ Integração HCPro (IMPLEMENTADA)
+#### Parte 1 - Lógica de Negócio
 
-**Funcionalidades Implementadas**:
+**1. ServiceTypeEnum**
+- Novo enum: `CREDITO_APENAS`, `IMOBILIARIO_APENAS`, `COMPLETO`
+- Ficheiro: `/app/backend/models/process.py`
 
-#### 1. Upload de Ficheiro Excel para Criar Imóveis
-- **Endpoint**: `POST /api/properties/bulk/import-excel`
-- **Frontend**: Botão "Importar Excel" na página de Imóveis
-- **Colunas do Excel suportadas**:
-  - `titulo` (obrigatório)
-  - `preco` (obrigatório)
-  - `distrito` (obrigatório)
-  - `concelho` (obrigatório)
-  - `proprietario_nome` (obrigatório)
-  - `tipo`, `localidade`, `morada`, `codigo_postal`, `quartos`, `casas_banho`, `area_util`, `area_bruta`, `ano_construcao`, `certificado_energetico`, `estado`, `proprietario_telefone`, `proprietario_email`, `descricao`, `notas`
-- **Resultado**: Imóveis criados com referências sequenciais (IMO-001, IMO-002, etc.)
+**2. Campos de Avaliação Bancária**
+- Novos campos em `CreditData`: `valuation_value`, `valuation_date`, `valuation_bank`, `valuation_notes`
+- Ficheiro: `/app/backend/models/process.py`
+
+**3. Pastas S3 com Múltiplos Titulares**
+- Formato: `clientes/{id}_{nome1}_e_{nome2}/`
+- Aplicado apenas a NOVOS processos
+- Ficheiro: `/app/backend/services/s3_storage.py`
+
+**4. Alerta Automático de Avaliação Bancária**
+- Novo tipo: `VALUATION_BELOW_PURCHASE`
+- Detecta quando avaliação < valor de compra
+- Calcula diferença e percentagem
+- Envia notificações para consultores e admins
+- Inclui recomendações de acção
+- Ficheiro: `/app/backend/services/alerts.py`
+
+---
+
+### ✅ Correcções Anteriores (Sessão 7)
+
+**Bug Fix: Atribuições - Dropdowns Vazios**
+- Problema: Dropdowns de Consultor e Mediador apareciam vazios
+- Solução: Função `openAssignDialog` convertida para async com await
+- Ficheiro: `/app/frontend/src/pages/ProcessDetails.js`
+
+**Integração HCPro**
+- Upload de Excel para criar imóveis
+- Botão de login HCPro no formulário de novo imóvel
+- URL: https://crmhcpro.pt/login
+
+**Sistema de Logs Corrigido**
+- Logs de importação Excel agora aparecem na página de Logs do Sistema
+- Colecção: `system_error_logs` (centralizada)
+
+---
 
 #### 2. Botão Login HCPro no Formulário de Novo Imóvel
 - **Localização**: Topo do formulário "Novo Imóvel"
