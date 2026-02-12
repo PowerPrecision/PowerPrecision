@@ -45,6 +45,24 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Modificados: `App.js`, `DashboardLayout.js`
 - **Status**: ✅ IMPLEMENTADO e TESTADO
 
+#### 3. Relatório Semanal de Extracções IA (NOVA FUNCIONALIDADE)
+- **Nova Aba**: "Relatório Semanal" na página de Revisão de Dados IA
+- **Métricas Incluídas**:
+  - Total de documentos analisados (com variação vs. semana anterior)
+  - Taxa de sucesso das extracções
+  - Número de extracções bem-sucedidas
+  - Período do relatório
+- **Visualizações**:
+  - Distribuição por tipo de documento (com barras de progresso)
+  - Top 10 campos mais extraídos (tabela)
+  - Insights automáticos (sucesso, alerta ou informativo)
+- **Endpoint Backend**:
+  - `GET /api/admin/ai-weekly-report` - Gera relatório semanal
+- **Ficheiros Modificados**:
+  - `/app/backend/routes/admin.py` - Novo endpoint + função de insights
+  - `/app/frontend/src/pages/AIDataReviewPage.js` - UI do relatório
+- **Status**: ✅ IMPLEMENTADO e TESTADO
+
 ---
 
 ## Sessão 10 - 12 Fevereiro 2026
