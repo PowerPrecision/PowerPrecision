@@ -1924,6 +1924,12 @@ const ProcessDetails = () => {
               </AccordionItem>
             </Accordion>
 
+            {/* Templates e Minutas */}
+            <TemplatesPanel 
+              processId={id}
+              token={token}
+            />
+
             {/* Side Tabs - Prazos, Histórico, Ficheiros */}
             <Card className="border-border">
               <CardContent className="p-0">
