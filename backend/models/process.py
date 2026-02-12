@@ -9,14 +9,45 @@ class ProcessType:
     AMBOS = "ambos"
 
 
-def validate_nif(nif: str, allow_company: bool = False) -> str:
+def validate_nif_checksum(nif: str) -> bool:
     """
-    Validar NIF português (9 dígitos numéricos).
+    Valida o checksum (dígito de controlo) de um NIF português.
+    
+    Algoritmo:
+    1. Multiplicar os 8 primeiros dígitos por 9,8,7,6,5,4,3,2 respectivamente
+    2. Somar todos os produtos
+    3. Calcular resto da divisão por 11
+    4. Dígito de controlo = 11 - resto (se >= 10, usar 0)
+    5. Comparar com o 9º dígito
+    
+    Returns:
+        True se o checksum for válido, False caso contrário
+    """
+    if not nif or len(nif) != 9 or not nif.isdigit():
+        return False
+    
+    digits = [int(d) for d in nif]
+    
+    # Calcular soma ponderada dos primeiros 8 dígitos
+    weights = [9, 8, 7, 6, 5, 4, 3, 2]
+    total_sum = sum(d * w for d, w in zip(digits[:8], weights))
+    
+    # Calcular dígito de controlo
+    remainder = total_sum % 11
+    check_digit = 11 - remainder if remainder > 1 else 0
+    
+    return check_digit == digits[8]
+
+
+def validate_nif(nif: str, allow_company: bool = False, validate_checksum: bool = True) -> str:
+    """
+    Validar NIF português (9 dígitos numéricos) com checksum.
     Por defeito, não permite NIFs de empresas (começam por 5).
     
     Args:
         nif: O NIF a validar
         allow_company: Se True, permite NIFs de empresas (5xxxxxxxx)
+        validate_checksum: Se True, valida o dígito de controlo
     
     Returns:
         O NIF limpo se válido
@@ -36,9 +67,19 @@ def validate_nif(nif: str, allow_company: bool = False) -> str:
     if not nif_clean.isdigit():
         raise ValueError("NIF deve conter apenas dígitos")
     
-    # Validar primeiro dígito - NIFs que começam com 5 são de empresas
+    # Validar primeiro dígito - prefixos válidos para NIF português
+    first_digit = nif_clean[0]
+    valid_prefixes = ['1', '2', '3', '5', '6', '7', '8', '9']
+    if first_digit not in valid_prefixes:
+        raise ValueError(f"NIF com prefixo inválido: {first_digit}")
+    
+    # NIFs que começam com 5 são de empresas
     if not allow_company and nif_clean.startswith('5'):
         raise ValueError("NIF de empresa (começado por 5) não é permitido para clientes particulares")
+    
+    # Validar checksum (dígito de controlo)
+    if validate_checksum and not validate_nif_checksum(nif_clean):
+        raise ValueError("NIF inválido: dígito de controlo incorreto")
     
     return nif_clean
 
