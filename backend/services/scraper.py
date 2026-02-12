@@ -49,14 +49,35 @@ AGENCY_DOMAINS = [
     "iad-", "iadportugal", "zome", "comprarcasa", "casasdobarlavento"
 ]
 
-# Padrões regex para contactos
+# Padrões regex para contactos - MELHORADOS para formato português
+# Prioridade: tel: links > telemóveis (9X) > fixos (2X)
 PHONE_PATTERNS = [
-    r'\+351\s*\d{3}\s*\d{3}\s*\d{3}',
-    r'\+351\s*\d{9}',
-    r'9[1236]\d{7}',
-    r'2[1-9]\d{7}',
-    r'\d{3}\s*\d{3}\s*\d{3}',
+    # Links tel: - maior prioridade
+    r'tel:\+?351?(9[1236]\d{7})',      # tel:+351912345678 ou tel:912345678
+    r'tel:\+?351?(2[1-9]\d{7})',       # tel:+351213456789
+    # Telemóveis portugueses com +351
+    r'\+351[\s.-]?(9[1236])[\s.-]?(\d{3})[\s.-]?(\d{4})',
+    r'\+351\s*9[1236]\d{7}',
+    # Telemóveis sem código país
+    r'\b(9[1236])[\s.-]?(\d{3})[\s.-]?(\d{4})\b',
+    r'\b9[1236]\d{7}\b',
+    # Fixos portugueses
+    r'\+351[\s.-]?(2[1-9])[\s.-]?(\d{3})[\s.-]?(\d{4})',
+    r'\b(2[1-9])[\s.-]?(\d{3})[\s.-]?(\d{4})\b',
+    r'\b2[1-9]\d{7}\b',
+    # Formato genérico XXX XXX XXX
+    r'\b(\d{3})[\s.-](\d{3})[\s.-](\d{3})\b',
 ]
+
+# Selectores específicos por agência imobiliária
+AGENCY_PHONE_SELECTORS = {
+    "remax": ['.agent-phone', 'a[href^="tel:"]', '.contact-phone', '.consultant-phone'],
+    "era": ['.phone', '.contact-info a[href*="tel"]', '.agent-details .phone'],
+    "century21": ['.agent-contact a', '.phone-number', '.consultant-info .phone'],
+    "zome": ['.contact-phone', '.agent-phone', 'a[href^="tel:"]'],
+    "iad": ['.conseiller-tel', '.phone', 'a[href*="tel"]'],
+    "kw": ['.agent-phone', '.contact-phone', 'a.phone-link'],
+}
 
 EMAIL_PATTERN = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 
