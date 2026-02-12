@@ -961,10 +961,25 @@ async def log_import_error(
     filename: str,
     document_type: str,
     error: str,
-    user_email: str = None
+    user_email: str = None,
+    # Novos campos (Item 15)
+    folder_name: str = None,
+    attempted_matches: List[str] = None,
+    best_match_score: int = None,
+    best_match_name: str = None,
+    extracted_names: List[str] = None,
+    full_path: str = None
 ):
     """
     Guardar erro de importação na base de dados para análise posterior.
+    
+    Melhorias (Item 15):
+    - folder_name: Pasta que falhou no match
+    - attempted_matches: Lista de nomes DB comparados
+    - best_match_score: Maior score de fuzzy matching
+    - best_match_name: Nome mais próximo na DB
+    - extracted_names: Nomes extraídos da pasta
+    - full_path: Caminho completo do ficheiro
     """
     try:
         error_log = {
@@ -976,8 +991,26 @@ async def log_import_error(
             "document_type": document_type,
             "error": error,
             "user_email": user_email,
-            "resolved": False
+            "resolved": False,
+            # Novos campos para diagnóstico (Item 15)
+            "folder_name": folder_name or client_name,
+            "full_path": full_path or filename,
+            "matching_details": {
+                "attempted_matches": attempted_matches[:10] if attempted_matches else [],
+                "best_match_score": best_match_score,
+                "best_match_name": best_match_name,
+                "extracted_names": list(extracted_names)[:5] if extracted_names else []
+            } if any([attempted_matches, best_match_score, extracted_names]) else None
         }
+        
+        # Remover campos None do matching_details
+        if error_log.get("matching_details"):
+            error_log["matching_details"] = {
+                k: v for k, v in error_log["matching_details"].items() 
+                if v is not None and v != []
+            }
+            if not error_log["matching_details"]:
+                del error_log["matching_details"]
         
         await db.import_errors.insert_one(error_log)
         logger.info(f"Erro de importação registado: {filename} -> {error[:50]}...")
