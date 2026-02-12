@@ -1146,6 +1146,98 @@ async def clear_import_errors(
     }
 
 
+@router.get("/suggest-clients")
+async def suggest_clients(
+    query: str,
+    limit: int = 5,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Retornar clientes similares para selecção manual (Item 14).
+    Usado quando o matching automático falha.
+    
+    Parâmetros:
+    - query: Nome/termo a pesquisar
+    - limit: Número máximo de sugestões (default 5, max 10)
+    
+    Returns:
+        Lista de sugestões com nome, id, score e contagem de documentos
+    """
+    if not query or len(query) < 2:
+        return {
+            "query": query,
+            "suggestions": [],
+            "message": "Query deve ter pelo menos 2 caracteres"
+        }
+    
+    # Limitar resultados
+    limit = min(limit, 10)
+    
+    # Importar fuzzywuzzy
+    try:
+        from fuzzywuzzy import fuzz
+        HAS_FUZZY = True
+    except ImportError:
+        HAS_FUZZY = False
+    
+    # Normalizar query
+    query_normalized = normalize_text_for_matching(query)
+    query_names = extract_all_names_from_string(query)
+    
+    # Buscar todos os clientes
+    all_processes = await db.processes.find(
+        {},
+        {"_id": 0, "id": 1, "client_name": 1, "process_number": 1, "analyzed_documents": 1}
+    ).to_list(length=None)
+    
+    # Calcular scores
+    scored_results = []
+    
+    for proc in all_processes:
+        proc_name = proc.get("client_name", "")
+        if not proc_name:
+            continue
+        
+        proc_name_normalized = normalize_text_for_matching(proc_name)
+        
+        # Calcular score
+        if HAS_FUZZY:
+            # Usar token_set_ratio para melhor matching de nomes
+            score = fuzz.token_set_ratio(query_normalized, proc_name_normalized)
+        else:
+            # Fallback: matching simples
+            if query_normalized in proc_name_normalized:
+                score = 80
+            elif proc_name_normalized in query_normalized:
+                score = 70
+            else:
+                # Calcular overlap de palavras
+                proc_names = extract_all_names_from_string(proc_name)
+                common = query_names & proc_names
+                score = len(common) * 25 if common else 0
+        
+        # Só incluir se score > 30
+        if score > 30:
+            docs_count = len(proc.get("analyzed_documents", []))
+            scored_results.append({
+                "name": proc_name,
+                "id": proc.get("id"),
+                "process_number": proc.get("process_number"),
+                "score": score,
+                "docs": docs_count
+            })
+    
+    # Ordenar por score (maior primeiro) e limitar
+    scored_results.sort(key=lambda x: x["score"], reverse=True)
+    suggestions = scored_results[:limit]
+    
+    return {
+        "query": query,
+        "total_matches": len(scored_results),
+        "suggestions": suggestions
+    }
+
+
 @router.get("/check-client")
 async def check_client_exists(
     name: str,
