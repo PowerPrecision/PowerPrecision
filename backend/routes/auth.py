@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 
 from database import db
 from models.auth import (
@@ -16,8 +16,8 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=TokenResponse)
-@limiter.limit("3/hour")  # Limite restritivo: 3 registos por hora por IP
-async def register(request: Request, data: UserRegister):
+@limiter.limit("3/hour")
+async def register(request: Request, response: Response, data: UserRegister):
     existing = await db.users.find_one({"email": data.email})
     if existing:
         from fastapi import HTTPException
