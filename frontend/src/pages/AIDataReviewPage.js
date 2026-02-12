@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { Progress } from "../components/ui/progress";
 import {
   AlertCircle,
   CheckCircle2,
@@ -36,6 +37,12 @@ import {
   FileSearch,
   AlertTriangle,
   Sparkles,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Calendar,
+  Target,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "../services/api";
@@ -81,6 +88,7 @@ const documentTypeLabels = {
 };
 
 const AIDataReviewPage = () => {
+  const [activeTab, setActiveTab] = useState("review");
   const [pendingReviews, setPendingReviews] = useState([]);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [processComparison, setProcessComparison] = useState(null);
@@ -88,6 +96,10 @@ const AIDataReviewPage = () => {
   const [loadingComparison, setLoadingComparison] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [applyingField, setApplyingField] = useState(null);
+  
+  // Relatório semanal
+  const [weeklyReport, setWeeklyReport] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   // Carregar revisões pendentes
   const loadPendingReviews = useCallback(async () => {
@@ -100,6 +112,20 @@ const AIDataReviewPage = () => {
       toast.error("Erro ao carregar revisões pendentes");
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // Carregar relatório semanal
+  const loadWeeklyReport = useCallback(async () => {
+    try {
+      setLoadingReport(true);
+      const response = await api.get("/admin/ai-weekly-report");
+      setWeeklyReport(response.data);
+    } catch (error) {
+      console.error("Erro ao carregar relatório semanal:", error);
+      toast.error("Erro ao carregar relatório semanal");
+    } finally {
+      setLoadingReport(false);
     }
   }, []);
 
@@ -170,7 +196,8 @@ const AIDataReviewPage = () => {
 
   useEffect(() => {
     loadPendingReviews();
-  }, [loadPendingReviews]);
+    loadWeeklyReport();
+  }, [loadPendingReviews, loadWeeklyReport]);
 
   // Formatar data
   const formatDate = (dateStr) => {
@@ -205,6 +232,26 @@ const AIDataReviewPage = () => {
     return String(value);
   };
 
+  // Obter cor do insight
+  const getInsightColor = (type) => {
+    switch (type) {
+      case "success": return "text-green-600 bg-green-50 border-green-200";
+      case "warning": return "text-amber-600 bg-amber-50 border-amber-200";
+      case "info": return "text-blue-600 bg-blue-50 border-blue-200";
+      default: return "text-gray-600 bg-gray-50 border-gray-200";
+    }
+  };
+
+  // Obter ícone do insight
+  const getInsightIcon = (type) => {
+    switch (type) {
+      case "success": return <CheckCircle2 className="h-4 w-4" />;
+      case "warning": return <AlertTriangle className="h-4 w-4" />;
+      case "info": return <Info className="h-4 w-4" />;
+      default: return <AlertCircle className="h-4 w-4" />;
+    }
+  };
+
   return (
     <DashboardLayout title="Revisão de Dados IA">
       <div className="space-y-6">
@@ -213,156 +260,399 @@ const AIDataReviewPage = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Revisão de Dados IA</h1>
             <p className="text-muted-foreground">
-              Compare e valide dados extraídos automaticamente pela IA
+              Compare dados extraídos pela IA e visualize estatísticas semanais
             </p>
           </div>
-          <Button onClick={loadPendingReviews} variant="outline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <Button 
+            onClick={() => {
+              loadPendingReviews();
+              loadWeeklyReport();
+            }} 
+            variant="outline" 
+            disabled={loading || loadingReport}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${(loading || loadingReport) ? "animate-spin" : ""}`} />
             Actualizar
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Processos Pendentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <FileSearch className="h-5 w-5 text-amber-500" />
-                <span className="text-2xl font-bold">{pendingReviews.length}</span>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Itens para Revisão
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-                <span className="text-2xl font-bold">
-                  {pendingReviews.reduce((acc, p) => acc + (p.pending_count || 0), 0)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Tipos de Documentos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-500" />
-                <span className="text-2xl font-bold">
-                  {[...new Set(pendingReviews.flatMap(p => p.document_types || []))].length}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="review" className="flex items-center gap-2">
+              <FileSearch className="h-4 w-4" />
+              Revisão de Dados
+            </TabsTrigger>
+            <TabsTrigger value="report" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Relatório Semanal
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Main Content */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              Processos com Dados Pendentes de Revisão
-            </CardTitle>
-            <CardDescription>
-              Estes processos têm dados extraídos pela IA que aguardam validação manual
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
+          {/* Tab: Revisão de Dados */}
+          <TabsContent value="review" className="mt-6 space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Processos Pendentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <FileSearch className="h-5 w-5 text-amber-500" />
+                    <span className="text-2xl font-bold">{pendingReviews.length}</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total de Itens para Revisão
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-500" />
+                    <span className="text-2xl font-bold">
+                      {pendingReviews.reduce((acc, p) => acc + (p.pending_count || 0), 0)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Tipos de Documentos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-500" />
+                    <span className="text-2xl font-bold">
+                      {[...new Set(pendingReviews.flatMap(p => p.document_types || []))].length}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pending Reviews Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-500" />
+                  Processos com Dados Pendentes de Revisão
+                </CardTitle>
+                <CardDescription>
+                  Estes processos têm dados extraídos pela IA que aguardam validação manual
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : pendingReviews.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
+                    <h3 className="text-lg font-medium">Tudo em dia!</h3>
+                    <p className="text-muted-foreground mt-1">
+                      Não há dados pendentes de revisão
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Itens Pendentes</TableHead>
+                          <TableHead>Tipos de Documento</TableHead>
+                          <TableHead>Mais Antigo</TableHead>
+                          <TableHead className="text-right">Acções</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingReviews.map((process) => (
+                          <TableRow key={process.process_id} data-testid={`review-row-${process.process_id}`}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{process.client_name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={process.status === "concluido" ? "secondary" : "outline"}>
+                                {process.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="destructive" className="tabular-nums">
+                                {process.pending_count}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {(process.document_types || []).slice(0, 3).map((type) => (
+                                  <Badge key={type} variant="outline" className="text-xs">
+                                    {getDocumentTypeLabel(type)}
+                                  </Badge>
+                                ))}
+                                {(process.document_types || []).length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{process.document_types.length - 3}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 text-muted-foreground text-sm">
+                                <Clock className="h-3 w-3" />
+                                {formatDate(process.oldest_pending)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => openProcessDetails(process)}
+                                data-testid={`review-details-btn-${process.process_id}`}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Rever
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab: Relatório Semanal */}
+          <TabsContent value="report" className="mt-6 space-y-6">
+            {loadingReport ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : pendingReviews.length === 0 ? (
+            ) : weeklyReport ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Documentos Analisados
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold">
+                          {weeklyReport.summary.total_documents_analyzed}
+                        </span>
+                        {weeklyReport.summary.comparison.documents_variation_percent !== 0 && (
+                          <span className={`flex items-center text-sm ${
+                            weeklyReport.summary.comparison.documents_variation_percent > 0 
+                              ? "text-green-600" 
+                              : "text-red-600"
+                          }`}>
+                            {weeklyReport.summary.comparison.documents_variation_percent > 0 ? (
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3 mr-1" />
+                            )}
+                            {Math.abs(weeklyReport.summary.comparison.documents_variation_percent)}%
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        vs. {weeklyReport.summary.comparison.prev_week_total} semana anterior
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        Taxa de Sucesso
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold">
+                          {weeklyReport.summary.success_rate}%
+                        </span>
+                        {weeklyReport.summary.comparison.success_rate_variation !== 0 && (
+                          <span className={`flex items-center text-sm ${
+                            weeklyReport.summary.comparison.success_rate_variation > 0 
+                              ? "text-green-600" 
+                              : "text-red-600"
+                          }`}>
+                            {weeklyReport.summary.comparison.success_rate_variation > 0 ? (
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3 mr-1" />
+                            )}
+                            {Math.abs(weeklyReport.summary.comparison.success_rate_variation).toFixed(1)}pp
+                          </span>
+                        )}
+                      </div>
+                      <Progress 
+                        value={weeklyReport.summary.success_rate} 
+                        className="h-2 mt-2"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Extracções com Sucesso
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <span className="text-3xl font-bold text-green-600">
+                        {weeklyReport.summary.successful_extractions}
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        de {weeklyReport.summary.total_documents_analyzed} documentos
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Período
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm font-medium">Últimos 7 dias</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(weeklyReport.period.start).toLocaleDateString("pt-PT")} - {new Date(weeklyReport.period.end).toLocaleDateString("pt-PT")}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Insights */}
+                {weeklyReport.insights && weeklyReport.insights.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-amber-500" />
+                        Insights Automáticos
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {weeklyReport.insights.map((insight, idx) => (
+                        <div 
+                          key={idx}
+                          className={`flex items-start gap-3 p-3 rounded-lg border ${getInsightColor(insight.type)}`}
+                        >
+                          {getInsightIcon(insight.type)}
+                          <p className="text-sm">{insight.message}</p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Charts Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* By Document Type */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Por Tipo de Documento</CardTitle>
+                      <CardDescription>Distribuição das análises por tipo</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {weeklyReport.by_document_type.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum documento analisado neste período
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {weeklyReport.by_document_type.map((item) => (
+                            <div key={item.type} className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{item.label}</span>
+                                <span className="font-medium">{item.count} ({item.percentage}%)</span>
+                              </div>
+                              <Progress value={item.percentage} className="h-2" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Top Extracted Fields */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Campos Mais Extraídos</CardTitle>
+                      <CardDescription>Top 10 campos com extracção bem-sucedida</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {weeklyReport.top_extracted_fields.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum campo extraído neste período
+                        </p>
+                      ) : (
+                        <ScrollArea className="h-[250px]">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Campo</TableHead>
+                                <TableHead className="text-right">Extrações</TableHead>
+                                <TableHead className="text-right">%</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {weeklyReport.top_extracted_fields.map((field, idx) => (
+                                <TableRow key={field.field}>
+                                  <TableCell className="font-medium">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground w-4">{idx + 1}.</span>
+                                      {field.label}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {field.count}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                                    {field.percentage}%
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </ScrollArea>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-                <h3 className="text-lg font-medium">Tudo em dia!</h3>
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Sem dados disponíveis</h3>
                 <p className="text-muted-foreground mt-1">
-                  Não há dados pendentes de revisão
+                  Não foi possível carregar o relatório semanal
                 </p>
               </div>
-            ) : (
-              <ScrollArea className="h-[400px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Itens Pendentes</TableHead>
-                      <TableHead>Tipos de Documento</TableHead>
-                      <TableHead>Mais Antigo</TableHead>
-                      <TableHead className="text-right">Acções</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingReviews.map((process) => (
-                      <TableRow key={process.process_id} data-testid={`review-row-${process.process_id}`}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{process.client_name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={process.status === "concluido" ? "secondary" : "outline"}>
-                            {process.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="destructive" className="tabular-nums">
-                            {process.pending_count}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {(process.document_types || []).slice(0, 3).map((type) => (
-                              <Badge key={type} variant="outline" className="text-xs">
-                                {getDocumentTypeLabel(type)}
-                              </Badge>
-                            ))}
-                            {(process.document_types || []).length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{process.document_types.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(process.oldest_pending)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() => openProcessDetails(process)}
-                            data-testid={`review-details-btn-${process.process_id}`}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Rever
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
             )}
-          </CardContent>
-        </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Dialog de Detalhes */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
