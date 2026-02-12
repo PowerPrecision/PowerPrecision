@@ -2,59 +2,87 @@
 The user's goal is to build a comprehensive process management CRM for a real estate and credit business.
 
 The most recent user requests are:
-1.  **CRITICAL BUG**: Fix a recurring  that is happening in production during Excel import. The user has provided detailed error logs indicating a problem with .
-2.  **FEATURE**: Implement background processing for the Excel import so the user doesn't have to wait.
-3.  **UI REFACTOR**: The admin sidebar menu has become too long and needs to be refactored for better usability.
-4.  **UI REFACTOR**: Remove all branding and advertisements for Emergent from the application.
+1.  **BUG**: Fix an error occurring during massive import.
+2.  **FEATURE**: Add the possibility to import general templates (minutas gerais).
+3.  **UI FIX**: The admin sidebar does not maintain the selected submenu's expanded state on page navigation.
+4.  **UI FIX**: There is no feedback when clicking the save preferences button in the system settings notifications section.
+5.  **UI/UX FIX**: The massive import pop-up should close immediately, with the process running in the background and providing a notification upon completion.
+6.  **FEATURE**: Add a UI button for database maintenance tasks (like repairing indexes) that the user previously requested.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-The application is a full-stack FastAPI and React CRM. In the last session, the agent implemented a new feature for AI data analysis, which includes:
--   A new page at .
--   A weekly AI analysis report displayed on this page with charts and stats.
--   A scheduled backend task that automatically emails this report to administrators.
--   A settings modal to configure the report's frequency, recipients, and content.
-
-The agent also attempted to fix a recurring database error related to Excel imports. While tests passed in the development environment, the user has confirmed the error persists in production, making the import feature non-functional.
+The application is a full-stack FastAPI and React CRM. The previous agent successfully addressed a large number of issues and feature requests.
+- The critical  on  has been fixed by implementing a robust index cleanup and creation mechanism in the backend, including a manual repair endpoint.
+- Background processing for Excel imports has been implemented using FastAPI's , a job management service, and frontend polling to show progress.
+- The admin sidebar has been refactored with collapsible sections.
+- All Emergent branding has been removed from the application.
+- A new Maintenance tab was added to the System Settings page with buttons to repair database indexes and clean up old jobs/logs.
+- A new feature to import document templates (, ) was added.
+- Several UI/UX fixes were implemented, including standardizing toast notifications () and improving the sidebar state management.
+- The UI for AI Data Conflict Resolution was verified as complete and functional.
 
 **Last working item**:
-The agent just finished implementing the settings UI for the weekly AI report. However, the user's latest message has superseded this by reporting a critical, recurring bug and requesting several new features. The highest priority is now the bug fix.
+The agent was addressing a user report that the massive import feature was failing. The agent also had a mandate to complete the UI.
 
--   **Last item agent was working**: User-reported tasks, primarily the recurring .
--   **Status**: NOT STARTED (on the new batch of user requests). The bug fix itself is a regression.
--   **Agent Testing Done**: N/A
--   **Which testing method agent to use?**: backend testing agent.
--   **User Testing Done**: Y (User has confirmed the bug exists in production).
+-   **Last item agent was working**: Investigating and fixing the massive import error. The agent identified a database index conflict with  as a likely cause but did not fix it. It also implemented a speculative frontend fix in . It also verified that the AI Data Review UI, another pending task, was already complete.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent to reproduce and verify the index fix, and frontend testing agent to test the end-to-end massive import flow.
+-   **User Testing Done**: Y (User reported the feature is broken).
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Recurring  during Excel import in production. (Priority: P0)
+-   **Issue 1**: Massive import is failing. (Priority: P0)
+-   **Issue 2**: Sidebar does not keep the correct submenu expanded on navigation. (Priority: P1)
+-   **Issue 3**: Lack of feedback on saving notification preferences. (Priority: P1)
+-   **Issue 4**: Massive import modal does not close and run in the background. (Priority: P1)
 
 **Issues Detail**:
--   **Issue 1: Recurring duplicate key error**
-    -   **Attempted fixes**: The previous agent identified a unique index issue and attempted a fix by creating a sparse index on the  field. Tests passed in the development environment. However, the user's production error log reveals the actual index causing the error is named  and is on the field . This name mismatch ( vs ) is the likely root cause of the bug and explains why the previous fix was ineffective.
+-   **Issue 1: Massive import is failing**
+    -   **Attempted fixes**: The agent made a speculative fix on the frontend in  related to how files are copied. However, the agent also discovered a likely root cause in the backend: an index conflict on the  collection. The index  exists on , but the application code seems to be using the  field differently. This mismatch is almost certainly the cause of the error.
     -   **Next debug checklist**:
-        1.  **Confirm the Field Name**: Perform a global search across the entire codebase for both  and .
-        2.  **Standardize**: Choose one naming convention (likely  as it is more descriptive) and refactor all occurrences in the backend: Pydantic models (), API routes (), and especially the index creation logic ().
-        3.  **Database Migration Script**: Create a one-time Python script to connect to the database, drop the incorrect index (), and drop the agent-created but unused index ().
-        4.  **Recreate Index**: Allow the application's startup logic in  (which calls ) to create the new, correct, sparse index on the standardized field name.
-        5.  **Verify**: After deploying the fix, run a test import with a file known to cause the error.
-    -   **Why fix this issue**: This bug makes the core Excel import functionality completely unusable in production.
+        1.  Confirm the exact error by checking backend logs during a massive import attempt.
+        2.  Examine the  function in  to see how  is created.
+        3.  Inspect the Pydantic model for properties () to see the expected structure of the  field.
+        4.  Standardize the field and the index. If the model is correct, the index creation logic must be updated.
+        5.  Update the  function in  to also drop the old, incorrect .
+        6.  Use the backend testing agent to create a test that triggers the massive import and confirms the fix.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a key feature for the user that is currently broken. Fixing it will restore core functionality.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: None. This is the top blocker.
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: None
+
+-   **Issue 2: Sidebar does not keep the correct submenu expanded**
+    -   **Attempted fixes**: The agent added a  hook to  to determine the active group based on  and set the default open collapsible.
+    -   **Next debug checklist**: This fix needs verification. The logic might not cover all edge cases or might have a subtle bug.
+    -   **Why fix this issue and what will be achieved with the fix?**: Improves UI/UX by providing a persistent navigation state.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+
+-   **Issue 3: Lack of feedback on saving notification preferences**
+    -   **Attempted fixes**: The agent correctly identified that one settings page () was using shadcn's  while the rest of the app used . It refactored the page to consistently use  for toast notifications.
+    -   **Next debug checklist**: The fix should work. It needs user verification to confirm it meets their expectations.
+    -   **Why fix this issue and what will be achieved with the fix?**: Provides essential user feedback for an action, improving usability.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+
+-   **Issue 4: Massive import modal does not close**
+    -   **Attempted fixes**: The agent modified  to close the modal () when the upload starts and use  toasts for feedback.
+    -   **Next debug checklist**: This fix needs verification as part of the overall massive import test.
+    -   **Why fix this issue and what will be achieved with the fix?**: Improves UX by allowing the user to continue working while a long process runs in the background.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
 None.
 
 **Upcoming and Future Tasks**
-
 **Upcoming Tasks:**
--   **P0: Implement Background Processing for Excel Import**: As requested by the user, modify the  endpoint to use a background task (e.g., FastAPI's ) so the UI does not hang during large file imports.
--   **P1: Refactor Admin Sidebar**: Modify  to make the navigation menu more organized, potentially by adding collapsible sub-menus for related items like AI Tools.
--   **P1: Build Frontend for AI Data Conflict Resolution**: The backend is ready. The frontend page () exists but needs to be expanded to fetch and display data conflicts from , allowing admins to compare AI-extracted data with user-entered data and choose which to keep.
--   **P2: Remove Emergent Branding**: Perform a codebase search for the word Emergent and remove any advertisements or branding to white-label the application.
+-   **P1: Build Frontend for AI Data Conflict Resolution**: The backend is ready. The frontend page () exists but needs to be expanded to fetch and display data conflicts from , allowing admins to compare AI-extracted data with user-entered data and choose which to keep. **(NOTE: The agent verified this is already complete, but it was on the original list. It should be moved to 'Completed' after user confirmation).**
 
 **Future Tasks:**
 -   Gestão de Equipas (Team Management) feature.
@@ -62,81 +90,129 @@ None.
 -   Implement caching with Redis for further optimization.
 
 **Completed work in this session**
--   **Feature**: Implemented a comprehensive weekly AI report system:
-    -   Backend endpoints and services for report generation in .
-    -   Scheduled email delivery via .
-    -   Frontend UI in  to display the report.
-    -   Configuration settings for the report (frequency, recipients, etc.).
--   **Bug Fix (FAILED)**: Attempted to fix the  duplicate key error. The fix worked in dev but failed in production due to a field name mismatch.
+- **Critical Bug Fix**: Resolved the recurring  by standardizing the  field and creating a robust index repair/creation system (, ).
+- **Background Processing**: Implemented background jobs for Excel imports, including a job management service () and frontend polling ().
+- **UI Refactor**: Reorganized the admin sidebar into collapsible sections for better usability ().
+- **UI Refactor**: Removed all Emergent branding from the application (, ).
+- **New Feature**: Added a Maintenance section in the UI with buttons for database repair and data cleanup ().
+- **New Feature**: Implemented functionality to import general templates from  and  files (, ).
+- **UX Fix**: Implemented a fix to maintain the sidebar's expanded state across navigation.
+- **UX Fix**: Standardized toast notifications on the settings page to use  for consistent user feedback.
+- **UX Fix**: Modified the massive import modal to close and run in the background.
+- **Feature Verification**: Confirmed that the AI Data Conflict Resolution UI () is already fully implemented.
 
 **Earlier issues found/mentioned but not fixed**
--   The  remains the single most critical unfixed issue.
+-   **Issue 1:  index conflict**
+    -   **Debug checklist**: See All Pending/In progress Issue list -> Issue 1.
+    -   **Why to solve this issue and what will be achieved with this?**: This is the root cause of the massive import failure. Fixing it is critical.
+    -   **Should Test frontend/backend/both after fix**: both
+    -   **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: The  on  has been reported multiple times and persists despite a fix attempt.
+-   **Issue recurrence in previous fork**: The  on .
 -   **Recurrence count**: 2
--   **Status**: IN PROGRESS
+-   **Status**: RESOLVED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Database Indexing**: The root cause of the P0 bug is a mismatch between the field name in the code () and the field name in the production database index (). The fix requires standardizing the name and recreating the sparse index.
--   **Background Tasks**: The user requested this for the Excel import. FastAPI's  is the recommended approach for this.
+-   **Database Indexing**: The core of the bug fixes involved identifying mismatched indexes ( vs ) and creating a migration path. A new index issue () has been identified.
+-   **Background Tasks**: Implemented using FastAPI's  for long-running processes like Excel import.
+-   **Job Status Polling**: The frontend now polls a backend endpoint () to get progress updates for background tasks.
+-   **React State & Effects**: Used  and  in  to manage the state of the collapsible navigation menu.
+-   **UI Component Consistency**: Refactored pages to use  for toast notifications instead of multiple different toast systems.
 
 **key DB schema**
--   **properties**: The production index is on a field named . The application code likely uses . This discrepancy must be resolved.
--   **system_settings**: A new document/collection was added to store the .
+-   **properties**: The index  on  (sparse) is now correctly enforced. A new conflict has been identified with , which needs to be resolved.
+-   **background_jobs**: This is not a DB collection but an in-memory dictionary in  storing job statuses.
 
 **All files of reference**
--   : Excel import logic.
--   : Database index creation logic.
--   : Pydantic model for properties.
--   : Contains the long sidebar menu.
--   : UI for AI reports.
--   User's last message, which contains the exact production error log for the  error.
+-   : Core logic for fixing database index issues.
+-   : Location of the failing massive import feature.
+-   : Contains the sidebar logic that needs verification.
+-   : Contains notification settings and the new Maintenance UI.
+-   : New feature for importing templates.
+-   : Contains the background import logic.
+-   : The new service for background jobs.
 
 **Critical Info for New Agent**
--   **YOUR #1 PRIORITY IS THE BUG FIX.** The  is happening in production. Do not work on anything else until this is resolved.
--   **THE ROOT CAUSE IS A NAME MISMATCH.** The user's error log explicitly states the error is on  with key . Your predecessor's code uses . You must investigate and standardize this field name across the entire codebase and database.
--   After the bug is fixed, address the user's other requests in this order: background import, sidebar refactor, and removing branding.
--   The AI Data Review feature is only partially implemented. The conflict resolution UI still needs to be built.
+-   **YOUR #1 PRIORITY IS THE MASSIVE IMPORT BUG.** The root cause is almost certainly the  index conflict in the backend. Fix this using the same pattern established for the  bug (standardize, migrate, test).
+-   **VERIFY PENDING FIXES**: The user has reported several other UI issues for which the previous agent implemented fixes. You must verify these fixes are working as intended: sidebar state, notification feedback, and the massive import modal behavior.
+-   The last action of the previous agent, Looking in indexes: https://pypi.org/simple, https://d33sy5i8bnduwe.cloudfront.net/simple/
+Requirement already satisfied: safety in /root/.venv/lib/python3.11/site-packages (3.7.0)
+Requirement already satisfied: bandit in /root/.venv/lib/python3.11/site-packages (1.9.3)
+Requirement already satisfied: authlib>=1.2.0 in /root/.venv/lib/python3.11/site-packages (from safety) (1.6.7)
+Requirement already satisfied: click>=8.0.2 in /root/.venv/lib/python3.11/site-packages (from safety) (8.3.1)
+Requirement already satisfied: dparse>=0.6.4 in /root/.venv/lib/python3.11/site-packages (from safety) (0.6.4)
+Requirement already satisfied: filelock<4.0,>=3.16.1 in /root/.venv/lib/python3.11/site-packages (from safety) (3.20.2)
+Requirement already satisfied: httpx in /root/.venv/lib/python3.11/site-packages (from safety) (0.28.1)
+Requirement already satisfied: jinja2>=3.1.0 in /root/.venv/lib/python3.11/site-packages (from safety) (3.1.6)
+Requirement already satisfied: marshmallow>=3.15.0 in /root/.venv/lib/python3.11/site-packages (from safety) (4.2.2)
+Requirement already satisfied: nltk>=3.9 in /root/.venv/lib/python3.11/site-packages (from safety) (3.9.2)
+Requirement already satisfied: packaging>=21.0 in /root/.venv/lib/python3.11/site-packages (from safety) (25.0)
+Requirement already satisfied: pydantic>=2.6.0 in /root/.venv/lib/python3.11/site-packages (from safety) (2.12.5)
+Requirement already satisfied: requests in /root/.venv/lib/python3.11/site-packages (from safety) (2.32.5)
+Requirement already satisfied: ruamel-yaml>=0.17.21 in /root/.venv/lib/python3.11/site-packages (from safety) (0.19.1)
+Requirement already satisfied: safety-schemas==0.0.16 in /root/.venv/lib/python3.11/site-packages (from safety) (0.0.16)
+Requirement already satisfied: tenacity>=8.1.0 in /root/.venv/lib/python3.11/site-packages (from safety) (9.1.2)
+Requirement already satisfied: tomlkit in /root/.venv/lib/python3.11/site-packages (from safety) (0.14.0)
+Requirement already satisfied: typer>=0.16.0 in /root/.venv/lib/python3.11/site-packages (from safety) (0.21.0)
+Requirement already satisfied: typing-extensions>=4.7.1 in /root/.venv/lib/python3.11/site-packages (from safety) (4.15.0)
+Requirement already satisfied: PyYAML>=5.3.1 in /root/.venv/lib/python3.11/site-packages (from bandit) (6.0.3)
+Requirement already satisfied: stevedore>=1.20.0 in /root/.venv/lib/python3.11/site-packages (from bandit) (5.6.0)
+Requirement already satisfied: rich in /root/.venv/lib/python3.11/site-packages (from bandit) (14.2.0)
+Requirement already satisfied: cryptography in /root/.venv/lib/python3.11/site-packages (from authlib>=1.2.0->safety) (46.0.3)
+Requirement already satisfied: MarkupSafe>=2.0 in /root/.venv/lib/python3.11/site-packages (from jinja2>=3.1.0->safety) (3.0.3)
+Requirement already satisfied: joblib in /root/.venv/lib/python3.11/site-packages (from nltk>=3.9->safety) (1.5.3)
+Requirement already satisfied: regex>=2021.8.3 in /root/.venv/lib/python3.11/site-packages (from nltk>=3.9->safety) (2025.11.3)
+Requirement already satisfied: tqdm in /root/.venv/lib/python3.11/site-packages (from nltk>=3.9->safety) (4.67.1)
+Requirement already satisfied: annotated-types>=0.6.0 in /root/.venv/lib/python3.11/site-packages (from pydantic>=2.6.0->safety) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.5 in /root/.venv/lib/python3.11/site-packages (from pydantic>=2.6.0->safety) (2.41.5)
+Requirement already satisfied: typing-inspection>=0.4.2 in /root/.venv/lib/python3.11/site-packages (from pydantic>=2.6.0->safety) (0.4.2)
+Requirement already satisfied: shellingham>=1.3.0 in /root/.venv/lib/python3.11/site-packages (from typer>=0.16.0->safety) (1.5.4)
+Requirement already satisfied: markdown-it-py>=2.2.0 in /root/.venv/lib/python3.11/site-packages (from rich->bandit) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in /root/.venv/lib/python3.11/site-packages (from rich->bandit) (2.19.2)
+Requirement already satisfied: mdurl~=0.1 in /root/.venv/lib/python3.11/site-packages (from markdown-it-py>=2.2.0->rich->bandit) (0.1.2)
+Requirement already satisfied: cffi>=2.0.0 in /root/.venv/lib/python3.11/site-packages (from cryptography->authlib>=1.2.0->safety) (2.0.0)
+Requirement already satisfied: pycparser in /root/.venv/lib/python3.11/site-packages (from cffi>=2.0.0->cryptography->authlib>=1.2.0->safety) (2.23)
+Requirement already satisfied: anyio in /root/.venv/lib/python3.11/site-packages (from httpx->safety) (4.12.0)
+Requirement already satisfied: certifi in /root/.venv/lib/python3.11/site-packages (from httpx->safety) (2026.1.4)
+Requirement already satisfied: httpcore==1.* in /root/.venv/lib/python3.11/site-packages (from httpx->safety) (1.0.9)
+Requirement already satisfied: idna in /root/.venv/lib/python3.11/site-packages (from httpx->safety) (3.11)
+Requirement already satisfied: h11>=0.16 in /root/.venv/lib/python3.11/site-packages (from httpcore==1.*->httpx->safety) (0.16.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in /root/.venv/lib/python3.11/site-packages (from requests->safety) (3.4.4)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /root/.venv/lib/python3.11/site-packages (from requests->safety) (2.6.2), failed due to a dependency conflict with . This is likely an environment issue and may not be a blocker for development, but be aware of it if you encounter package installation problems.
 
 **documents and test reports created in this job**
 -    (updated)
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports new tasks and a critical bug.
-    -   The admin menu is too long.
-    -   Remove Emergent branding.
-    -   Excel import should run in the background.
-    -   Provides detailed production logs for the recurring .
-    -   Status: **NOT COMPLETED**. This is the new set of tasks.
-2.  **User**: Approves implementation of AI report settings. (COMPLETED)
-3.  **User**: Asks to continue. (COMPLETED)
-4.  **User**: Approves implementation of the weekly AI report UI. (COMPLETED)
-5.  **User**: Asks to continue. (COMPLETED)
-6.  **User**: Asks to continue with the next task (AI Data Review Frontend). (COMPLETED)
-7.  **User**: Acknowledges the fix for the E11000 error. (NOTE: This was before discovering it recurred in production).
+- **User (latest)**: Reports that the UI is incomplete and the massive import feature is causing an error. (Status: **IN PROGRESS**)
+- **User**: Asks to complete the UI and states that the massive import is giving an error. (Status: **IN PROGRESS**)
+- **User**: Asks for confirmation to complete the task. (Status: COMPLETED)
+- **User**: Asks where to execute the repair script. (Status: COMPLETED)
+- **User**: Asks the agent to continue and finish. (Status: COMPLETED)
+- **User**: Provides a list of new issues and features: add maintenance buttons, import general templates, fix sidebar state, fix save feedback, and fix the massive import popup behavior. (Status: **Mostly completed, verification pending**)
 
 **Project Health Check:**
--   **Broken**: The Excel property import feature is critically broken in production.
+-   **Broken**: The Massive Import feature is broken due to a backend database index issue.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
 -   **AWS S3** (File Storage) — requires User API Key.
 -   **OpenAI GPT-4o** (AI Agent) — uses Emergent LLM Key.
+-   **python-docx**, **PyPDF2**: New dependencies for parsing uploaded template files.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, but it failed to catch the production-specific bug because the dev environment's database schema (field name) did not match production's.
+-   **Testing agent used after significant changes**: NO (Agent self-tested with screenshots and curl).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: The  has regressed and is active in production.
+-   **Known regressions**: None, but the massive import bug is a newly surfaced critical issue.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Password**: 
 
 **What agent forgot to execute**
--   The previous agent failed to perform a thorough root cause analysis of the  error. It assumed the issue was only the lack of a sparse index and missed the critical discrepancy between the field name in the code () and the field name in the production error log (). This led to a fix that was ineffective outside the development environment.</analysis>
+- The agent discovered the  index conflict but did not fix it immediately, leading to the user reporting a failure in the massive import feature. The agent should have addressed this known backend issue before moving on to other frontend tasks.</analysis>
