@@ -43,6 +43,11 @@ class IntegrationConfig(BaseModel):
 class StorageConfig(BaseModel):
     """Configuração do serviço de armazenamento"""
     provider: StorageProvider = StorageProvider.NONE
+    # AWS S3
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    aws_bucket_name: Optional[str] = None
+    aws_region: Optional[str] = None
     # OneDrive
     onedrive_client_id: Optional[str] = None
     onedrive_client_secret: Optional[str] = None
