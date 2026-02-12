@@ -34,11 +34,44 @@ CONFIG_FIELDS = {
                 required=True,
                 options=[
                     {"value": "none", "label": "Nenhum (Desactivado)"},
+                    {"value": "aws_s3", "label": "Amazon S3 (Recomendado)"},
                     {"value": "onedrive", "label": "Microsoft OneDrive"},
                     {"value": "google_drive", "label": "Google Drive"},
                     {"value": "dropbox", "label": "Dropbox"},
                 ],
                 help_text="Escolha onde guardar os documentos dos clientes"
+            ),
+            # AWS S3
+            ConfigField(
+                key="aws_access_key_id",
+                label="AWS Access Key ID",
+                type="text",
+                placeholder="AKIA...",
+                depends_on={"provider": "aws_s3"},
+                help_text="ID da chave de acesso AWS"
+            ),
+            ConfigField(
+                key="aws_secret_access_key",
+                label="AWS Secret Access Key",
+                type="password",
+                depends_on={"provider": "aws_s3"},
+                help_text="Chave secreta AWS"
+            ),
+            ConfigField(
+                key="aws_bucket_name",
+                label="Nome do Bucket S3",
+                type="text",
+                placeholder="meu-bucket-documentos",
+                depends_on={"provider": "aws_s3"},
+                help_text="Nome do bucket S3 para documentos"
+            ),
+            ConfigField(
+                key="aws_region",
+                label="Região AWS",
+                type="text",
+                placeholder="eu-west-1",
+                depends_on={"provider": "aws_s3"},
+                help_text="Região do bucket S3 (ex: eu-west-1, us-east-1)"
             ),
             # OneDrive
             ConfigField(
