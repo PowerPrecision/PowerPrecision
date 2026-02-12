@@ -153,28 +153,27 @@ async def list_clients(
         if key not in clients_map:
             clients_map[key] = {
                 "id": proc.get("client_id") or f"process_{proc.get('id')}",
-                "client_name": proc.get("client_name"),
-                "client_email": proc.get("client_email"),
-                "client_phone": proc.get("client_phone"),
+                "nome": proc.get("client_name"),
+                "contacto": {
+                    "email": proc.get("client_email"),
+                    "telefone": proc.get("client_phone")
+                },
+                "dados_pessoais": proc.get("personal_data", {}),
                 "nif": proc.get("personal_data", {}).get("nif"),
-                "processes": [],
-                "active_process_count": 0
+                "process_ids": [],
+                "active_processes_count": 0
             }
         
-        clients_map[key]["processes"].append({
-            "id": proc.get("id"),
-            "process_number": proc.get("process_number"),
-            "status": proc.get("status")
-        })
+        clients_map[key]["process_ids"].append(proc.get("id"))
         
         if proc.get("status") not in ["arquivado", "perdido", "concluido"]:
-            clients_map[key]["active_process_count"] += 1
+            clients_map[key]["active_processes_count"] += 1
     
     clients = list(clients_map.values())
     
     # Filtrar por ter processo activo
     if has_active_process is not None:
-        clients = [c for c in clients if (c["active_process_count"] > 0) == has_active_process]
+        clients = [c for c in clients if (c["active_processes_count"] > 0) == has_active_process]
     
     return {
         "clients": clients,
