@@ -24,6 +24,7 @@ import MyClientsPage from "./pages/MyClientsPage";
 import BackupsPage from "./pages/BackupsPage";
 import MinutasPage from "./pages/MinutasPage";
 import AIInsightsPage from "./pages/AIInsightsPage";
+import AIDataReviewPage from "./pages/AIDataReviewPage";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
