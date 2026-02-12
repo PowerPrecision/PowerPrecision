@@ -37,9 +37,12 @@ async def list_client_files(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     client_name = process.get("client_name", "Cliente")
+    # Obter segundo titular se existir
+    second_client_name = process.get("second_client_name") or \
+                         process.get("titular2_data", {}).get("nome")
     
     # Chama o serviço S3
-    files = s3_service.list_files(client_id, client_name)
+    files = s3_service.list_files(client_id, client_name, second_client_name)
     return files
 
 @router.post("/client/{client_id}/upload")
@@ -55,6 +58,9 @@ async def upload_file_s3(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     client_name = process.get("client_name", "Cliente")
+    # Obter segundo titular se existir (para nomes de pastas em novos processos)
+    second_client_name = process.get("second_client_name") or \
+                         process.get("titular2_data", {}).get("nome")
     
     # Upload para o S3
     s3_path = s3_service.upload_file(
@@ -63,7 +69,8 @@ async def upload_file_s3(
         client_name,
         category,
         file.filename,
-        file.content_type
+        file.content_type,
+        second_client_name=second_client_name
     )
     
     if not s3_path:
