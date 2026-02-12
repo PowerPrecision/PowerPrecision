@@ -58,9 +58,39 @@ class S3Service:
     def is_configured(self) -> bool:
         return self.s3_client is not None and bool(self.bucket_name)
 
-    def _get_client_base_path(self, client_id: str, client_name: str) -> str:
-        """Gera o caminho base para um cliente."""
+    def _get_client_base_path(
+        self, 
+        client_id: str, 
+        client_name: str,
+        second_client_name: str = None
+    ) -> str:
+        """
+        Gera o caminho base para um cliente.
+        
+        Se houver segundo titular, o nome da pasta incluirá ambos os nomes
+        separados por " e " (ex: "João Silva e Maria Santos").
+        
+        Formato: clientes/{client_id}_{nome1_e_nome2}
+        
+        Args:
+            client_id: ID do processo/cliente
+            client_name: Nome do primeiro titular
+            second_client_name: Nome do segundo titular (opcional)
+        
+        Returns:
+            Caminho base no S3
+        """
         safe_name = sanitize_folder_name(client_name)
+        
+        # Incluir segundo titular se existir
+        if second_client_name and second_client_name.strip():
+            safe_second_name = sanitize_folder_name(second_client_name)
+            combined_name = f"{safe_name}_e_{safe_second_name}"
+            # Limitar tamanho total para evitar paths muito longos
+            if len(combined_name) > 80:
+                combined_name = combined_name[:80]
+            return f"clientes/{client_id}_{combined_name}"
+        
         return f"clientes/{client_id}_{safe_name}"
 
     def upload_file(
