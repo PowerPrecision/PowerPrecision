@@ -71,6 +71,15 @@ const DashboardLayout = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openSections, setOpenSections] = useState({
+    negocio: true,
+    ia: false,
+    sistema: false,
+  });
+
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const handleLogout = () => {
     logout();
