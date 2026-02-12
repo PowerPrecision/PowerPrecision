@@ -113,6 +113,79 @@ const AIDataReviewPage = () => {
   const [weeklyReport, setWeeklyReport] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  
+  // Configurações do relatório
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [reportConfig, setReportConfig] = useState({
+    enabled: true,
+    frequency: "weekly",
+    send_day: 0,
+    send_hour: 9,
+    recipients_type: "admins",
+    custom_recipients: [],
+    include_insights: true,
+    include_charts: true
+  });
+  const [availableRecipients, setAvailableRecipients] = useState([]);
+  const [savingConfig, setSavingConfig] = useState(false);
+
+  // Labels para dias da semana
+  const weekDays = [
+    { value: "0", label: "Segunda-feira" },
+    { value: "1", label: "Terça-feira" },
+    { value: "2", label: "Quarta-feira" },
+    { value: "3", label: "Quinta-feira" },
+    { value: "4", label: "Sexta-feira" },
+    { value: "5", label: "Sábado" },
+    { value: "6", label: "Domingo" }
+  ];
+
+  // Labels para frequências
+  const frequencies = [
+    { value: "daily", label: "Diário" },
+    { value: "weekly", label: "Semanal" },
+    { value: "monthly", label: "Mensal" },
+    { value: "disabled", label: "Desactivado" }
+  ];
+
+  // Carregar configuração do relatório
+  const loadReportConfig = useCallback(async () => {
+    try {
+      const [configRes, recipientsRes] = await Promise.all([
+        api.get("/admin/ai-report-config"),
+        api.get("/admin/ai-report-recipients")
+      ]);
+      setReportConfig(configRes.data);
+      setAvailableRecipients(recipientsRes.data.users || []);
+    } catch (error) {
+      console.error("Erro ao carregar configuração:", error);
+    }
+  }, []);
+
+  // Guardar configuração
+  const saveReportConfig = async () => {
+    try {
+      setSavingConfig(true);
+      await api.put("/admin/ai-report-config", reportConfig);
+      toast.success("Configurações guardadas com sucesso!");
+      setConfigDialogOpen(false);
+    } catch (error) {
+      console.error("Erro ao guardar configuração:", error);
+      toast.error("Erro ao guardar configurações");
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  // Toggle destinatário personalizado
+  const toggleCustomRecipient = (userId) => {
+    setReportConfig(prev => ({
+      ...prev,
+      custom_recipients: prev.custom_recipients.includes(userId)
+        ? prev.custom_recipients.filter(id => id !== userId)
+        : [...prev.custom_recipients, userId]
+    }));
+  };
 
   // Enviar relatório por email
   const sendReportByEmail = async () => {
