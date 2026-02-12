@@ -93,7 +93,7 @@ const DashboardLayout = ({ children, title }) => {
   const [openSections, setOpenSections] = useState(getInitialOpenSections);
   
   // Actualizar secções abertas quando a rota muda
-  React.useEffect(() => {
+  useEffect(() => {
     setOpenSections(getInitialOpenSections());
   }, [location.pathname]);
 
