@@ -538,9 +538,9 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
     """
     import pandas as pd
     
+    await background_jobs.set_status(job_id, JobStatus.PROCESSING)
+    
     try:
-        await background_jobs.set_status(job_id, JobStatus.PROCESSING)
-        
         # Normalizar nomes das colunas (lowercase, sem espaços)
         df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
         
@@ -553,51 +553,51 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
             # Localização
             'freguesia': 'localidade',
             'rua': 'morada',
-        'código_postal': 'codigo_postal',
-        # Áreas
-        'área_útil': 'area_util',
-        'área_terreno': 'area_terreno',
-        'área_bruta': 'area_bruta',
-        # Características
-        'tipologia': 'quartos_raw',  # T1, T2, T3...
-        'ano_de_construção': 'ano_construcao',
-        'certificado_energético': 'certificado_energetico',
-        # Proprietário (formato HCPro)
-        'proprietário': 'proprietario_nome',
-        'proprietário,_email': 'proprietario_email',
-        'proprietário,_telemóvel': 'proprietario_telefone',
-        'proprietário,_telefone': 'proprietario_telefone2',
-        # Descrição
-        'descrição_pt': 'descricao',
-        'descrição': 'descricao',
-        # Referência
-        'referência': 'referencia_externa',
-        # Agência
-        'agência': 'agencia',
-        'agencia_responsável': 'agencia',
-        # Outros
-        'observações': 'notas',
-        'responsável': 'responsavel',
-    }
-    
-    # Aplicar aliases
-    df = df.rename(columns=column_aliases)
-    
-    # Mapear tipos de imóvel
-    tipo_map = {
-        'apartamento': 'apartamento',
-        'moradia': 'moradia',
-        'moradia_isolada': 'moradia',
-        'moradia_geminada': 'moradia',
-        'moradia_em_banda': 'moradia',
-        'terreno': 'terreno',
-        'loja': 'loja',
-        'escritorio': 'escritorio',
-        'escritório': 'escritorio',
-        'armazem': 'armazem',
-        'armazém': 'armazem',
-        'garagem': 'garagem',
-        'outro': 'outro',
+            'código_postal': 'codigo_postal',
+            # Áreas
+            'área_útil': 'area_util',
+            'área_terreno': 'area_terreno',
+            'área_bruta': 'area_bruta',
+            # Características
+            'tipologia': 'quartos_raw',  # T1, T2, T3...
+            'ano_de_construção': 'ano_construcao',
+            'certificado_energético': 'certificado_energetico',
+            # Proprietário (formato HCPro)
+            'proprietário': 'proprietario_nome',
+            'proprietário,_email': 'proprietario_email',
+            'proprietário,_telemóvel': 'proprietario_telefone',
+            'proprietário,_telefone': 'proprietario_telefone2',
+            # Descrição
+            'descrição_pt': 'descricao',
+            'descrição': 'descricao',
+            # Referência
+            'referência': 'referencia_externa',
+            # Agência
+            'agência': 'agencia',
+            'agencia_responsável': 'agencia',
+            # Outros
+            'observações': 'notas',
+            'responsável': 'responsavel',
+        }
+        
+        # Aplicar aliases
+        df = df.rename(columns=column_aliases)
+        
+        # Mapear tipos de imóvel
+        tipo_map = {
+            'apartamento': 'apartamento',
+            'moradia': 'moradia',
+            'moradia_isolada': 'moradia',
+            'moradia_geminada': 'moradia',
+            'moradia_em_banda': 'moradia',
+            'terreno': 'terreno',
+            'loja': 'loja',
+            'escritorio': 'escritorio',
+            'escritório': 'escritorio',
+            'armazem': 'armazem',
+            'armazém': 'armazem',
+            'garagem': 'garagem',
+            'outro': 'outro',
         't0': 'apartamento',
         't1': 'apartamento',
         't2': 'apartamento',
