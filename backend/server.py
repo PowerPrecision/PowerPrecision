@@ -66,6 +66,69 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Sistema de Gestão de Processos")
 
+
+# ====================================================================
+# SECURITY HEADERS MIDDLEWARE
+# Adiciona headers de segurança a todas as respostas HTTP
+# ====================================================================
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    """
+    Middleware para adicionar headers de segurança HTTP.
+    
+    Headers implementados:
+    - X-Frame-Options: Previne clickjacking
+    - X-Content-Type-Options: Previne MIME-type sniffing
+    - X-XSS-Protection: Activa filtro XSS do browser
+    - Strict-Transport-Security: Força HTTPS
+    - Referrer-Policy: Controla informação de referrer
+    - Content-Security-Policy: Controla recursos permitidos
+    - Permissions-Policy: Restringe funcionalidades do browser
+    """
+    response = await call_next(request)
+    
+    # Prevenir clickjacking - não permite embedding em frames
+    response.headers["X-Frame-Options"] = "DENY"
+    
+    # Prevenir MIME-type sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Activar filtro XSS do browser (legacy, mas ainda útil)
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    
+    # Forçar HTTPS por 1 ano, incluir subdomínios
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Controlar informação de referrer
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # Content Security Policy - restritiva mas permitindo API funcionar
+    # Permite: self para scripts/styles, data: para imagens base64
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self' https:; "
+        "frame-ancestors 'none';"
+    )
+    
+    # Permissions Policy - restringir funcionalidades do browser
+    response.headers["Permissions-Policy"] = (
+        "accelerometer=(), "
+        "camera=(), "
+        "geolocation=(), "
+        "gyroscope=(), "
+        "magnetometer=(), "
+        "microphone=(), "
+        "payment=(), "
+        "usb=()"
+    )
+    
+    return response
+
+
 # CONFIGURAÇÃO DE RATE LIMIT
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
