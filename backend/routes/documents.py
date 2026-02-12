@@ -33,6 +33,72 @@ from services.document_processor import convert_image_to_pdf, IMG2PDF_AVAILABLE
 router = APIRouter(prefix="/documents", tags=["Document Management"])
 logger = logging.getLogger(__name__)
 
+
+# ====================================================================
+# FUNÇÕES DE NORMALIZAÇÃO DE NOMES DE FICHEIROS
+# ====================================================================
+
+def normalize_filename(filename: str, category: str = None) -> str:
+    """
+    Normaliza o nome do ficheiro para um formato consistente.
+    
+    Formato: {Categoria}_{Data}_{NomeOriginalNormalizado}.{ext}
+    
+    Args:
+        filename: Nome original do ficheiro
+        category: Categoria do documento (opcional)
+        
+    Returns:
+        Nome normalizado
+    """
+    if not filename:
+        return f"documento_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    
+    # Separar nome e extensão
+    if '.' in filename:
+        name_part, ext = filename.rsplit('.', 1)
+        ext = ext.lower()
+    else:
+        name_part = filename
+        ext = 'pdf'
+    
+    # Normalizar texto (remover acentos)
+    name_normalized = unicodedata.normalize('NFKD', name_part)
+    name_normalized = name_normalized.encode('ASCII', 'ignore').decode('ASCII')
+    
+    # Substituir espaços e caracteres especiais
+    name_normalized = re.sub(r'[^\w\s-]', '', name_normalized)
+    name_normalized = re.sub(r'[\s_]+', '_', name_normalized.strip())
+    name_normalized = name_normalized[:50] if name_normalized else "documento"
+    
+    # Construir nome final
+    date_str = datetime.now().strftime('%Y%m%d')
+    
+    if category:
+        # Normalizar categoria
+        cat_normalized = unicodedata.normalize('NFKD', category)
+        cat_normalized = cat_normalized.encode('ASCII', 'ignore').decode('ASCII')
+        cat_normalized = re.sub(r'[^\w]', '', cat_normalized)[:20]
+        return f"{cat_normalized}_{date_str}_{name_normalized}.{ext}"
+    
+    return f"{date_str}_{name_normalized}.{ext}"
+
+
+def is_image_file(filename: str, content_type: str = None) -> bool:
+    """Verifica se o ficheiro é uma imagem suportada para conversão."""
+    image_extensions = {'.jpg', '.jpeg', '.png', '.tiff', '.tif'}
+    image_mimes = {'image/jpeg', 'image/png', 'image/tiff'}
+    
+    if filename:
+        ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        if ext in image_extensions:
+            return True
+    
+    if content_type and content_type.lower() in image_mimes:
+        return True
+    
+    return False
+
 # ====================================================================
 # PARTE 1: GESTÃO DE FICHEIROS (S3 STORAGE) - NOVO
 # ====================================================================
