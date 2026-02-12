@@ -765,26 +765,26 @@ class ScheduledTasksService:
                         pass
         
         # Calcular métricas
-        total_this_week = len(this_week_extractions)
-        successful_this_week = sum(1 for e in this_week_extractions if e.get("extracted_data"))
-        total_prev_week = len(prev_week_extractions)
-        successful_prev_week = sum(1 for e in prev_week_extractions if e.get("extracted_data"))
+        total_this_period = len(this_period_extractions)
+        successful_this_period = sum(1 for e in this_period_extractions if e.get("extracted_data"))
+        total_prev_period = len(prev_period_extractions)
+        successful_prev_period = sum(1 for e in prev_period_extractions if e.get("extracted_data"))
         
-        success_rate = (successful_this_week / total_this_week * 100) if total_this_week > 0 else 0
-        prev_success_rate = (successful_prev_week / total_prev_week * 100) if total_prev_week > 0 else 0
+        success_rate = (successful_this_period / total_this_period * 100) if total_this_period > 0 else 0
+        prev_success_rate = (successful_prev_period / total_prev_period * 100) if total_prev_period > 0 else 0
         
-        doc_variation = ((total_this_week - total_prev_week) / total_prev_week * 100) if total_prev_week > 0 else 0
+        doc_variation = ((total_this_period - total_prev_period) / total_prev_period * 100) if total_prev_period > 0 else 0
         success_variation = success_rate - prev_success_rate
         
         # Contagem por tipo de documento
         doc_type_counts = {}
-        for extraction in this_week_extractions:
+        for extraction in this_period_extractions:
             doc_type = extraction.get("document_type", "outro")
             doc_type_counts[doc_type] = doc_type_counts.get(doc_type, 0) + 1
         
         # Top campos extraídos
         field_counts = {}
-        for extraction in this_week_extractions:
+        for extraction in this_period_extractions:
             extracted_data = extraction.get("extracted_data", {})
             if isinstance(extracted_data, dict):
                 for field, value in extracted_data.items():
@@ -792,6 +792,10 @@ class ScheduledTasksService:
                         field_counts[field] = field_counts.get(field, 0) + 1
         
         top_fields = sorted(field_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Labels de frequência
+        freq_labels = {"daily": "Diário", "weekly": "Semanal", "monthly": "Mensal"}
+        period_label = freq_labels.get(frequency, "Semanal")
         
         # Mapear nomes
         doc_type_labels = {
