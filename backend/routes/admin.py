@@ -974,6 +974,112 @@ def _generate_ai_insights(total: int, success_rate: float, doc_variation: float,
     return insights
 
 
+@router.post("/ai-weekly-report/send")
+async def send_ai_weekly_report_now(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Envia o relatório semanal de IA imediatamente por email.
+    Útil para testes ou envio manual fora do horário agendado.
+    """
+    from services.scheduled_tasks import ScheduledTasksService
+    
+    service = ScheduledTasksService()
+    await service.connect()
+    
+    try:
+        # Forçar envio mesmo não sendo segunda-feira
+        # Modificar temporariamente o método para ignorar verificação de dia
+        today = datetime.now(timezone.utc)
+        week_start = today - timedelta(days=7)
+        prev_week_start = today - timedelta(days=14)
+        
+        # Buscar extracções
+        processes = await db.processes.find(
+            {"ai_extraction_history": {"$exists": True, "$ne": []}},
+            {"_id": 0, "ai_extraction_history": 1}
+        ).to_list(None)
+        
+        this_week_extractions = []
+        prev_week_extractions = []
+        
+        for proc in processes:
+            for extraction in proc.get("ai_extraction_history", []):
+                extracted_at = extraction.get("extracted_at", "")
+                if extracted_at:
+                    try:
+                        ext_date = datetime.fromisoformat(extracted_at.replace("Z", "+00:00"))
+                        if ext_date >= week_start:
+                            this_week_extractions.append(extraction)
+                        elif ext_date >= prev_week_start:
+                            prev_week_extractions.append(extraction)
+                    except Exception:
+                        pass
+        
+        total_this_week = len(this_week_extractions)
+        successful_this_week = sum(1 for e in this_week_extractions if e.get("extracted_data"))
+        total_prev_week = len(prev_week_extractions)
+        
+        success_rate = (successful_this_week / total_this_week * 100) if total_this_week > 0 else 0
+        
+        # Obter emails dos administradores
+        admins = await db.users.find(
+            {"role": {"$in": ["admin", "ceo"]}, "is_active": {"$ne": False}},
+            {"_id": 0, "email": 1, "name": 1}
+        ).to_list(50)
+        
+        admin_emails = [a["email"] for a in admins if a.get("email")]
+        
+        if not admin_emails:
+            return {"success": False, "error": "Nenhum email de administrador configurado"}
+        
+        # Gerar HTML simplificado
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #0f766e;">Relatório Semanal de Extracções IA</h2>
+            <p><strong>Período:</strong> {week_start.strftime('%d/%m/%Y')} - {today.strftime('%d/%m/%Y')}</p>
+            <hr>
+            <p><strong>Documentos Analisados:</strong> {total_this_week}</p>
+            <p><strong>Taxa de Sucesso:</strong> {success_rate:.1f}%</p>
+            <p><strong>Extracções com Sucesso:</strong> {successful_this_week}</p>
+            <p><strong>Semana Anterior:</strong> {total_prev_week} documentos</p>
+            <hr>
+            <p style="color: #64748b; font-size: 12px;">
+                Este relatório foi enviado manualmente pelo administrador {user.get('name', 'Admin')}.
+            </p>
+        </body>
+        </html>
+        """
+        
+        from services.email_service import send_email
+        
+        result = await send_email(
+            account_name="precision",
+            to_emails=admin_emails,
+            subject=f"[Manual] Relatório Semanal IA - {today.strftime('%d/%m/%Y')}",
+            body=f"Relatório semanal de IA.\nDocumentos: {total_this_week}\nTaxa de sucesso: {success_rate:.1f}%",
+            body_html=html_content
+        )
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "message": f"Relatório enviado para {len(admin_emails)} administrador(es)",
+                "recipients": admin_emails,
+                "stats": {
+                    "documents_analyzed": total_this_week,
+                    "success_rate": round(success_rate, 1),
+                    "successful_extractions": successful_this_week
+                }
+            }
+        else:
+            return {"success": False, "error": result.get("error", "Erro desconhecido")}
+            
+    finally:
+        await service.disconnect()
+
+
 @router.put("/ai-config")
 async def update_ai_configuration(
     config: dict,
