@@ -853,7 +853,7 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
                 details={
                     "linha": err["linha"],
                     "erro": err["erro"],
-                    "ficheiro": file.filename
+                    "ficheiro": filename
                 },
                 severity="warning",
                 user_id=user.get("id")
@@ -870,14 +870,20 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
                 "total": results["total"],
                 "importados": results["importados"],
                 "erros": len(results["erros"]),
-                "ficheiro": file.filename,
+                "ficheiro": filename,
                 "ids": results["ids_criados"]
             },
             severity="info",
             user_id=user.get("id")
         )
     
-    return results
+    # Finalizar job com resultado
+    await background_jobs.set_result(job_id, results)
+    logger.info(f"Job {job_id} concluído: {results['importados']}/{results['total']} importados")
+    
+    except Exception as e:
+        logger.error(f"Job {job_id} falhou: {e}")
+        await background_jobs.set_error(job_id, str(e))
 
 
 @router.get("/bulk/import-template")
