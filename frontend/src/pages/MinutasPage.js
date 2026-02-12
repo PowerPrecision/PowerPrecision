@@ -326,13 +326,65 @@ const MinutasPage = () => {
               Templates e minutas de documentos para reutilizar
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Minuta
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            {/* Botão de Importar */}
+            <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" disabled={importing}>
+                  {importing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  Importar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <FolderUp className="h-5 w-5" />
+                    Importar Minutas
+                  </DialogTitle>
+                  <DialogDescription>
+                    Selecione ficheiros Word (.docx) ou PDF para importar como minutas
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Arraste ficheiros aqui ou clique para selecionar
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".docx,.doc,.pdf,.txt"
+                      onChange={handleImportFiles}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Selecionar Ficheiros
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Formatos suportados: .docx, .doc, .pdf, .txt
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Botão Nova Minuta */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Minuta
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
