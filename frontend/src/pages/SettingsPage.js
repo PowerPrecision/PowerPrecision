@@ -49,7 +49,6 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || "";
 
 const SettingsPage = () => {
   const { user, token } = useAuth();
-  const { toast } = useToast();
   
   // Estado do perfil
   const [profileData, setProfileData] = useState({
