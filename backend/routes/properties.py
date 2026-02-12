@@ -598,66 +598,66 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
             'armazém': 'armazem',
             'garagem': 'garagem',
             'outro': 'outro',
-        't0': 'apartamento',
-        't1': 'apartamento',
-        't2': 'apartamento',
-        't3': 'apartamento',
-        't4': 'apartamento',
-        't5': 'apartamento',
-    }
-    
-    # Mapear estados
-    estado_map = {
-        'novo': 'novo',
-        'como_novo': 'como_novo',
-        'como novo': 'como_novo',
-        'bom': 'bom',
-        'para_recuperar': 'para_recuperar',
-        'para recuperar': 'para_recuperar',
-        'em_construcao': 'em_construcao',
-        'em construção': 'em_construcao',
-        'em construcao': 'em_construcao'
-    }
-    
-    results = {
-        "total": len(df),
-        "importados": 0,
-        "erros": [],
-        "ids_criados": []
-    }
-    
-    now = datetime.now(timezone.utc).isoformat()
-    total_rows = len(df)
-    
-    for idx, row in df.iterrows():
-        linha = idx + 2  # +2 porque idx começa em 0 e Excel tem cabeçalho
+            't0': 'apartamento',
+            't1': 'apartamento',
+            't2': 'apartamento',
+            't3': 'apartamento',
+            't4': 'apartamento',
+            't5': 'apartamento',
+        }
         
-        # Atualizar progresso a cada 5 linhas para não sobrecarregar
-        if idx % 5 == 0:
-            await background_jobs.update_progress(
-                job_id,
-                current=idx,
-                total=total_rows,
-                message=f"A processar linha {linha} de {total_rows + 1}..."
-            )
+        # Mapear estados
+        estado_map = {
+            'novo': 'novo',
+            'como_novo': 'como_novo',
+            'como novo': 'como_novo',
+            'bom': 'bom',
+            'para_recuperar': 'para_recuperar',
+            'para recuperar': 'para_recuperar',
+            'em_construcao': 'em_construcao',
+            'em construção': 'em_construcao',
+            'em construcao': 'em_construcao'
+        }
         
-        try:
-            # Helper function para obter valor da linha de forma segura
-            def get_value(keys, default=''):
-                if isinstance(keys, str):
-                    keys = [keys]
-                for key in keys:
-                    if key not in row.index:
-                        continue
-                    val = row[key]
-                    # Se é uma Series (colunas duplicadas), pegar o primeiro valor
-                    if hasattr(val, 'iloc'):
-                        val = val.iloc[0] if len(val) > 0 else None
-                    if val is not None and not pd.isna(val) and str(val).strip() not in ('nan', '', 'NaN'):
-                        return str(val).strip()
-                return default
+        results = {
+            "total": len(df),
+            "importados": 0,
+            "erros": [],
+            "ids_criados": []
+        }
+        
+        now = datetime.now(timezone.utc).isoformat()
+        total_rows = len(df)
+        
+        for idx, row in df.iterrows():
+            linha = idx + 2  # +2 porque idx começa em 0 e Excel tem cabeçalho
             
-            # Helper para converter preço (remove € e espaços, trata formato europeu)
+            # Atualizar progresso a cada 5 linhas para não sobrecarregar
+            if idx % 5 == 0:
+                await background_jobs.update_progress(
+                    job_id,
+                    current=idx,
+                    total=total_rows,
+                    message=f"A processar linha {linha} de {total_rows + 1}..."
+                )
+            
+            try:
+                # Helper function para obter valor da linha de forma segura
+                def get_value(keys, default=''):
+                    if isinstance(keys, str):
+                        keys = [keys]
+                    for key in keys:
+                        if key not in row.index:
+                            continue
+                        val = row[key]
+                        # Se é uma Series (colunas duplicadas), pegar o primeiro valor
+                        if hasattr(val, 'iloc'):
+                            val = val.iloc[0] if len(val) > 0 else None
+                        if val is not None and not pd.isna(val) and str(val).strip() not in ('nan', '', 'NaN'):
+                            return str(val).strip()
+                    return default
+                
+                # Helper para converter preço (remove € e espaços, trata formato europeu)
             def parse_price(price_str):
                 if price_str is None:
                     return None
