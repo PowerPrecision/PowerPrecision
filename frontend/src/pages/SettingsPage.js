@@ -23,7 +23,7 @@ import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Separator } from "../components/ui/separator";
-import { useToast } from "../hooks/use-toast";
+import { toast } from "sonner";
 import {
   User,
   Lock,
