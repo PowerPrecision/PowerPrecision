@@ -164,10 +164,10 @@ async def create_indexes(db: AsyncIOMotorDatabase) -> dict:
     # ÍNDICES PARA COLECÇÃO 'properties' (Imóveis)
     # ====================================================================
     property_indexes = [
-        {"keys": [("internal_ref", 1)], "name": "idx_internal_ref", "unique": True},
+        {"keys": [("internal_reference", 1)], "name": "idx_internal_reference", "unique": True, "sparse": True},
         {"keys": [("status", 1)], "name": "idx_property_status"},
-        {"keys": [("distrito", 1), ("concelho", 1)], "name": "idx_location"},
-        {"keys": [("preco", 1)], "name": "idx_preco"},
+        {"keys": [("address.district", 1), ("address.municipality", 1)], "name": "idx_location"},
+        {"keys": [("financials.asking_price", 1)], "name": "idx_asking_price"},
         {"keys": [("created_at", -1)], "name": "idx_created_desc"},
     ]
     
