@@ -306,26 +306,34 @@ const BulkDocumentUpload = () => {
     setUploading(false);
 
     // Resumo final
-    setSummary({
+    const finalSummary = {
       success: processed > 0,
-      total: selectedFiles.length,
+      total: filesToProcess.length,
       processed,
       updated_clients: updatedClients,
       errors_count: errors,
       skipped_clients: skippedClients,
-    });
+    };
+    setSummary(finalSummary);
 
+    // Notificação com toast mais duradouro para resultado final
     if (processed > 0) {
-      let msg = `Concluído! ${processed}/${selectedFiles.length} processados, ${updatedClients} fichas actualizadas.`;
+      let msg = `✅ Upload Massivo Concluído!\n${processed}/${filesToProcess.length} processados\n${updatedClients} fichas actualizadas`;
       if (skippedClients > 0) {
-        msg += ` (${skippedClients} clientes não encontrados)`;
+        msg += `\n⚠️ ${skippedClients} clientes não encontrados`;
       }
-      toast.success(msg);
+      if (errors > 0) {
+        msg += `\n❌ ${errors} erros`;
+      }
+      toast.success(msg, { duration: 8000 });
     } else if (skippedClients > 0) {
-      toast.error(`Nenhum documento processado. ${skippedClients} clientes não encontrados.`);
+      toast.error(`❌ Upload Massivo Falhou\nNenhum documento processado.\n${skippedClients} clientes não encontrados.`, { duration: 8000 });
     } else {
-      toast.error("Nenhum documento foi processado com sucesso.");
+      toast.error("❌ Upload Massivo Falhou\nNenhum documento foi processado com sucesso.", { duration: 8000 });
     }
+    
+    // Limpar estado
+    resetState();
   };
 
   // Cancelar processamento
