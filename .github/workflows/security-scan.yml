@@ -33,8 +33,9 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-          safety check --full-report --output json > ../security-reports/safety-report.json || true
-          safety check
+          # Usando 'safety scan' (o comando 'check' foi deprecado)
+          safety scan --output json > ../security-reports/safety-report.json || true
+          safety scan --detailed-output
         continue-on-error: true
 
       - name: Bandit - Análise estática de segurança do código
