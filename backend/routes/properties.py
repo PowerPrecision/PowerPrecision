@@ -689,26 +689,45 @@ async def import_properties_from_excel(
             # Criar documento
             internal_ref = await get_next_reference()
             
+            # Extrair áreas com helper
+            def parse_float(val):
+                if pd.isna(val):
+                    return None
+                try:
+                    return float(str(val).replace(',', '.').strip())
+                except (ValueError, TypeError):
+                    return None
+            
+            def parse_int(val):
+                if pd.isna(val):
+                    return None
+                try:
+                    return int(float(str(val).replace(',', '.').strip()))
+                except (ValueError, TypeError):
+                    return None
+            
             property_doc = {
                 "id": str(uuid.uuid4()),
                 "internal_reference": internal_ref,
+                "external_reference": get_value(['referencia_externa']) or None,
                 "property_type": tipo,
                 "title": titulo,
-                "description": str(row.get('descricao', '') or '').strip() if not pd.isna(row.get('descricao')) else None,
+                "description": get_value(['descricao']) or None,
                 "address": {
-                    "street": str(row.get('morada', '') or '').strip() if not pd.isna(row.get('morada')) else None,
-                    "postal_code": str(row.get('codigo_postal', '') or '').strip() if not pd.isna(row.get('codigo_postal')) else None,
-                    "locality": str(row.get('localidade', '') or '').strip() if not pd.isna(row.get('localidade')) else None,
+                    "street": get_value(['morada', 'rua']) or None,
+                    "postal_code": get_value(['codigo_postal']) or None,
+                    "locality": get_value(['localidade', 'freguesia']) or None,
                     "municipality": concelho,
                     "district": distrito
                 },
                 "features": {
-                    "bedrooms": int(row.get('quartos')) if not pd.isna(row.get('quartos')) else None,
-                    "bathrooms": int(row.get('casas_banho')) if not pd.isna(row.get('casas_banho')) else None,
-                    "useful_area": float(row.get('area_util')) if not pd.isna(row.get('area_util')) else None,
-                    "gross_area": float(row.get('area_bruta')) if not pd.isna(row.get('area_bruta')) else None,
-                    "construction_year": int(row.get('ano_construcao')) if not pd.isna(row.get('ano_construcao')) else None,
-                    "energy_certificate": str(row.get('certificado_energetico', '')).upper().strip() if not pd.isna(row.get('certificado_energetico')) else None,
+                    "bedrooms": quartos or parse_int(row.get('quartos')),
+                    "bathrooms": parse_int(row.get('casas_banho')),
+                    "useful_area": parse_float(row.get('area_util')),
+                    "gross_area": parse_float(row.get('area_bruta')),
+                    "land_area": parse_float(row.get('area_terreno')),
+                    "construction_year": parse_int(row.get('ano_construcao')),
+                    "energy_certificate": get_value(['certificado_energetico']).upper() if get_value(['certificado_energetico']) else None,
                     "extra_features": []
                 },
                 "condition": estado,
@@ -717,7 +736,10 @@ async def import_properties_from_excel(
                 },
                 "owner": {
                     "name": proprietario_nome,
-                    "phone": str(row.get('proprietario_telefone', '') or row.get('proprietário_telefone', '')).strip() if not pd.isna(row.get('proprietario_telefone', row.get('proprietário_telefone'))) else None,
+                    "phone": get_value(['proprietario_telefone']) or None,
+                    "email": get_value(['proprietario_email']) or None
+                },
+                "agency": get_value(['agencia']) or None,
                     "email": str(row.get('proprietario_email', '') or row.get('proprietário_email', '')).strip() if not pd.isna(row.get('proprietario_email', row.get('proprietário_email'))) else None
                 },
                 "photos": [],
