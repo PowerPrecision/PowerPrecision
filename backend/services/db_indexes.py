@@ -22,7 +22,7 @@ DEPRECATED_INDEXES = {
 }
 
 
-async def cleanup_deprecated_indexes(db: AsyncIOMotorDatabase) -> dict:
+async def cleanup_deprecated_indexes(db) -> dict:
     """
     Remove índices antigos/incorretos que podem causar erros.
     Executa antes de criar novos índices.
@@ -30,7 +30,7 @@ async def cleanup_deprecated_indexes(db: AsyncIOMotorDatabase) -> dict:
     results = {"dropped": [], "errors": [], "not_found": []}
     
     for collection_name, index_names in DEPRECATED_INDEXES.items():
-        collection = db[collection_name]
+        collection = getattr(db, collection_name)
         
         try:
             # Obter índices existentes
