@@ -13,9 +13,9 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização - 12 Fevereiro 2026 (Sessão 11)
 
-### ✅ Correções Implementadas (Sessão 11)
+### ✅ Funcionalidades Implementadas (Sessão 11)
 
-#### Bug Fix P0: Erro E11000 Duplicate Key durante Importação Excel
+#### 1. Bug Fix P0: Erro E11000 Duplicate Key durante Importação Excel
 - **Problema**: Erro `E11000 duplicate key error` ocorria durante a importação de imóveis via Excel
 - **Causa Raiz**: O índice `idx_internal_reference` na colecção `properties` não estava a funcionar correctamente como sparse
 - **Solução**: 
@@ -25,6 +25,25 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Ficheiros**: `/app/backend/services/db_indexes.py`
 - **Teste**: Arquivo `imoveis_4.xlsx` (12 linhas) importado 3 vezes consecutivas com sucesso, sem erros de duplicate key
 - **Status**: ✅ RESOLVIDO e VERIFICADO pelo testing agent (10/10 testes passaram)
+
+#### 2. Frontend para Revisão de Dados IA (NOVA FUNCIONALIDADE)
+- **Nova Página**: `/revisao-dados-ia` - Interface para administradores compararem dados extraídos pela IA
+- **Funcionalidades**:
+  - Lista de processos com dados pendentes de revisão
+  - Comparação lado-a-lado: dados actuais vs. dados extraídos pela IA
+  - Aplicar ou descartar dados pendentes
+  - Visualizar histórico de extracções
+  - Filtro por diferenças e campos pendentes
+- **Endpoints Backend Utilizados**:
+  - `GET /api/ai/bulk/pending-reviews` - Lista processos pendentes
+  - `GET /api/ai/bulk/compare-data/{process_id}` - Compara dados
+  - `POST /api/ai/bulk/apply-pending/{process_id}` - Aplica dados
+  - `DELETE /api/ai/bulk/discard-pending/{process_id}` - Descarta dados
+- **Permissões**: Admin, CEO, Administrativo
+- **Ficheiros Criados**:
+  - `/app/frontend/src/pages/AIDataReviewPage.js` - Componente React
+  - Modificados: `App.js`, `DashboardLayout.js`
+- **Status**: ✅ IMPLEMENTADO e TESTADO
 
 ---
 
