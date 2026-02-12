@@ -57,7 +57,7 @@ async def cleanup_deprecated_indexes(db) -> dict:
     return results
 
 
-async def create_indexes(db: AsyncIOMotorDatabase) -> dict:
+async def create_indexes(db) -> dict:
     """
     Cria índices optimizados nas colecções principais.
     
