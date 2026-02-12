@@ -57,17 +57,26 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Top 10 campos mais extraídos (tabela)
   - Insights automáticos (sucesso, alerta ou informativo)
 - **Envio Automático por Email**:
-  - Executa todas as segundas-feiras via tarefa agendada
-  - Envia para todos os utilizadores Admin e CEO
-  - Template HTML profissional com estatísticas e gráficos
+  - Configurável: diário, semanal, mensal ou desactivado
+  - Dia da semana e hora personalizáveis
   - Botão "Enviar por Email" para envio manual a qualquer momento
+- **Configurações Avançadas** (Modal):
+  - Frequência: Diário, Semanal, Mensal, Desactivado
+  - Dia de envio (para frequência semanal)
+  - Hora de envio (0-23h)
+  - Destinatários: Admins/CEOs, Toda a Equipa, ou lista personalizada
+  - Opções: incluir insights e gráficos
 - **Endpoints Backend**:
-  - `GET /api/admin/ai-weekly-report` - Gera relatório semanal
-  - `POST /api/admin/ai-weekly-report/send` - Envia relatório por email manualmente
+  - `GET /api/admin/ai-weekly-report` - Gera relatório
+  - `POST /api/admin/ai-weekly-report/send` - Envia manualmente
+  - `GET /api/admin/ai-report-config` - Obtém configuração
+  - `PUT /api/admin/ai-report-config` - Actualiza configuração
+  - `GET /api/admin/ai-report-recipients` - Lista destinatários disponíveis
 - **Ficheiros Modificados**:
   - `/app/backend/routes/admin.py` - Novos endpoints
-  - `/app/backend/services/scheduled_tasks.py` - Tarefa agendada semanal
-  - `/app/frontend/src/pages/AIDataReviewPage.js` - UI do relatório + botão email
+  - `/app/backend/services/scheduled_tasks.py` - Tarefa agendada configurável
+  - `/app/backend/models/system_config.py` - Modelos de configuração
+  - `/app/frontend/src/pages/AIDataReviewPage.js` - UI completa
 - **Status**: ✅ IMPLEMENTADO e TESTADO
 
 ---
