@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from database import db
 from models.auth import UserRole, UserCreate, UserUpdate, UserResponse
