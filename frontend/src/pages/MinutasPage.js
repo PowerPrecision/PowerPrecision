@@ -77,6 +77,8 @@ const MinutasPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewDialog, setPreviewDialog] = useState(false);
   const [selectedMinuta, setSelectedMinuta] = useState(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [formData, setFormData] = useState({
     titulo: "",
     categoria: "contrato",
@@ -84,6 +86,8 @@ const MinutasPage = () => {
     conteudo: "",
     tags: "",
   });
+
+  const fileInputRef = React.useRef(null);
 
   const fetchMinutas = useCallback(async () => {
     try {
