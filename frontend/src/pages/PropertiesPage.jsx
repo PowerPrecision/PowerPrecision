@@ -835,7 +835,7 @@ const PropertiesPage = () => {
     setDialogOpen(true);
   };
 
-  // Função para importar ficheiro Excel
+  // Função para importar ficheiro Excel (com processamento em background)
   const handleImportExcel = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -863,27 +863,57 @@ const PropertiesPage = () => {
       
       const data = await response.json();
       
-      if (response.ok) {
-        setImportResults(data);
-        setImportDialogOpen(true);
+      if (response.ok && data.job_id) {
+        // Importação iniciada em background - mostrar progresso
+        toast.info(`Importação iniciada: ${data.total_rows} linhas a processar`);
         
-        if (data.importados > 0) {
-          toast.success(`${data.importados} imóveis importados com sucesso!`);
-          fetchProperties();
-          fetchStats();
-        }
+        // Polling para verificar progresso
+        const pollProgress = async () => {
+          try {
+            const progressResponse = await fetch(`${API_URL}/api/properties/bulk/job/${data.job_id}`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const job = await progressResponse.json();
+            
+            if (job.status === 'processing') {
+              const progress = job.progress || {};
+              toast.info(`A importar... ${progress.percentage || 0}% (${progress.current || 0}/${progress.total || 0})`, { id: 'import-progress' });
+              setTimeout(pollProgress, 2000);
+            } else if (job.status === 'completed') {
+              setImportResults(job.result);
+              setImportDialogOpen(true);
+              
+              const result = job.result;
+              if (result.importados > 0) {
+                toast.success(`${result.importados} imóveis importados com sucesso!`, { id: 'import-progress' });
+                fetchProperties();
+                fetchStats();
+              }
+              
+              if (result.erros?.length > 0) {
+                toast.warning(`${result.erros.length} linhas com erros`);
+              }
+              setImporting(false);
+            } else if (job.status === 'failed') {
+              toast.error(`Erro na importação: ${job.error}`, { id: 'import-progress' });
+              setImporting(false);
+            }
+          } catch (error) {
+            console.error('Erro ao verificar progresso:', error);
+            setTimeout(pollProgress, 3000);
+          }
+        };
         
-        if (data.erros?.length > 0) {
-          toast.warning(`${data.erros.length} linhas com erros`);
-        }
+        pollProgress();
       } else {
         toast.error(data.detail || 'Erro na importação');
+        setImporting(false);
       }
     } catch (error) {
       console.error('Erro na importação:', error);
       toast.error('Erro ao importar ficheiro');
-    } finally {
       setImporting(false);
+    } finally {
       // Limpar input para permitir reimportar o mesmo ficheiro
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
