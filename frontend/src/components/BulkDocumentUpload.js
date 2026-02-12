@@ -225,15 +225,20 @@ const BulkDocumentUpload = () => {
       return;
     }
 
-    // Fechar o modal imediatamente
+    // Capturar dados antes de fechar o modal
     const filesToProcess = [...selectedFiles];
-    const filesByClientLocal = { ...getFilesByClient() };
-    const clientNamesLocal = Object.keys(filesByClientLocal);
+    const filesByClientData = getFilesByClient();
+    const clientNamesLocal = Object.keys(filesByClientData);
+    const totalFiles = filesToProcess.length;
     
+    // Fechar o modal imediatamente
     setIsOpen(false);
     
+    // Limpar selecção
+    setSelectedFiles([]);
+    
     // Mostrar toast de início
-    toast.info(`Upload iniciado: ${filesToProcess.length} ficheiros de ${clientNamesLocal.length} clientes`, {
+    toast.info(`Upload iniciado: ${totalFiles} ficheiros de ${clientNamesLocal.length} clientes`, {
       duration: 3000,
     });
 
@@ -262,7 +267,7 @@ const BulkDocumentUpload = () => {
         break;
       }
 
-      const clientFiles = filesByClientLocal[clientName];
+      const clientFiles = filesByClientData[clientName];
       
       // Verificar se o cliente existe ANTES de processar os ficheiros
       setCurrentFile({ name: "A verificar...", client: clientName });
