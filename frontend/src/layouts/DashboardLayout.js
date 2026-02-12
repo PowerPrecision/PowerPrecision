@@ -120,81 +120,106 @@ const DashboardLayout = ({ children, title }) => {
     }
 
     if (user?.role === "admin") {
-      return [
-        ...baseItems,
-        statsItem,
-        {
-          label: "Quadro Geral",
-          icon: LayoutGrid,
-          href: "/staff",
-        },
-        {
-          label: "Utilizadores",
-          icon: Users,
-          href: "/utilizadores",
-        },
-        {
-          label: "Todos os Processos",
-          icon: FileText,
-          href: "/processos",
-        },
-        {
-          label: "Clientes",
-          icon: User,
-          href: "/clientes",
-        },
-        {
-          label: "Leads",
-          icon: Search,
-          href: "/leads",
-        },
-        {
-          label: "Imóveis",
-          icon: Building2,
-          href: "/imoveis",
-        },
-        {
-          label: "Minutas",
-          icon: FileArchive,
-          href: "/minutas",
-        },
-        {
-          label: "Backups",
-          icon: Database,
-          href: "/admin/backups",
-        },
-        settingsItem,
-        {
-          label: "Configurações",
-          icon: Cog,
-          href: "/configuracoes",
-        },
-        {
-          label: "Configuração de IA",
-          icon: Sparkles,
-          href: "/configuracoes/ia",
-        },
-        {
-          label: "Agente IA",
-          icon: Brain,
-          href: "/ai-insights",
-        },
-        {
-          label: "Revisão Dados IA",
-          icon: FileText,
-          href: "/revisao-dados-ia",
-        },
-        {
-          label: "Notificações",
-          icon: Settings,
-          href: "/configuracoes/notificacoes",
-        },
-        {
-          label: "Logs do Sistema",
-          icon: AlertCircle,
-          href: "/admin/logs",
-        },
-      ];
+      return {
+        main: [
+          ...baseItems,
+          statsItem,
+          {
+            label: "Quadro Geral",
+            icon: LayoutGrid,
+            href: "/staff",
+          },
+        ],
+        groups: [
+          {
+            id: "negocio",
+            label: "Negócio",
+            icon: Building2,
+            items: [
+              {
+                label: "Utilizadores",
+                icon: Users,
+                href: "/utilizadores",
+              },
+              {
+                label: "Todos os Processos",
+                icon: FileText,
+                href: "/processos",
+              },
+              {
+                label: "Clientes",
+                icon: User,
+                href: "/clientes",
+              },
+              {
+                label: "Leads",
+                icon: Search,
+                href: "/leads",
+              },
+              {
+                label: "Imóveis",
+                icon: Building2,
+                href: "/imoveis",
+              },
+              {
+                label: "Minutas",
+                icon: FileArchive,
+                href: "/minutas",
+              },
+            ],
+          },
+          {
+            id: "ia",
+            label: "Ferramentas IA",
+            icon: Brain,
+            items: [
+              {
+                label: "Configuração de IA",
+                icon: Sparkles,
+                href: "/configuracoes/ia",
+              },
+              {
+                label: "Agente IA",
+                icon: Brain,
+                href: "/ai-insights",
+              },
+              {
+                label: "Revisão Dados IA",
+                icon: FileText,
+                href: "/revisao-dados-ia",
+              },
+            ],
+          },
+          {
+            id: "sistema",
+            label: "Sistema",
+            icon: Wrench,
+            items: [
+              {
+                label: "Backups",
+                icon: Database,
+                href: "/admin/backups",
+              },
+              settingsItem,
+              {
+                label: "Configurações",
+                icon: Cog,
+                href: "/configuracoes",
+              },
+              {
+                label: "Notificações",
+                icon: Bell,
+                href: "/configuracoes/notificacoes",
+              },
+              {
+                label: "Logs do Sistema",
+                icon: AlertCircle,
+                href: "/admin/logs",
+              },
+            ],
+          },
+        ],
+      };
     }
 
     // For staff roles (consultor, mediador, intermediario, ceo, etc.)
