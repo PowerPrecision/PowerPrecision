@@ -543,16 +543,16 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
         
         # Normalizar nomes das colunas (lowercase, sem espaços)
         df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
-    
-    # Mapear colunas alternativas (para formatos HCPro, CRM externo, etc.)
-    column_aliases = {
-        # Título
-        'título': 'titulo',
-        # Preço
-        'preço': 'preco',
-        # Localização
-        'freguesia': 'localidade',
-        'rua': 'morada',
+        
+        # Mapear colunas alternativas (para formatos HCPro, CRM externo, etc.)
+        column_aliases = {
+            # Título
+            'título': 'titulo',
+            # Preço
+            'preço': 'preco',
+            # Localização
+            'freguesia': 'localidade',
+            'rua': 'morada',
         'código_postal': 'codigo_postal',
         # Áreas
         'área_útil': 'area_util',
