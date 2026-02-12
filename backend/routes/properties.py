@@ -592,39 +592,99 @@ async def import_properties_from_excel(
         linha = idx + 2  # +2 porque idx começa em 0 e Excel tem cabeçalho
         
         try:
-            # Campos obrigatórios
-            titulo = str(row.get('titulo', '')).strip()
-            if not titulo or titulo == 'nan':
+            # Helper function para obter valor da linha
+            def get_value(keys, default=''):
+                if isinstance(keys, str):
+                    keys = [keys]
+                for key in keys:
+                    val = row.get(key)
+                    if val is not None and not pd.isna(val) and str(val).strip() != 'nan':
+                        return str(val).strip()
+                return default
+            
+            # Helper para converter preço (remove € e espaços)
+            def parse_price(price_str):
+                if pd.isna(price_str):
+                    return None
+                price_str = str(price_str).replace('€', '').replace('.', '').replace(',', '.').strip()
+                # Se tem "/" provavelmente é venda/arrendamento, pegar o primeiro
+                if '/' in price_str:
+                    price_str = price_str.split('/')[0].strip()
+                try:
+                    return float(price_str)
+                except ValueError:
+                    return None
+            
+            # Helper para extrair quartos de tipologia (T0, T1, T2, etc.)
+            def parse_tipologia(tipologia):
+                if pd.isna(tipologia):
+                    return None
+                tip = str(tipologia).upper().strip()
+                if tip.startswith('T') and len(tip) >= 2:
+                    try:
+                        return int(tip[1])
+                    except ValueError:
+                        pass
+                return None
+            
+            # Campos obrigatórios - com múltiplas fontes
+            titulo = get_value(['titulo', 'título'])
+            if not titulo:
                 results["erros"].append({"linha": linha, "erro": "Título em falta"})
                 continue
             
-            preco = row.get('preco') or row.get('preço')
-            if pd.isna(preco):
-                results["erros"].append({"linha": linha, "erro": "Preço em falta"})
+            preco = parse_price(row.get('preco') or row.get('preço'))
+            if preco is None:
+                results["erros"].append({"linha": linha, "erro": "Preço em falta ou inválido"})
                 continue
-            preco = float(preco)
             
-            distrito = str(row.get('distrito', '')).strip()
-            if not distrito or distrito == 'nan':
+            distrito = get_value(['distrito'])
+            if not distrito:
                 results["erros"].append({"linha": linha, "erro": "Distrito em falta"})
                 continue
             
-            concelho = str(row.get('concelho', '')).strip()
-            if not concelho or concelho == 'nan':
+            concelho = get_value(['concelho'])
+            if not concelho:
                 results["erros"].append({"linha": linha, "erro": "Concelho em falta"})
                 continue
             
-            proprietario_nome = str(row.get('proprietario_nome', '') or row.get('proprietário_nome', '')).strip()
-            if not proprietario_nome or proprietario_nome == 'nan':
-                results["erros"].append({"linha": linha, "erro": "Nome do proprietário em falta"})
-                continue
+            # Proprietário - pode estar em várias colunas
+            proprietario_nome = get_value(['proprietario_nome', 'proprietário', 'proprietário_nome'])
+            if not proprietario_nome:
+                # Tentar usar agência como fallback
+                proprietario_nome = get_value(['agencia', 'agencia_responsável'], 'Não informado')
             
             # Campos opcionais
-            tipo = str(row.get('tipo', 'apartamento')).lower().strip()
-            tipo = tipo_map.get(tipo, 'apartamento')
+            tipo_raw = get_value(['tipo'], 'apartamento').lower()
+            tipologia = get_value(['quartos_raw', 'tipologia'])
             
-            estado = str(row.get('estado', 'bom')).lower().strip()
-            estado = estado_map.get(estado, 'bom')
+            # Extrair quartos da tipologia se disponível
+            quartos = parse_tipologia(tipologia)
+            
+            # Mapear tipo de imóvel
+            if tipologia:
+                # Se tem tipologia, usar para determinar tipo
+                tipologia_lower = str(tipologia).lower()
+                if 'moradia' in titulo.lower() or 'moradia' in tipo_raw:
+                    tipo = 'moradia'
+                elif 'armazém' in titulo.lower() or 'armazem' in tipo_raw:
+                    tipo = 'armazem'
+                elif 'loja' in titulo.lower():
+                    tipo = 'loja'
+                else:
+                    tipo = 'apartamento'
+            else:
+                tipo = tipo_map.get(tipo_raw, 'apartamento')
+            
+            estado_raw = get_value(['estado'], 'bom').lower()
+            estado = estado_map.get(estado_raw, 'bom')
+            # Mapear estados adicionais
+            if 'em construção' in estado_raw or 'em construcao' in estado_raw:
+                estado = 'em_construcao'
+            elif 'recupera' in estado_raw:
+                estado = 'para_recuperar'
+            elif 'execução' in estado_raw:
+                estado = 'em_construcao'
             
             # Criar documento
             internal_ref = await get_next_reference()
