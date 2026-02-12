@@ -237,6 +237,12 @@ class FinancialData(BaseModel):
 
 
 class CreditData(BaseModel):
+    """
+    Dados de crédito e aprovação bancária.
+    
+    Inclui campos de avaliação bancária para alertas automáticos
+    quando valor de avaliação < valor de compra.
+    """
     requested_amount: Optional[float] = None
     loan_term_years: Optional[int] = None
     interest_rate: Optional[float] = None
@@ -244,6 +250,21 @@ class CreditData(BaseModel):
     bank_name: Optional[str] = None
     bank_approval_date: Optional[str] = None
     bank_approval_notes: Optional[str] = None
+    
+    # Campos de avaliação bancária (novos)
+    valuation_value: Optional[float] = None        # Valor da avaliação bancária
+    valuation_date: Optional[str] = None           # Data da avaliação
+    valuation_bank: Optional[str] = None           # Banco que fez a avaliação
+    valuation_notes: Optional[str] = None          # Observações da avaliação
+    
+    # Campo calculado para alerta
+    @property
+    def has_valuation_alert(self) -> bool:
+        """
+        Verifica se há alerta de avaliação (valor avaliação < valor compra).
+        Nota: Este é um property calculado, precisa de acesso ao valor de compra externamente.
+        """
+        return False  # Implementação real feita no serviço de alertas
 
 
 class ProcessCreate(BaseModel):
