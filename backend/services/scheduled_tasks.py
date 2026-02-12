@@ -680,24 +680,67 @@ class ScheduledTasksService:
     
     async def send_weekly_ai_report(self) -> bool:
         """
-        Envia relatório semanal de extracções de IA aos administradores.
-        Executa apenas às segundas-feiras.
+        Envia relatório de extracções de IA aos administradores.
+        Respeita a configuração de periodicidade definida pelo admin.
         
         Returns:
             True se o email foi enviado, False caso contrário
         """
         today = datetime.now(timezone.utc)
+        current_hour = today.hour
+        current_weekday = today.weekday()
+        current_day_of_month = today.day
         
-        # Verificar se é segunda-feira (weekday() = 0)
-        if today.weekday() != 0:
-            logger.info("Não é segunda-feira - ignorando relatório semanal de IA")
+        # Obter configuração do relatório
+        config_doc = await self.db.system_config.find_one(
+            {"type": "ai_report_config"},
+            {"_id": 0}
+        )
+        
+        config = config_doc.get("config", {}) if config_doc else {}
+        
+        # Valores padrão
+        enabled = config.get("enabled", True)
+        frequency = config.get("frequency", "weekly")
+        send_day = config.get("send_day", 0)  # Segunda-feira
+        send_hour = config.get("send_hour", 9)
+        recipients_type = config.get("recipients_type", "admins")
+        custom_recipients = config.get("custom_recipients", [])
+        include_insights = config.get("include_insights", True)
+        include_charts = config.get("include_charts", True)
+        
+        # Verificar se está habilitado
+        if not enabled or frequency == "disabled":
+            logger.info("Relatório de IA desactivado nas configurações")
             return False
         
-        logger.info("A gerar e enviar relatório semanal de IA...")
+        # Verificar se é o momento certo para enviar
+        should_send = False
+        period_days = 7  # Período padrão para relatório semanal
+        
+        if frequency == "daily":
+            # Enviar todos os dias na hora configurada
+            should_send = True
+            period_days = 1
+        elif frequency == "weekly":
+            # Enviar apenas no dia da semana configurado
+            should_send = current_weekday == send_day
+            period_days = 7
+        elif frequency == "monthly":
+            # Enviar no primeiro dia do mês
+            should_send = current_day_of_month == 1
+            period_days = 30
+        
+        if not should_send:
+            freq_label = {"daily": "diário", "weekly": "semanal", "monthly": "mensal"}.get(frequency, frequency)
+            logger.info(f"Não é o momento do relatório {freq_label} - ignorando")
+            return False
+        
+        logger.info(f"A gerar e enviar relatório de IA ({frequency})...")
         
         # Gerar dados do relatório
-        week_start = today - timedelta(days=7)
-        prev_week_start = today - timedelta(days=14)
+        period_start = today - timedelta(days=period_days)
+        prev_period_start = today - timedelta(days=period_days * 2)
         
         # Buscar extracções
         processes = await self.db.processes.find(
@@ -705,8 +748,8 @@ class ScheduledTasksService:
             {"_id": 0, "ai_extraction_history": 1}
         ).to_list(None)
         
-        this_week_extractions = []
-        prev_week_extractions = []
+        this_period_extractions = []
+        prev_period_extractions = []
         
         for proc in processes:
             for extraction in proc.get("ai_extraction_history", []):
@@ -714,10 +757,10 @@ class ScheduledTasksService:
                 if extracted_at:
                     try:
                         ext_date = datetime.fromisoformat(extracted_at.replace("Z", "+00:00"))
-                        if ext_date >= week_start:
-                            this_week_extractions.append(extraction)
-                        elif ext_date >= prev_week_start:
-                            prev_week_extractions.append(extraction)
+                        if ext_date >= period_start:
+                            this_period_extractions.append(extraction)
+                        elif ext_date >= prev_period_start:
+                            prev_period_extractions.append(extraction)
                     except Exception:
                         pass
         
