@@ -50,11 +50,11 @@ async def test_public_registration_with_personal_data(client):
     unique_email = f"test_full_{uuid.uuid4().hex[:8]}@email.pt"
     
     # NIFs válidos gerados com dígito de controlo correcto
+    # Apenas 1, 2, 3 são válidos para particulares (4 é rejeitado)
     valid_test_nifs = [
         "101234562",  # Começa com 1
         "201234564",  # Começa com 2
         "301234566",  # Começa com 3
-        "401234568",  # Começa com 4
     ]
     unique_nif = random.choice(valid_test_nifs)
     
@@ -65,8 +65,8 @@ async def test_public_registration_with_personal_data(client):
         "process_type": "ambos",
         "personal_data": {
             "nif": unique_nif,
-            "address": "Rua de Teste, 123",
-            "nationality": "Portuguesa"
+            "morada_fiscal": "Rua de Teste, 123",
+            "nacionalidade": "Portuguesa"
         },
         "financial_data": {
             "monthly_income": 2500.00,
