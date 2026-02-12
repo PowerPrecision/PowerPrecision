@@ -29,7 +29,7 @@ ecdsa==0.19.1
 email-validator==2.3.0
 et_xmlfile==2.0.0
 fake-useragent==1.5.1
-fastapi==0.110.1
+fastapi>=0.115.0
 fastuuid==0.14.0
 filelock>=3.20.3
 flake8==7.3.0
