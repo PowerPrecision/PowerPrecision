@@ -63,6 +63,12 @@ const EmailHistoryPanel = ({
   const [newMonitoredEmail, setNewMonitoredEmail] = useState("");
   const [addingEmail, setAddingEmail] = useState(false);
   
+  // URLs dos webmails
+  const WEBMAIL_URLS = {
+    precision: "http://webmail.precisioncredito.pt/",
+    power: "https://webmail2.hcpro.pt/Mondo/lang/sys/login.aspx"
+  };
+  
   // Form state
   const [newEmail, setNewEmail] = useState({
     direction: "sent",
@@ -72,6 +78,10 @@ const EmailHistoryPanel = ({
     body: "",
     notes: ""
   });
+  
+  const openWebmail = (webmail) => {
+    window.open(WEBMAIL_URLS[webmail], '_blank');
+  };
   
   const openEmailViewer = (emailId) => {
     setSelectedEmailId(emailId);
