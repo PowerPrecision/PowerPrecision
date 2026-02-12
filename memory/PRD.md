@@ -11,9 +11,53 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 12 Fevereiro 2026 (Sessão 12)
+## Última Actualização - 12 Fevereiro 2026 (Sessão 12 - Parte 2)
 
-### ✅ Funcionalidades Implementadas (Sessão 12)
+### ✅ Funcionalidades Implementadas (Sessão 12 - Parte 2)
+
+#### 5. Painel de Manutenção do Sistema
+- **Nova tab "Manutenção"** na página de Configurações do Sistema
+- **Funcionalidades**:
+  - **Reparar Índices**: Botão para executar `/api/admin/db/indexes/repair` directamente
+  - **Ver Estado dos Índices**: Mostra estatísticas de índices por colecção
+  - **Limpar Jobs Antigos**: Remove jobs de importação com mais de 7 dias
+  - **Limpar Logs de Erro**: Remove logs com mais de 30 dias
+- **Ficheiros Modificados**: `/app/frontend/src/pages/SystemConfigPage.js`, `/app/backend/routes/admin.py`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 6. Importação de Minutas via Ficheiros
+- **Nova funcionalidade**: Importar minutas de ficheiros Word (.docx) e PDF
+- **Endpoint**: `POST /api/minutas/import`
+- **Suporta**: .docx, .doc, .pdf, .txt
+- **Auto-detecta categoria** pelo nome do ficheiro
+- **Bibliotecas adicionadas**: python-docx, pypdf
+- **Ficheiros Modificados**: `/app/backend/routes/minutas.py`, `/app/frontend/src/pages/MinutasPage.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 7. Menu Lateral - Manter Submenu Selecionado
+- **Problema**: Submenus colapsavam ao navegar entre páginas
+- **Solução**: useEffect que detecta rota actual e expande a secção correspondente
+- **Ficheiros Modificados**: `/app/frontend/src/layouts/DashboardLayout.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 8. Feedback Toast nas Preferências de Notificações
+- **Problema**: Botão "Guardar Preferências" não mostrava feedback visual
+- **Solução**: Migrado de `useToast` para `sonner` com toast.success/error
+- **Ficheiros Modificados**: `/app/frontend/src/pages/SettingsPage.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 9. Popup Upload Massivo - Fechar e Notificar em Background
+- **Problema**: Modal de upload massivo ficava aberto durante processamento
+- **Solução**: 
+  - Modal fecha imediatamente ao iniciar upload
+  - Processamento continua em background
+  - Notificação toast com resultado final (8 segundos de duração)
+- **Ficheiros Modificados**: `/app/frontend/src/components/BulkDocumentUpload.js`
+- **Status**: ✅ IMPLEMENTADO
+
+---
+
+### ✅ Funcionalidades Implementadas (Sessão 12 - Parte 1)
 
 #### 1. Bug Fix P0: Erro E11000 Duplicate Key - Correcção Definitiva
 - **Problema Reportado**: Erro `E11000 duplicate key error on idx_internal_ref` persistia em produção
