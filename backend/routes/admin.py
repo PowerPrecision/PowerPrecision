@@ -1080,6 +1080,130 @@ async def send_ai_weekly_report_now(
         await service.disconnect()
 
 
+@router.get("/ai-report-config")
+async def get_ai_report_config(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """Obtém configuração do relatório automático de IA."""
+    config = await db.system_config.find_one(
+        {"type": "ai_report_config"},
+        {"_id": 0}
+    )
+    
+    if not config:
+        # Retorna configuração padrão
+        return {
+            "enabled": True,
+            "frequency": "weekly",
+            "send_day": 0,  # Segunda-feira
+            "send_hour": 9,
+            "recipients_type": "admins",
+            "custom_recipients": [],
+            "include_insights": True,
+            "include_charts": True
+        }
+    
+    return config.get("config", {})
+
+
+@router.put("/ai-report-config")
+async def update_ai_report_config(
+    config: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualiza configuração do relatório automático de IA.
+    
+    Body:
+    {
+        "enabled": true,
+        "frequency": "weekly",  // "daily", "weekly", "monthly", "disabled"
+        "send_day": 0,  // 0=Segunda...6=Domingo (para semanal)
+        "send_hour": 9,  // Hora do envio (0-23)
+        "recipients_type": "admins",  // "admins", "all_staff", "custom"
+        "custom_recipients": [],  // IDs de utilizadores se recipients_type="custom"
+        "include_insights": true,
+        "include_charts": true
+    }
+    """
+    # Validar frequency
+    valid_frequencies = ["daily", "weekly", "monthly", "disabled"]
+    if config.get("frequency") not in valid_frequencies:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Frequência inválida. Valores válidos: {valid_frequencies}"
+        )
+    
+    # Validar send_day (0-6)
+    send_day = config.get("send_day", 0)
+    if not (0 <= send_day <= 6):
+        raise HTTPException(status_code=400, detail="send_day deve ser entre 0 e 6")
+    
+    # Validar send_hour (0-23)
+    send_hour = config.get("send_hour", 9)
+    if not (0 <= send_hour <= 23):
+        raise HTTPException(status_code=400, detail="send_hour deve ser entre 0 e 23")
+    
+    # Validar recipients_type
+    valid_recipients_types = ["admins", "all_staff", "custom"]
+    if config.get("recipients_type") not in valid_recipients_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"recipients_type inválido. Valores válidos: {valid_recipients_types}"
+        )
+    
+    # Guardar configuração
+    await db.system_config.update_one(
+        {"type": "ai_report_config"},
+        {
+            "$set": {
+                "type": "ai_report_config",
+                "config": {
+                    "enabled": config.get("enabled", True),
+                    "frequency": config.get("frequency", "weekly"),
+                    "send_day": send_day,
+                    "send_hour": send_hour,
+                    "recipients_type": config.get("recipients_type", "admins"),
+                    "custom_recipients": config.get("custom_recipients", []),
+                    "include_insights": config.get("include_insights", True),
+                    "include_charts": config.get("include_charts", True)
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_by": user.get("id")
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "message": "Configuração do relatório actualizada com sucesso"
+    }
+
+
+@router.get("/ai-report-recipients")
+async def get_available_recipients(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Lista utilizadores disponíveis como destinatários do relatório.
+    Retorna lista de utilizadores activos com email.
+    """
+    users = await db.users.find(
+        {"is_active": {"$ne": False}, "email": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
+    ).sort("name", 1).to_list(100)
+    
+    return {
+        "users": users,
+        "groups": [
+            {"id": "admins", "label": "Administradores e CEOs", "description": "Utilizadores com role admin ou ceo"},
+            {"id": "all_staff", "label": "Toda a Equipa", "description": "Todos os utilizadores activos com email"},
+            {"id": "custom", "label": "Personalizado", "description": "Seleccione os destinatários manualmente"}
+        ]
+    }
+
+
 @router.put("/ai-config")
 async def update_ai_configuration(
     config: dict,
