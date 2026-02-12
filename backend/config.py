@@ -15,7 +15,7 @@ def get_required_env(key: str) -> str:
     value = os.environ.get(key)
     if not value:
         print(f"❌ ERRO FATAL: Variável de ambiente '{key}' não definida!", file=sys.stderr)
-        print(f"   Configure no ficheiro .env ou nas variáveis de ambiente do sistema.", file=sys.stderr)
+        print("   Configure no ficheiro .env ou nas variáveis de ambiente do sistema.", file=sys.stderr)
         sys.exit(1)
     return value
 
@@ -59,14 +59,14 @@ def validate_jwt_secret(secret: str) -> None:
     for insecure in INSECURE_SECRETS:
         if insecure in secret_lower:
             print(f"❌ ERRO FATAL: JWT_SECRET contém valor de exemplo '{insecure}'!", file=sys.stderr)
-            print(f"   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
+            print("   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
             sys.exit(1)
     
     # Verificar comprimento mínimo
     if len(secret) < MIN_JWT_SECRET_LENGTH:
         print(f"❌ ERRO FATAL: JWT_SECRET muito curto ({len(secret)} chars)!", file=sys.stderr)
         print(f"   Mínimo requerido: {MIN_JWT_SECRET_LENGTH} caracteres", file=sys.stderr)
-        print(f"   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
+        print("   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
         sys.exit(1)
     
     # Verificar complexidade (entropia)
@@ -79,7 +79,7 @@ def validate_jwt_secret(secret: str) -> None:
     
     if complexity_score < 2:
         print(f"⚠️  AVISO: JWT_SECRET com baixa complexidade (score: {complexity_score}/4)", file=sys.stderr)
-        print(f"   Recomendado usar mistura de maiúsculas, minúsculas, números e símbolos", file=sys.stderr)
+        print("   Recomendado usar mistura de maiúsculas, minúsculas, números e símbolos", file=sys.stderr)
     
     print(f"✅ JWT_SECRET validado ({len(secret)} chars, complexidade: {complexity_score}/4)", file=sys.stderr)
 
@@ -211,7 +211,7 @@ SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
 if EMAIL_API_KEY:
     print(f"✅ Email configurado: {EMAIL_PROVIDER.upper()} (API transacional)", file=sys.stderr)
 elif SMTP_SERVER:
-    print(f"⚠️  Email configurado: SMTP (modo legado)", file=sys.stderr)
+    print("⚠️  Email configurado: SMTP (modo legado)", file=sys.stderr)
 else:
     print("⚠️  Email não configurado - emails serão simulados", file=sys.stderr)
 
@@ -302,7 +302,7 @@ AI_CONFIG_DEFAULTS = {
 
 # Log de configuração de IA
 if GEMINI_API_KEY:
-    print(f"✅ Gemini API configurada", file=sys.stderr)
+    print("✅ Gemini API configurada", file=sys.stderr)
 if EMERGENT_LLM_KEY:
-    print(f"✅ Emergent LLM Key configurada (OpenAI)", file=sys.stderr)
+    print("✅ Emergent LLM Key configurada (OpenAI)", file=sys.stderr)
 

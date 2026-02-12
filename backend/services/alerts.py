@@ -822,7 +822,7 @@ async def notify_property_match(
                     f"Foram encontrados {len(top_matches)} clientes com alta compatibilidade:\n\n{match_list}\n\nAceda ao sistema para ver mais detalhes.",
                     notification_type="task_assigned"
                 )
-            except Exception as e:
+            except Exception:
                 pass  # Não falhar se email não enviar
 
 
