@@ -508,10 +508,48 @@ async def import_properties_from_excel(
     # Normalizar nomes das colunas (lowercase, sem espaços)
     df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
     
+    # Mapear colunas alternativas (para formatos HCPro, CRM externo, etc.)
+    column_aliases = {
+        # Título
+        'título': 'titulo',
+        # Preço
+        'preço': 'preco',
+        # Localização
+        'freguesia': 'localidade',
+        'rua': 'morada',
+        'código_postal': 'codigo_postal',
+        # Áreas
+        'área_útil': 'area_util',
+        'área_terreno': 'area_terreno',
+        'área_bruta': 'area_bruta',
+        # Características
+        'tipologia': 'quartos_raw',  # T1, T2, T3...
+        'ano_de_construção': 'ano_construcao',
+        'certificado_energético': 'certificado_energetico',
+        # Proprietário
+        'proprietário': 'proprietario_nome',
+        'proprietário,_email': 'proprietario_email',
+        'proprietário,_telemóvel': 'proprietario_telefone',
+        'proprietário,_telefone': 'proprietario_telefone',
+        # Descrição
+        'descrição_pt': 'descricao',
+        'descrição': 'descricao',
+        # Referência
+        'referência': 'referencia_externa',
+        # Agência
+        'agencia_responsável': 'agencia',
+    }
+    
+    # Aplicar aliases
+    df = df.rename(columns=column_aliases)
+    
     # Mapear tipos de imóvel
     tipo_map = {
         'apartamento': 'apartamento',
         'moradia': 'moradia',
+        'moradia_isolada': 'moradia',
+        'moradia_geminada': 'moradia',
+        'moradia_em_banda': 'moradia',
         'terreno': 'terreno',
         'loja': 'loja',
         'escritorio': 'escritorio',
@@ -519,7 +557,13 @@ async def import_properties_from_excel(
         'armazem': 'armazem',
         'armazém': 'armazem',
         'garagem': 'garagem',
-        'outro': 'outro'
+        'outro': 'outro',
+        't0': 'apartamento',
+        't1': 'apartamento',
+        't2': 'apartamento',
+        't3': 'apartamento',
+        't4': 'apartamento',
+        't5': 'apartamento',
     }
     
     # Mapear estados
