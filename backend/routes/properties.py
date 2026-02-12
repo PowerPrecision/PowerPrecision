@@ -886,6 +886,43 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
         await background_jobs.set_error(job_id, str(e))
 
 
+@router.get("/bulk/job/{job_id}")
+async def get_import_job_status(
+    job_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Consultar o status de um job de importação.
+    """
+    job = await background_jobs.get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    # Verificar se o utilizador tem acesso ao job
+    if job.get("user_id") != user.get("id") and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Sem permissão para ver este job")
+    
+    return job
+
+
+@router.get("/bulk/jobs")
+async def get_user_import_jobs(
+    limit: int = Query(default=20, le=100),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Listar jobs de importação do utilizador actual.
+    """
+    jobs = await background_jobs.get_user_jobs(
+        user_id=user.get("id"),
+        job_type=JobType.EXCEL_IMPORT,
+        limit=limit
+    )
+    
+    return {"jobs": jobs}
+
+
 @router.get("/bulk/import-template")
 async def get_import_template(user: dict = Depends(get_current_user)):
     """
