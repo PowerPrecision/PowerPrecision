@@ -627,9 +627,19 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
     }
     
     now = datetime.now(timezone.utc).isoformat()
+    total_rows = len(df)
     
     for idx, row in df.iterrows():
         linha = idx + 2  # +2 porque idx começa em 0 e Excel tem cabeçalho
+        
+        # Atualizar progresso a cada 5 linhas para não sobrecarregar
+        if idx % 5 == 0:
+            await background_jobs.update_progress(
+                job_id,
+                current=idx,
+                total=total_rows,
+                message=f"A processar linha {linha} de {total_rows + 1}..."
+            )
         
         try:
             # Helper function para obter valor da linha de forma segura
