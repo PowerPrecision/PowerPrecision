@@ -102,6 +102,26 @@ const AIDataReviewPage = () => {
   // Relatório semanal
   const [weeklyReport, setWeeklyReport] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  // Enviar relatório por email
+  const sendReportByEmail = async () => {
+    try {
+      setSendingEmail(true);
+      const response = await api.post("/admin/ai-weekly-report/send");
+      
+      if (response.data.success) {
+        toast.success(`Relatório enviado para ${response.data.recipients?.length || 0} administrador(es)!`);
+      } else {
+        toast.error(response.data.error || "Erro ao enviar relatório");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar relatório:", error);
+      toast.error("Erro ao enviar relatório por email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   // Carregar revisões pendentes
   const loadPendingReviews = useCallback(async () => {
