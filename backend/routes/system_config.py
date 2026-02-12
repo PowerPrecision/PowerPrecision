@@ -371,10 +371,30 @@ async def test_service_connection(
             if smtp.provider == "none":
                 return {"success": False, "message": "Email não configurado"}
             
-            server = smtplib.SMTP_SSL(smtp.smtp_server, smtp.smtp_port)
+            # Verificar se as credenciais SMTP estão preenchidas
+            if not smtp.smtp_server:
+                return {"success": False, "message": "Servidor SMTP não configurado"}
+            if not smtp.smtp_user:
+                return {"success": False, "message": "Utilizador SMTP não configurado (preencha o campo 'Utilizador SMTP')"}
+            if not smtp.smtp_password:
+                return {"success": False, "message": "Password SMTP não configurada"}
+            
+            # Tentar conexão
+            if smtp.smtp_use_ssl:
+                server = smtplib.SMTP_SSL(smtp.smtp_server, smtp.smtp_port or 465, timeout=10)
+            else:
+                server = smtplib.SMTP(smtp.smtp_server, smtp.smtp_port or 587, timeout=10)
+                server.starttls()
+            
             server.login(smtp.smtp_user, smtp.smtp_password)
             server.quit()
-            return {"success": True, "message": "Ligação SMTP bem sucedida"}
+            return {"success": True, "message": f"Ligação SMTP bem sucedida ({smtp.smtp_server})"}
+        except smtplib.SMTPAuthenticationError:
+            return {"success": False, "message": "Erro de autenticação: utilizador ou password incorrectos"}
+        except smtplib.SMTPConnectError:
+            return {"success": False, "message": "Não foi possível conectar ao servidor SMTP"}
+        except TimeoutError:
+            return {"success": False, "message": "Timeout: servidor SMTP não respondeu"}
         except Exception as e:
             return {"success": False, "message": f"Erro: {str(e)}"}
     
