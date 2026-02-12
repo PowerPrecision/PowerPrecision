@@ -62,8 +62,8 @@ jobs:
         run: |
           echo "## Relatório de Segurança" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Safety (Vulnerabilidades de Dependências)" >> $GITHUB_STEP_SUMMARY
-          if [ -f security-reports/safety-report.json ]; then
+          echo "### pip-audit (Vulnerabilidades de Dependências)" >> $GITHUB_STEP_SUMMARY
+          if [ -f security-reports/pip-audit-report.json ]; then
             echo "Verificação concluída. Ver artefactos para detalhes." >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
