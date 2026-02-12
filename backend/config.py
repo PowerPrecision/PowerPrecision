@@ -40,6 +40,9 @@ def validate_jwt_secret(secret: str) -> None:
     """
     import string
     
+    # Detectar ambiente de desenvolvimento
+    is_development = os.environ.get('ENVIRONMENT', 'development').lower() in ['development', 'dev', 'local', 'preview']
+    
     # Lista de valores de exemplo que NÃO devem ser usados
     INSECURE_SECRETS = [
         'super-secret-key',
@@ -58,16 +61,25 @@ def validate_jwt_secret(secret: str) -> None:
     # Verificar se é um valor de exemplo
     for insecure in INSECURE_SECRETS:
         if insecure in secret_lower:
-            print(f"❌ ERRO FATAL: JWT_SECRET contém valor de exemplo '{insecure}'!", file=sys.stderr)
-            print("   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
-            sys.exit(1)
+            if is_development:
+                print(f"⚠️  AVISO (DEV): JWT_SECRET contém valor de exemplo '{insecure}'!", file=sys.stderr)
+                print("   Em PRODUÇÃO isto seria bloqueado. Gere: openssl rand -hex 32", file=sys.stderr)
+                return  # Não bloqueia em desenvolvimento
+            else:
+                print(f"❌ ERRO FATAL: JWT_SECRET contém valor de exemplo '{insecure}'!", file=sys.stderr)
+                print("   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
+                sys.exit(1)
     
     # Verificar comprimento mínimo
     if len(secret) < MIN_JWT_SECRET_LENGTH:
-        print(f"❌ ERRO FATAL: JWT_SECRET muito curto ({len(secret)} chars)!", file=sys.stderr)
-        print(f"   Mínimo requerido: {MIN_JWT_SECRET_LENGTH} caracteres", file=sys.stderr)
-        print("   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
-        sys.exit(1)
+        if is_development:
+            print(f"⚠️  AVISO (DEV): JWT_SECRET muito curto ({len(secret)} chars)!", file=sys.stderr)
+            return
+        else:
+            print(f"❌ ERRO FATAL: JWT_SECRET muito curto ({len(secret)} chars)!", file=sys.stderr)
+            print(f"   Mínimo requerido: {MIN_JWT_SECRET_LENGTH} caracteres", file=sys.stderr)
+            print("   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
+            sys.exit(1)
     
     # Verificar complexidade (entropia)
     has_lower = any(c.islower() for c in secret)
