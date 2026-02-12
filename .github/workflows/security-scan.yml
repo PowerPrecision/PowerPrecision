@@ -29,13 +29,13 @@ jobs:
       - name: Criar diretório de relatórios
         run: mkdir -p security-reports
 
-      - name: Safety - Verificar vulnerabilidades em dependências
+      - name: pip-audit - Verificar vulnerabilidades em dependências
         run: |
           cd backend
           pip install -r requirements.txt
-          # Usando 'safety scan' (o comando 'check' foi deprecado)
-          safety scan --output json > ../security-reports/safety-report.json || true
-          safety scan --detailed-output
+          # pip-audit é o substituto moderno do safety (não requer autenticação)
+          pip-audit -r requirements.txt --format json > ../security-reports/pip-audit-report.json || true
+          pip-audit -r requirements.txt
         continue-on-error: true
 
       - name: Bandit - Análise estática de segurança do código
