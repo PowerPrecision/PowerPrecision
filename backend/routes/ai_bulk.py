@@ -504,14 +504,20 @@ async def read_file_with_limit(file: UploadFile) -> bytes:
     return b''.join(chunks)
 
 
-async def update_client_data(process_id: str, extracted_data: dict, document_type: str) -> Tuple[bool, List[str]]:
+async def update_client_data(process_id: str, extracted_data: dict, document_type: str, force_update: bool = False) -> Tuple[bool, List[str], Dict[str, Any]]:
     """
     Actualizar ficha do cliente com dados extraídos.
     
+    REGRAS IMPORTANTES:
+    1. Processos concluídos/desistidos/cancelados: NÃO actualizar (retorna conflitos para revisão)
+    2. Campos preenchidos manualmente pelo utilizador: NÃO sobrescrever (a menos que force_update=True)
+    3. Guarda dados extraídos para comparação posterior
+    
     Returns:
-        Tuple de (success, list of updated fields)
+        Tuple de (success, list of updated fields, dict of conflicts/skipped)
     """
     updated_fields = []
+    conflicts = {}  # Campos onde há diferença entre dados existentes e extraídos
     
     try:
         logger.info(f"update_client_data: process_id={process_id}, document_type={document_type}")
@@ -526,17 +532,49 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
             if 'NIF' in extracted_data:
                 del extracted_data['NIF']
         
-        # Obter dados existentes (incluindo novos campos do CPCV)
+        # Obter dados existentes
         process = await db.processes.find_one(
             {"id": process_id},
-            {"_id": 0, "personal_data": 1, "financial_data": 1, "real_estate_data": 1, 
-             "ai_extracted_notes": 1, "client_name": 1, "co_buyers": 1, "co_applicants": 1,
-             "vendedor": 1, "mediador": 1}
+            {"_id": 0}
         )
         
         if not process:
             logger.error(f"Processo não encontrado: {process_id}")
-            return False, []
+            return False, [], {"error": "Processo não encontrado"}
+        
+        # =====================================================================
+        # REGRA 1: Processos finalizados não são actualizados
+        # =====================================================================
+        process_status = process.get("status", "")
+        if process_status in ["concluido", "desistido", "cancelado", "arquivado"]:
+            logger.info(f"Processo {process_id} está '{process_status}' - dados guardados para revisão apenas")
+            
+            # Guardar dados extraídos para revisão manual (sem actualizar o processo)
+            await db.processes.update_one(
+                {"id": process_id},
+                {
+                    "$push": {
+                        "ai_pending_review": {
+                            "document_type": document_type,
+                            "extracted_data": extracted_data,
+                            "extracted_at": datetime.now(timezone.utc).isoformat(),
+                            "status": "pending_review"
+                        }
+                    }
+                }
+            )
+            
+            return True, [], {
+                "status": "pending_review",
+                "message": f"Processo '{process_status}' - dados guardados para revisão manual",
+                "extracted_fields": list(extracted_data.keys())
+            }
+        
+        # =====================================================================
+        # REGRA 2: Não sobrescrever dados introduzidos manualmente
+        # =====================================================================
+        # Campos que foram editados manualmente têm metadata
+        manually_edited = process.get("manually_edited_fields", [])
         
         # Construir dados de actualização
         update_data = build_update_data_from_extraction(
@@ -544,6 +582,37 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
             document_type,
             process or {}
         )
+        
+        # Filtrar campos editados manualmente (a menos que force_update=True)
+        if not force_update and manually_edited:
+            for field in manually_edited:
+                # Verificar se o campo está nos dados a actualizar
+                if "." in field:
+                    parent, child = field.split(".", 1)
+                    if parent in update_data and isinstance(update_data[parent], dict):
+                        if child in update_data[parent]:
+                            old_value = process.get(parent, {}).get(child)
+                            new_value = update_data[parent][child]
+                            if old_value != new_value:
+                                conflicts[field] = {
+                                    "existing": old_value,
+                                    "extracted": new_value,
+                                    "reason": "Campo editado manualmente"
+                                }
+                            del update_data[parent][child]
+                            logger.info(f"Campo '{field}' preservado (editado manualmente)")
+                else:
+                    if field in update_data:
+                        old_value = process.get(field)
+                        new_value = update_data[field]
+                        if old_value != new_value:
+                            conflicts[field] = {
+                                "existing": old_value,
+                                "extracted": new_value,
+                                "reason": "Campo editado manualmente"
+                            }
+                        del update_data[field]
+                        logger.info(f"Campo '{field}' preservado (editado manualmente)")
         
         # Identificar campos que serão actualizados
         for key, value in update_data.items():
