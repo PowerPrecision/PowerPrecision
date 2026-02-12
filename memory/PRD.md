@@ -56,6 +56,11 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Resultado:** `routes/processes.py` reduzido de 1035 para 934 linhas (~10%)
 - **Benefícios:** Código mais testável, manutenção simplificada, reutilização de lógica
 
+#### 6. Correções de Bugs (Sessão 9)
+- ✅ **Guardar Notificações sem feedback** - Adicionado endpoint `PUT /api/auth/preferences` e toast de confirmação
+- ✅ **WorkflowEditor ocupava muito espaço** - Layout compacto com max-height 384px e scroll, linhas mais curtas, setas horizontais
+- ⚠️ **Teste de email em SystemConfig** - A API funciona (`/api/emails/test-connection`), mas o SystemConfigPage usa uma API diferente que requer configuração de credenciais
+
 ---
 
 ### ✅ Parte 2 - Automações Avançadas (IMPLEMENTADAS - Sessão 8)
