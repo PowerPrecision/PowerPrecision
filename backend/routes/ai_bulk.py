@@ -628,28 +628,45 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
         
         logger.info(f"Campos a actualizar: {updated_fields}")
         
+        # =====================================================================
+        # REGRA 3: Guardar dados extraídos para comparação posterior
+        # =====================================================================
+        # Guardar os dados extraídos num campo separado para revisão/comparação
+        ai_extraction_log = {
+            "document_type": document_type,
+            "extracted_at": datetime.now(timezone.utc).isoformat(),
+            "extracted_data": extracted_data,
+            "applied_fields": updated_fields,
+            "conflicts": conflicts if conflicts else None
+        }
+        
         # Aplicar actualização
         if len(update_data) > 1:
             result = await db.processes.update_one(
                 {"id": process_id},
-                {"$set": update_data}
+                {
+                    "$set": update_data,
+                    "$push": {"ai_extraction_history": ai_extraction_log}
+                }
             )
             
             if result.modified_count > 0:
                 logger.info(f"✅ Cliente '{process.get('client_name')}' actualizado com sucesso! Campos: {updated_fields}")
-                return True, updated_fields
+                if conflicts:
+                    logger.info(f"⚠️ Campos com conflitos (preservados): {list(conflicts.keys())}")
+                return True, updated_fields, conflicts
             else:
                 # Verificar se os dados já eram iguais
                 logger.info("Nenhuma alteração necessária (dados já existentes)")
-                return True, updated_fields
+                return True, updated_fields, conflicts
         else:
             logger.warning(f"Nenhum dado para actualizar (update_data tem apenas {len(update_data)} campos)")
         
-        return False, []
+        return False, [], conflicts
         
     except Exception as e:
         logger.error(f"Erro ao actualizar cliente {process_id}: {e}", exc_info=True)
-        return False, []
+        return False, [], {"error": str(e)}
 
 
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
