@@ -773,6 +773,207 @@ async def get_ai_usage_logs(
     return await ai_usage_tracker.get_recent_logs(limit, task)
 
 
+@router.get("/ai-weekly-report")
+async def get_ai_weekly_report(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
+):
+    """
+    Gera relatório semanal de extracções de IA.
+    
+    Inclui:
+    - Total de documentos analisados
+    - Taxa de sucesso
+    - Campos mais frequentemente extraídos
+    - Comparação com semana anterior
+    - Distribuição por tipo de documento
+    """
+    from datetime import datetime, timezone, timedelta
+    
+    now = datetime.now(timezone.utc)
+    week_start = now - timedelta(days=7)
+    prev_week_start = now - timedelta(days=14)
+    
+    # Buscar processos com extracções na última semana
+    processes_this_week = await db.processes.find(
+        {
+            "ai_extraction_history": {"$exists": True, "$ne": []},
+        },
+        {"_id": 0, "ai_extraction_history": 1, "client_name": 1, "id": 1}
+    ).to_list(None)
+    
+    # Filtrar extracções por período
+    this_week_extractions = []
+    prev_week_extractions = []
+    
+    for proc in processes_this_week:
+        for extraction in proc.get("ai_extraction_history", []):
+            extracted_at = extraction.get("extracted_at", "")
+            if extracted_at:
+                try:
+                    ext_date = datetime.fromisoformat(extracted_at.replace("Z", "+00:00"))
+                    if ext_date >= week_start:
+                        this_week_extractions.append(extraction)
+                    elif ext_date >= prev_week_start:
+                        prev_week_extractions.append(extraction)
+                except:
+                    pass
+    
+    # Calcular métricas desta semana
+    total_this_week = len(this_week_extractions)
+    successful_this_week = sum(1 for e in this_week_extractions if e.get("extracted_data"))
+    
+    # Calcular métricas da semana anterior
+    total_prev_week = len(prev_week_extractions)
+    successful_prev_week = sum(1 for e in prev_week_extractions if e.get("extracted_data"))
+    
+    # Taxa de sucesso
+    success_rate_this_week = (successful_this_week / total_this_week * 100) if total_this_week > 0 else 0
+    success_rate_prev_week = (successful_prev_week / total_prev_week * 100) if total_prev_week > 0 else 0
+    
+    # Contagem por tipo de documento
+    doc_type_counts = {}
+    for extraction in this_week_extractions:
+        doc_type = extraction.get("document_type", "outro")
+        doc_type_counts[doc_type] = doc_type_counts.get(doc_type, 0) + 1
+    
+    # Campos mais extraídos
+    field_counts = {}
+    for extraction in this_week_extractions:
+        extracted_data = extraction.get("extracted_data", {})
+        if isinstance(extracted_data, dict):
+            for field, value in extracted_data.items():
+                if value:  # Apenas campos com valor
+                    field_counts[field] = field_counts.get(field, 0) + 1
+    
+    # Ordenar campos por frequência
+    top_fields = sorted(field_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    # Mapear nomes de campos para português
+    field_labels = {
+        "personal_data.nome": "Nome Completo",
+        "personal_data.nif": "NIF",
+        "personal_data.cc_number": "Nº Cartão Cidadão",
+        "personal_data.data_nascimento": "Data de Nascimento",
+        "personal_data.morada": "Morada",
+        "financial_data.rendimento_mensal": "Rendimento Mensal",
+        "financial_data.entidade_patronal": "Entidade Patronal",
+        "real_estate_data.valor_imovel": "Valor do Imóvel",
+        "client_name": "Nome do Cliente",
+        "client_email": "Email",
+        "client_phone": "Telefone",
+    }
+    
+    # Mapear tipos de documento
+    doc_type_labels = {
+        "cc": "Cartão de Cidadão",
+        "recibo_vencimento": "Recibo de Vencimento",
+        "irs": "Declaração IRS",
+        "contrato_trabalho": "Contrato de Trabalho",
+        "cpcv": "CPCV",
+        "caderneta_predial": "Caderneta Predial",
+        "simulacao": "Simulação de Crédito",
+        "extrato_bancario": "Extrato Bancário",
+        "outro": "Outro Documento",
+    }
+    
+    # Calcular variações
+    doc_variation = ((total_this_week - total_prev_week) / total_prev_week * 100) if total_prev_week > 0 else 0
+    success_variation = success_rate_this_week - success_rate_prev_week
+    
+    return {
+        "report_date": now.isoformat(),
+        "period": {
+            "start": week_start.isoformat(),
+            "end": now.isoformat()
+        },
+        "summary": {
+            "total_documents_analyzed": total_this_week,
+            "successful_extractions": successful_this_week,
+            "success_rate": round(success_rate_this_week, 1),
+            "comparison": {
+                "prev_week_total": total_prev_week,
+                "prev_week_success_rate": round(success_rate_prev_week, 1),
+                "documents_variation_percent": round(doc_variation, 1),
+                "success_rate_variation": round(success_variation, 1)
+            }
+        },
+        "by_document_type": [
+            {
+                "type": doc_type,
+                "label": doc_type_labels.get(doc_type, doc_type),
+                "count": count,
+                "percentage": round(count / total_this_week * 100, 1) if total_this_week > 0 else 0
+            }
+            for doc_type, count in sorted(doc_type_counts.items(), key=lambda x: x[1], reverse=True)
+        ],
+        "top_extracted_fields": [
+            {
+                "field": field,
+                "label": field_labels.get(field, field),
+                "count": count,
+                "percentage": round(count / total_this_week * 100, 1) if total_this_week > 0 else 0
+            }
+            for field, count in top_fields
+        ],
+        "insights": _generate_ai_insights(total_this_week, success_rate_this_week, doc_variation, success_variation)
+    }
+
+
+def _generate_ai_insights(total: int, success_rate: float, doc_variation: float, success_variation: float) -> list:
+    """Gera insights automáticos baseados nos dados."""
+    insights = []
+    
+    if total == 0:
+        insights.append({
+            "type": "info",
+            "message": "Nenhum documento analisado esta semana. Considere testar a funcionalidade de análise de documentos."
+        })
+        return insights
+    
+    # Insight sobre volume
+    if doc_variation > 20:
+        insights.append({
+            "type": "success",
+            "message": f"Excelente! O volume de documentos analisados aumentou {doc_variation:.0f}% em relação à semana anterior."
+        })
+    elif doc_variation < -20:
+        insights.append({
+            "type": "warning",
+            "message": f"O volume de documentos analisados diminuiu {abs(doc_variation):.0f}% em relação à semana anterior."
+        })
+    
+    # Insight sobre taxa de sucesso
+    if success_rate >= 90:
+        insights.append({
+            "type": "success",
+            "message": f"Taxa de sucesso excelente: {success_rate:.1f}% dos documentos foram extraídos com sucesso."
+        })
+    elif success_rate >= 70:
+        insights.append({
+            "type": "info",
+            "message": f"Taxa de sucesso boa: {success_rate:.1f}%. Há espaço para melhorias na qualidade dos documentos enviados."
+        })
+    else:
+        insights.append({
+            "type": "warning",
+            "message": f"Taxa de sucesso baixa: {success_rate:.1f}%. Verifique a qualidade das imagens e PDFs enviados."
+        })
+    
+    # Insight sobre variação da taxa
+    if success_variation > 5:
+        insights.append({
+            "type": "success",
+            "message": f"A taxa de sucesso melhorou {success_variation:.1f} pontos percentuais em relação à semana anterior!"
+        })
+    elif success_variation < -5:
+        insights.append({
+            "type": "warning",
+            "message": f"A taxa de sucesso diminuiu {abs(success_variation):.1f} pontos percentuais. Investigue possíveis causas."
+        })
+    
+    return insights
+
+
 @router.put("/ai-config")
 async def update_ai_configuration(
     config: dict,
