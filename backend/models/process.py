@@ -276,14 +276,65 @@ class ProcessCreate(BaseModel):
 
 
 class PublicClientRegistration(BaseModel):
-    name: str
-    email: EmailStr
-    phone: str
-    process_type: str
+    """
+    Modelo para registo público de clientes.
+    
+    Inclui validação e sanitização de inputs para segurança.
+    """
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=200,
+        description="Nome completo do cliente"
+    )
+    email: EmailStr = Field(
+        ...,
+        max_length=100,
+        description="Email do cliente"
+    )
+    phone: str = Field(
+        ...,
+        min_length=9,
+        max_length=20,
+        description="Telefone do cliente"
+    )
+    process_type: str = Field(
+        ...,
+        max_length=50,
+        description="Tipo de processo"
+    )
     personal_data: Optional[PersonalData] = None
     titular2_data: Optional[Titular2Data] = None
     real_estate_data: Optional[RealEstateData] = None
     financial_data: Optional[FinancialData] = None
+    
+    @field_validator('name', mode='before')
+    @classmethod
+    def sanitize_name(cls, v):
+        """Sanitiza o nome removendo HTML e caracteres perigosos."""
+        if not v:
+            return v
+        try:
+            from utils.input_sanitization import sanitize_name
+            return sanitize_name(v, max_length=200)
+        except ImportError:
+            # Fallback básico se módulo não disponível
+            import re
+            v = re.sub(r'<[^>]+>', '', str(v))
+            return v.strip()[:200]
+    
+    @field_validator('phone', mode='before')
+    @classmethod
+    def sanitize_phone(cls, v):
+        """Sanitiza o telefone."""
+        if not v:
+            return v
+        try:
+            from utils.input_sanitization import sanitize_phone
+            return sanitize_phone(v)
+        except ImportError:
+            import re
+            return re.sub(r'[^\d+]', '', str(v))[:20]
 
 
 class ProcessUpdate(BaseModel):
