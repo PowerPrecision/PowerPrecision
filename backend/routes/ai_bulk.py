@@ -1467,3 +1467,377 @@ async def generate_weekly_error_report(
     
     result = await send_weekly_report_to_admin()
     return result
+
+
+
+# ==============================================================================
+# ENDPOINTS PARA REVISÃO E COMPARAÇÃO DE DADOS EXTRAÍDOS
+# ==============================================================================
+
+@router.get("/extraction-history/{process_id}")
+async def get_extraction_history(
+    process_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]))
+):
+    """
+    Obter histórico de extracções de IA para um processo.
+    
+    Mostra todos os dados extraídos de documentos, incluindo:
+    - Dados que foram aplicados
+    - Dados que foram ignorados (conflitos)
+    - Pendentes de revisão (processos finalizados)
+    
+    Útil para:
+    - Verificar o que a IA extraiu vs. o que está no sistema
+    - Identificar dados que podem ter sido ignorados incorrectamente
+    - Auditar alterações automáticas
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"_id": 0, "client_name": 1, "status": 1, 
+         "ai_extraction_history": 1, "ai_pending_review": 1,
+         "manually_edited_fields": 1, "personal_data": 1, 
+         "financial_data": 1, "real_estate_data": 1}
+    )
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    return {
+        "process_id": process_id,
+        "client_name": process.get("client_name"),
+        "status": process.get("status"),
+        "manually_edited_fields": process.get("manually_edited_fields", []),
+        "extraction_history": process.get("ai_extraction_history", []),
+        "pending_review": process.get("ai_pending_review", []),
+        "current_data": {
+            "personal": process.get("personal_data"),
+            "financial": process.get("financial_data"),
+            "real_estate": process.get("real_estate_data")
+        }
+    }
+
+
+@router.get("/pending-reviews")
+async def get_pending_reviews(
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]))
+):
+    """
+    Listar todos os processos com dados pendentes de revisão.
+    
+    Inclui processos finalizados (concluído/desistido) onde a IA
+    extraiu dados mas não os aplicou automaticamente.
+    """
+    # Buscar processos com ai_pending_review não vazio
+    processes = await db.processes.find(
+        {"ai_pending_review": {"$exists": True, "$ne": []}},
+        {"_id": 0, "id": 1, "client_name": 1, "status": 1, "ai_pending_review": 1}
+    ).to_list(100)
+    
+    result = []
+    for proc in processes:
+        pending = proc.get("ai_pending_review", [])
+        result.append({
+            "process_id": proc.get("id"),
+            "client_name": proc.get("client_name"),
+            "status": proc.get("status"),
+            "pending_count": len(pending),
+            "document_types": list(set(p.get("document_type") for p in pending)),
+            "oldest_pending": min(p.get("extracted_at") for p in pending) if pending else None
+        })
+    
+    return {
+        "total_processes": len(result),
+        "processes": result
+    }
+
+
+@router.post("/apply-pending/{process_id}")
+async def apply_pending_review(
+    process_id: str,
+    item_index: int = 0,
+    force: bool = False,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Aplicar dados pendentes de revisão a um processo.
+    
+    Parâmetros:
+    - process_id: ID do processo
+    - item_index: Índice do item pendente a aplicar (0 = primeiro)
+    - force: Se True, sobrescreve dados existentes
+    
+    Após aplicação bem-sucedida, o item é removido da lista de pendentes.
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"_id": 0, "ai_pending_review": 1, "client_name": 1}
+    )
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    pending = process.get("ai_pending_review", [])
+    if item_index >= len(pending):
+        raise HTTPException(status_code=400, detail="Índice inválido")
+    
+    item = pending[item_index]
+    
+    # Aplicar os dados
+    updated, fields, conflicts = await update_client_data(
+        process_id,
+        item.get("extracted_data", {}),
+        item.get("document_type", "outro"),
+        force_update=force
+    )
+    
+    if updated:
+        # Remover o item da lista de pendentes
+        await db.processes.update_one(
+            {"id": process_id},
+            {
+                "$pull": {"ai_pending_review": {"extracted_at": item.get("extracted_at")}},
+                "$push": {
+                    "ai_extraction_history": {
+                        "document_type": item.get("document_type"),
+                        "extracted_at": item.get("extracted_at"),
+                        "applied_at": datetime.now(timezone.utc).isoformat(),
+                        "applied_by": user.get("email"),
+                        "extracted_data": item.get("extracted_data"),
+                        "applied_fields": fields,
+                        "was_pending_review": True
+                    }
+                }
+            }
+        )
+    
+    return {
+        "success": updated,
+        "applied_fields": fields,
+        "conflicts": conflicts,
+        "message": f"Dados aplicados ao processo '{process.get('client_name')}'"
+    }
+
+
+@router.delete("/discard-pending/{process_id}")
+async def discard_pending_review(
+    process_id: str,
+    item_index: int = 0,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Descartar dados pendentes de revisão (marcar como ignorados).
+    
+    Útil quando os dados extraídos estão incorrectos ou já não são necessários.
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"_id": 0, "ai_pending_review": 1}
+    )
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    pending = process.get("ai_pending_review", [])
+    if item_index >= len(pending):
+        raise HTTPException(status_code=400, detail="Índice inválido")
+    
+    item = pending[item_index]
+    
+    # Remover da lista de pendentes
+    await db.processes.update_one(
+        {"id": process_id},
+        {
+            "$pull": {"ai_pending_review": {"extracted_at": item.get("extracted_at")}},
+            "$push": {
+                "ai_discarded_extractions": {
+                    **item,
+                    "discarded_at": datetime.now(timezone.utc).isoformat(),
+                    "discarded_by": user.get("email")
+                }
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "message": f"Extracção de {item.get('document_type')} descartada"
+    }
+
+
+@router.post("/mark-field-manual/{process_id}")
+async def mark_field_as_manual(
+    process_id: str,
+    field_name: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO, UserRole.CONSULTOR]))
+):
+    """
+    Marcar um campo como editado manualmente.
+    
+    Campos marcados como manuais NÃO serão sobrescritos pela IA durante
+    a importação de documentos.
+    
+    Exemplo: mark_field_manual("abc123", "personal_data.nif")
+    """
+    result = await db.processes.update_one(
+        {"id": process_id},
+        {
+            "$addToSet": {"manually_edited_fields": field_name},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    if result.modified_count > 0:
+        return {
+            "success": True,
+            "message": f"Campo '{field_name}' marcado como editado manualmente"
+        }
+    else:
+        return {
+            "success": False,
+            "message": "Processo não encontrado ou campo já marcado"
+        }
+
+
+@router.delete("/unmark-field-manual/{process_id}")
+async def unmark_field_as_manual(
+    process_id: str,
+    field_name: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Remover marcação de campo manual.
+    
+    Permite que a IA volte a actualizar o campo durante importações futuras.
+    """
+    result = await db.processes.update_one(
+        {"id": process_id},
+        {
+            "$pull": {"manually_edited_fields": field_name},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    if result.modified_count > 0:
+        return {
+            "success": True,
+            "message": f"Campo '{field_name}' pode ser actualizado pela IA novamente"
+        }
+    else:
+        return {
+            "success": False,
+            "message": "Processo não encontrado ou campo não estava marcado"
+        }
+
+
+@router.get("/compare-data/{process_id}")
+async def compare_extracted_vs_current(
+    process_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]))
+):
+    """
+    Comparar dados extraídos vs. dados actuais do processo.
+    
+    Mostra lado-a-lado:
+    - Dados actuais no sistema
+    - Último dado extraído pela IA para cada campo
+    - Se há diferenças
+    
+    Útil para verificar se a IA está a extrair dados correctos e
+    se há dados que devem ser revistos.
+    """
+    process = await db.processes.find_one(
+        {"id": process_id},
+        {"_id": 0}
+    )
+    
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Dados actuais
+    current_data = {
+        "personal_data": process.get("personal_data", {}),
+        "financial_data": process.get("financial_data", {}),
+        "real_estate_data": process.get("real_estate_data", {}),
+        "client_name": process.get("client_name"),
+        "client_email": process.get("client_email"),
+        "client_phone": process.get("client_phone"),
+        "client_nif": process.get("client_nif")
+    }
+    
+    # Último dado extraído por campo (do histórico)
+    extraction_history = process.get("ai_extraction_history", [])
+    latest_extractions = {}
+    
+    for extraction in extraction_history:
+        extracted = extraction.get("extracted_data", {})
+        for key, value in extracted.items():
+            if value:
+                latest_extractions[key] = {
+                    "value": value,
+                    "document_type": extraction.get("document_type"),
+                    "extracted_at": extraction.get("extracted_at")
+                }
+    
+    # Dados pendentes de revisão
+    pending = process.get("ai_pending_review", [])
+    pending_data = {}
+    for item in pending:
+        extracted = item.get("extracted_data", {})
+        for key, value in extracted.items():
+            if value:
+                pending_data[key] = {
+                    "value": value,
+                    "document_type": item.get("document_type"),
+                    "extracted_at": item.get("extracted_at")
+                }
+    
+    # Comparar e identificar diferenças
+    comparisons = []
+    all_keys = set(latest_extractions.keys()) | set(pending_data.keys())
+    
+    for key in all_keys:
+        current_value = None
+        
+        # Tentar obter valor actual
+        if "." in key:
+            parts = key.split(".", 1)
+            current_value = current_data.get(parts[0], {}).get(parts[1]) if isinstance(current_data.get(parts[0]), dict) else None
+        else:
+            current_value = current_data.get(key)
+        
+        latest = latest_extractions.get(key, {})
+        pending = pending_data.get(key, {})
+        
+        comparison = {
+            "field": key,
+            "current_value": current_value,
+            "latest_extracted": latest.get("value"),
+            "latest_document": latest.get("document_type"),
+            "latest_date": latest.get("extracted_at"),
+            "pending_value": pending.get("value"),
+            "pending_document": pending.get("document_type"),
+            "has_difference": False
+        }
+        
+        # Verificar se há diferença
+        if latest.get("value") and current_value != latest.get("value"):
+            comparison["has_difference"] = True
+        if pending.get("value") and current_value != pending.get("value"):
+            comparison["has_difference"] = True
+            comparison["has_pending"] = True
+        
+        comparisons.append(comparison)
+    
+    # Ordenar por campos com diferenças primeiro
+    comparisons.sort(key=lambda x: (not x.get("has_difference"), not x.get("has_pending", False), x["field"]))
+    
+    return {
+        "process_id": process_id,
+        "client_name": process.get("client_name"),
+        "status": process.get("status"),
+        "total_fields_compared": len(comparisons),
+        "fields_with_differences": len([c for c in comparisons if c.get("has_difference")]),
+        "fields_pending": len([c for c in comparisons if c.get("has_pending")]),
+        "comparisons": comparisons
+    }
