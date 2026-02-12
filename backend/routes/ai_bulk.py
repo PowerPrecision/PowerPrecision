@@ -381,6 +381,7 @@ class SingleAnalysisResult(BaseModel):
     fields_extracted: List[str] = []
     updated: bool = False
     error: Optional[str] = None
+    conflicts: Optional[Dict[str, Any]] = None  # Campos com conflitos (não sobrescritos)
 
 
 async def find_client_by_name(client_name: str) -> Optional[dict]:
