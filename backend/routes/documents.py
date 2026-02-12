@@ -84,8 +84,16 @@ async def initialize_folders(client_id: str, user: dict = Depends(get_current_us
     process = await db.processes.find_one({"id": client_id})
     if not process:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
-        
-    success = s3_service.initialize_client_folders(client_id, process.get("client_name"))
+    
+    client_name = process.get("client_name", "Cliente")
+    second_client_name = process.get("second_client_name") or \
+                         process.get("titular2_data", {}).get("nome")
+    
+    success = s3_service.initialize_client_folders(
+        client_id, 
+        client_name,
+        second_client_name=second_client_name
+    )
     return {"success": success}
 
 
