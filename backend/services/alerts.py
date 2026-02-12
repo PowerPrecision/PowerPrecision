@@ -580,6 +580,11 @@ async def get_process_alerts(process: dict) -> List[Dict[str, Any]]:
     """
     alerts = []
     
+    # Processos finalizados não geram alertas
+    status = process.get("status", "")
+    if status in ["concluido", "desistido", "cancelado", "arquivado"]:
+        return alerts
+    
     # 1. Alerta de idade
     age_alert = check_age_alert(process)
     if age_alert.get("active"):
