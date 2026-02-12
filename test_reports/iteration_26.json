@@ -1,0 +1,101 @@
+{
+  "summary": "Iteration 26: Verified idx_location index fix, Maintenance tab functionality, sidebar state persistence, and notification preferences toast. All backend tests passed (8/8). Frontend testing confirmed all reported features working correctly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/onedrive/status", "issue": "Returns 404 - endpoint not implemented (non-blocking)"}
+    ]
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "POST /api/auth/login - admin login successful",
+    "GET /api/properties - endpoint returns 101 properties",
+    "POST /api/properties - Create 3 properties with same district/municipality (idx_location fix verified)",
+    "GET /api/admin/db/indexes - Index stats retrieved successfully",
+    "POST /api/admin/db/indexes/repair - Reparar Índices endpoint works correctly",
+    "PUT /api/auth/preferences - Notification preferences saved successfully",
+    "GET /api/properties/stats - Property stats endpoint working",
+    "GET /api/system-config - System configuration loaded correctly",
+    "UI: /imoveis page loads with 'Importar Excel' button visible",
+    "UI: /configuracoes - Manutenção tab shows 'Reparar Índices', 'Limpar Jobs', 'Limpar Logs' buttons",
+    "UI: /definicoes - Notificações tab with email preferences toggles",
+    "UI: Toast notification 'Preferências de notificação guardadas!' appears on save",
+    "UI: Sidebar 'Negócio' section stays expanded when on /imoveis",
+    "UI: Sidebar 'Sistema' section stays expanded when on /configuracoes or /definicoes"
+  ],
+  
+  "failed_tests": [],
+  
+  "bugs_verified_fixed": [
+    {
+      "issue": "idx_location duplicate key error during property creation/import",
+      "root_cause": "Old idx_location index used (distrito, concelho) fields instead of (address.district, address.municipality)",
+      "fix_location": "/app/backend/services/db_indexes.py - DEPRECATED_INDEXES includes idx_location",
+      "verification": "Created 3 properties with same Lisboa/Lisboa location - no duplicate key errors"
+    },
+    {
+      "issue": "Sidebar sections not staying expanded on navigation",
+      "fix_location": "/app/frontend/src/layouts/DashboardLayout.js - useEffect updates openSections on route change",
+      "verification": "Sidebar correctly expands Negócio when on /imoveis, Sistema when on /configuracoes"
+    },
+    {
+      "issue": "Toast feedback on saving notification preferences",
+      "fix_location": "/app/frontend/src/pages/SettingsPage.js - uses sonner toast",
+      "verification": "Toast 'Preferências de notificação guardadas!' appears successfully"
+    }
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration26_idx_location_fix.py",
+    "/app/test_reports/pytest/pytest_results_iteration26.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "✅ /app/backend/services/db_indexes.py - idx_location correctly in DEPRECATED_INDEXES for removal",
+    "✅ New idx_location index uses correct fields: (address.district, address.municipality)",
+    "✅ /app/frontend/src/layouts/DashboardLayout.js - useEffect properly maintains sidebar state on navigation",
+    "✅ /app/frontend/src/pages/SettingsPage.js - uses sonner toast for feedback",
+    "⚠️ /api/onedrive/status endpoint returns 404 (non-critical, integration not configured)"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration26_idx_location_fix.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (8/8 pytest tests passed)",
+    "frontend": "100% (all UI features working)"
+  },
+  
+  "test_credentials": {
+    "admin": "admin@admin.com / admin"
+  },
+  
+  "seed_data_creation": "3 test properties created and cleaned up during testing",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "idx_location index fix has been verified. The old index (distrito, concelho) is in DEPRECATED_INDEXES and gets removed on startup. New index uses (address.district, address.municipality). Property creation works without duplicate key errors. Sidebar state persistence works correctly. Notification toast feedback works.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "NO MOCKED APIs - All real integrations tested"
+  },
+  
+  "key_observations": {
+    "properties_count": 101,
+    "idx_location_status": "Fixed - old index removed, new index with correct fields",
+    "sidebar_behavior": "Correctly expands relevant section based on current route",
+    "notification_toast": "Uses sonner toast - shows 'Preferências de notificação guardadas!'"
+  }
+}
