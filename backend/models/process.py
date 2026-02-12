@@ -104,24 +104,24 @@ class PersonalData(BaseModel):
     - birth_date/data_nascimento, estado_civil, compra_tipo, menor_35_anos
     - data_validade_cc, sexo, altura, nome_pai, nome_mae
     """
-    # Dados básicos (activos)
-    nif: Optional[str] = None
-    documento_id: Optional[str] = None
-    naturalidade: Optional[str] = None
-    nacionalidade: Optional[str] = None
-    morada_fiscal: Optional[str] = None
-    birth_date: Optional[str] = None
-    data_nascimento: Optional[str] = None  # Alias para birth_date (usado pelo frontend)
-    estado_civil: Optional[str] = None
-    compra_tipo: Optional[str] = None
+    # Dados básicos (activos) com constraints
+    nif: Optional[str] = Field(None, max_length=9, description="NIF - 9 dígitos")
+    documento_id: Optional[str] = Field(None, max_length=30, description="Número do documento de ID")
+    naturalidade: Optional[str] = Field(None, max_length=100, description="Local de nascimento")
+    nacionalidade: Optional[str] = Field(None, max_length=50, description="Nacionalidade")
+    morada_fiscal: Optional[str] = Field(None, max_length=500, description="Morada fiscal completa")
+    birth_date: Optional[str] = Field(None, max_length=20, description="Data de nascimento")
+    data_nascimento: Optional[str] = Field(None, max_length=20, description="Data de nascimento (alias)")
+    estado_civil: Optional[str] = Field(None, max_length=30, description="Estado civil")
+    compra_tipo: Optional[str] = Field(None, max_length=50, description="Tipo de compra")
     menor_35_anos: Optional[bool] = None  # Checkbox apoio ao estado
     # Novos campos - Identificação completa
-    data_validade_cc: Optional[str] = None  # Validade do Cartão de Cidadão
-    sexo: Optional[str] = None  # M ou F
-    altura: Optional[str] = None  # Altura em metros
+    data_validade_cc: Optional[str] = Field(None, max_length=20, description="Validade do CC")
+    sexo: Optional[str] = Field(None, max_length=1, description="M ou F")
+    altura: Optional[str] = Field(None, max_length=10, description="Altura em metros")
     # Filiação
-    nome_pai: Optional[str] = None
-    nome_mae: Optional[str] = None
+    nome_pai: Optional[str] = Field(None, max_length=200, description="Nome do pai")
+    nome_mae: Optional[str] = Field(None, max_length=200, description="Nome da mãe")
     
     @field_validator('nif', mode='before')
     @classmethod
@@ -132,6 +132,34 @@ class PersonalData(BaseModel):
         if isinstance(v, (int, float)):
             v = str(int(v))
         return validate_nif(v)
+    
+    @field_validator('naturalidade', 'nacionalidade', 'nome_pai', 'nome_mae', mode='before')
+    @classmethod
+    def sanitize_text_fields(cls, v):
+        """Sanitiza campos de texto."""
+        if v is None or v == '':
+            return None
+        try:
+            from utils.input_sanitization import sanitize_string
+            return sanitize_string(str(v), max_length=200)
+        except ImportError:
+            import re
+            v = re.sub(r'<[^>]+>', '', str(v))
+            return v.strip()[:200]
+    
+    @field_validator('morada_fiscal', mode='before')
+    @classmethod
+    def sanitize_morada(cls, v):
+        """Sanitiza morada com limite maior."""
+        if v is None or v == '':
+            return None
+        try:
+            from utils.input_sanitization import sanitize_string
+            return sanitize_string(str(v), max_length=500)
+        except ImportError:
+            import re
+            v = re.sub(r'<[^>]+>', '', str(v))
+            return v.strip()[:500]
 
 
 class Titular2Data(BaseModel):
