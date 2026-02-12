@@ -923,20 +923,36 @@ class ScheduledTasksService:
         </html>
         """
         
-        # Obter emails dos administradores
-        admins = await self.db.users.find(
-            {"role": {"$in": ["admin", "ceo"]}, "is_active": {"$ne": False}},
-            {"_id": 0, "email": 1, "name": 1}
-        ).to_list(50)
+        # Obter lista de destinatários baseado na configuração
+        recipient_emails = []
         
-        if not admins:
-            logger.warning("Nenhum administrador encontrado para enviar o relatório")
-            return False
+        if recipients_type == "admins":
+            # Apenas administradores e CEOs
+            users = await self.db.users.find(
+                {"role": {"$in": ["admin", "ceo"]}, "is_active": {"$ne": False}},
+                {"_id": 0, "email": 1, "name": 1}
+            ).to_list(50)
+            recipient_emails = [u["email"] for u in users if u.get("email")]
+            
+        elif recipients_type == "all_staff":
+            # Toda a equipa activa
+            users = await self.db.users.find(
+                {"is_active": {"$ne": False}, "email": {"$exists": True, "$ne": None}},
+                {"_id": 0, "email": 1}
+            ).to_list(100)
+            recipient_emails = [u["email"] for u in users if u.get("email")]
+            
+        elif recipients_type == "custom":
+            # Lista personalizada de utilizadores
+            if custom_recipients:
+                users = await self.db.users.find(
+                    {"id": {"$in": custom_recipients}, "is_active": {"$ne": False}},
+                    {"_id": 0, "email": 1}
+                ).to_list(50)
+                recipient_emails = [u["email"] for u in users if u.get("email")]
         
-        admin_emails = [a["email"] for a in admins if a.get("email")]
-        
-        if not admin_emails:
-            logger.warning("Nenhum email de administrador configurado")
+        if not recipient_emails:
+            logger.warning("Nenhum destinatário encontrado para o relatório de IA")
             return False
         
         # Enviar email usando o serviço de email existente
@@ -945,27 +961,27 @@ class ScheduledTasksService:
             
             result = await send_email(
                 account_name="precision",  # Usar conta principal
-                to_emails=admin_emails,
-                subject=f"Relatório Semanal IA - {week_start.strftime('%d/%m')} a {today.strftime('%d/%m/%Y')}",
-                body=f"Relatório semanal de extracções de IA.\n\nDocumentos analisados: {total_this_week}\nTaxa de sucesso: {success_rate:.1f}%",
+                to_emails=recipient_emails,
+                subject=f"Relatório {period_label} IA - {period_start.strftime('%d/%m')} a {today.strftime('%d/%m/%Y')}",
+                body=f"Relatório {period_label.lower()} de extracções de IA.\n\nDocumentos analisados: {total_this_period}\nTaxa de sucesso: {success_rate:.1f}%",
                 body_html=html_content
             )
             
             if result.get("success"):
-                logger.info(f"Relatório semanal de IA enviado para {len(admin_emails)} administrador(es)")
+                logger.info(f"Relatório {period_label.lower()} de IA enviado para {len(recipient_emails)} destinatário(s)")
                 return True
             else:
                 logger.error(f"Falha ao enviar relatório: {result.get('error')}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Erro ao enviar relatório semanal de IA: {e}")
+            logger.error(f"Erro ao enviar relatório de IA: {e}")
             return False
     
     def _get_weekly_insight(self, total: int, success_rate: float, doc_variation: float) -> str:
         """Gera insight para o email."""
         if total == 0:
-            return "ℹ️ Nenhum documento foi analisado esta semana. Considere testar a funcionalidade de análise de documentos."
+            return "ℹ️ Nenhum documento foi analisado neste período. Considere testar a funcionalidade de análise de documentos."
         
         if success_rate >= 90:
             return f"✅ Excelente desempenho! Taxa de sucesso de {success_rate:.0f}% nas extracções de IA."
