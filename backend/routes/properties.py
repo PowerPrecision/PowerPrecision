@@ -538,10 +538,11 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
     """
     import pandas as pd
     
-    await background_jobs.set_status(job_id, JobStatus.PROCESSING)
-    
-    # Normalizar nomes das colunas (lowercase, sem espaços)
-    df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
+    try:
+        await background_jobs.set_status(job_id, JobStatus.PROCESSING)
+        
+        # Normalizar nomes das colunas (lowercase, sem espaços)
+        df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
     
     # Mapear colunas alternativas (para formatos HCPro, CRM externo, etc.)
     column_aliases = {
