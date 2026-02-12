@@ -644,16 +644,40 @@ async def import_properties_from_excel(
             logger.error(f"Erro na linha {linha}: {e}")
             results["erros"].append({"linha": linha, "erro": str(e)})
     
-    # Log de erros para análise
+    # Log de erros para análise usando o logger centralizado
     if results["erros"]:
+        from services.system_error_logger import system_error_logger
         for err in results["erros"]:
-            await db.error_logs.insert_one({
-                "timestamp": now,
-                "source": "excel_import",
-                "error_message": err["erro"],
-                "raw_data": f"Linha {err['linha']}",
-                "user": user.get("email")
-            })
+            await system_error_logger.log_error(
+                error_type="excel_import_error",
+                message=f"Erro ao importar linha {err['linha']}: {err['erro']}",
+                component="properties",
+                details={
+                    "linha": err["linha"],
+                    "erro": err["erro"],
+                    "ficheiro": file.filename
+                },
+                severity="warning",
+                user_id=user.get("id")
+            )
+    
+    # Log de sucesso
+    if results["importados"] > 0:
+        from services.system_error_logger import system_error_logger
+        await system_error_logger.log_error(
+            error_type="excel_import_success",
+            message=f"Importação Excel concluída: {results['importados']}/{results['total']} imóveis",
+            component="properties",
+            details={
+                "total": results["total"],
+                "importados": results["importados"],
+                "erros": len(results["erros"]),
+                "ficheiro": file.filename,
+                "ids": results["ids_criados"]
+            },
+            severity="info",
+            user_id=user.get("id")
+        )
     
     return results
 
