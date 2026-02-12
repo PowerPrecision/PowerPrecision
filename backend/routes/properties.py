@@ -662,7 +662,7 @@ async def import_properties_from_excel(
                 results["erros"].append({"linha": linha, "erro": "Título em falta"})
                 continue
             
-            preco = parse_price(row.get('preco') or row.get('preço'))
+            preco = parse_price(row.get('preco', row.get('preço')))
             if preco is None:
                 results["erros"].append({"linha": linha, "erro": "Preço em falta ou inválido"})
                 continue
