@@ -856,40 +856,40 @@ class ScheduledTasksService:
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Relatório Semanal de IA</h1>
-                    <p>{week_start.strftime('%d/%m/%Y')} - {today.strftime('%d/%m/%Y')}</p>
+                    <h1>Relatório {period_label} de IA</h1>
+                    <p>{period_start.strftime('%d/%m/%Y')} - {today.strftime('%d/%m/%Y')}</p>
                 </div>
                 
                 <div class="content">
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-value">{total_this_week}</div>
+                            <div class="stat-value">{total_this_period}</div>
                             <div class="stat-label">Documentos Analisados</div>
                             <div class="stat-change {'positive' if doc_variation >= 0 else 'negative'}">
-                                {'+' if doc_variation >= 0 else ''}{doc_variation:.0f}% vs. semana anterior
+                                {'+' if doc_variation >= 0 else ''}{doc_variation:.0f}% vs. período anterior
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">{success_rate:.0f}%</div>
                             <div class="stat-label">Taxa de Sucesso</div>
                             <div class="stat-change {'positive' if success_variation >= 0 else 'negative'}">
-                                {'+' if success_variation >= 0 else ''}{success_variation:.1f}pp vs. semana anterior
+                                {'+' if success_variation >= 0 else ''}{success_variation:.1f}pp vs. período anterior
                             </div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">{successful_this_week}</div>
+                            <div class="stat-value">{successful_this_period}</div>
                             <div class="stat-label">Extracções com Sucesso</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">{total_prev_week}</div>
-                            <div class="stat-label">Total Semana Anterior</div>
+                            <div class="stat-value">{total_prev_period}</div>
+                            <div class="stat-label">Total Período Anterior</div>
                         </div>
                     </div>
                     
                     {"".join([
-                        f'<div class="insight {"warning" if success_rate < 70 else "info" if total_this_week == 0 else ""}">'
-                        f'{self._get_weekly_insight(total_this_week, success_rate, doc_variation)}</div>'
-                    ])}
+                        f'<div class="insight {"warning" if success_rate < 70 else "info" if total_this_period == 0 else ""}">'
+                        f'{self._get_weekly_insight(total_this_period, success_rate, doc_variation)}</div>'
+                    ]) if include_insights else ''}
                     
                     <div class="section">
                         <h3>Por Tipo de Documento</h3>
@@ -899,10 +899,10 @@ class ScheduledTasksService:
                                 <span class="doc-count">{count}</span>
                             </div>
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: {count/total_this_week*100 if total_this_week > 0 else 0:.0f}%"></div>
+                                <div class="progress-fill" style="width: {count/total_this_period*100 if total_this_period > 0 else 0:.0f}%"></div>
                             </div>'''
                             for doc_type, count in sorted(doc_type_counts.items(), key=lambda x: x[1], reverse=True)
-                        ]) if doc_type_counts else '<p style="color: #64748b; font-size: 13px;">Nenhum documento analisado</p>'}
+                        ]) if doc_type_counts and include_charts else '<p style="color: #64748b; font-size: 13px;">Nenhum documento analisado</p>'}
                     </div>
                     
                     <div class="section">
@@ -910,7 +910,7 @@ class ScheduledTasksService:
                         {"".join([
                             f'<div class="doc-item"><span class="doc-name">{field_labels.get(field, field)}</span><span class="doc-count">{count}</span></div>'
                             for field, count in top_fields
-                        ]) if top_fields else '<p style="color: #64748b; font-size: 13px;">Nenhum campo extraído</p>'}
+                        ]) if top_fields and include_charts else '<p style="color: #64748b; font-size: 13px;">Nenhum campo extraído</p>'}
                     </div>
                 </div>
                 
