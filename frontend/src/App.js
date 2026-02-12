@@ -267,6 +267,16 @@ function App() {
             }
           />
           
+          {/* AI Data Review - Admin, CEO and Administrative only */}
+          <Route
+            path="/revisao-dados-ia"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "ceo", "administrativo"]}>
+                <AIDataReviewPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Filtered Process List - Staff and Admin */}
           <Route
             path="/processos-filtrados"
