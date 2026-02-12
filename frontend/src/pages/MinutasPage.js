@@ -54,6 +54,8 @@ import {
   Loader2,
   FileDown,
   Eye,
+  Upload,
+  FolderUp,
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
