@@ -853,12 +853,14 @@ async def analyze_single_file(
             )
             
             # Actualizar ficha do cliente
-            updated, fields = await update_client_data(
+            updated, fields, conflicts = await update_client_data(
                 process_id,
                 analysis_result["extracted_data"],
                 document_type
             )
             result.updated = updated
+            if conflicts:
+                result.conflicts = conflicts
             
             logger.info(f"✅ {doc_filename} -> {normalized_name} para '{actual_client_name}': {len(result.fields_extracted)} campos extraídos, {len(fields)} actualizados")
         else:
