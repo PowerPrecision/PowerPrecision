@@ -1547,3 +1547,74 @@ async def cleanup_old_system_logs(
     count = await system_error_logger.cleanup_old_errors(days)
     return {"success": True, "deleted_count": count}
 
+
+
+# ============== DATABASE INDEX MANAGEMENT ==============
+
+@router.get("/db/indexes")
+async def get_database_indexes(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Lista todos os índices de todas as colecções principais.
+    Útil para diagnóstico de problemas de índices duplicados.
+    """
+    from services.db_indexes import get_index_stats
+    stats = await get_index_stats(db)
+    return {"success": True, "indexes": stats}
+
+
+@router.post("/db/indexes/repair")
+async def repair_database_indexes(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Remove índices antigos/incorretos e recria os correctos.
+    Use quando houver erros de duplicate key em índices.
+    """
+    from services.db_indexes import cleanup_deprecated_indexes, create_indexes
+    
+    # Primeiro, limpar índices problemáticos
+    cleanup_results = await cleanup_deprecated_indexes(db)
+    
+    # Depois, garantir que os índices correctos existem
+    create_results = await create_indexes(db)
+    
+    return {
+        "success": True,
+        "cleanup": cleanup_results,
+        "indexes": create_results
+    }
+
+
+@router.delete("/db/indexes/{collection}/{index_name}")
+async def drop_specific_index(
+    collection: str,
+    index_name: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Remove um índice específico de uma colecção.
+    Use com cuidado - apenas para índices problemáticos.
+    """
+    allowed_collections = ["properties", "processes", "users", "tasks", "leads"]
+    if collection not in allowed_collections:
+        raise HTTPException(status_code=400, detail=f"Colecção não permitida. Use: {allowed_collections}")
+    
+    if index_name == "_id_":
+        raise HTTPException(status_code=400, detail="Não pode remover o índice _id_")
+    
+    try:
+        coll = db[collection]
+        existing = await coll.index_information()
+        
+        if index_name not in existing:
+            raise HTTPException(status_code=404, detail=f"Índice '{index_name}' não existe em '{collection}'")
+        
+        await coll.drop_index(index_name)
+        return {"success": True, "message": f"Índice '{index_name}' removido de '{collection}'"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao remover índice: {str(e)}")
+
