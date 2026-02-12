@@ -9,6 +9,7 @@ from enum import Enum
 
 class StorageProvider(str, Enum):
     """Provedores de armazenamento suportados"""
+    AWS_S3 = "aws_s3"
     ONEDRIVE = "onedrive"
     GOOGLE_DRIVE = "google_drive"
     DROPBOX = "dropbox"
