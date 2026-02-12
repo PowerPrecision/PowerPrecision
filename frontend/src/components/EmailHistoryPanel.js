@@ -280,6 +280,28 @@ const EmailHistoryPanel = ({
               <Button 
                 size="sm" 
                 variant="outline"
+                onClick={() => openWebmail('precision')}
+                title="Abrir Webmail Precision"
+                data-testid="email-webmail-precision-btn"
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline text-xs">Precision</span>
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => openWebmail('power')}
+                title="Abrir Webmail Power"
+                data-testid="email-webmail-power-btn"
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline text-xs">Power</span>
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Configurar emails monitorizados"
               >
