@@ -698,6 +698,7 @@ class ScheduledTasksService:
             cleanup_count = await self.cleanup_old_notifications()
             temp_files_count = await self.cleanup_temp_files()
             cache_count = await self.cleanup_scraper_cache()
+            weekly_report_sent = await self.send_weekly_ai_report()
             
             logger.info("=" * 50)
             logger.info("RESUMO DAS TAREFAS")
@@ -710,6 +711,7 @@ class ScheduledTasksService:
             logger.info(f"- Notificações limpas: {cleanup_count}")
             logger.info(f"- Ficheiros temp. limpos: {temp_files_count}")
             logger.info(f"- Cache scraper limpo: {cache_count}")
+            logger.info(f"- Relatório AI semanal: {'Enviado' if weekly_report_sent else 'Não enviado (não é segunda-feira)'}")
             logger.info("=" * 50)
             
         except Exception as e:
