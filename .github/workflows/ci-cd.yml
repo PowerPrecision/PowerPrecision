@@ -54,14 +54,14 @@ jobs:
             --severity-level medium --confidence-level medium
         continue-on-error: false
 
-      - name: Safety - Scan de Vulnerabilidades
-        id: safety
+      - name: pip-audit - Scan de Vulnerabilidades
+        id: pip-audit
         run: |
           cd backend
           echo "🔍 A verificar vulnerabilidades em dependências..."
-          # Usando 'safety scan' (o comando 'check' foi deprecado em Junho 2024)
-          safety scan --output json > ../security-reports/safety-report.json 2>&1 || true
-          safety scan --detailed-output
+          pip install pip-audit
+          pip-audit -r requirements.txt --format json > ../security-reports/pip-audit-report.json 2>&1 || true
+          pip-audit -r requirements.txt
         continue-on-error: false
 
       - name: Upload Security Reports
