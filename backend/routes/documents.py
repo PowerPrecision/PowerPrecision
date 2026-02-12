@@ -129,31 +129,72 @@ async def upload_file_s3(
     category: str = Form(...), # Ex: "Financeiros", "Imovel"
     user: dict = Depends(get_current_user)
 ):
-    """Faz upload de um ficheiro físico para o S3."""
+    """
+    Faz upload de um ficheiro físico para o S3.
+    
+    Funcionalidades automáticas:
+    - Normalização do nome do ficheiro
+    - Conversão de imagens (JPG, PNG) para PDF
+    """
     process = await db.processes.find_one({"id": client_id})
     if not process:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     client_name = process.get("client_name", "Cliente")
-    # Obter segundo titular se existir (para nomes de pastas em novos processos)
     second_client_name = process.get("second_client_name") or \
                          process.get("titular2_data", {}).get("nome")
     
+    # Ler o conteúdo do ficheiro
+    file_content = await file.read()
+    original_filename = file.filename
+    content_type = file.content_type
+    
+    # Verificar se é uma imagem e converter para PDF
+    converted_to_pdf = False
+    if is_image_file(original_filename, content_type) and IMG2PDF_AVAILABLE:
+        try:
+            logger.info(f"A converter imagem para PDF: {original_filename}")
+            pdf_bytes, new_filename = await convert_image_to_pdf(file_content, original_filename)
+            
+            if new_filename != original_filename:
+                file_content = pdf_bytes
+                original_filename = new_filename
+                content_type = "application/pdf"
+                converted_to_pdf = True
+                logger.info(f"Conversão concluída: {new_filename}")
+        except Exception as e:
+            logger.warning(f"Não foi possível converter imagem para PDF: {e}")
+            # Continua com o ficheiro original
+    
+    # Normalizar nome do ficheiro
+    normalized_filename = normalize_filename(original_filename, category)
+    logger.info(f"Nome normalizado: {file.filename} -> {normalized_filename}")
+    
+    # Criar BytesIO para o upload
+    file_buffer = BytesIO(file_content)
+    
     # Upload para o S3
     s3_path = s3_service.upload_file(
-        file.file,
+        file_buffer,
         client_id,
         client_name,
         category,
-        file.filename,
-        file.content_type,
+        normalized_filename,
+        content_type,
         second_client_name=second_client_name
     )
     
     if not s3_path:
         raise HTTPException(status_code=500, detail="Erro ao enviar ficheiro para o armazenamento S3")
-        
-    return {"success": True, "path": s3_path, "message": "Ficheiro guardado com sucesso"}
+    
+    return {
+        "success": True, 
+        "path": s3_path, 
+        "message": "Ficheiro guardado com sucesso",
+        "original_filename": file.filename,
+        "normalized_filename": normalized_filename,
+        "converted_to_pdf": converted_to_pdf
+    }
 
 @router.post("/client/{client_id}/init-folders")
 async def initialize_folders(client_id: str, user: dict = Depends(get_current_user)):
