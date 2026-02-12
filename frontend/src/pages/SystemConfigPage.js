@@ -50,6 +50,7 @@ const SECTION_ICONS = {
   ai: Sparkles,
   trello: Trello,
   settings: Building,
+  maintenance: Wrench,
 };
 
 // Componente para campo de configuração
