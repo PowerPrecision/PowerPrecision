@@ -31,15 +31,41 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 #### 2. Importação de Imóveis via Excel (formato HCPro/CRM)
 - Actualizado endpoint `POST /api/properties/bulk/import-excel` para suportar formato HCPro
-- Mapeamento automático de colunas com aliases:
-  - `Título` → `titulo`, `Preço` → `preco`, `Freguesia` → `localidade`
-  - `Proprietário` → `proprietario_nome`, `Agência` → `agencia`
-  - `Área útil`, `Área bruta`, `Área terreno` mapeadas automaticamente
+- Mapeamento automático de colunas com aliases
 - Parser de preços europeus (700.000€ → 700000)
-- Extracção automática de quartos da tipologia (T1, T2, T3...)
-- Fallback para agência quando proprietário não está preenchido
-- **Ficheiros**: `/app/backend/routes/properties.py`
-- **Teste**: 12 imóveis importados com sucesso do ficheiro do utilizador
+- Corrigido índice único `idx_internal_reference` com `sparse=True` (permite nulls)
+- **Ficheiros**: `/app/backend/routes/properties.py`, `/app/backend/services/db_indexes.py`
+- **Teste**: 12 imóveis importados com sucesso
+
+#### 3. Alertas para Processos Finalizados
+- ✅ Processos com status `concluido`, `desistido`, `cancelado`, `arquivado` não geram alertas
+- Deadlines destes processos são excluídos automaticamente
+- **Ficheiros**: `/app/backend/services/alerts.py`, `/app/backend/routes/deadlines.py`
+
+#### 4. Sistema de Importação Massiva com IA (Melhorado)
+Implementadas as 3 regras de importação sugeridas pelo utilizador:
+
+**Regra 1: Processos finalizados não são alterados**
+- Dados extraídos de processos concluídos/desistidos são guardados para revisão manual
+- Novo campo `ai_pending_review` guarda dados pendentes
+
+**Regra 2: Análise ficheiro-a-ficheiro com comparação**
+- Histórico de extracções guardado em `ai_extraction_history`
+- Endpoint `GET /api/ai/bulk/compare-data/{process_id}` para comparar dados
+
+**Regra 3: Dados do utilizador não são sobrescritos**
+- Campo `manually_edited_fields` marca campos editados manualmente
+- IA não sobrescreve estes campos durante importação
+- Endpoint `POST /api/ai/bulk/mark-field-manual/{process_id}` para marcar campos
+
+**Novos Endpoints de Revisão:**
+- `GET /api/ai/bulk/extraction-history/{process_id}` - Ver histórico de extracções
+- `GET /api/ai/bulk/pending-reviews` - Listar processos com dados pendentes
+- `POST /api/ai/bulk/apply-pending/{process_id}` - Aplicar dados pendentes
+- `DELETE /api/ai/bulk/discard-pending/{process_id}` - Descartar dados pendentes
+- `GET /api/ai/bulk/compare-data/{process_id}` - Comparar dados extraídos vs. actuais
+- `POST /api/ai/bulk/mark-field-manual/{process_id}` - Marcar campo como manual
+- `DELETE /api/ai/bulk/unmark-field-manual/{process_id}` - Desmarcar campo manual
 
 ---
 
