@@ -182,22 +182,6 @@ async def list_clients(
         "total": len(clients),
         "showing_all": False
     }
-            client["active_processes_count"] = 0
-    
-    if has_active_process is not None:
-        if has_active_process:
-            clients = [c for c in clients if c.get("active_processes_count", 0) > 0]
-        else:
-            clients = [c for c in clients if c.get("active_processes_count", 0) == 0]
-    
-    total = len(clients)
-    
-    return {
-        "clients": clients,
-        "total": total,
-        "limit": limit,
-        "skip": skip
-    }
 
 
 @router.get("/{client_id}")
