@@ -7,7 +7,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://realestatecrm-12.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://doc-crm-ai.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 CREDENTIALS = {
