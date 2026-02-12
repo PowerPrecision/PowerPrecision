@@ -566,6 +566,24 @@ const AIDataReviewPage = () => {
                   </Card>
                 </div>
 
+                {/* Botão enviar por email */}
+                <div className="flex justify-end">
+                  <Button
+                    onClick={sendReportByEmail}
+                    disabled={sendingEmail}
+                    variant="outline"
+                    className="gap-2"
+                    data-testid="send-report-email-btn"
+                  >
+                    {sendingEmail ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
+                    {sendingEmail ? "A enviar..." : "Enviar por Email"}
+                  </Button>
+                </div>
+
                 {/* Insights */}
                 {weeklyReport.insights && weeklyReport.insights.length > 0 && (
                   <Card>
