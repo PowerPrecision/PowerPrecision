@@ -46,10 +46,17 @@ async def test_public_registration_invalid_email(client):
 async def test_public_registration_with_personal_data(client):
     """Test public registration with optional personal data"""
     import uuid
-    import random
     unique_email = f"test_full_{uuid.uuid4().hex[:8]}@email.pt"
-    # Gerar NIF único que não começa com 5 (empresas)
-    unique_nif = f"{random.choice([1,2,3,4])}{random.randint(10000000, 99999999)}"
+    
+    # Usar NIFs válidos conhecidos para teste (com dígito de controlo correcto)
+    # NIFs de teste válidos que começam com 1, 2, 3 ou 4 (particulares)
+    valid_test_nifs = [
+        "123456789",  # NIF de teste padrão
+        "196672337",  # NIF válido
+        "244658089",  # NIF válido
+    ]
+    import random
+    unique_nif = random.choice(valid_test_nifs)
     
     response = await client.post("/public/client-registration", json={
         "name": "Test Cliente Full",
