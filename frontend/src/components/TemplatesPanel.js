@@ -115,19 +115,31 @@ const TemplatesPanel = ({ processId, token }) => {
     setLoading(`download-${template.id}`);
     setValidationError(null);
     try {
-      const response = await fetch(`${API_URL}${template.downloadEndpoint}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_URL}${template.downloadEndpoint}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
       });
       
-      // Clonar a resposta para erros de validação
-      const responseClone = response.clone();
+      const blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${template.id}_${processId}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      if (!response.ok) {
-        // Verificar se é erro de validação (400)
-        if (response.status === 400) {
-          try {
-            const errorData = await responseClone.json();
-            const detail = errorData.detail;
+      toast.success('Template descarregado!');
+    } catch (error) {
+      // Verificar se é erro de validação (400)
+      if (error.response?.status === 400) {
+        // Para respostas blob com erro, precisamos converter
+        try {
+          const text = await error.response.data.text();
+          const errorData = JSON.parse(text);
+          const detail = errorData.detail;
+          if (detail?.missing_fields) {
             setValidationError({
               template: template.name,
               message: detail?.message || "Dados insuficientes",
@@ -135,14 +147,17 @@ const TemplatesPanel = ({ processId, token }) => {
               fullMessage: detail?.missing_fields_message || ""
             });
             return;
-          } catch (parseError) {
-            console.error("Erro ao processar resposta de validação:", parseError);
           }
+        } catch (parseError) {
+          console.error("Erro ao processar resposta de validação:", parseError);
         }
-        throw new Error('Erro ao descarregar');
       }
-      
-      const blob = await response.blob();
+      toast.error('Erro ao descarregar template');
+      console.error(error);
+    } finally {
+      setLoading(null);
+    }
+  };
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
