@@ -146,10 +146,7 @@ const SettingsPage = () => {
       });
       
       if (response.ok) {
-        toast({
-          title: "Password alterada",
-          description: "A sua password foi alterada com sucesso.",
-        });
+        toast.success("Password alterada com sucesso");
         setPasswordData({
           current_password: "",
           new_password: "",
@@ -160,11 +157,7 @@ const SettingsPage = () => {
         throw new Error(data.detail || "Erro ao alterar password");
       }
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível alterar a password.",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Não foi possível alterar a password");
     } finally {
       setLoading(false);
     }
@@ -184,10 +177,7 @@ const SettingsPage = () => {
       });
       
       if (response.ok) {
-        toast({
-          title: "Preferências guardadas",
-          description: "As suas preferências de notificação foram atualizadas.",
-        });
+        toast.success("Preferências de notificação guardadas!");
       } else {
         throw new Error("Erro ao guardar preferências");
       }
