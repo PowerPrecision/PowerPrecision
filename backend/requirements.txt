@@ -84,5 +84,8 @@ filelock>=3.20.3  # Security: CVE-2025-3372
 # Websockets
 websockets>=12.0
 
+# Push Notifications
+pywebpush>=2.0.0
+
 # Stripe
 stripe>=8.0.0
