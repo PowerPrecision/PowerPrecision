@@ -108,19 +108,12 @@ const SettingsPage = () => {
       });
       
       if (response.ok) {
-        toast({
-          title: "Perfil atualizado",
-          description: "Os seus dados foram guardados com sucesso.",
-        });
+        toast.success("Perfil atualizado com sucesso");
       } else {
         throw new Error("Erro ao atualizar perfil");
       }
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o perfil.",
-        variant: "destructive",
-      });
+      toast.error("Não foi possível atualizar o perfil");
     } finally {
       setLoading(false);
     }
@@ -129,20 +122,12 @@ const SettingsPage = () => {
   // Alterar password
   const handleChangePassword = async () => {
     if (passwordData.new_password !== passwordData.confirm_password) {
-      toast({
-        title: "Erro",
-        description: "As passwords não coincidem.",
-        variant: "destructive",
-      });
+      toast.error("As passwords não coincidem");
       return;
     }
     
     if (passwordData.new_password.length < 6) {
-      toast({
-        title: "Erro",
-        description: "A password deve ter pelo menos 6 caracteres.",
-        variant: "destructive",
-      });
+      toast.error("A password deve ter pelo menos 6 caracteres");
       return;
     }
     
