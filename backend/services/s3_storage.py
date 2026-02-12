@@ -294,7 +294,12 @@ class S3Service:
             logger.error(f"Erro ao eliminar ficheiro S3: {e}")
             return False
 
-    def initialize_client_folders(self, client_id: str, client_name: str) -> bool:
+    def initialize_client_folders(
+        self, 
+        client_id: str, 
+        client_name: str,
+        second_client_name: str = None
+    ) -> bool:
         """
         Cria a estrutura de pastas padrão para um novo cliente.
         No S3, cria-se um ficheiro vazio '.keep' para marcar a pasta.
@@ -302,6 +307,7 @@ class S3Service:
         Args:
             client_id: ID do processo/cliente
             client_name: Nome do cliente
+            second_client_name: Nome do segundo titular (opcional)
             
         Returns:
             True se criado com sucesso
@@ -309,7 +315,7 @@ class S3Service:
         if not self.is_configured():
             return False
             
-        base_path = self._get_client_base_path(client_id, client_name)
+        base_path = self._get_client_base_path(client_id, client_name, second_client_name)
         
         try:
             for category in DEFAULT_CATEGORIES:
