@@ -67,7 +67,6 @@ slowapi>=0.1.9
 sentry-sdk>=1.40.0
 
 # Security Scanning (CI/CD)
-safety>=3.0.0
 bandit>=1.7.0
 
 # Testing
