@@ -600,7 +600,160 @@ async def get_process_alerts(process: dict) -> List[Dict[str, Any]]:
         if property_alert.get("active"):
             alerts.append(property_alert)
     
+    # 5. Alerta de avaliação bancária abaixo do valor de compra
+    valuation_alert = check_valuation_alert(process)
+    if valuation_alert.get("active"):
+        alerts.append(valuation_alert)
+    
     return alerts
+
+
+# ====================================================================
+# ALERTA DE AVALIAÇÃO BANCÁRIA
+# ====================================================================
+
+def check_valuation_alert(process: dict) -> Dict[str, Any]:
+    """
+    Verifica se o valor da avaliação bancária é inferior ao valor de compra.
+    
+    Este é um alerta CRÍTICO porque:
+    - O banco só financia com base no valor de avaliação
+    - Cliente terá que cobrir a diferença com capital próprio
+    - Pode inviabilizar o negócio
+    
+    Args:
+        process: Dados do processo
+    
+    Returns:
+        dict: Alerta com detalhes ou inactive se não houver problema
+    """
+    # Obter dados de crédito e imóvel
+    credit_data = process.get("credit_data", {})
+    property_data = process.get("property_data", {})
+    financial_data = process.get("financial_data", {})
+    
+    # Valor da avaliação bancária
+    valuation_value = credit_data.get("valuation_value")
+    if not valuation_value:
+        return {"type": ALERT_TYPES["VALUATION_BELOW_PURCHASE"], "active": False}
+    
+    # Valor de compra/aquisição (pode estar em vários campos)
+    purchase_value = (
+        property_data.get("valor_imovel") or 
+        financial_data.get("valor_pretendido") or
+        credit_data.get("requested_amount")
+    )
+    
+    if not purchase_value:
+        return {"type": ALERT_TYPES["VALUATION_BELOW_PURCHASE"], "active": False}
+    
+    # Verificar se avaliação é inferior
+    if valuation_value >= purchase_value:
+        return {"type": ALERT_TYPES["VALUATION_BELOW_PURCHASE"], "active": False}
+    
+    # Calcular diferença
+    difference = purchase_value - valuation_value
+    percentage = ((purchase_value - valuation_value) / purchase_value) * 100
+    
+    # Determinar prioridade baseada na diferença
+    if percentage > 20:
+        priority = "critical"
+        urgency_msg = "MUITO CRÍTICO - Diferença significativa!"
+    elif percentage > 10:
+        priority = "high"
+        urgency_msg = "Crítico - Diferença relevante"
+    else:
+        priority = "medium"
+        urgency_msg = "Atenção - Pequena diferença"
+    
+    return {
+        "type": ALERT_TYPES["VALUATION_BELOW_PURCHASE"],
+        "active": True,
+        "valuation_value": valuation_value,
+        "purchase_value": purchase_value,
+        "difference": difference,
+        "difference_percentage": round(percentage, 2),
+        "valuation_bank": credit_data.get("valuation_bank"),
+        "valuation_date": credit_data.get("valuation_date"),
+        "message": f"⚠️ Avaliação bancária ({valuation_value:,.0f}€) abaixo do valor de compra ({purchase_value:,.0f}€)",
+        "details": f"{urgency_msg}. Diferença: {difference:,.0f}€ ({percentage:.1f}%). "
+                   f"O cliente precisará de capital próprio adicional para cobrir esta diferença.",
+        "priority": priority,
+        "recommendations": [
+            "Informar o cliente imediatamente sobre a diferença",
+            "Verificar se o cliente tem capital próprio adicional",
+            "Considerar renegociação do preço com o vendedor",
+            "Avaliar pedido de segunda avaliação noutro banco",
+            "Documentar toda a comunicação com o cliente"
+        ]
+    }
+
+
+async def notify_valuation_alert(process: dict):
+    """
+    Notifica os envolvidos quando há alerta de avaliação bancária.
+    
+    Args:
+        process: Dados do processo
+    """
+    from services.realtime_notifications import send_realtime_notification
+    
+    alert = check_valuation_alert(process)
+    
+    if not alert.get("active"):
+        return
+    
+    # Obter utilizadores envolvidos
+    user_ids = set()
+    if process.get("assigned_consultor_id"):
+        user_ids.add(process["assigned_consultor_id"])
+    if process.get("consultor_id"):
+        user_ids.add(process["consultor_id"])
+    if process.get("assigned_mediador_id"):
+        user_ids.add(process["assigned_mediador_id"])
+    if process.get("intermediario_id"):
+        user_ids.add(process["intermediario_id"])
+    
+    # Sempre notificar admin/CEO para alertas críticos
+    if alert.get("priority") in ["critical", "high"]:
+        staff = await db.users.find({
+            "role": {"$in": ["admin", "ceo", "diretor"]},
+            "is_active": True
+        }, {"_id": 0, "id": 1}).to_list(100)
+        for s in staff:
+            user_ids.add(s["id"])
+    
+    client_name = process.get("client_name", "Cliente")
+    
+    for user_id in user_ids:
+        # Notificação em tempo real
+        await send_realtime_notification(
+            user_id=user_id,
+            title=f"⚠️ Alerta de Avaliação - {client_name}",
+            message=alert["message"],
+            notification_type="valuation_alert",
+            link=f"/process/{process['id']}",
+            process_id=process["id"]
+        )
+        
+        # Email para alertas críticos
+        if alert.get("priority") in ["critical", "high"]:
+            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+            if user:
+                recommendations = "\n".join([f"• {r}" for r in alert.get("recommendations", [])])
+                await send_notification_with_preference_check(
+                    user["email"],
+                    f"⚠️ ALERTA CRÍTICO: Avaliação Bancária - {client_name}",
+                    f"Olá {user['name']},\n\n"
+                    f"{alert['message']}\n\n"
+                    f"{alert['details']}\n\n"
+                    f"Recomendações:\n{recommendations}\n\n"
+                    f"Cliente: {client_name}\n"
+                    f"Processo: {process['id']}\n\n"
+                    f"Por favor, tome acção imediata.",
+                    notification_type="deadline",
+                    is_urgent=True
+                )
 
 
 # ====================================================================
