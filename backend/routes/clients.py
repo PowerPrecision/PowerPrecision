@@ -77,12 +77,15 @@ async def list_clients(
             if key not in clients_map:
                 clients_map[key] = {
                     "id": proc.get("client_id") or proc.get("id"),
-                    "client_name": proc.get("client_name"),
-                    "client_email": proc.get("client_email"),
-                    "client_phone": proc.get("client_phone"),
+                    "nome": proc.get("client_name"),
+                    "contacto": {
+                        "email": proc.get("client_email"),
+                        "telefone": proc.get("client_phone")
+                    },
+                    "dados_pessoais": proc.get("personal_data", {}),
                     "nif": proc.get("personal_data", {}).get("nif"),
-                    "processes": [],
-                    "active_process_count": 0
+                    "process_ids": [],
+                    "active_processes_count": 0
                 }
             
             clients_map[key]["processes"].append({
