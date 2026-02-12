@@ -84,6 +84,7 @@ export default function ClientsPage() {
     try {
       const token = localStorage.getItem("token");
       const params = new URLSearchParams();
+      params.append("show_all", "true"); // Mostrar todos os clientes da empresa
       if (searchTerm) params.append("search", searchTerm);
 
       const response = await fetch(`${API_URL}/api/clients?${params}`, {
