@@ -394,6 +394,188 @@ const SystemConfigPage = () => {
 
   const sections = Object.keys(fields);
 
+  // Componente de Manutenção do Sistema
+  const MaintenanceSection = () => {
+    const [repairingIndexes, setRepairingIndexes] = useState(false);
+    const [cleaningJobs, setCleaningJobs] = useState(false);
+    const [cleaningLogs, setCleaningLogs] = useState(false);
+    const [indexStats, setIndexStats] = useState(null);
+
+    const repairIndexes = async () => {
+      setRepairingIndexes(true);
+      try {
+        const response = await fetch(`${API_URL}/api/admin/db/indexes/repair`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.success) {
+          const dropped = data.cleanup?.dropped?.length || 0;
+          toast.success(`Índices reparados! ${dropped > 0 ? `${dropped} índices antigos removidos.` : "Todos os índices OK."}`);
+          // Actualizar stats
+          fetchIndexStats();
+        } else {
+          toast.error("Erro ao reparar índices");
+        }
+      } catch (error) {
+        toast.error("Erro de conexão");
+      } finally {
+        setRepairingIndexes(false);
+      }
+    };
+
+    const fetchIndexStats = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/admin/db/indexes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.success) {
+          setIndexStats(data.indexes);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar stats:", error);
+      }
+    };
+
+    const cleanOldJobs = async () => {
+      setCleaningJobs(true);
+      try {
+        const response = await fetch(`${API_URL}/api/admin/cleanup/jobs?days=7`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast.success(`${data.deleted_count || 0} jobs antigos removidos`);
+        }
+      } catch (error) {
+        toast.error("Erro ao limpar jobs");
+      } finally {
+        setCleaningJobs(false);
+      }
+    };
+
+    const cleanOldLogs = async () => {
+      setCleaningLogs(true);
+      try {
+        const response = await fetch(`${API_URL}/api/admin/cleanup/error-logs?days=30`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (data.success) {
+          toast.success(`${data.deleted_count || 0} logs antigos removidos`);
+        }
+      } catch (error) {
+        toast.error("Erro ao limpar logs");
+      } finally {
+        setCleaningLogs(false);
+      }
+    };
+
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Wrench className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-lg">Manutenção do Sistema</CardTitle>
+              <CardDescription>Ferramentas de diagnóstico e reparação</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Reparação de Índices */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Índices da Base de Dados
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Remove índices antigos/incorretos e recria os correctos. Use se houver erros de "duplicate key".
+                </p>
+              </div>
+              <Button onClick={repairIndexes} disabled={repairingIndexes}>
+                {repairingIndexes ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Reparar Índices
+              </Button>
+            </div>
+            {indexStats && (
+              <div className="bg-muted/50 rounded p-3 text-sm">
+                <p className="font-medium mb-2">Estado actual:</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {Object.entries(indexStats).map(([coll, info]) => (
+                    <div key={coll} className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      <span>{coll}: {info.count || 0} índices</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={fetchIndexStats}>
+              <Eye className="h-4 w-4 mr-2" />
+              Ver Estado dos Índices
+            </Button>
+          </div>
+
+          {/* Limpeza de Jobs Antigos */}
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Limpar Jobs Antigos
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Remove jobs de importação concluídos há mais de 7 dias.
+                </p>
+              </div>
+              <Button variant="outline" onClick={cleanOldJobs} disabled={cleaningJobs}>
+                {cleaningJobs ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Limpar
+              </Button>
+            </div>
+          </div>
+
+          {/* Limpeza de Logs Antigos */}
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Limpar Logs de Erro Antigos
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Remove logs de erro com mais de 30 dias.
+                </p>
+              </div>
+              <Button variant="outline" onClick={cleanOldLogs} disabled={cleaningLogs}>
+                {cleaningLogs ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Limpar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
