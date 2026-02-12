@@ -14,7 +14,9 @@ import {
   Bell,
   Loader2,
   Copy,
-  Check
+  Check,
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -25,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -40,6 +43,7 @@ const TemplatesPanel = ({ processId, token }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState({ title: '', content: '' });
   const [copied, setCopied] = useState(false);
+  const [validationError, setValidationError] = useState(null);
 
   // Tipos de templates disponíveis
   const templates = [
@@ -73,12 +77,27 @@ const TemplatesPanel = ({ processId, token }) => {
   // Pré-visualizar template
   const handlePreview = async (template) => {
     setLoading(template.id);
+    setValidationError(null);
     try {
       const response = await fetch(`${API_URL}${template.endpoint}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (!response.ok) throw new Error('Erro ao carregar template');
+      if (!response.ok) {
+        // Verificar se é erro de validação (400)
+        if (response.status === 400) {
+          const errorData = await response.json();
+          const detail = errorData.detail;
+          setValidationError({
+            template: template.name,
+            message: detail?.message || "Dados insuficientes",
+            missingFields: detail?.missing_fields || [],
+            fullMessage: detail?.missing_fields_message || ""
+          });
+          return;
+        }
+        throw new Error('Erro ao carregar template');
+      }
       
       const data = await response.json();
       setPreviewContent({
@@ -97,12 +116,27 @@ const TemplatesPanel = ({ processId, token }) => {
   // Download do template
   const handleDownload = async (template) => {
     setLoading(`download-${template.id}`);
+    setValidationError(null);
     try {
       const response = await fetch(`${API_URL}${template.downloadEndpoint}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (!response.ok) throw new Error('Erro ao descarregar');
+      if (!response.ok) {
+        // Verificar se é erro de validação (400)
+        if (response.status === 400) {
+          const errorData = await response.json();
+          const detail = errorData.detail;
+          setValidationError({
+            template: template.name,
+            message: detail?.message || "Dados insuficientes",
+            missingFields: detail?.missing_fields || [],
+            fullMessage: detail?.missing_fields_message || ""
+          });
+          return;
+        }
+        throw new Error('Erro ao descarregar');
+      }
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -150,6 +184,32 @@ const TemplatesPanel = ({ processId, token }) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Alerta de Erro de Validação */}
+          {validationError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="flex items-center justify-between">
+                <span>Dados em Falta para "{validationError.template}"</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0"
+                  onClick={() => setValidationError(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">Para gerar esta minuta, preencha os seguintes campos na ficha do cliente:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {validationError.missingFields.map((field, idx) => (
+                    <li key={idx} className="text-sm font-medium">{field}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Botões de Webmail */}
           <div className="pb-3 border-b">
             <p className="text-sm text-muted-foreground mb-2">Abrir Webmail:</p>
