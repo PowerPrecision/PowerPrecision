@@ -596,13 +596,18 @@ async def import_properties_from_excel(
         linha = idx + 2  # +2 porque idx começa em 0 e Excel tem cabeçalho
         
         try:
-            # Helper function para obter valor da linha
+            # Helper function para obter valor da linha de forma segura
             def get_value(keys, default=''):
                 if isinstance(keys, str):
                     keys = [keys]
                 for key in keys:
-                    val = row.get(key)
-                    if val is not None and not pd.isna(val) and str(val).strip() != 'nan':
+                    if key not in row.index:
+                        continue
+                    val = row[key]
+                    # Se é uma Series (colunas duplicadas), pegar o primeiro valor
+                    if hasattr(val, 'iloc'):
+                        val = val.iloc[0] if len(val) > 0 else None
+                    if val is not None and not pd.isna(val) and str(val).strip() not in ('nan', '', 'NaN'):
                         return str(val).strip()
                 return default
             
