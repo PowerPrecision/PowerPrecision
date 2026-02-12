@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 DEPRECATED_INDEXES = {
     "properties": [
         "idx_internal_ref",  # Nome antigo incorreto - campo era internal_ref
+        "idx_location",  # Índice antigo com campos incorretos (distrito, concelho) - deve ser (address.district, address.municipality)
     ]
 }
 
