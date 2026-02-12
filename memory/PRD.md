@@ -11,9 +11,45 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 12 Fevereiro 2026 (Sessão 8)
+## Última Actualização - 12 Fevereiro 2026 (Sessão 9)
 
-### ✅ Parte 2 - Automações Avançadas (IMPLEMENTADAS)
+### ✅ Funcionalidades Implementadas (Sessão 9)
+
+#### 1. Normalização de Nomes de Ficheiros no Upload S3
+**Funcionalidade:** Sanitização automática de nomes de ficheiros durante o upload
+- Remove acentos e caracteres especiais
+- Formato: `{Categoria}_{Data}_{NomeOriginalNormalizado}.{ext}`
+- Limita tamanho a 50 caracteres
+- **Ficheiro**: `/app/backend/routes/documents.py`
+
+#### 2. Conversão Automática de Imagens para PDF
+**Funcionalidade:** Converte imagens (JPG, PNG, TIFF) para PDF automaticamente durante o upload
+- Usa biblioteca `img2pdf`
+- Retorna informação sobre se foi convertido: `converted_to_pdf: true/false`
+- **Ficheiros**:
+  - `/app/backend/services/document_processor.py` (já existia)
+  - `/app/backend/routes/documents.py` (integração)
+
+#### 3. Validação de Campos Obrigatórios para Minutas
+**Funcionalidade:** Antes de gerar uma minuta, verifica se os dados necessários estão preenchidos
+- Retorna erro 400 com lista de campos em falta se dados incompletos
+- Campos obrigatórios variam por tipo de template
+- **CPCV requer**: Nome do Comprador, NIF do Comprador, Morada do Imóvel, Artigo Matricial
+- **UI mostra alerta visual** com lista de campos a preencher
+- **Ficheiros**:
+  - `/app/backend/services/template_generator.py` - Função `validate_template_requirements()`
+  - `/app/backend/routes/templates.py` - Endpoints retornam 400 com detalhes
+  - `/app/frontend/src/components/TemplatesPanel.js` - Alerta visual com campos em falta
+
+#### 4. Botões Webmail no Painel de Emails
+**Funcionalidade:** Adicionados botões para abrir webmail directamente no painel de Histórico de Emails
+- Botões "Precision" e "Power" com ícone de link externo
+- Mesmos URLs do painel de Templates
+- **Ficheiro**: `/app/frontend/src/components/EmailHistoryPanel.js`
+
+---
+
+### ✅ Parte 2 - Automações Avançadas (IMPLEMENTADAS - Sessão 8)
 
 #### 5. Templates e Minutas com Download
 **Funcionalidades:**
