@@ -6,6 +6,7 @@
 
 # Web Framework
 fastapi>=0.115.0
+starlette>=0.40.0  # Security: CVE-2024-47874, CVE-2025-27516
 uvicorn>=0.25.0
 python-multipart>=0.0.20
 python-dotenv>=1.0.0
