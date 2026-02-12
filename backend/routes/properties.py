@@ -658,228 +658,228 @@ async def _process_excel_import(job_id: str, df, filename: str, user: dict):
                     return default
                 
                 # Helper para converter preço (remove € e espaços, trata formato europeu)
-            def parse_price(price_str):
-                if price_str is None:
-                    return None
-                # Se é uma Series, pegar o primeiro valor
-                if hasattr(price_str, 'iloc'):
-                    price_str = price_str.iloc[0] if len(price_str) > 0 else None
-                if price_str is None or pd.isna(price_str):
-                    return None
-                price_str = str(price_str).replace('€', '').strip()
-                # Se tem "/" provavelmente é venda/arrendamento, pegar o primeiro
-                if '/' in price_str:
-                    price_str = price_str.split('/')[0].strip()
-                # Formato europeu: 700.000 = 700000, 700,00 = 700.00
-                # Se tem ponto e vírgula, é formato europeu
-                if '.' in price_str and ',' in price_str:
-                    # 700.000,00 -> 700000.00
-                    price_str = price_str.replace('.', '').replace(',', '.')
-                elif '.' in price_str:
-                    # Pode ser 700.000 (europeu) ou 700.00 (americano)
-                    # Se tem mais de 2 dígitos após o ponto, é europeu (separador de milhares)
-                    parts = price_str.split('.')
-                    if len(parts[-1]) == 3 and len(parts) > 1:
-                        # 700.000 -> 700000
-                        price_str = price_str.replace('.', '')
-                elif ',' in price_str:
-                    # 700,00 -> 700.00
-                    price_str = price_str.replace(',', '.')
-                try:
-                    return float(price_str)
-                except ValueError:
-                    return None
-            
-            # Helper para extrair quartos de tipologia (T0, T1, T2, etc.)
-            def parse_tipologia(tipologia):
-                if pd.isna(tipologia):
-                    return None
-                tip = str(tipologia).upper().strip()
-                if tip.startswith('T') and len(tip) >= 2:
+                def parse_price(price_str):
+                    if price_str is None:
+                        return None
+                    # Se é uma Series, pegar o primeiro valor
+                    if hasattr(price_str, 'iloc'):
+                        price_str = price_str.iloc[0] if len(price_str) > 0 else None
+                    if price_str is None or pd.isna(price_str):
+                        return None
+                    price_str = str(price_str).replace('€', '').strip()
+                    # Se tem "/" provavelmente é venda/arrendamento, pegar o primeiro
+                    if '/' in price_str:
+                        price_str = price_str.split('/')[0].strip()
+                    # Formato europeu: 700.000 = 700000, 700,00 = 700.00
+                    # Se tem ponto e vírgula, é formato europeu
+                    if '.' in price_str and ',' in price_str:
+                        # 700.000,00 -> 700000.00
+                        price_str = price_str.replace('.', '').replace(',', '.')
+                    elif '.' in price_str:
+                        # Pode ser 700.000 (europeu) ou 700.00 (americano)
+                        # Se tem mais de 2 dígitos após o ponto, é europeu (separador de milhares)
+                        parts = price_str.split('.')
+                        if len(parts[-1]) == 3 and len(parts) > 1:
+                            # 700.000 -> 700000
+                            price_str = price_str.replace('.', '')
+                    elif ',' in price_str:
+                        # 700,00 -> 700.00
+                        price_str = price_str.replace(',', '.')
                     try:
-                        return int(tip[1])
+                        return float(price_str)
                     except ValueError:
-                        pass
-                return None
-            
-            # Campos obrigatórios - com múltiplas fontes
-            titulo = get_value(['titulo', 'título'])
-            if not titulo:
-                results["erros"].append({"linha": linha, "erro": "Título em falta"})
-                continue
-            
-            preco = parse_price(row.get('preco', row.get('preço')))
-            if preco is None:
-                results["erros"].append({"linha": linha, "erro": "Preço em falta ou inválido"})
-                continue
-            
-            distrito = get_value(['distrito'])
-            if not distrito:
-                results["erros"].append({"linha": linha, "erro": "Distrito em falta"})
-                continue
-            
-            concelho = get_value(['concelho'])
-            if not concelho:
-                results["erros"].append({"linha": linha, "erro": "Concelho em falta"})
-                continue
-            
-            # Proprietário - pode estar em várias colunas
-            proprietario_nome = get_value(['proprietario_nome', 'proprietário', 'proprietário_nome'])
-            if not proprietario_nome:
-                # Tentar usar agência como fallback
-                proprietario_nome = get_value(['agencia', 'agencia_responsável'], 'Não informado')
-            
-            # Campos opcionais
-            tipo_raw = get_value(['tipo'], 'apartamento').lower()
-            tipologia = get_value(['quartos_raw', 'tipologia'])
-            
-            # Extrair quartos da tipologia se disponível
-            quartos = parse_tipologia(tipologia)
-            
-            # Mapear tipo de imóvel
-            if tipologia:
-                # Se tem tipologia, usar título para determinar tipo
-                if 'moradia' in titulo.lower() or 'moradia' in tipo_raw:
-                    tipo = 'moradia'
-                elif 'armazém' in titulo.lower() or 'armazem' in tipo_raw:
-                    tipo = 'armazem'
-                elif 'loja' in titulo.lower():
-                    tipo = 'loja'
+                        return None
+                
+                # Helper para extrair quartos de tipologia (T0, T1, T2, etc.)
+                def parse_tipologia(tipologia):
+                    if pd.isna(tipologia):
+                        return None
+                    tip = str(tipologia).upper().strip()
+                    if tip.startswith('T') and len(tip) >= 2:
+                        try:
+                            return int(tip[1])
+                        except ValueError:
+                            pass
+                    return None
+                
+                # Campos obrigatórios - com múltiplas fontes
+                titulo = get_value(['titulo', 'título'])
+                if not titulo:
+                    results["erros"].append({"linha": linha, "erro": "Título em falta"})
+                    continue
+                
+                preco = parse_price(row.get('preco', row.get('preço')))
+                if preco is None:
+                    results["erros"].append({"linha": linha, "erro": "Preço em falta ou inválido"})
+                    continue
+                
+                distrito = get_value(['distrito'])
+                if not distrito:
+                    results["erros"].append({"linha": linha, "erro": "Distrito em falta"})
+                    continue
+                
+                concelho = get_value(['concelho'])
+                if not concelho:
+                    results["erros"].append({"linha": linha, "erro": "Concelho em falta"})
+                    continue
+                
+                # Proprietário - pode estar em várias colunas
+                proprietario_nome = get_value(['proprietario_nome', 'proprietário', 'proprietário_nome'])
+                if not proprietario_nome:
+                    # Tentar usar agência como fallback
+                    proprietario_nome = get_value(['agencia', 'agencia_responsável'], 'Não informado')
+                
+                # Campos opcionais
+                tipo_raw = get_value(['tipo'], 'apartamento').lower()
+                tipologia = get_value(['quartos_raw', 'tipologia'])
+                
+                # Extrair quartos da tipologia se disponível
+                quartos = parse_tipologia(tipologia)
+                
+                # Mapear tipo de imóvel
+                if tipologia:
+                    # Se tem tipologia, usar título para determinar tipo
+                    if 'moradia' in titulo.lower() or 'moradia' in tipo_raw:
+                        tipo = 'moradia'
+                    elif 'armazém' in titulo.lower() or 'armazem' in tipo_raw:
+                        tipo = 'armazem'
+                    elif 'loja' in titulo.lower():
+                        tipo = 'loja'
+                    else:
+                        tipo = 'apartamento'
                 else:
-                    tipo = 'apartamento'
-            else:
-                tipo = tipo_map.get(tipo_raw, 'apartamento')
-            
-            estado_raw = get_value(['estado'], 'bom').lower()
-            estado = estado_map.get(estado_raw, 'bom')
-            # Mapear estados adicionais
-            if 'em construção' in estado_raw or 'em construcao' in estado_raw:
-                estado = 'em_construcao'
-            elif 'recupera' in estado_raw:
-                estado = 'para_recuperar'
-            elif 'execução' in estado_raw:
-                estado = 'em_construcao'
-            
-            # Criar documento
-            internal_ref = await get_next_reference()
-            
-            # Extrair áreas com helper
-            def parse_float(val):
-                if pd.isna(val):
-                    return None
-                try:
-                    return float(str(val).replace(',', '.').strip())
-                except (ValueError, TypeError):
-                    return None
-            
-            def parse_int(val):
-                if pd.isna(val):
-                    return None
-                try:
-                    return int(float(str(val).replace(',', '.').strip()))
-                except (ValueError, TypeError):
-                    return None
-            
-            property_doc = {
-                "id": str(uuid.uuid4()),
-                "internal_reference": internal_ref,
-                "external_reference": get_value(['referencia_externa']) or None,
-                "property_type": tipo,
-                "title": titulo,
-                "description": get_value(['descricao']) or None,
-                "address": {
-                    "street": get_value(['morada', 'rua']) or None,
-                    "postal_code": get_value(['codigo_postal']) or None,
-                    "locality": get_value(['localidade', 'freguesia']) or None,
-                    "municipality": concelho,
-                    "district": distrito
-                },
-                "features": {
-                    "bedrooms": quartos or parse_int(row.get('quartos')),
-                    "bathrooms": parse_int(row.get('casas_banho')),
-                    "useful_area": parse_float(row.get('area_util')),
-                    "gross_area": parse_float(row.get('area_bruta')),
-                    "land_area": parse_float(row.get('area_terreno')),
-                    "construction_year": parse_int(row.get('ano_construcao')),
-                    "energy_certificate": get_value(['certificado_energetico']).upper() if get_value(['certificado_energetico']) else None,
-                    "extra_features": []
-                },
-                "condition": estado,
-                "financials": {
-                    "asking_price": preco
-                },
-                "owner": {
-                    "name": proprietario_nome,
-                    "phone": get_value(['proprietario_telefone']) or None,
-                    "email": get_value(['proprietario_email']) or None
-                },
-                "agency": get_value(['agencia']) or None,
-                "photos": [],
-                "documents": [],
-                "status": "em_analise",
-                "notes": get_value(['notas', 'observações']) or None,
-                "history": [{
-                    "timestamp": now,
-                    "event": "Importado via Excel",
-                    "user": user.get("email")
-                }],
-                "created_at": now,
-                "updated_at": now,
-                "created_by": user.get("email"),
-                "view_count": 0,
-                "inquiry_count": 0,
-                "visit_count": 0,
-                "interested_clients": []
-            }
-            
-            await db.properties.insert_one(property_doc)
-            results["importados"] += 1
-            results["ids_criados"].append(property_doc["id"])
-            
-            logger.info(f"Imóvel importado: {internal_ref} - {titulo}")
-            
-        except Exception as e:
-            logger.error(f"Erro na linha {linha}: {e}")
-            results["erros"].append({"linha": linha, "erro": str(e)})
-    
-    # Log de erros para análise usando o logger centralizado
-    if results["erros"]:
-        from services.system_error_logger import system_error_logger
-        for err in results["erros"]:
+                    tipo = tipo_map.get(tipo_raw, 'apartamento')
+                
+                estado_raw = get_value(['estado'], 'bom').lower()
+                estado = estado_map.get(estado_raw, 'bom')
+                # Mapear estados adicionais
+                if 'em construção' in estado_raw or 'em construcao' in estado_raw:
+                    estado = 'em_construcao'
+                elif 'recupera' in estado_raw:
+                    estado = 'para_recuperar'
+                elif 'execução' in estado_raw:
+                    estado = 'em_construcao'
+                
+                # Criar documento
+                internal_ref = await get_next_reference()
+                
+                # Extrair áreas com helper
+                def parse_float(val):
+                    if pd.isna(val):
+                        return None
+                    try:
+                        return float(str(val).replace(',', '.').strip())
+                    except (ValueError, TypeError):
+                        return None
+                
+                def parse_int(val):
+                    if pd.isna(val):
+                        return None
+                    try:
+                        return int(float(str(val).replace(',', '.').strip()))
+                    except (ValueError, TypeError):
+                        return None
+                
+                property_doc = {
+                    "id": str(uuid.uuid4()),
+                    "internal_reference": internal_ref,
+                    "external_reference": get_value(['referencia_externa']) or None,
+                    "property_type": tipo,
+                    "title": titulo,
+                    "description": get_value(['descricao']) or None,
+                    "address": {
+                        "street": get_value(['morada', 'rua']) or None,
+                        "postal_code": get_value(['codigo_postal']) or None,
+                        "locality": get_value(['localidade', 'freguesia']) or None,
+                        "municipality": concelho,
+                        "district": distrito
+                    },
+                    "features": {
+                        "bedrooms": quartos or parse_int(row.get('quartos')),
+                        "bathrooms": parse_int(row.get('casas_banho')),
+                        "useful_area": parse_float(row.get('area_util')),
+                        "gross_area": parse_float(row.get('area_bruta')),
+                        "land_area": parse_float(row.get('area_terreno')),
+                        "construction_year": parse_int(row.get('ano_construcao')),
+                        "energy_certificate": get_value(['certificado_energetico']).upper() if get_value(['certificado_energetico']) else None,
+                        "extra_features": []
+                    },
+                    "condition": estado,
+                    "financials": {
+                        "asking_price": preco
+                    },
+                    "owner": {
+                        "name": proprietario_nome,
+                        "phone": get_value(['proprietario_telefone']) or None,
+                        "email": get_value(['proprietario_email']) or None
+                    },
+                    "agency": get_value(['agencia']) or None,
+                    "photos": [],
+                    "documents": [],
+                    "status": "em_analise",
+                    "notes": get_value(['notas', 'observações']) or None,
+                    "history": [{
+                        "timestamp": now,
+                        "event": "Importado via Excel",
+                        "user": user.get("email")
+                    }],
+                    "created_at": now,
+                    "updated_at": now,
+                    "created_by": user.get("email"),
+                    "view_count": 0,
+                    "inquiry_count": 0,
+                    "visit_count": 0,
+                    "interested_clients": []
+                }
+                
+                await db.properties.insert_one(property_doc)
+                results["importados"] += 1
+                results["ids_criados"].append(property_doc["id"])
+                
+                logger.info(f"Imóvel importado: {internal_ref} - {titulo}")
+                
+            except Exception as e:
+                logger.error(f"Erro na linha {linha}: {e}")
+                results["erros"].append({"linha": linha, "erro": str(e)})
+        
+        # Log de erros para análise usando o logger centralizado
+        if results["erros"]:
+            from services.system_error_logger import system_error_logger
+            for err in results["erros"]:
+                await system_error_logger.log_error(
+                    error_type="excel_import_error",
+                    message=f"Erro ao importar linha {err['linha']}: {err['erro']}",
+                    component="properties",
+                    details={
+                        "linha": err["linha"],
+                        "erro": err["erro"],
+                        "ficheiro": filename
+                    },
+                    severity="warning",
+                    user_id=user.get("id")
+                )
+        
+        # Log de sucesso
+        if results["importados"] > 0:
+            from services.system_error_logger import system_error_logger
             await system_error_logger.log_error(
-                error_type="excel_import_error",
-                message=f"Erro ao importar linha {err['linha']}: {err['erro']}",
+                error_type="excel_import_success",
+                message=f"Importação Excel concluída: {results['importados']}/{results['total']} imóveis",
                 component="properties",
                 details={
-                    "linha": err["linha"],
-                    "erro": err["erro"],
-                    "ficheiro": filename
+                    "total": results["total"],
+                    "importados": results["importados"],
+                    "erros": len(results["erros"]),
+                    "ficheiro": filename,
+                    "ids": results["ids_criados"]
                 },
-                severity="warning",
+                severity="info",
                 user_id=user.get("id")
             )
-    
-    # Log de sucesso
-    if results["importados"] > 0:
-        from services.system_error_logger import system_error_logger
-        await system_error_logger.log_error(
-            error_type="excel_import_success",
-            message=f"Importação Excel concluída: {results['importados']}/{results['total']} imóveis",
-            component="properties",
-            details={
-                "total": results["total"],
-                "importados": results["importados"],
-                "erros": len(results["erros"]),
-                "ficheiro": filename,
-                "ids": results["ids_criados"]
-            },
-            severity="info",
-            user_id=user.get("id")
-        )
-    
-    # Finalizar job com resultado
-    await background_jobs.set_result(job_id, results)
-    logger.info(f"Job {job_id} concluído: {results['importados']}/{results['total']} importados")
+        
+        # Finalizar job com resultado
+        await background_jobs.set_result(job_id, results)
+        logger.info(f"Job {job_id} concluído: {results['importados']}/{results['total']} importados")
     
     except Exception as e:
         logger.error(f"Job {job_id} falhou: {e}")
