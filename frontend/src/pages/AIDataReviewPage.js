@@ -22,6 +22,16 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { Progress } from "../components/ui/progress";
+import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   AlertCircle,
   CheckCircle2,
@@ -44,7 +54,7 @@ import {
   Target,
   Info,
   Mail,
-  Send,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "../services/api";
