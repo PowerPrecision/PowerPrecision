@@ -16,6 +16,10 @@ from services.template_generator import (
     get_template_for_process,
     WEBMAIL_URLS
 )
+from services.document_checklist import (
+    verificar_documentos_processo,
+    DOCUMENTOS_CREDITO_HABITACAO
+)
 
 router = APIRouter(prefix="/templates", tags=["Templates"])
 
