@@ -47,6 +47,15 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - Mesmos URLs do painel de Templates
 - **Ficheiro**: `/app/frontend/src/components/EmailHistoryPanel.js`
 
+#### 5. Refatoração de Processos (Parte 1)
+**Objectivo:** Separar lógica de negócio dos endpoints seguindo Single Responsibility Principle
+- **Novos serviços criados:**
+  - `/app/backend/services/process_service.py` - Lógica principal (validação, criação, queries)
+  - `/app/backend/services/process_assignment.py` - Atribuições de consultores/mediadores
+  - `/app/backend/services/process_kanban.py` - Lógica específica do Kanban
+- **Resultado:** `routes/processes.py` reduzido de 1035 para 934 linhas (~10%)
+- **Benefícios:** Código mais testável, manutenção simplificada, reutilização de lógica
+
 ---
 
 ### ✅ Parte 2 - Automações Avançadas (IMPLEMENTADAS - Sessão 8)
