@@ -80,6 +80,8 @@ Jinja2>=3.1.0
 phonenumbers>=8.13.0
 thefuzz>=0.22.0
 filelock>=3.20.3  # Security: CVE-2025-3372
+tenacity>=8.2.0
+fake-useragent>=1.4.0
 
 # Websockets
 websockets>=12.0
