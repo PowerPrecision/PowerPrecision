@@ -19,7 +19,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 
 from database import db
