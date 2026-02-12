@@ -135,22 +135,42 @@ async def get_my_deadlines(user: dict = Depends(get_current_user)):
     - NÃO inclui prazos onde o utilizador é apenas participante mas não tem acesso ao processo
     - Inclui apenas prazos dos processos onde o utilizador está atribuído
     """
+    # Status de processos finalizados (não mostrar alertas/prazos)
+    FINISHED_STATUS = ["concluido", "desistido", "cancelado", "arquivado"]
+    
     if user["role"] in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
-        # Admin, CEO e Administrativo vêem todos os prazos
-        deadlines = await db.deadlines.find({}, {"_id": 0}).to_list(1000)
+        # Admin, CEO e Administrativo vêem todos os prazos (excepto de processos finalizados)
+        # Buscar IDs de processos finalizados para excluir
+        finished_processes = await db.processes.find(
+            {"status": {"$in": FINISHED_STATUS}}, 
+            {"id": 1, "_id": 0}
+        ).to_list(10000)
+        finished_ids = [p["id"] for p in finished_processes]
+        
+        query = {}
+        if finished_ids:
+            query["process_id"] = {"$nin": finished_ids}
+        
+        deadlines = await db.deadlines.find(query, {"_id": 0}).to_list(1000)
     elif user["role"] == UserRole.CLIENTE:
-        # Clientes vêem eventos dos seus processos
-        processes = await db.processes.find({"client_id": user["id"]}, {"id": 1, "_id": 0}).to_list(1000)
+        # Clientes vêem eventos dos seus processos (excepto finalizados)
+        processes = await db.processes.find({
+            "client_id": user["id"],
+            "status": {"$nin": FINISHED_STATUS}
+        }, {"id": 1, "_id": 0}).to_list(1000)
         process_ids = [p["id"] for p in processes]
         deadlines = await db.deadlines.find({"process_id": {"$in": process_ids}}, {"_id": 0}).to_list(1000)
     else:
         # Consultores/Intermediários/Diretores vêem apenas prazos dos processos que lhes estão atribuídos
         my_processes = await db.processes.find({
-            "$or": [
-                {"assigned_consultor_id": user["id"]},
-                {"consultor_id": user["id"]},
-                {"assigned_mediador_id": user["id"]},
-                {"intermediario_id": user["id"]}
+            "$and": [
+                {"status": {"$nin": FINISHED_STATUS}},
+                {"$or": [
+                    {"assigned_consultor_id": user["id"]},
+                    {"consultor_id": user["id"]},
+                    {"assigned_mediador_id": user["id"]},
+                    {"intermediario_id": user["id"]}
+                ]}
             ]
         }, {"id": 1, "_id": 0}).to_list(1000)
         my_process_ids = [p["id"] for p in my_processes]
