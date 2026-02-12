@@ -129,18 +129,25 @@ const TemplatesPanel = ({ processId, token }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      // Clonar a resposta para erros de validação
+      const responseClone = response.clone();
+      
       if (!response.ok) {
         // Verificar se é erro de validação (400)
         if (response.status === 400) {
-          const errorData = await response.json();
-          const detail = errorData.detail;
-          setValidationError({
-            template: template.name,
-            message: detail?.message || "Dados insuficientes",
-            missingFields: detail?.missing_fields || [],
-            fullMessage: detail?.missing_fields_message || ""
-          });
-          return;
+          try {
+            const errorData = await responseClone.json();
+            const detail = errorData.detail;
+            setValidationError({
+              template: template.name,
+              message: detail?.message || "Dados insuficientes",
+              missingFields: detail?.missing_fields || [],
+              fullMessage: detail?.missing_fields_message || ""
+            });
+            return;
+          } catch (parseError) {
+            console.error("Erro ao processar resposta de validação:", parseError);
+          }
         }
         throw new Error('Erro ao descarregar');
       }
