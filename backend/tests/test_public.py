@@ -69,8 +69,9 @@ async def test_public_registration_with_personal_data(client):
             "nacionalidade": "Portuguesa"
         },
         "financial_data": {
-            "monthly_income": 2500.00,
-            "employment_type": "Conta de outrem"
+            "renda_habitacao_atual": 500.00,
+            "capital_proprio": 25000.00,
+            "efetivo": "Sim"
         }
     })
     assert response.status_code == 200
