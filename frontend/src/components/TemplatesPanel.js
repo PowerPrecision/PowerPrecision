@@ -4,6 +4,7 @@
  * e aceder aos webmails para envio de emails
  */
 import React, { useState } from 'react';
+import axios from 'axios';
 import { 
   FileText, 
   Download, 
