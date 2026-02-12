@@ -283,7 +283,6 @@ def generate_document_request_template(process: Dict[str, Any], missing_docs: li
         Texto formatado do email
     """
     client_name = process.get("client_name", "[NOME DO CLIENTE]")
-    client_email = process.get("client_email", "")
     
     docs_list = "\n".join([f"   • {doc}" for doc in missing_docs]) if missing_docs else "   • [DOCUMENTOS]"
     
