@@ -992,7 +992,16 @@ Conteúdo:
     # ================================================================
     
     def _parse_idealista(self, soup: BeautifulSoup, raw_html: str = "") -> Dict[str, Any]:
-        """Parser para Idealista.pt"""
+        """
+        Parser melhorado para Idealista.pt
+        
+        Extrai:
+        - Dados básicos: título, preço, localização, tipologia, área
+        - Referência do anúncio
+        - Link da agência (para deep link)
+        - Nome do consultor/agente
+        - Certificado energético
+        """
         data = {}
         
         # Título
@@ -1013,6 +1022,85 @@ Conteúdo:
         location = soup.find('span', class_='main-info__title-minor')
         if location:
             data["localizacao"] = location.get_text(strip=True)
+        
+        # === NOVO: Referência do anúncio ===
+        # Procurar em múltiplos locais possíveis
+        ref_patterns = [
+            r'Ref[.:]?\s*(\w+)',
+            r'Referência[.:]?\s*(\w+)',
+            r'reference[.:]?\s*(\w+)',
+        ]
+        
+        # Procurar na classe .reference
+        ref_elem = soup.find(class_='reference')
+        if ref_elem:
+            data["referencia"] = ref_elem.get_text(strip=True)
+        else:
+            # Procurar em atributos data-*
+            ref_attr = soup.find(attrs={'data-reference': True})
+            if ref_attr:
+                data["referencia"] = ref_attr.get('data-reference')
+            else:
+                # Procurar no texto via regex
+                text_content = soup.get_text()
+                for pattern in ref_patterns:
+                    match = re.search(pattern, text_content, re.IGNORECASE)
+                    if match:
+                        data["referencia"] = match.group(1)
+                        break
+        
+        # === NOVO: Link da agência ===
+        # Procurar botões/links para o site da agência
+        agency_selectors = [
+            'a[data-link="agency"]',
+            'a.agency-link',
+            '.advertiser-info a[href*="remax"]',
+            '.advertiser-info a[href*="era"]',
+            '.advertiser-info a[href*="century21"]',
+            '.advertiser-info a[href*="kwportugal"]',
+            '.advertiser-info a[href*="zome"]',
+            '.advertiser-info a[href*="iad"]',
+            'a[href*="agencia"]',
+        ]
+        
+        for selector in agency_selectors:
+            try:
+                agency_link = soup.select_one(selector)
+                if agency_link and agency_link.get('href'):
+                    href = agency_link.get('href')
+                    if href.startswith('http'):
+                        data["agency_link"] = href
+                        break
+            except Exception:
+                continue
+        
+        # Também procurar texto "Ver no site da agência"
+        agency_buttons = soup.find_all('a', string=re.compile(r'(site da agência|agência|agency)', re.IGNORECASE))
+        for btn in agency_buttons:
+            href = btn.get('href', '')
+            if href.startswith('http') and 'agency_link' not in data:
+                data["agency_link"] = href
+                break
+        
+        # === NOVO: Nome do consultor/agente ===
+        agent_selectors = [
+            '.professional-name',
+            '.advertiser-data-name',
+            '.agent-name',
+            '.contact-name',
+            '[itemprop="name"]',
+        ]
+        
+        for selector in agent_selectors:
+            try:
+                agent_elem = soup.select_one(selector)
+                if agent_elem:
+                    agent_name = agent_elem.get_text(strip=True)
+                    if agent_name and self._is_valid_name(agent_name):
+                        data["agente_nome"] = agent_name
+                        break
+            except Exception:
+                continue
         
         # Características
         features = soup.find_all('li', class_='info-features-item')
@@ -1039,6 +1127,33 @@ Conteúdo:
         desc = soup.find('div', class_='comment')
         if desc:
             data["descricao"] = desc.get_text(strip=True)[:500]
+        
+        # === NOVO: Certificado energético ===
+        energy_patterns = [
+            r'[Cc]ertificado\s+[Ee]nerg[ée]tico[:\s]+([A-Ga-g][+]?)',
+            r'[Cc]lasse\s+[Ee]nerg[ée]tica[:\s]+([A-Ga-g][+]?)',
+            r'[Ee]nergy\s+[Cc]ertificate[:\s]+([A-Ga-g][+]?)',
+            r'\b([A-G])\s*[-–]\s*[Cc]ertificado',
+        ]
+        
+        # Procurar na secção de características
+        details_section = soup.find('div', class_='details-property')
+        if details_section:
+            details_text = details_section.get_text()
+            for pattern in energy_patterns:
+                match = re.search(pattern, details_text)
+                if match:
+                    data["certificado_energetico"] = match.group(1).upper()
+                    break
+        
+        # Fallback: procurar em todo o documento
+        if 'certificado_energetico' not in data:
+            full_text = soup.get_text()
+            for pattern in energy_patterns:
+                match = re.search(pattern, full_text)
+                if match:
+                    data["certificado_energetico"] = match.group(1).upper()
+                    break
         
         return data
     
