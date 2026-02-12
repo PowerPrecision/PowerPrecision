@@ -17,7 +17,8 @@ from services.template_generator import (
     WEBMAIL_URLS
 )
 from services.document_checklist import (
-    verificar_documentos_processo,
+    generate_checklist,
+    get_documentos_em_falta,
     DOCUMENTOS_CREDITO_HABITACAO
 )
 
