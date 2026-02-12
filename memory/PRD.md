@@ -55,6 +55,16 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Ficheiros Modificados**: `/app/frontend/src/components/BulkDocumentUpload.js`
 - **Status**: ✅ IMPLEMENTADO
 
+#### 10. UI Revisão de Dados IA - Completa
+- **Página**: `/revisao-dados-ia`
+- **Funcionalidades**:
+  - Tab "Revisão de Dados": Lista processos com dados pendentes, permite aplicar ou descartar
+  - Tab "Relatório Semanal": Estatísticas de análise IA com gráficos
+  - Cards de resumo: Processos pendentes, itens para revisão, tipos de documentos
+  - Dialog de detalhes com comparação lado-a-lado
+  - Configuração de frequência e destinatários do relatório
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
 ---
 
 ### ✅ Funcionalidades Implementadas (Sessão 12 - Parte 1)
