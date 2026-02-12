@@ -13,6 +13,45 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização - 12 Fevereiro 2026 (Sessão 8)
 
+### ✅ Parte 2 - Automações Avançadas (IMPLEMENTADAS)
+
+#### 5. Templates e Minutas com Download
+**Funcionalidades:**
+- Geração automática de CPCV (Contrato Promessa Compra e Venda)
+- Geração de email de Apelação de Avaliação ("Botão de Pânico")
+- Geração de Lembrete de Escritura
+- Geração de Pedido de Documentos
+
+**Fluxo de Utilização:**
+1. Utilizador clica no botão de pré-visualização ou download
+2. Template é gerado com dados do processo preenchidos
+3. Utilizador pode copiar o texto ou descarregar como ficheiro .txt
+4. Utilizador abre o webmail (Precision ou Power)
+5. Cola o texto no corpo do email
+
+**Ficheiros Criados:**
+- `/app/backend/services/template_generator.py` - Gerador de templates
+- `/app/backend/routes/templates.py` - Endpoints da API
+- `/app/frontend/src/components/TemplatesPanel.js` - Componente React
+
+**API Endpoints:**
+- `GET /api/templates/webmail-urls` - URLs dos webmails
+- `GET /api/templates/document-types` - Lista de tipos de documentos
+- `GET /api/templates/process/{id}/cpcv` - Template CPCV
+- `GET /api/templates/process/{id}/cpcv/download` - Download CPCV
+- `GET /api/templates/process/{id}/valuation-appeal` - Apelação de Avaliação
+- `GET /api/templates/process/{id}/deed-reminder` - Lembrete de Escritura
+- `GET /api/templates/process/{id}/document-checklist` - Checklist de documentos
+
+#### 6. Webmail Integration
+**URLs Configurados:**
+- Precision: `http://webmail.precisioncredito.pt/`
+- Power: `https://webmail2.hcpro.pt/Mondo/lang/sys/login.aspx`
+
+**Nota:** A aplicação NÃO envia emails automaticamente. O utilizador faz download/copia a minuta e cola manualmente no webmail.
+
+---
+
 ### ✅ Optimizações de Segurança e Performance (IMPLEMENTADAS)
 
 #### Parte 3 - Optimizações Técnicas
