@@ -467,7 +467,9 @@ async def import_properties_from_excel(
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO, UserRole.DIRETOR]))
 ):
     """
-    Importar imóveis a partir de ficheiro Excel.
+    Importar imóveis a partir de ficheiro Excel (processamento em background).
+    
+    Retorna imediatamente com um job_id para acompanhar o progresso.
     
     Colunas esperadas (case-insensitive):
     - titulo (obrigatório): Título do imóvel
@@ -505,6 +507,38 @@ async def import_properties_from_excel(
     except Exception as e:
         logger.error(f"Erro ao ler ficheiro Excel: {e}")
         raise HTTPException(status_code=400, detail=f"Erro ao ler ficheiro: {str(e)}")
+    
+    # Criar job de background
+    job_id = await background_jobs.create_job(
+        job_type=JobType.EXCEL_IMPORT,
+        user_id=user.get("id"),
+        user_email=user.get("email"),
+        metadata={
+            "filename": file.filename,
+            "total_rows": len(df)
+        }
+    )
+    
+    # Iniciar processamento em background
+    background_jobs.run_in_background(
+        job_id,
+        _process_excel_import(job_id, df, file.filename, user)
+    )
+    
+    return {
+        "job_id": job_id,
+        "message": "Importação iniciada em background",
+        "total_rows": len(df)
+    }
+
+
+async def _process_excel_import(job_id: str, df, filename: str, user: dict):
+    """
+    Processa a importação Excel em background.
+    """
+    import pandas as pd
+    
+    await background_jobs.set_status(job_id, JobStatus.PROCESSING)
     
     # Normalizar nomes das colunas (lowercase, sem espaços)
     df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
