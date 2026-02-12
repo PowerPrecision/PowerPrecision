@@ -10,6 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../components/ui/collapsible";
+import {
   LayoutDashboard,
   FileText,
   Users,
@@ -32,6 +37,10 @@ import {
   Database,
   FileArchive,
   Brain,
+  ChevronDown,
+  ChevronRight,
+  Bell,
+  Wrench,
 } from "lucide-react";
 import { useState } from "react";
 import NotificationsDropdown from "../components/NotificationsDropdown";
