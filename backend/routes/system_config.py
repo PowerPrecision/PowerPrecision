@@ -400,36 +400,60 @@ async def test_service_connection(
     
     elif service == "storage":
         storage = config.storage
-        if storage.provider == "none":
+        # Converter para string para comparação segura (enum ou string)
+        provider_value = str(storage.provider.value) if hasattr(storage.provider, 'value') else str(storage.provider)
+        
+        if provider_value == "none":
             return {"success": False, "message": "Armazenamento não configurado"}
-        elif storage.provider == "aws_s3":
+        elif provider_value == "aws_s3":
             # Testar ligação AWS S3
             try:
                 from services.s3_storage import s3_service
                 if s3_service.is_configured():
-                    # Tentar listar o bucket para verificar acesso
+                    # Tentar verificar acesso ao bucket
                     try:
                         s3_service.s3_client.head_bucket(Bucket=s3_service.bucket_name)
                         return {"success": True, "message": f"AWS S3 conectado com sucesso! Bucket: {s3_service.bucket_name}"}
+                    except s3_service.s3_client.exceptions.ClientError as e:
+                        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                        if error_code == '403':
+                            return {"success": False, "message": "Acesso negado ao bucket S3 - verifique as permissões"}
+                        elif error_code == '404':
+                            return {"success": False, "message": f"Bucket '{s3_service.bucket_name}' não encontrado"}
+                        else:
+                            return {"success": False, "message": f"Erro ao aceder bucket: {str(e)}"}
                     except Exception as e:
                         return {"success": False, "message": f"Erro ao aceder bucket: {str(e)}"}
                 else:
-                    return {"success": False, "message": "AWS S3 não está configurado no ambiente"}
+                    # S3 não configurado via variáveis de ambiente, tentar com config da DB
+                    if storage.aws_access_key_id and storage.aws_secret_access_key and storage.aws_bucket_name:
+                        return {"success": True, "message": f"AWS S3 configurado via UI (Bucket: {storage.aws_bucket_name}). Configure as variáveis AWS no ambiente para activar."}
+                    else:
+                        return {"success": False, "message": "AWS S3 não está configurado. Preencha as credenciais ou configure as variáveis de ambiente."}
+            except ImportError:
+                return {"success": False, "message": "Módulo boto3 não instalado"}
             except Exception as e:
                 return {"success": False, "message": f"Erro AWS S3: {str(e)}"}
-        elif storage.provider == "onedrive":
+        elif provider_value == "onedrive":
             # Verificar se tem as credenciais básicas
             if storage.onedrive_shared_url:
                 return {"success": True, "message": "OneDrive configurado (via link partilhado)"}
             else:
                 return {"success": False, "message": "URL de partilha não configurado"}
-        elif storage.provider == "google_drive":
+        elif provider_value == "google_drive":
             if storage.google_client_id and storage.google_folder_id:
                 return {"success": True, "message": "Google Drive configurado"}
             else:
                 return {"success": False, "message": "Credenciais do Google Drive em falta"}
+        elif provider_value == "dropbox":
+            if storage.dropbox_access_token:
+                return {"success": True, "message": "Dropbox configurado"}
+            else:
+                return {"success": False, "message": "Token de acesso Dropbox não configurado"}
+        elif provider_value == "local":
+            return {"success": True, "message": "Armazenamento local activo"}
         
-        return {"success": False, "message": "Provider não suportado para teste"}
+        return {"success": False, "message": f"Provider '{provider_value}' não suportado para teste"}
     
     elif service == "ai":
         ai = config.ai
