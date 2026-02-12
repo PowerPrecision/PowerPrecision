@@ -56,11 +56,18 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Distribuição por tipo de documento (com barras de progresso)
   - Top 10 campos mais extraídos (tabela)
   - Insights automáticos (sucesso, alerta ou informativo)
-- **Endpoint Backend**:
+- **Envio Automático por Email**:
+  - Executa todas as segundas-feiras via tarefa agendada
+  - Envia para todos os utilizadores Admin e CEO
+  - Template HTML profissional com estatísticas e gráficos
+  - Botão "Enviar por Email" para envio manual a qualquer momento
+- **Endpoints Backend**:
   - `GET /api/admin/ai-weekly-report` - Gera relatório semanal
+  - `POST /api/admin/ai-weekly-report/send` - Envia relatório por email manualmente
 - **Ficheiros Modificados**:
-  - `/app/backend/routes/admin.py` - Novo endpoint + função de insights
-  - `/app/frontend/src/pages/AIDataReviewPage.js` - UI do relatório
+  - `/app/backend/routes/admin.py` - Novos endpoints
+  - `/app/backend/services/scheduled_tasks.py` - Tarefa agendada semanal
+  - `/app/frontend/src/pages/AIDataReviewPage.js` - UI do relatório + botão email
 - **Status**: ✅ IMPLEMENTADO e TESTADO
 
 ---
