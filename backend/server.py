@@ -118,6 +118,17 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     logger.info("🚀 Iniciando aplicação...")
+    
+    # Criar índices de BD para optimização de performance
+    try:
+        from services.db_indexes import create_indexes
+        logger.info("📊 Criando índices de base de dados...")
+        index_results = await create_indexes(db)
+        logger.info(f"✅ Índices: {len(index_results.get('created', []))} criados, "
+                   f"{len(index_results.get('skipped', []))} já existiam")
+    except Exception as e:
+        logger.warning(f"⚠️ Erro ao criar índices (não fatal): {e}")
+    
     # Tenta conectar Redis sem falhar a app se não existir
     try:
         from services.task_queue import task_queue
