@@ -336,7 +336,8 @@ const DashboardLayout = ({ children, title }) => {
           {/* Navigation */}
           <ScrollArea className="flex-1 py-4">
             <nav className="space-y-1 px-3">
-              {navItems.map((item) => {
+              {/* Main items - always visible */}
+              {navData.main.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
                   <Link
@@ -354,6 +355,48 @@ const DashboardLayout = ({ children, title }) => {
                   </Link>
                 );
               })}
+              
+              {/* Collapsible groups */}
+              {navData.groups.map((group) => (
+                <Collapsible
+                  key={group.id}
+                  open={openSections[group.id]}
+                  onOpenChange={() => toggleSection(group.id)}
+                  className="mt-2"
+                >
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
+                    <div className="flex items-center gap-3">
+                      <group.icon className="h-5 w-5" />
+                      {group.label}
+                    </div>
+                    {openSections[group.id] ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {group.items.map((item) => {
+                      const isActive = location.pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                            isActive
+                              ? "bg-teal-600/80 text-white"
+                              : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                          }`}
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
             </nav>
           </ScrollArea>
 
