@@ -241,3 +241,140 @@ async def delete_minuta(
         "success": True,
         "message": "Minuta eliminada"
     }
+
+
+
+# ====================================================================
+# IMPORTAÇÃO DE MINUTAS
+# ====================================================================
+@router.post("/import")
+async def import_minuta(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Importar uma minuta a partir de um ficheiro.
+    
+    Suporta: .docx, .doc, .pdf, .txt
+    """
+    import os
+    
+    # Validar extensão
+    filename = file.filename or "documento.txt"
+    ext = filename.lower().split(".")[-1]
+    
+    if ext not in ["docx", "doc", "pdf", "txt"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato não suportado. Use: .docx, .doc, .pdf, .txt"
+        )
+    
+    try:
+        contents = await file.read()
+        text_content = ""
+        
+        if ext == "txt":
+            # Texto simples
+            text_content = contents.decode("utf-8", errors="ignore")
+        
+        elif ext in ["docx", "doc"]:
+            # Word - usar python-docx
+            try:
+                import docx
+                from io import BytesIO
+                
+                doc = docx.Document(BytesIO(contents))
+                paragraphs = []
+                for para in doc.paragraphs:
+                    if para.text.strip():
+                        paragraphs.append(para.text)
+                text_content = "\n\n".join(paragraphs)
+            except ImportError:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Biblioteca python-docx não instalada"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Erro ao ler ficheiro Word: {str(e)}"
+                )
+        
+        elif ext == "pdf":
+            # PDF - usar pypdf
+            try:
+                from pypdf import PdfReader
+                from io import BytesIO
+                
+                reader = PdfReader(BytesIO(contents))
+                pages_text = []
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        pages_text.append(text)
+                text_content = "\n\n".join(pages_text)
+            except ImportError:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Biblioteca pypdf não instalada"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Erro ao ler ficheiro PDF: {str(e)}"
+                )
+        
+        if not text_content.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Ficheiro vazio ou não foi possível extrair texto"
+            )
+        
+        # Criar minuta
+        now = datetime.now(timezone.utc).isoformat()
+        titulo = os.path.splitext(filename)[0]  # Nome sem extensão
+        
+        # Tentar detectar categoria pelo nome
+        categoria = "outro"
+        titulo_lower = titulo.lower()
+        if "contrato" in titulo_lower or "promessa" in titulo_lower:
+            categoria = "contrato"
+        elif "procuração" in titulo_lower or "procuracao" in titulo_lower:
+            categoria = "procuracao"
+        elif "declaração" in titulo_lower or "declaracao" in titulo_lower:
+            categoria = "declaracao"
+        elif "carta" in titulo_lower:
+            categoria = "carta"
+        
+        minuta_doc = {
+            "id": str(uuid.uuid4()),
+            "titulo": titulo,
+            "categoria": categoria,
+            "descricao": f"Importado de: {filename}",
+            "conteudo": text_content,
+            "tags": [],
+            "created_by": user.get("id"),
+            "created_by_name": user.get("name") or user.get("email"),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.minutas.insert_one(minuta_doc)
+        
+        logger.info(f"Minuta importada: {titulo} por {user.get('email')}")
+        
+        return {
+            "success": True,
+            "message": "Minuta importada com sucesso",
+            "minuta": {
+                "id": minuta_doc["id"],
+                "titulo": minuta_doc["titulo"],
+                "categoria": minuta_doc["categoria"]
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao importar minuta: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao importar: {str(e)}")
