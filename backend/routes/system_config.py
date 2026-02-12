@@ -340,7 +340,7 @@ async def update_config(
         raise HTTPException(status_code=400, detail=f"Secção inválida: {section}")
     
     try:
-        updated_config = await update_config_section(section, data)
+        await update_config_section(section, data)
         logger.info(f"Configuração '{section}' actualizada por {user.get('email')}")
         
         return {
