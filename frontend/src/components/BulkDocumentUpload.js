@@ -225,13 +225,26 @@ const BulkDocumentUpload = () => {
       return;
     }
 
+    // Fechar o modal imediatamente
+    const filesToProcess = [...selectedFiles];
+    const filesByClientLocal = { ...getFilesByClient() };
+    const clientNamesLocal = Object.keys(filesByClientLocal);
+    
+    setIsOpen(false);
+    
+    // Mostrar toast de início
+    toast.info(`Upload iniciado: ${filesToProcess.length} ficheiros de ${clientNamesLocal.length} clientes`, {
+      duration: 3000,
+    });
+
+    // Processar em background
     setUploading(true);
     setSummary(null);
     abortControllerRef.current = new AbortController();
 
     // Inicializar todos como pendentes
     const initialStatuses = {};
-    selectedFiles.forEach((file) => {
+    filesToProcess.forEach((file) => {
       const path = file.webkitRelativePath || file.name;
       initialStatuses[path] = { status: FILE_STATUS.PENDING, message: "Na fila..." };
     });
@@ -242,20 +255,14 @@ const BulkDocumentUpload = () => {
     let errors = 0;
     let skippedClients = 0;
 
-    // Agrupar ficheiros por cliente
-    const filesByClient = getFilesByClient();
-    const clientNames = Object.keys(filesByClient);
-
-    toast.info(`A processar ${selectedFiles.length} ficheiros de ${clientNames.length} clientes...`);
-
     // Processar cliente a cliente
-    for (const clientName of clientNames) {
+    for (const clientName of clientNamesLocal) {
       // Verificar se foi cancelado
       if (abortControllerRef.current?.signal.aborted) {
         break;
       }
 
-      const clientFiles = filesByClient[clientName];
+      const clientFiles = filesByClientLocal[clientName];
       
       // Verificar se o cliente existe ANTES de processar os ficheiros
       setCurrentFile({ name: "A verificar...", client: clientName });
