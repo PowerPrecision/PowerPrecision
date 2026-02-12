@@ -740,12 +740,10 @@ async def import_properties_from_excel(
                     "email": get_value(['proprietario_email']) or None
                 },
                 "agency": get_value(['agencia']) or None,
-                    "email": str(row.get('proprietario_email', '') or row.get('proprietário_email', '')).strip() if not pd.isna(row.get('proprietario_email', row.get('proprietário_email'))) else None
-                },
                 "photos": [],
                 "documents": [],
                 "status": "em_analise",
-                "notes": str(row.get('notas', '') or '').strip() if not pd.isna(row.get('notas')) else None,
+                "notes": get_value(['notas', 'observações']) or None,
                 "history": [{
                     "timestamp": now,
                     "event": "Importado via Excel",
