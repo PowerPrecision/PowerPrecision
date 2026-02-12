@@ -80,40 +80,29 @@ const TemplatesPanel = ({ processId, token }) => {
     setLoading(template.id);
     setValidationError(null);
     try {
-      const response = await fetch(`${API_URL}${template.endpoint}`, {
+      const response = await axios.get(`${API_URL}${template.endpoint}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Clonar a resposta para poder ler o body múltiplas vezes se necessário
-      const responseClone = response.clone();
-      
-      if (!response.ok) {
-        // Verificar se é erro de validação (400)
-        if (response.status === 400) {
-          try {
-            const errorData = await responseClone.json();
-            const detail = errorData.detail;
-            setValidationError({
-              template: template.name,
-              message: detail?.message || "Dados insuficientes",
-              missingFields: detail?.missing_fields || [],
-              fullMessage: detail?.missing_fields_message || ""
-            });
-            return;
-          } catch (parseError) {
-            console.error("Erro ao processar resposta de validação:", parseError);
-          }
-        }
-        throw new Error('Erro ao carregar template');
-      }
-      
-      const data = await response.json();
       setPreviewContent({
         title: template.name,
-        content: data.template || ''
+        content: response.data.template || ''
       });
       setShowPreview(true);
     } catch (error) {
+      // Verificar se é erro de validação (400)
+      if (error.response?.status === 400) {
+        const detail = error.response.data?.detail;
+        if (detail?.missing_fields) {
+          setValidationError({
+            template: template.name,
+            message: detail?.message || "Dados insuficientes",
+            missingFields: detail?.missing_fields || [],
+            fullMessage: detail?.missing_fields_message || ""
+          });
+          return;
+        }
+      }
       toast.error('Erro ao carregar template');
       console.error(error);
     } finally {
