@@ -29,7 +29,7 @@ import {
 import { 
   Mail, Send, Inbox, Plus, Loader2, Clock, User, 
   Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw,
-  Settings, X, AtSign, Maximize2
+  Settings, X, AtSign, Maximize2, ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
