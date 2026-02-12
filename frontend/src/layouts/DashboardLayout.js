@@ -71,11 +71,31 @@ const DashboardLayout = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [openSections, setOpenSections] = useState({
-    negocio: true,
-    ia: false,
-    sistema: false,
-  });
+  
+  // Determinar quais secções devem estar abertas baseado na rota actual
+  const getInitialOpenSections = () => {
+    const path = location.pathname;
+    
+    // Rotas do grupo Negócio
+    const negocioRoutes = ["/utilizadores", "/processos", "/clientes", "/leads", "/imoveis", "/minutas", "/meus-clientes"];
+    // Rotas do grupo IA
+    const iaRoutes = ["/configuracoes/ia", "/ai-insights", "/revisao-dados-ia"];
+    // Rotas do grupo Sistema
+    const sistemaRoutes = ["/admin/backups", "/definicoes", "/configuracoes", "/configuracoes/notificacoes", "/admin/logs"];
+    
+    return {
+      negocio: negocioRoutes.some(r => path.startsWith(r)),
+      ia: iaRoutes.some(r => path.startsWith(r)),
+      sistema: sistemaRoutes.some(r => path.startsWith(r)),
+    };
+  };
+  
+  const [openSections, setOpenSections] = useState(getInitialOpenSections);
+  
+  // Actualizar secções abertas quando a rota muda
+  React.useEffect(() => {
+    setOpenSections(getInitialOpenSections());
+  }, [location.pathname]);
 
   const toggleSection = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
