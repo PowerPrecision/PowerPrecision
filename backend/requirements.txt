@@ -49,8 +49,8 @@ google-genai==1.57.0
 google-generativeai==0.8.6
 googleapis-common-protos==1.72.0
 greenlet==3.3.1
-grpcio==1.76.0
-grpcio-status==1.71.2
+grpcio>=1.62.3
+grpcio-status>=1.62.3
 h11==0.16.0
 h2==4.3.0
 hf-xet==1.2.0
@@ -95,7 +95,7 @@ mypy_extensions==1.1.0
 nltk==3.9.2
 numpy==2.4.0
 oauthlib==3.3.1
-openai==1.99.9
+openai>=2.8.0
 openpyxl==3.1.5
 packaging==25.0
 pandas==2.3.3
