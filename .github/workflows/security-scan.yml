@@ -24,7 +24,7 @@ jobs:
 
       - name: Instalar dependências de segurança
         run: |
-          pip install safety bandit
+          pip install pip-audit bandit
 
       - name: Criar diretório de relatórios
         run: mkdir -p security-reports
