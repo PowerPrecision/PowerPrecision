@@ -970,6 +970,195 @@ const AIDataReviewPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Configurações do Relatório */}
+        <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Configurações do Relatório
+              </DialogTitle>
+              <DialogDescription>
+                Configure a periodicidade e os destinatários do relatório automático
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              {/* Activar/Desactivar */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Relatório Automático</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enviar relatório automaticamente
+                  </p>
+                </div>
+                <Switch
+                  checked={reportConfig.enabled && reportConfig.frequency !== "disabled"}
+                  onCheckedChange={(checked) => 
+                    setReportConfig(prev => ({
+                      ...prev,
+                      enabled: checked,
+                      frequency: checked ? (prev.frequency === "disabled" ? "weekly" : prev.frequency) : "disabled"
+                    }))
+                  }
+                />
+              </div>
+
+              {/* Frequência */}
+              <div className="space-y-2">
+                <Label>Frequência</Label>
+                <Select
+                  value={reportConfig.frequency}
+                  onValueChange={(value) => setReportConfig(prev => ({ ...prev, frequency: value }))}
+                  disabled={!reportConfig.enabled}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione a frequência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {frequencies.map(f => (
+                      <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dia da semana (apenas para semanal) */}
+              {reportConfig.frequency === "weekly" && (
+                <div className="space-y-2">
+                  <Label>Dia de Envio</Label>
+                  <Select
+                    value={String(reportConfig.send_day)}
+                    onValueChange={(value) => setReportConfig(prev => ({ ...prev, send_day: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione o dia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {weekDays.map(d => (
+                        <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Hora de envio */}
+              <div className="space-y-2">
+                <Label>Hora de Envio</Label>
+                <Select
+                  value={String(reportConfig.send_hour)}
+                  onValueChange={(value) => setReportConfig(prev => ({ ...prev, send_hour: parseInt(value) }))}
+                  disabled={!reportConfig.enabled || reportConfig.frequency === "disabled"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione a hora" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i} value={String(i)}>
+                        {String(i).padStart(2, "0")}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Destinatários */}
+              <div className="space-y-2">
+                <Label>Destinatários</Label>
+                <Select
+                  value={reportConfig.recipients_type}
+                  onValueChange={(value) => setReportConfig(prev => ({ ...prev, recipients_type: value }))}
+                  disabled={!reportConfig.enabled || reportConfig.frequency === "disabled"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione os destinatários" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admins">Administradores e CEOs</SelectItem>
+                    <SelectItem value="all_staff">Toda a Equipa</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Lista de destinatários personalizados */}
+              {reportConfig.recipients_type === "custom" && (
+                <div className="space-y-2">
+                  <Label>Seleccionar Destinatários</Label>
+                  <ScrollArea className="h-[150px] border rounded-md p-3">
+                    {availableRecipients.map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2 py-1">
+                        <Checkbox
+                          id={user.id}
+                          checked={reportConfig.custom_recipients.includes(user.id)}
+                          onCheckedChange={() => toggleCustomRecipient(user.id)}
+                        />
+                        <label
+                          htmlFor={user.id}
+                          className="text-sm cursor-pointer flex-1"
+                        >
+                          {user.name}
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({user.email})
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                  <p className="text-xs text-muted-foreground">
+                    {reportConfig.custom_recipients.length} destinatário(s) seleccionado(s)
+                  </p>
+                </div>
+              )}
+
+              {/* Opções adicionais */}
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="text-sm font-medium">Opções do Conteúdo</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="include_insights"
+                    checked={reportConfig.include_insights}
+                    onCheckedChange={(checked) => 
+                      setReportConfig(prev => ({ ...prev, include_insights: !!checked }))
+                    }
+                  />
+                  <label htmlFor="include_insights" className="text-sm cursor-pointer">
+                    Incluir insights automáticos
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="include_charts"
+                    checked={reportConfig.include_charts}
+                    onCheckedChange={(checked) => 
+                      setReportConfig(prev => ({ ...prev, include_charts: !!checked }))
+                    }
+                  />
+                  <label htmlFor="include_charts" className="text-sm cursor-pointer">
+                    Incluir gráficos e estatísticas detalhadas
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveReportConfig} disabled={savingConfig}>
+                {savingConfig ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
+                Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
