@@ -233,18 +233,18 @@ const WorkflowEditor = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
             {statuses.map((status, index) => (
               <div
                 key={status.id}
-                className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors"
                 data-testid={`workflow-status-${status.name}`}
               >
-                <div className="flex flex-col gap-1">
+                <div className="flex gap-0.5">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-5 w-5"
                     disabled={index === 0}
                     onClick={() => handleMoveStatus(status, "up")}
                   >
@@ -253,7 +253,7 @@ const WorkflowEditor = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-5 w-5"
                     disabled={index === statuses.length - 1}
                     onClick={() => handleMoveStatus(status, "down")}
                   >
@@ -261,43 +261,38 @@ const WorkflowEditor = () => {
                   </Button>
                 </div>
 
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                <div className={`w-3 h-3 rounded-full ${getColorClass(status.color)} flex-shrink-0`} />
 
-                <div className={`w-4 h-4 rounded-full ${getColorClass(status.color)}`} />
-
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{status.label}</span>
-                    <Badge variant="outline" className="text-xs">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-sm truncate">{status.label}</span>
+                    <Badge variant="outline" className="text-xs flex-shrink-0">
                       {status.name}
                     </Badge>
                     {status.is_default && (
-                      <Badge className="bg-blue-100 text-blue-800 text-xs">
+                      <Badge className="bg-blue-100 text-blue-800 text-xs flex-shrink-0">
                         Padrão
                       </Badge>
                     )}
                   </div>
-                  {status.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {status.description}
-                    </p>
-                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Ordem: {status.order}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    #{status.order}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-7 w-7"
                     onClick={() => openEditDialog(status)}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-7 w-7"
                     onClick={() => openDeleteDialog(status)}
                     disabled={status.is_default}
                     className="text-destructive hover:text-destructive"
