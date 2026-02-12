@@ -1,6 +1,17 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Any
+from enum import Enum
 import re
+
+
+class ServiceTypeEnum(str, Enum):
+    """
+    Tipo de serviço do processo.
+    Define quais serviços estão incluídos no processo.
+    """
+    CREDITO_APENAS = "credito_apenas"       # Apenas intermediação de crédito
+    IMOBILIARIO_APENAS = "imobiliario_apenas"  # Apenas mediação imobiliária
+    COMPLETO = "completo"                   # Ambos os serviços
 
 
 class ProcessType:
