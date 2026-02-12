@@ -1618,3 +1618,45 @@ async def drop_specific_index(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao remover índice: {str(e)}")
 
+
+
+# ============== CLEANUP ENDPOINTS ==============
+
+@router.delete("/cleanup/jobs")
+async def cleanup_old_jobs(
+    days: int = Query(default=7, ge=1, le=90),
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Remove jobs de background antigos (concluídos ou falhados).
+    """
+    from datetime import timedelta
+    
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    result = await db.background_jobs.delete_many({
+        "completed_at": {"$lt": cutoff},
+        "status": {"$in": ["completed", "failed"]}
+    })
+    
+    return {"success": True, "deleted_count": result.deleted_count}
+
+
+@router.delete("/cleanup/error-logs")
+async def cleanup_old_error_logs(
+    days: int = Query(default=30, ge=1, le=365),
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Remove logs de erro antigos.
+    """
+    from datetime import timedelta
+    
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    result = await db.system_error_logs.delete_many({
+        "timestamp": {"$lt": cutoff}
+    })
+    
+    return {"success": True, "deleted_count": result.deleted_count}
+
