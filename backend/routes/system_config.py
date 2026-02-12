@@ -382,6 +382,21 @@ async def test_service_connection(
         storage = config.storage
         if storage.provider == "none":
             return {"success": False, "message": "Armazenamento não configurado"}
+        elif storage.provider == "aws_s3":
+            # Testar ligação AWS S3
+            try:
+                from services.s3_storage import s3_service
+                if s3_service.is_configured():
+                    # Tentar listar o bucket para verificar acesso
+                    try:
+                        s3_service.s3_client.head_bucket(Bucket=s3_service.bucket_name)
+                        return {"success": True, "message": f"AWS S3 conectado com sucesso! Bucket: {s3_service.bucket_name}"}
+                    except Exception as e:
+                        return {"success": False, "message": f"Erro ao aceder bucket: {str(e)}"}
+                else:
+                    return {"success": False, "message": "AWS S3 não está configurado no ambiente"}
+            except Exception as e:
+                return {"success": False, "message": f"Erro AWS S3: {str(e)}"}
         elif storage.provider == "onedrive":
             # Verificar se tem as credenciais básicas
             if storage.onedrive_shared_url:
