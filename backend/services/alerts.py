@@ -35,6 +35,7 @@ ALERT_TYPES = {
     "DEED_REMINDER": "deed_reminder",            # 15 dias antes da escritura
     "NEW_CLIENT_REGISTRATION": "new_registration",  # Novo registo de cliente
     "PROPERTY_MATCH": "property_match",          # Match perfeito cliente-imóvel
+    "VALUATION_BELOW_PURCHASE": "valuation_below_purchase",  # Avaliação < valor compra
 }
 
 # Dias para alertas
