@@ -2,11 +2,19 @@
 ====================================================================
 ROTAS DE GESTÃO DE DOCUMENTOS - CREDITOIMO (S3 + VALIDADES)
 ====================================================================
+Inclui:
+- Upload com normalização automática de nomes
+- Conversão automática de imagens para PDF
+- Gestão de validades de documentos
+====================================================================
 """
 import uuid
 import logging
+import re
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict
+from io import BytesIO
 
 # Adicionados UploadFile, File, Form para o S3
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form 
@@ -18,6 +26,9 @@ from services.auth import get_current_user, require_roles
 
 # Importar o novo serviço S3
 from services.s3_storage import s3_service
+
+# Importar serviço de processamento de documentos (conversão imagem → PDF)
+from services.document_processor import convert_image_to_pdf, IMG2PDF_AVAILABLE
 
 router = APIRouter(prefix="/documents", tags=["Document Management"])
 logger = logging.getLogger(__name__)
