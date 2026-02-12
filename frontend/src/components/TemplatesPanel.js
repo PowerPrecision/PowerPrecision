@@ -158,23 +158,6 @@ const TemplatesPanel = ({ processId, token }) => {
       setLoading(null);
     }
   };
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${template.id}_${processId}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast.success('Template descarregado!');
-    } catch (error) {
-      toast.error('Erro ao descarregar template');
-      console.error(error);
-    } finally {
-      setLoading(null);
-    }
-  };
 
   // Copiar conteúdo
   const handleCopy = async () => {
