@@ -224,14 +224,16 @@ const DashboardLayout = ({ children, title }) => {
 
     // For staff roles (consultor, mediador, intermediario, ceo, etc.)
     if (["consultor", "mediador", "intermediario", "consultor_intermediario", "ceo", "diretor", "administrativo"].includes(user?.role)) {
-      const items = [
+      const mainItems = [
         ...baseItems,
         statsItem,
       ];
       
+      const negocioItems = [];
+      
       // Adicionar "Os Meus Clientes" para consultores e intermediários
       if (["consultor", "intermediario", "mediador"].includes(user?.role)) {
-        items.push({
+        negocioItems.push({
           label: "Os Meus Clientes",
           icon: Users,
           href: "/meus-clientes",
@@ -240,7 +242,7 @@ const DashboardLayout = ({ children, title }) => {
       
       // "Todos os Processos" apenas para roles que não são consultor nem intermediário/mediador
       if (!["consultor", "intermediario", "mediador"].includes(user?.role)) {
-        items.push({
+        negocioItems.push({
           label: "Todos os Processos",
           icon: FileText,
           href: "/processos",
@@ -248,14 +250,14 @@ const DashboardLayout = ({ children, title }) => {
       }
       
       // Clientes para todos
-      items.push({
+      negocioItems.push({
         label: "Clientes",
         icon: User,
         href: "/clientes",
       });
       
       // Leads para todos
-      items.push({
+      negocioItems.push({
         label: "Leads",
         icon: Search,
         href: "/leads",
@@ -263,7 +265,7 @@ const DashboardLayout = ({ children, title }) => {
       
       // Imóveis apenas para roles que não são intermediário/mediador
       if (!["intermediario", "mediador"].includes(user?.role)) {
-        items.push({
+        negocioItems.push({
           label: "Imóveis",
           icon: Building2,
           href: "/imoveis",
@@ -271,19 +273,29 @@ const DashboardLayout = ({ children, title }) => {
       }
       
       // Minutas para todos os staff
-      items.push({
+      negocioItems.push({
         label: "Minutas",
         icon: FileArchive,
         href: "/minutas",
       });
       
-      return items;
+      return {
+        main: mainItems,
+        groups: negocioItems.length > 0 ? [
+          {
+            id: "negocio",
+            label: "Negócio",
+            icon: Building2,
+            items: negocioItems,
+          },
+        ] : [],
+      };
     }
 
-    return [...baseItems];
+    return { main: [...baseItems], groups: [] };
   };
 
-  const navItems = getNavItems();
+  const navData = getNavItems();
 
   return (
     <div className="min-h-screen bg-background">
