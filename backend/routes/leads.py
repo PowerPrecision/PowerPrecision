@@ -157,6 +157,11 @@ async def extract_url_data(
 ):
     """
     Extrair dados de um URL usando o Deep Scraper.
+    
+    Melhorias (Item 6):
+    - Navegação automática ao link da agência se não encontrar telefone
+    - Extracção de referência do anúncio
+    - Mais campos de propriedade (certificado energético, ano construção, estado)
     """
     url = payload.get("url")
     if not url:
@@ -189,7 +194,6 @@ async def extract_url_data(
             }
         
         # Mapear dados do scraper para o formato esperado pelo lead
-        # O scraper retorna: titulo, preco, localizacao, tipologia, area, agente_nome, agente_telefone, agente_email, agencia_nome
         consultant_data = None
         if raw_data.get("agente_nome") or raw_data.get("agente_telefone") or raw_data.get("agente_email"):
             consultant_data = {
@@ -211,6 +215,7 @@ async def extract_url_data(
                 "source_url": raw_consultor.get("url_origem")
             }
 
+        # === MELHORIAS Item 6 ===
         cleaned_data = {
             "url": url,
             "title": raw_data.get("titulo"),
@@ -225,6 +230,12 @@ async def extract_url_data(
             "consultant": consultant_data,
             "source": raw_data.get("fonte", raw_data.get("_parser", "auto")),
             "_extracted_by": raw_data.get("_extracted_by"),
+            # Novos campos (Item 6)
+            "reference": raw_data.get("referencia") or raw_data.get("reference"),
+            "energy_certificate": raw_data.get("certificado_energetico"),
+            "year_built": raw_data.get("ano_construcao"),
+            "condition": raw_data.get("estado"),
+            "agency_link": raw_data.get("agency_link"),
             "_raw_fields": list(raw_data.keys())  # Para debug
         }
         
