@@ -60,8 +60,9 @@ jobs:
           cd backend
           echo "🔍 A verificar vulnerabilidades em dependências..."
           pip install pip-audit
-          pip-audit -r requirements.txt --format json > ../security-reports/pip-audit-report.json 2>&1 || true
-          pip-audit -r requirements.txt
+          # Ignorar CVE-2024-23342 (ecdsa) - sem fix disponível, é dependência transitiva de python-jose
+          pip-audit -r requirements.txt --format json --ignore-vuln CVE-2024-23342 > ../security-reports/pip-audit-report.json 2>&1 || true
+          pip-audit -r requirements.txt --ignore-vuln CVE-2024-23342
         continue-on-error: false
 
       - name: Upload Security Reports
