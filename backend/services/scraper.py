@@ -332,6 +332,7 @@ class PropertyScraper:
     def _extract_contacts_from_text(self, text: str) -> Dict[str, Any]:
         """
         Extrai telefones e emails de texto usando regex.
+        Prioriza telemóveis (9X) sobre fixos (2X).
         
         Returns:
             Dict com telefones e emails encontrados
@@ -341,24 +342,136 @@ class PropertyScraper:
             "emails": []
         }
         
-        # Extrair telefones
+        # Extrair telefones com priorização
+        mobile_phones = []  # 9X - telemóveis
+        landline_phones = []  # 2X - fixos
+        
         for pattern in PHONE_PATTERNS:
             matches = re.findall(pattern, text)
             for match in matches:
-                # Normalizar telefone
-                phone = re.sub(r'\s+', '', match)
-                if len(phone) >= 9 and phone not in contacts["telefones"]:
-                    contacts["telefones"].append(phone)
+                # match pode ser string ou tuple (de grupos de captura)
+                if isinstance(match, tuple):
+                    phone = ''.join(match)
+                else:
+                    phone = match
+                
+                # Normalizar telefone - remover espaços, pontos, hífens
+                phone = re.sub(r'[\s.\-]', '', phone)
+                
+                # Remover prefixo tel: se presente
+                if phone.startswith('tel:'):
+                    phone = phone[4:]
+                
+                # Remover +351 se presente para normalização
+                if phone.startswith('+351'):
+                    phone = phone[4:]
+                elif phone.startswith('351') and len(phone) == 12:
+                    phone = phone[3:]
+                
+                # Validar que tem 9 dígitos
+                if len(phone) != 9 or not phone.isdigit():
+                    continue
+                
+                # Classificar por tipo
+                if phone.startswith('9') and phone[1] in '1236':
+                    if phone not in mobile_phones:
+                        mobile_phones.append(phone)
+                elif phone.startswith('2'):
+                    if phone not in landline_phones:
+                        landline_phones.append(phone)
+        
+        # Priorizar telemóveis, depois fixos
+        contacts["telefones"] = mobile_phones[:3] + landline_phones[:2]
         
         # Extrair emails
         email_matches = re.findall(EMAIL_PATTERN, text, re.IGNORECASE)
         for email in email_matches:
             email_lower = email.lower()
             # Filtrar emails genéricos/inválidos
-            if any(x in email_lower for x in ['@example', '@test', 'noreply', 'info@', 'geral@']):
+            generic_patterns = [
+                '@example', '@test', 'noreply', 'no-reply',
+                'info@', 'geral@', 'contacto@', 'admin@',
+                'suporte@', 'support@', 'privacy@'
+            ]
+            if any(x in email_lower for x in generic_patterns):
                 continue
             if email_lower not in contacts["emails"]:
                 contacts["emails"].append(email_lower)
+        
+        return contacts
+    
+    def _extract_contacts_from_soup(self, soup: BeautifulSoup, agency_type: str = None) -> Dict[str, Any]:
+        """
+        Extrai contactos usando selectores específicos por agência.
+        
+        Args:
+            soup: BeautifulSoup object
+            agency_type: Tipo de agência (remax, era, century21, etc.)
+        
+        Returns:
+            Dict com telefones e emails encontrados
+        """
+        contacts = {"telefones": [], "emails": []}
+        
+        # Selectores genéricos
+        phone_selectors = [
+            'a[href^="tel:"]',
+            '.phone', '.tel', '.telefone',
+            '.agent-phone', '.consultant-phone',
+            '[itemprop="telephone"]',
+        ]
+        
+        email_selectors = [
+            'a[href^="mailto:"]',
+            '.email', '.mail',
+            '.agent-email', '.consultant-email',
+            '[itemprop="email"]',
+        ]
+        
+        # Adicionar selectores específicos da agência
+        if agency_type and agency_type in AGENCY_PHONE_SELECTORS:
+            phone_selectors = AGENCY_PHONE_SELECTORS[agency_type] + phone_selectors
+        
+        # Extrair telefones
+        for selector in phone_selectors:
+            try:
+                elements = soup.select(selector)
+                for elem in elements:
+                    # Tentar href primeiro (para links tel:)
+                    href = elem.get('href', '')
+                    if href.startswith('tel:'):
+                        phone = href.replace('tel:', '').replace('+351', '').replace(' ', '')
+                        if len(phone) == 9 and phone.isdigit():
+                            if phone not in contacts["telefones"]:
+                                contacts["telefones"].append(phone)
+                    else:
+                        # Extrair do texto
+                        text = elem.get_text(strip=True)
+                        phone = re.sub(r'[^\d]', '', text)
+                        if len(phone) >= 9:
+                            phone = phone[-9:]  # Últimos 9 dígitos
+                            if phone not in contacts["telefones"]:
+                                contacts["telefones"].append(phone)
+            except Exception:
+                continue
+        
+        # Extrair emails
+        for selector in email_selectors:
+            try:
+                elements = soup.select(selector)
+                for elem in elements:
+                    href = elem.get('href', '')
+                    if href.startswith('mailto:'):
+                        email = href.replace('mailto:', '').lower().strip()
+                        if '@' in email and email not in contacts["emails"]:
+                            contacts["emails"].append(email)
+                    else:
+                        text = elem.get_text(strip=True).lower()
+                        if '@' in text and '.' in text:
+                            if text not in contacts["emails"]:
+                                contacts["emails"].append(text)
+            except Exception:
+                continue
         
         return contacts
     
