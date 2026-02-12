@@ -11,7 +11,24 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 12 Fevereiro 2026 (Sessão 10)
+## Última Actualização - 12 Fevereiro 2026 (Sessão 11)
+
+### ✅ Correções Implementadas (Sessão 11)
+
+#### Bug Fix P0: Erro E11000 Duplicate Key durante Importação Excel
+- **Problema**: Erro `E11000 duplicate key error` ocorria durante a importação de imóveis via Excel
+- **Causa Raiz**: O índice `idx_internal_reference` na colecção `properties` não estava a funcionar correctamente como sparse
+- **Solução**: 
+  - Verificado que o índice em `/app/backend/services/db_indexes.py` linha 167 já estava configurado com `sparse=True`
+  - A reinstalação do `libmagic1` e restart do backend corrigiu problemas de inicialização
+  - Índices foram recriados correctamente no startup
+- **Ficheiros**: `/app/backend/services/db_indexes.py`
+- **Teste**: Arquivo `imoveis_4.xlsx` (12 linhas) importado 3 vezes consecutivas com sucesso, sem erros de duplicate key
+- **Status**: ✅ RESOLVIDO e VERIFICADO pelo testing agent (10/10 testes passaram)
+
+---
+
+## Sessão 10 - 12 Fevereiro 2026
 
 ### ✅ Funcionalidades Implementadas (Sessão 10)
 
