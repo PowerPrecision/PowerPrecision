@@ -249,6 +249,62 @@ const MinutasPage = () => {
     return cat?.color || "bg-gray-500";
   };
 
+  // Importar minutas via ficheiros
+  const handleImportFiles = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    setImporting(true);
+    setImportDialogOpen(false);
+    
+    const token = localStorage.getItem("token");
+    let imported = 0;
+    let errors = 0;
+
+    toast.info(`A importar ${files.length} ficheiros...`);
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch(`${API_URL}/api/minutas/import`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          imported++;
+        } else {
+          errors++;
+          const data = await response.json();
+          console.error(`Erro ao importar ${file.name}:`, data.detail);
+        }
+      } catch (error) {
+        errors++;
+        console.error(`Erro ao importar ${file.name}:`, error);
+      }
+    }
+
+    setImporting(false);
+    
+    if (imported > 0) {
+      toast.success(`${imported} minutas importadas com sucesso!`);
+      fetchMinutas();
+    }
+    if (errors > 0) {
+      toast.error(`${errors} ficheiros não foram importados`);
+    }
+
+    // Limpar input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
