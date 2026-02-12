@@ -274,7 +274,7 @@ async def create_indexes(db) -> dict:
     return results
 
 
-async def get_index_stats(db: AsyncIOMotorDatabase) -> dict:
+async def get_index_stats(db) -> dict:
     """
     Obtém estatísticas dos índices existentes.
     """
@@ -282,14 +282,15 @@ async def get_index_stats(db: AsyncIOMotorDatabase) -> dict:
     
     collections = ["processes", "users", "system_error_logs", "properties", "tasks"]
     
-    for collection in collections:
+    for collection_name in collections:
         try:
-            indexes = await db[collection].index_information()
-            stats[collection] = {
+            collection = getattr(db, collection_name)
+            indexes = await collection.index_information()
+            stats[collection_name] = {
                 "count": len(indexes),
                 "indexes": list(indexes.keys())
             }
         except Exception as e:
-            stats[collection] = {"error": str(e)}
+            stats[collection_name] = {"error": str(e)}
     
     return stats
