@@ -150,104 +150,38 @@ async def list_clients(
         key = proc.get("client_id") or proc.get("client_name", "").lower().strip()
         if not key:
             continue
-            
-            if key not in clients_map:
-                clients_map[key] = {
-                    "id": proc.get("client_id") or f"process_{proc.get('id')}",
-                    "nome": proc.get("client_name"),
-                    "contacto": {
-                        "email": proc.get("client_email"),
-                        "telefone": proc.get("client_phone")
-                    },
-                    "dados_pessoais": proc.get("personal_data") or {},
-                    "process_ids": [],
-                    "active_processes_count": 0,
-                    "source": "processes"
-                }
-            
-            clients_map[key]["process_ids"].append(proc.get("id"))
-            if proc.get("status") not in ["arquivado", "cancelado", "concluido"]:
-                clients_map[key]["active_processes_count"] += 1
         
-        clients = list(clients_map.values())
-        
-        if has_active_process is not None:
-            if has_active_process:
-                clients = [c for c in clients if c.get("active_processes_count", 0) > 0]
-            else:
-                clients = [c for c in clients if c.get("active_processes_count", 0) == 0]
-        
-        return {
-            "clients": clients,
-            "total": len(clients),
-            "limit": limit,
-            "skip": skip
-        }
-    
-    # Para admin/CEO - buscar da colecção clients + processes sem client_id
-    query = {}
-    
-    if search:
-        query["$or"] = [
-            {"nome": {"$regex": search, "$options": "i"}},
-            {"contacto.email": {"$regex": search, "$options": "i"}},
-            {"dados_pessoais.nif": {"$regex": search, "$options": "i"}}
-        ]
-    
-    clients = await db.clients.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(length=limit)
-    
-    # Também incluir clientes de processos que não estão na colecção clients
-    process_query = {"client_id": {"$exists": False}}
-    if search:
-        process_query["$or"] = [
-            {"client_name": {"$regex": search, "$options": "i"}},
-            {"client_email": {"$regex": search, "$options": "i"}}
-        ]
-    
-    orphan_processes = await db.processes.find(
-        process_query,
-        {"_id": 0, "id": 1, "client_name": 1, "client_email": 1, "client_phone": 1, 
-         "personal_data": 1, "status": 1}
-    ).to_list(length=500)
-    
-    # Adicionar clientes "órfãos" (de processos sem client_id)
-    existing_names = {c.get("nome", "").lower() for c in clients}
-    orphan_map = {}
-    for proc in orphan_processes:
-        name = proc.get("client_name", "").strip()
-        name_lower = name.lower()
-        if not name or name_lower in existing_names:
-            continue
-        
-        if name_lower not in orphan_map:
-            orphan_map[name_lower] = {
-                "id": f"process_{proc.get('id')}",
-                "nome": name,
-                "contacto": {
-                    "email": proc.get("client_email"),
-                    "telefone": proc.get("client_phone")
-                },
-                "dados_pessoais": proc.get("personal_data") or {},
-                "process_ids": [proc.get("id")],
-                "active_processes_count": 1 if proc.get("status") not in ["arquivado", "cancelado", "concluido"] else 0,
-                "source": "processes"
+        if key not in clients_map:
+            clients_map[key] = {
+                "id": proc.get("client_id") or f"process_{proc.get('id')}",
+                "client_name": proc.get("client_name"),
+                "client_email": proc.get("client_email"),
+                "client_phone": proc.get("client_phone"),
+                "nif": proc.get("personal_data", {}).get("nif"),
+                "processes": [],
+                "active_process_count": 0
             }
-        else:
-            orphan_map[name_lower]["process_ids"].append(proc.get("id"))
-            if proc.get("status") not in ["arquivado", "cancelado", "concluido"]:
-                orphan_map[name_lower]["active_processes_count"] += 1
+        
+        clients_map[key]["processes"].append({
+            "id": proc.get("id"),
+            "process_number": proc.get("process_number"),
+            "status": proc.get("status")
+        })
+        
+        if proc.get("status") not in ["arquivado", "perdido", "concluido"]:
+            clients_map[key]["active_process_count"] += 1
     
-    clients.extend(orphan_map.values())
+    clients = list(clients_map.values())
     
-    # Contar processos activos para clientes da colecção clients
-    for client in clients:
-        if client.get("source") != "processes" and client.get("process_ids"):
-            active_count = await db.processes.count_documents({
-                "id": {"$in": client["process_ids"]},
-                "status": {"$nin": ["arquivado", "cancelado", "concluido"]}
-            })
-            client["active_processes_count"] = active_count
-        elif "active_processes_count" not in client:
+    # Filtrar por ter processo activo
+    if has_active_process is not None:
+        clients = [c for c in clients if (c["active_process_count"] > 0) == has_active_process]
+    
+    return {
+        "clients": clients,
+        "total": len(clients),
+        "showing_all": False
+    }
             client["active_processes_count"] = 0
     
     if has_active_process is not None:
