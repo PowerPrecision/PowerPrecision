@@ -11,22 +11,56 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 12 Fevereiro 2026 (Sessão 11)
+## Última Actualização - 12 Fevereiro 2026 (Sessão 12)
 
-### ✅ Funcionalidades Implementadas (Sessão 11)
+### ✅ Funcionalidades Implementadas (Sessão 12)
 
-#### 1. Bug Fix P0: Erro E11000 Duplicate Key durante Importação Excel
-- **Problema**: Erro `E11000 duplicate key error` ocorria durante a importação de imóveis via Excel
-- **Causa Raiz**: O índice `idx_internal_reference` na colecção `properties` não estava a funcionar correctamente como sparse
-- **Solução**: 
-  - Verificado que o índice em `/app/backend/services/db_indexes.py` linha 167 já estava configurado com `sparse=True`
-  - A reinstalação do `libmagic1` e restart do backend corrigiu problemas de inicialização
-  - Índices foram recriados correctamente no startup
-- **Ficheiros**: `/app/backend/services/db_indexes.py`
-- **Teste**: Arquivo `imoveis_4.xlsx` (12 linhas) importado 3 vezes consecutivas com sucesso, sem erros de duplicate key
-- **Status**: ✅ RESOLVIDO e VERIFICADO pelo testing agent (10/10 testes passaram)
+#### 1. Bug Fix P0: Erro E11000 Duplicate Key - Correcção Definitiva
+- **Problema Reportado**: Erro `E11000 duplicate key error on idx_internal_ref` persistia em produção
+- **Causa Raiz Identificada**: Discrepância entre nome do campo no código (`internal_reference`) e no índice de produção (`internal_ref`)
+- **Solução Implementada**:
+  - Adicionado sistema de limpeza de índices antigos em `db_indexes.py`
+  - Lista `DEPRECATED_INDEXES` remove automaticamente `idx_internal_ref` no startup
+  - Novo endpoint `POST /api/admin/db/indexes/repair` para corrigir índices manualmente
+  - Endpoint `GET /api/admin/db/indexes` para diagnóstico
+  - Endpoint `DELETE /api/admin/db/indexes/{collection}/{index_name}` para remover índices específicos
+- **Ficheiros Modificados**: `/app/backend/services/db_indexes.py`, `/app/backend/routes/admin.py`
+- **Status**: ✅ RESOLVIDO - Utilizador deve executar `/api/admin/db/indexes/repair` em produção
 
-#### 2. Frontend para Revisão de Dados IA (NOVA FUNCIONALIDADE)
+#### 2. Background Processing para Importações (P0.2)
+- **Funcionalidade**: Importação Excel agora processa em background
+- **Implementação**:
+  - Novo serviço `/app/backend/services/background_jobs.py`
+  - Endpoint `/api/properties/bulk/import-excel` retorna imediatamente com `job_id`
+  - Endpoint `/api/properties/bulk/job/{job_id}` para consultar progresso
+  - Endpoint `/api/properties/bulk/jobs` para listar jobs do utilizador
+  - Frontend com polling de progresso via toast notifications
+- **Benefícios**: UI não bloqueia durante importações grandes
+- **Ficheiros Modificados**: 
+  - `/app/backend/routes/properties.py`
+  - `/app/backend/services/background_jobs.py` (novo)
+  - `/app/frontend/src/pages/PropertiesPage.jsx`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 3. Refatoração Menu Admin (P1)
+- **Problema**: Menu lateral do admin tinha muitos itens e era difícil de usar
+- **Solução**: Grupos colapsáveis com secções organizadas
+  - **Principais** (sempre visíveis): Dashboard, Estatísticas, Quadro Geral
+  - **Negócio** (colapsável): Utilizadores, Processos, Clientes, Leads, Imóveis, Minutas
+  - **Ferramentas IA** (colapsável): Configuração IA, Agente IA, Revisão Dados IA
+  - **Sistema** (colapsável): Backups, Definições, Configurações, Notificações, Logs
+- **Ficheiros Modificados**: `/app/frontend/src/layouts/DashboardLayout.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 4. Remoção Branding Emergent (P2)
+- **Problema**: Badge "Made with Emergent" aparecia na aplicação
+- **Solução**: Removido o bloco HTML do badge em `index.html`
+- **Ficheiros Modificados**: `/app/frontend/public/index.html`
+- **Status**: ✅ IMPLEMENTADO
+
+---
+
+## Sessão 11 - 12 Fevereiro 2026
 - **Nova Página**: `/revisao-dados-ia` - Interface para administradores compararem dados extraídos pela IA
 - **Funcionalidades**:
   - Lista de processos com dados pendentes de revisão
