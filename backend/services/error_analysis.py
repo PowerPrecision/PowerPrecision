@@ -40,10 +40,11 @@ async def analyze_weekly_errors() -> Dict[str, Any]:
     }
     
     errors = await db.import_errors.find(query, {"_id": 0}).to_list(1000)
-    error_logs = await db.error_logs.find(query, {"_id": 0}).to_list(1000)
+    # Usar system_error_logs (colecção actual) em vez de error_logs (deprecated)
+    system_logs = await db.system_error_logs.find(query, {"_id": 0}).to_list(1000)
     
     # Combinar erros de ambas as colecções
-    all_errors = errors + error_logs
+    all_errors = errors + system_logs
     
     if not all_errors:
         return {
