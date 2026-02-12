@@ -186,11 +186,35 @@ const SettingsPage = () => {
   };
   
   // Guardar notificações
-  const handleSaveNotifications = () => {
-    toast({
-      title: "Preferências guardadas",
-      description: "As suas preferências de notificação foram atualizadas.",
-    });
+  const handleSaveNotifications = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/preferences`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ notifications }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Preferências guardadas",
+          description: "As suas preferências de notificação foram atualizadas.",
+        });
+      } else {
+        throw new Error("Erro ao guardar preferências");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível guardar as preferências.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
   // Obter label do papel
