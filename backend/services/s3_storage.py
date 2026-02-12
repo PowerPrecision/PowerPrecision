@@ -100,7 +100,8 @@ class S3Service:
         client_name: str,
         category: str, 
         filename: str, 
-        content_type: str = None
+        content_type: str = None,
+        second_client_name: str = None
     ) -> Optional[str]:
         """
         Faz upload de um ficheiro para a pasta do cliente numa categoria específica.
@@ -112,6 +113,7 @@ class S3Service:
             category: Categoria (ex: "Financeiros", "Documentos Pessoais")
             filename: Nome do ficheiro
             content_type: MIME type do ficheiro
+            second_client_name: Nome do segundo titular (opcional)
             
         Returns:
             Caminho S3 do ficheiro ou None se falhar
@@ -120,7 +122,7 @@ class S3Service:
             logger.error("S3 não configurado")
             return None
 
-        base_path = self._get_client_base_path(client_id, client_name)
+        base_path = self._get_client_base_path(client_id, client_name, second_client_name)
         safe_category = sanitize_folder_name(category)
         object_name = f"{base_path}/{safe_category}/{filename}"
 
@@ -141,9 +143,19 @@ class S3Service:
             logger.error(f"Erro no upload para S3: {e}")
             return None
 
-    def list_files(self, client_id: str, client_name: str) -> Dict[str, List[Dict]]:
+    def list_files(
+        self, 
+        client_id: str, 
+        client_name: str,
+        second_client_name: str = None
+    ) -> Dict[str, List[Dict]]:
         """
         Lista todos os ficheiros de um cliente organizados por categoria.
+        
+        Args:
+            client_id: ID do processo/cliente
+            client_name: Nome do cliente
+            second_client_name: Nome do segundo titular (opcional)
         
         Returns:
             Dict com categorias como chaves e listas de ficheiros como valores
@@ -151,7 +163,7 @@ class S3Service:
         if not self.is_configured():
             return {"error": "S3 não configurado", "files": {}}
 
-        base_path = self._get_client_base_path(client_id, client_name)
+        base_path = self._get_client_base_path(client_id, client_name, second_client_name)
         prefix = f"{base_path}/"
         
         try:
