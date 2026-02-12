@@ -376,7 +376,8 @@ Com os melhores cumprimentos,
 async def get_template_for_process(
     process_id: str,
     template_type: str,
-    extra_data: dict = None
+    extra_data: dict = None,
+    validate_fields: bool = True
 ) -> Dict[str, Any]:
     """
     Obtém um template preenchido para um processo.
@@ -385,6 +386,7 @@ async def get_template_for_process(
         process_id: ID do processo
         template_type: Tipo de template (cpcv, valuation_appeal, document_request, deed_reminder)
         extra_data: Dados adicionais (ex: lista de documentos em falta)
+        validate_fields: Se deve validar campos obrigatórios (default: True)
         
     Returns:
         Dict com o template e metadata
@@ -393,6 +395,18 @@ async def get_template_for_process(
     
     if not process:
         return {"error": "Processo não encontrado", "template": None}
+    
+    # Validar campos obrigatórios antes de gerar
+    if validate_fields:
+        validation = validate_template_requirements(process, template_type)
+        if not validation["is_valid"]:
+            return {
+                "error": "Dados insuficientes para gerar a minuta",
+                "validation_error": True,
+                "missing_fields": validation["missing_fields"],
+                "missing_fields_message": validation["message"],
+                "template": None
+            }
     
     templates = {
         "cpcv": generate_cpcv_template,
@@ -415,4 +429,117 @@ async def get_template_for_process(
         "template": template_text,
         "webmail_urls": WEBMAIL_URLS,
         "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ====================================================================
+# VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS POR TIPO DE TEMPLATE
+# ====================================================================
+
+# Definição de campos obrigatórios por tipo de template
+TEMPLATE_REQUIRED_FIELDS = {
+    "cpcv": {
+        "fields": [
+            ("client_name", "Nome do Comprador"),
+            ("personal_data.nif", "NIF do Comprador"),
+            ("property_data.morada", "Morada do Imóvel"),
+            ("property_data.artigo_matricial", "Artigo Matricial do Imóvel"),
+        ],
+        "recommended": [
+            ("personal_data.cc", "Cartão de Cidadão do Comprador"),
+            ("personal_data.morada", "Morada do Comprador"),
+            ("property_data.proprietario_nome", "Nome do Vendedor"),
+            ("property_data.proprietario_nif", "NIF do Vendedor"),
+            ("financial_data.valor_pretendido", "Valor de Compra"),
+        ]
+    },
+    "valuation_appeal": {
+        "fields": [
+            ("client_name", "Nome do Cliente"),
+            ("property_data.morada", "Morada do Imóvel"),
+        ],
+        "recommended": [
+            ("credit_data.valuation_value", "Valor da Avaliação"),
+            ("credit_data.valuation_bank", "Banco Avaliador"),
+            ("financial_data.valor_pretendido", "Valor de Compra"),
+        ]
+    },
+    "deed_reminder": {
+        "fields": [
+            ("client_name", "Nome do Cliente"),
+        ],
+        "recommended": [
+            ("property_data.morada", "Morada do Imóvel"),
+            ("credit_data.bank_name", "Nome do Banco"),
+        ]
+    },
+    "document_request": {
+        "fields": [
+            ("client_name", "Nome do Cliente"),
+        ],
+        "recommended": []
+    }
+}
+
+
+def get_nested_value(data: Dict[str, Any], path: str) -> Any:
+    """
+    Obtém um valor aninhado de um dicionário usando notação de ponto.
+    Ex: get_nested_value(data, "personal_data.nif")
+    """
+    keys = path.split(".")
+    value = data
+    for key in keys:
+        if isinstance(value, dict):
+            value = value.get(key)
+        else:
+            return None
+    return value
+
+
+def validate_template_requirements(
+    process: Dict[str, Any], 
+    template_type: str
+) -> Dict[str, Any]:
+    """
+    Valida se o processo tem todos os campos obrigatórios para gerar um template.
+    
+    Args:
+        process: Dados do processo
+        template_type: Tipo de template a gerar
+        
+    Returns:
+        Dict com resultado da validação
+    """
+    config = TEMPLATE_REQUIRED_FIELDS.get(template_type, {"fields": [], "recommended": []})
+    
+    missing_required = []
+    missing_recommended = []
+    
+    # Verificar campos obrigatórios
+    for field_path, field_name in config["fields"]:
+        value = get_nested_value(process, field_path)
+        if not value or (isinstance(value, str) and not value.strip()):
+            missing_required.append(field_name)
+    
+    # Verificar campos recomendados
+    for field_path, field_name in config["recommended"]:
+        value = get_nested_value(process, field_path)
+        if not value or (isinstance(value, str) and not value.strip()):
+            missing_recommended.append(field_name)
+    
+    is_valid = len(missing_required) == 0
+    
+    # Construir mensagem
+    messages = []
+    if missing_required:
+        messages.append(f"Campos obrigatórios em falta: {', '.join(missing_required)}")
+    if missing_recommended:
+        messages.append(f"Campos recomendados em falta: {', '.join(missing_recommended)}")
+    
+    return {
+        "is_valid": is_valid,
+        "missing_fields": missing_required,
+        "missing_recommended": missing_recommended,
+        "message": " | ".join(messages) if messages else "Todos os campos preenchidos"
     }
