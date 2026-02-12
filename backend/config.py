@@ -21,15 +21,70 @@ def get_required_env(key: str) -> str:
 
 
 # ====================================================================
-# JWT CONFIG (OBRIGATÓRIO)
+# JWT CONFIG (OBRIGATÓRIO - VALIDAÇÃO ROBUSTA)
 # ====================================================================
 JWT_SECRET = get_required_env('JWT_SECRET')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
-# Verificar se não é a chave padrão de exemplo
-if 'change-in-production' in JWT_SECRET or JWT_SECRET == 'super-secret-key':
-    print("⚠️  AVISO: JWT_SECRET parece ser um valor de exemplo. Altere em produção!", file=sys.stderr)
+# Validação robusta do JWT Secret
+MIN_JWT_SECRET_LENGTH = 32  # Mínimo 256 bits de entropia
+
+def validate_jwt_secret(secret: str) -> None:
+    """
+    Valida que o JWT secret é suficientemente seguro.
+    Requisitos:
+    - Mínimo 32 caracteres
+    - Não pode ser um valor de exemplo conhecido
+    - Deve ter mistura de caracteres para alta entropia
+    """
+    import string
+    
+    # Lista de valores de exemplo que NÃO devem ser usados
+    INSECURE_SECRETS = [
+        'super-secret-key',
+        'change-in-production',
+        'your-secret-key',
+        'secret-key',
+        'mysecret',
+        'changeme',
+        'password',
+        'jwt-secret',
+        'default-secret',
+    ]
+    
+    secret_lower = secret.lower()
+    
+    # Verificar se é um valor de exemplo
+    for insecure in INSECURE_SECRETS:
+        if insecure in secret_lower:
+            print(f"❌ ERRO FATAL: JWT_SECRET contém valor de exemplo '{insecure}'!", file=sys.stderr)
+            print(f"   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
+            sys.exit(1)
+    
+    # Verificar comprimento mínimo
+    if len(secret) < MIN_JWT_SECRET_LENGTH:
+        print(f"❌ ERRO FATAL: JWT_SECRET muito curto ({len(secret)} chars)!", file=sys.stderr)
+        print(f"   Mínimo requerido: {MIN_JWT_SECRET_LENGTH} caracteres", file=sys.stderr)
+        print(f"   Gere um secret seguro: openssl rand -hex 32", file=sys.stderr)
+        sys.exit(1)
+    
+    # Verificar complexidade (entropia)
+    has_lower = any(c.islower() for c in secret)
+    has_upper = any(c.isupper() for c in secret)
+    has_digit = any(c.isdigit() for c in secret)
+    has_special = any(c in string.punctuation for c in secret)
+    
+    complexity_score = sum([has_lower, has_upper, has_digit, has_special])
+    
+    if complexity_score < 2:
+        print(f"⚠️  AVISO: JWT_SECRET com baixa complexidade (score: {complexity_score}/4)", file=sys.stderr)
+        print(f"   Recomendado usar mistura de maiúsculas, minúsculas, números e símbolos", file=sys.stderr)
+    
+    print(f"✅ JWT_SECRET validado ({len(secret)} chars, complexidade: {complexity_score}/4)", file=sys.stderr)
+
+# Executar validação
+validate_jwt_secret(JWT_SECRET)
 
 
 # ====================================================================
