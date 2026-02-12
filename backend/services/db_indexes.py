@@ -14,6 +14,49 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 logger = logging.getLogger(__name__)
 
 
+# Lista de índices antigos/incorretos que devem ser removidos
+DEPRECATED_INDEXES = {
+    "properties": [
+        "idx_internal_ref",  # Nome antigo incorreto - campo era internal_ref
+    ]
+}
+
+
+async def cleanup_deprecated_indexes(db: AsyncIOMotorDatabase) -> dict:
+    """
+    Remove índices antigos/incorretos que podem causar erros.
+    Executa antes de criar novos índices.
+    """
+    results = {"dropped": [], "errors": [], "not_found": []}
+    
+    for collection_name, index_names in DEPRECATED_INDEXES.items():
+        collection = db[collection_name]
+        
+        try:
+            # Obter índices existentes
+            existing_indexes = await collection.index_information()
+            
+            for idx_name in index_names:
+                if idx_name in existing_indexes:
+                    try:
+                        await collection.drop_index(idx_name)
+                        results["dropped"].append(f"{collection_name}.{idx_name}")
+                        logger.info(f"🗑️ Índice removido: {collection_name}.{idx_name}")
+                    except Exception as e:
+                        results["errors"].append(f"{collection_name}.{idx_name}: {str(e)}")
+                        logger.error(f"Erro ao remover índice {collection_name}.{idx_name}: {e}")
+                else:
+                    results["not_found"].append(f"{collection_name}.{idx_name}")
+        except Exception as e:
+            results["errors"].append(f"{collection_name}: {str(e)}")
+            logger.error(f"Erro ao verificar índices em {collection_name}: {e}")
+    
+    if results["dropped"]:
+        logger.info(f"✅ Limpeza de índices concluída: {len(results['dropped'])} removidos")
+    
+    return results
+
+
 async def create_indexes(db: AsyncIOMotorDatabase) -> dict:
     """
     Cria índices optimizados nas colecções principais.
