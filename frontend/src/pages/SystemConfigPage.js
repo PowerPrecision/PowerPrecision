@@ -598,7 +598,7 @@ const SystemConfigPage = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             {sections.map((key) => {
               const Icon = SECTION_ICONS[key] || Settings;
               return (
@@ -608,6 +608,10 @@ const SystemConfigPage = () => {
                 </TabsTrigger>
               );
             })}
+            <TabsTrigger value="maintenance" className="gap-2">
+              <Wrench className="h-4 w-4" />
+              <span className="hidden sm:inline">Manutenção</span>
+            </TabsTrigger>
           </TabsList>
 
           {sections.map((key) => (
@@ -622,6 +626,10 @@ const SystemConfigPage = () => {
               />
             </TabsContent>
           ))}
+          
+          <TabsContent value="maintenance" className="mt-6">
+            <MaintenanceSection />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
