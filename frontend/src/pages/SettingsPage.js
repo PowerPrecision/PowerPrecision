@@ -182,11 +182,7 @@ const SettingsPage = () => {
         throw new Error("Erro ao guardar preferências");
       }
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível guardar as preferências.",
-        variant: "destructive",
-      });
+      toast.error("Não foi possível guardar as preferências");
     } finally {
       setLoading(false);
     }
