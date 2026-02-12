@@ -64,10 +64,14 @@ async def create_indexes(db: AsyncIOMotorDatabase) -> dict:
     Returns:
         dict: Resumo dos índices criados
     """
+    # Primeiro, limpar índices antigos/incorretos
+    cleanup_results = await cleanup_deprecated_indexes(db)
+    
     results = {
         "created": [],
         "errors": [],
-        "skipped": []
+        "skipped": [],
+        "cleanup": cleanup_results
     }
     
     # ====================================================================
