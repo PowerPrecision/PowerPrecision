@@ -526,18 +526,22 @@ async def import_properties_from_excel(
         'tipologia': 'quartos_raw',  # T1, T2, T3...
         'ano_de_construção': 'ano_construcao',
         'certificado_energético': 'certificado_energetico',
-        # Proprietário
+        # Proprietário (formato HCPro)
         'proprietário': 'proprietario_nome',
         'proprietário,_email': 'proprietario_email',
         'proprietário,_telemóvel': 'proprietario_telefone',
-        'proprietário,_telefone': 'proprietario_telefone',
+        'proprietário,_telefone': 'proprietario_telefone2',
         # Descrição
         'descrição_pt': 'descricao',
         'descrição': 'descricao',
         # Referência
         'referência': 'referencia_externa',
         # Agência
+        'agência': 'agencia',
         'agencia_responsável': 'agencia',
+        # Outros
+        'observações': 'notas',
+        'responsável': 'responsavel',
     }
     
     # Aplicar aliases
