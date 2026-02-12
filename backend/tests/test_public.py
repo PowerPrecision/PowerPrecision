@@ -49,14 +49,19 @@ async def test_public_registration_with_personal_data(client):
     import random
     unique_email = f"test_full_{uuid.uuid4().hex[:8]}@email.pt"
     
-    # NIFs válidos gerados com dígito de controlo correcto
-    # Apenas 1, 2, 3 são válidos para particulares (4 é rejeitado)
-    valid_test_nifs = [
-        "101234562",  # Começa com 1
-        "201234564",  # Começa com 2
-        "301234566",  # Começa com 3
-    ]
-    unique_nif = random.choice(valid_test_nifs)
+    # Gerar NIF válido e único para cada teste
+    # Usar timestamp para garantir unicidade
+    import time
+    ts = str(int(time.time() * 1000))[-7:]  # últimos 7 dígitos do timestamp
+    base = "1" + ts  # Começar com 1 (válido para particulares)
+    
+    # Calcular dígito de controlo
+    weights = [9, 8, 7, 6, 5, 4, 3, 2]
+    total = sum(int(d) * w for d, w in zip(base, weights))
+    check_digit = 11 - (total % 11)
+    if check_digit >= 10:
+        check_digit = 0
+    unique_nif = base + str(check_digit)
     
     response = await client.post("/public/client-registration", json={
         "name": "Test Cliente Full",
