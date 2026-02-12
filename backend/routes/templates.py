@@ -57,10 +57,21 @@ async def get_cpcv_template(
 ):
     """
     Gera o template de CPCV (Contrato Promessa Compra e Venda) preenchido.
+    Valida se todos os campos obrigatórios estão preenchidos.
     """
     result = await get_template_for_process(process_id, "cpcv")
     
     if result.get("error"):
+        # Se for erro de validação, retorna 400 com detalhes
+        if result.get("validation_error"):
+            raise HTTPException(
+                status_code=400, 
+                detail={
+                    "message": result["error"],
+                    "missing_fields": result.get("missing_fields", []),
+                    "missing_fields_message": result.get("missing_fields_message", "")
+                }
+            )
         raise HTTPException(status_code=404, detail=result["error"])
     
     return result
