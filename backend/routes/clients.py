@@ -28,75 +28,128 @@ logger = logging.getLogger(__name__)
 async def list_clients(
     search: Optional[str] = Query(None, description="Pesquisar por nome, email ou NIF"),
     has_active_process: Optional[bool] = Query(None, description="Filtrar por ter processo activo"),
+    show_all: bool = Query(True, description="Se True, mostra todos os clientes da empresa. Se False, apenas os do utilizador"),
     limit: int = Query(100, le=500),
     skip: int = Query(0),
     user: dict = Depends(get_current_user)
 ):
     """
     Listar clientes.
-    - Admin/CEO: vê todos os clientes
-    - Consultor: vê clientes dos seus processos (assigned_consultor_id)
-    - Intermediário/Mediador: vê clientes dos seus processos (assigned_mediador_id)
+    - show_all=True: Todos os utilizadores vêem todos os clientes da empresa
+    - show_all=False: Utilizadores vêem apenas os seus clientes (atribuídos)
+    
+    Nota: Todos podem ver a lista de clientes para referência,
+    mas apenas têm acesso total a processos que lhes estão atribuídos.
     """
     user_role = user.get("role", "")
     user_id = user.get("id", "")
     user_email = user.get("email", "")
     
-    # Para roles não-admin, buscar clientes a partir dos processos
-    if user_role not in ["admin", "ceo", "diretor"]:
-        # Construir query baseada no papel do utilizador
-        if user_role == "consultor":
-            # Consultores vêem processos atribuídos a eles como consultor
-            role_query = {
-                "$or": [
-                    {"assigned_consultor_id": user_id},
-                    {"created_by": user_email}
-                ]
-            }
-        elif user_role in ["mediador", "intermediario"]:
-            # Intermediários vêem processos atribuídos a eles como mediador
-            role_query = {
-                "$or": [
-                    {"assigned_mediador_id": user_id},
-                    {"created_by": user_email}
-                ]
-            }
-        else:
-            # Outros roles - mostrar apenas processos que criou
-            role_query = {"created_by": user_email}
-        
-        # Verificar se há processos atribuídos a este utilizador
-        my_processes_count = await db.processes.count_documents(role_query)
-        
-        # Se não houver processos atribuídos, NÃO mostrar todos (correcção de segurança)
-        if my_processes_count == 0:
-            process_query = role_query  # Manter o filtro mesmo se não tiver resultados
-        else:
-            process_query = role_query
+    # Se show_all=True OU é admin/ceo/diretor, mostrar todos
+    if show_all or user_role in ["admin", "ceo", "diretor"]:
+        # Mostrar todos os clientes da empresa
+        process_query = {}
         
         if search:
-            search_filter = {
+            process_query = {
                 "$or": [
                     {"client_name": {"$regex": search, "$options": "i"}},
                     {"client_email": {"$regex": search, "$options": "i"}},
                     {"personal_data.nif": {"$regex": search, "$options": "i"}}
                 ]
             }
-            process_query = {"$and": [process_query, search_filter]}
         
-        # Buscar processos e transformar em "clientes"
+        # Buscar todos os processos (clientes únicos)
         processes = await db.processes.find(
             process_query,
             {"_id": 0, "id": 1, "client_name": 1, "client_email": 1, "client_phone": 1, 
-             "personal_data": 1, "status": 1, "process_number": 1, "client_id": 1}
+             "personal_data": 1, "status": 1, "process_number": 1, "client_id": 1,
+             "assigned_consultor_id": 1, "assigned_mediador_id": 1}
         ).skip(skip).limit(limit).to_list(length=limit)
         
-        # Agrupar por cliente (usando client_id ou client_name como chave)
+        # Agrupar por cliente
         clients_map = {}
         for proc in processes:
             key = proc.get("client_id") or proc.get("client_name", "").lower().strip()
             if not key:
                 continue
+            
+            if key not in clients_map:
+                clients_map[key] = {
+                    "id": proc.get("client_id") or proc.get("id"),
+                    "client_name": proc.get("client_name"),
+                    "client_email": proc.get("client_email"),
+                    "client_phone": proc.get("client_phone"),
+                    "nif": proc.get("personal_data", {}).get("nif"),
+                    "processes": [],
+                    "active_process_count": 0
+                }
+            
+            clients_map[key]["processes"].append({
+                "id": proc.get("id"),
+                "process_number": proc.get("process_number"),
+                "status": proc.get("status")
+            })
+            
+            if proc.get("status") not in ["arquivado", "perdido", "concluido"]:
+                clients_map[key]["active_process_count"] += 1
+        
+        clients = list(clients_map.values())
+        
+        # Filtrar por ter processo activo
+        if has_active_process is not None:
+            clients = [c for c in clients if (c["active_process_count"] > 0) == has_active_process]
+        
+        return {
+            "clients": clients,
+            "total": len(clients),
+            "showing_all": True
+        }
+    
+    # show_all=False - Mostrar apenas clientes do utilizador
+    # Construir query baseada no papel do utilizador
+    if user_role == "consultor":
+        role_query = {
+            "$or": [
+                {"assigned_consultor_id": user_id},
+                {"created_by": user_email}
+            ]
+        }
+    elif user_role in ["mediador", "intermediario"]:
+        role_query = {
+            "$or": [
+                {"assigned_mediador_id": user_id},
+                {"created_by": user_email}
+            ]
+        }
+    else:
+        role_query = {"created_by": user_email}
+    
+    process_query = role_query
+    
+    if search:
+        search_filter = {
+            "$or": [
+                {"client_name": {"$regex": search, "$options": "i"}},
+                {"client_email": {"$regex": search, "$options": "i"}},
+                {"personal_data.nif": {"$regex": search, "$options": "i"}}
+            ]
+        }
+        process_query = {"$and": [process_query, search_filter]}
+    
+    # Buscar processos e transformar em "clientes"
+    processes = await db.processes.find(
+        process_query,
+        {"_id": 0, "id": 1, "client_name": 1, "client_email": 1, "client_phone": 1, 
+         "personal_data": 1, "status": 1, "process_number": 1, "client_id": 1}
+    ).skip(skip).limit(limit).to_list(length=limit)
+    
+    # Agrupar por cliente (usando client_id ou client_name como chave)
+    clients_map = {}
+    for proc in processes:
+        key = proc.get("client_id") or proc.get("client_name", "").lower().strip()
+        if not key:
+            continue
             
             if key not in clients_map:
                 clients_map[key] = {
