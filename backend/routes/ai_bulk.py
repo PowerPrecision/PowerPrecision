@@ -386,7 +386,13 @@ class SingleAnalysisResult(BaseModel):
 
 async def find_client_by_name(client_name: str) -> Optional[dict]:
     """
-    Encontrar cliente pelo nome (busca flexível).
+    Encontrar cliente pelo nome (busca flexível com FuzzyWuzzy).
+    
+    Melhorias (Item 13):
+    - Usa fuzzywuzzy token_set_ratio para comparação fonética
+    - Matching de primeiro nome com peso extra (+20)
+    - Suporte melhorado para parênteses e nomes compostos
+    - Score mínimo de 70 para aceitar match (era 40)
     
     Suporta:
     - Nomes com/sem acentos: "Cláudia" encontra "Claudia"
@@ -397,11 +403,22 @@ async def find_client_by_name(client_name: str) -> Optional[dict]:
     if not client_name:
         return None
     
+    # Importar fuzzywuzzy para matching fonético
+    try:
+        from fuzzywuzzy import fuzz
+        HAS_FUZZY = True
+    except ImportError:
+        logger.warning("fuzzywuzzy não instalado - usando matching básico")
+        HAS_FUZZY = False
+    
     client_name = client_name.strip()
     client_name_normalized = normalize_text_for_matching(client_name)
     client_names = extract_all_names_from_string(client_name)
     
-    logger.info(f"Procurando cliente: '{client_name}' | Normalizado: '{client_name_normalized}' | Nomes extraídos: {client_names}")
+    # Extrair primeiro nome para matching com peso extra
+    client_first_name = client_name_normalized.split()[0] if client_name_normalized.split() else ""
+    
+    logger.info(f"Procurando cliente: '{client_name}' | Normalizado: '{client_name_normalized}' | Primeiro nome: '{client_first_name}' | Nomes extraídos: {client_names}")
     
     # 1. Busca exacta (com acentos)
     process = await db.processes.find_one(
@@ -424,62 +441,97 @@ async def find_client_by_name(client_name: str) -> Optional[dict]:
     # 3. Buscar todos os processos e fazer matching flexível
     all_processes = await db.processes.find(
         {},
-        {"_id": 0, "id": 1, "client_name": 1}
+        {"_id": 0, "id": 1, "client_name": 1, "personal_data.nif": 1}
     ).to_list(length=None)
     
     best_match = None
     best_score = 0
+    match_details = {}
     
     for proc in all_processes:
         proc_name = proc.get("client_name", "")
         proc_name_normalized = normalize_text_for_matching(proc_name)
         proc_names = extract_all_names_from_string(proc_name)
         
-        score = 0
+        # Extrair primeiro nome do cliente DB
+        proc_first_name = proc_name_normalized.split()[0] if proc_name_normalized.split() else ""
         
-        # Match exacto normalizado (sem acentos)
+        score = 0
+        match_reason = ""
+        
+        # === Match exacto normalizado (sem acentos) ===
         if client_name_normalized == proc_name_normalized:
             score = 100
+            match_reason = "exacto_normalizado"
         
-        # Match parcial - nome da pasta contido no nome do cliente
+        # === Match parcial - nome da pasta contido no nome do cliente ===
         elif client_name_normalized in proc_name_normalized:
-            score = 80
+            score = 85
+            match_reason = "contido_no_cliente"
         
-        # Match parcial inverso - nome do cliente contido no nome da pasta
+        # === Match parcial inverso - nome do cliente contido no nome da pasta ===
         elif proc_name_normalized in client_name_normalized:
-            score = 75
+            score = 80
+            match_reason = "cliente_contido"
         
-        # Match de nomes individuais
+        # === FuzzyWuzzy token_set_ratio (Item 13) ===
+        elif HAS_FUZZY:
+            # token_set_ratio é bom para nomes em ordens diferentes
+            fuzzy_score = fuzz.token_set_ratio(client_name_normalized, proc_name_normalized)
+            
+            # Bónus para primeiro nome igual (+20)
+            first_name_bonus = 0
+            if client_first_name and proc_first_name:
+                if client_first_name == proc_first_name:
+                    first_name_bonus = 20
+                    logger.debug(f"Primeiro nome match: '{client_first_name}' -> '{proc_name}'")
+                elif fuzz.ratio(client_first_name, proc_first_name) > 85:
+                    first_name_bonus = 15
+            
+            score = min(fuzzy_score + first_name_bonus, 95)  # Cap em 95 para não ultrapassar match exacto
+            match_reason = f"fuzzy_{fuzzy_score}+bonus_{first_name_bonus}"
+        
+        # === Match de nomes individuais (fallback) ===
         else:
             # Verificar se algum nome da pasta está no cliente
             common_names = client_names & proc_names
             if common_names:
                 # Quanto mais nomes em comum, maior o score
-                score = 50 + (len(common_names) * 10)
+                score = 55 + (len(common_names) * 10)
+                match_reason = f"nomes_comuns_{len(common_names)}"
             else:
                 # Verificar substrings (primeiro nome)
                 for cn in client_names:
                     for pn in proc_names:
                         if cn and pn and len(cn) > 2 and len(pn) > 2:
                             if cn in pn or pn in cn:
-                                score = max(score, 40)
+                                score = max(score, 45)
+                                match_reason = f"substring_{cn}_{pn}"
         
         if score > best_score:
             best_score = score
             best_match = proc
-            logger.debug(f"Novo melhor match: '{proc_name}' com score {score}")
+            match_details = {
+                "proc_name": proc_name,
+                "score": score,
+                "reason": match_reason
+            }
+            logger.debug(f"Novo melhor match: '{proc_name}' com score {score} ({match_reason})")
     
-    if best_match and best_score >= 40:
+    # Score mínimo de 70 (aumentado de 40 para reduzir falsos positivos)
+    MIN_SCORE = 70
+    
+    if best_match and best_score >= MIN_SCORE:
         # Buscar documento completo
         full_process = await db.processes.find_one(
             {"id": best_match["id"]},
             {"_id": 0}
         )
         if full_process:
-            logger.info(f"Cliente encontrado (fuzzy, score={best_score}): '{best_match.get('client_name')}' para '{client_name}'")
+            logger.info(f"Cliente encontrado (fuzzy, score={best_score}): '{best_match.get('client_name')}' para '{client_name}' [{match_details.get('reason')}]")
             return full_process
     
-    logger.warning(f"Cliente não encontrado: '{client_name}' (melhor score: {best_score})")
+    logger.warning(f"Cliente não encontrado: '{client_name}' (melhor score: {best_score}, min: {MIN_SCORE})")
     return None
 
 
