@@ -11,6 +11,38 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
+## Última Actualização - 12 Fevereiro 2026 (Sessão 13)
+
+### ✅ Funcionalidades Corrigidas (Sessão 13)
+
+#### 1. Bug Fix P0: Conflito de Índice idx_location - RESOLVIDO
+- **Problema**: Erro de conflito de índice ao criar/importar imóveis
+  - Índice antigo: `idx_location` em campos `(distrito, concelho)` 
+  - Índice novo: `idx_location` em campos `(address.district, address.municipality)`
+- **Causa**: Discrepância entre estrutura de dados antiga e nova
+- **Solução**: Adicionado `idx_location` à lista `DEPRECATED_INDEXES` em `db_indexes.py`
+- **Ficheiros Modificados**: `/app/backend/services/db_indexes.py`
+- **Verificação**: Criados múltiplos imóveis com mesma localização sem erros - **Teste Passou**
+- **Status**: ✅ RESOLVIDO E TESTADO
+
+#### 2. Dependência libmagic - INSTALADA
+- **Problema**: Backend não iniciava por falta de `libmagic1`
+- **Solução**: `apt-get install libmagic1` executado
+- **Status**: ✅ RESOLVIDO
+
+#### 3. Verificação das Correções Anteriores (Sessão 12)
+- ✅ **Sidebar mantém estado expandido** - useEffect actualiza `openSections` correctamente
+- ✅ **Toast de notificações** - `sonner` mostra "Preferências de notificação guardadas!"
+- ✅ **Tab Manutenção** - Botões "Reparar Índices", "Limpar Jobs", "Limpar Logs" funcionais
+- ✅ **Importação Excel** - Endpoint `/api/properties/bulk/import-excel` funcional
+
+### Resultados do Testing Agent (Sessão 13)
+- **Backend**: 100% (8/8 testes passaram)
+- **Frontend**: 100% (todas as funcionalidades UI verificadas)
+- **Retest Necessário**: NÃO
+
+---
+
 ## Última Actualização - 12 Fevereiro 2026 (Sessão 12 - Parte 2)
 
 ### ✅ Funcionalidades Implementadas (Sessão 12 - Parte 2)
