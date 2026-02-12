@@ -815,7 +815,7 @@ async def get_ai_weekly_report(
                         this_week_extractions.append(extraction)
                     elif ext_date >= prev_week_start:
                         prev_week_extractions.append(extraction)
-                except:
+                except Exception:
                     pass
     
     # Calcular métricas desta semana
