@@ -496,7 +496,7 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
 
 async def analyze_with_vision(base64_content: str, mime_type: str, document_type: str) -> Dict[str, Any]:
     """
-    Analisar documento usando modelo de visão via litellm.
+    Analisar documento usando modelo de visão via emergentintegrations.
     Usado quando extracção de texto não é possível.
     
     Inclui retry automático para erros 429 (rate limit).
@@ -528,36 +528,33 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
     logger.info(f"Análise com visão: tipo={document_type}, detail={image_detail}")
     
     try:
-        # Usar litellm que está incluído no emergentintegrations
-        import litellm
+        # Usar emergentintegrations com suporte a imagem
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        import uuid
         
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{new_mime_type};base64,{resized_base64}",
-                            "detail": image_detail
-                        }
-                    }
-                ]
-            }
-        ]
+        # Criar sessão única para esta análise
+        session_id = f"doc-vision-{uuid.uuid4().hex[:8]}"
         
-        # Chamar litellm com a chave Emergent
-        response = await litellm.acompletion(
-            model=f"openai/{AI_MODEL}",
-            messages=messages,
-            max_tokens=2000,
-            temperature=0.1,
+        # Inicializar chat com system message
+        chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=system_prompt
+        ).with_model("openai", AI_MODEL)
+        
+        # Criar conteúdo de imagem em base64
+        image_content = ImageContent(
+            image_base64=resized_base64
         )
         
-        ai_response = response.choices[0].message.content
+        # Criar mensagem com texto e imagem
+        user_message = UserMessage(
+            text=user_prompt,
+            file_contents=[image_content]
+        )
+        
+        # Enviar mensagem e obter resposta
+        ai_response = await chat.send_message(user_message)
         extracted_data = parse_ai_response(ai_response, document_type)
         
         return {
