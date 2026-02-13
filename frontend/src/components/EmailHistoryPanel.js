@@ -260,8 +260,9 @@ const EmailHistoryPanel = ({
     <>
       <Card className="border-border">
         <CardHeader className={compact ? "pb-2" : ""}>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="space-y-3">
+            {/* Título */}
+            <div className="flex items-center justify-between">
               <CardTitle className={`flex items-center gap-2 ${compact ? "text-base" : "text-lg"}`}>
                 <Mail className="h-5 w-5" />
                 Histórico de Emails
@@ -269,14 +270,10 @@ const EmailHistoryPanel = ({
                   <Badge variant="secondary" className="ml-2">{stats.total}</Badge>
                 )}
               </CardTitle>
-              {!compact && (
-                <CardDescription>
-                  {stats.sent} enviado(s) • {stats.received} recebido(s)
-                  {monitoredEmails.length > 0 && ` • ${monitoredEmails.length + 1} email(s) monitorizados`}
-                </CardDescription>
-              )}
             </div>
-            <div className="flex gap-1">
+            
+            {/* Botões de acção - numa linha separada */}
+            <div className="flex flex-wrap items-center gap-2">
               <Button 
                 size="sm" 
                 variant="outline"
@@ -285,7 +282,7 @@ const EmailHistoryPanel = ({
                 data-testid="email-webmail-precision-btn"
               >
                 <Mail className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline text-xs">Precision</span>
+                <span className="text-xs">Precision</span>
                 <ExternalLink className="h-3 w-3 ml-1" />
               </Button>
               <Button 
@@ -296,7 +293,7 @@ const EmailHistoryPanel = ({
                 data-testid="email-webmail-power-btn"
               >
                 <Mail className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline text-xs">Power</span>
+                <span className="text-xs">Power</span>
                 <ExternalLink className="h-3 w-3 ml-1" />
               </Button>
               <Button 
@@ -304,8 +301,11 @@ const EmailHistoryPanel = ({
                 variant="outline"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Configurar emails monitorizados"
+                data-testid="email-settings-btn"
+                className="bg-amber-50 hover:bg-amber-100 border-amber-200"
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="h-4 w-4 mr-1" />
+                <span className="text-xs">Emails</span>
               </Button>
               <Button 
                 size="sm" 
@@ -313,14 +313,23 @@ const EmailHistoryPanel = ({
                 onClick={handleSyncEmails}
                 disabled={syncing || (!clientEmail && monitoredEmails.length === 0)}
                 title="Sincronizar emails do servidor"
+                data-testid="email-sync-btn"
               >
                 {syncing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
+                <span className="text-xs ml-1">Sync</span>
               </Button>
             </div>
+            
+            {!compact && (
+              <CardDescription className="text-xs">
+                {stats.sent} enviado(s) • {stats.received} recebido(s)
+                {monitoredEmails.length > 0 && ` • ${monitoredEmails.length + 1} email(s) monitorizados`}
+              </CardDescription>
+            )}
           </div>
         </CardHeader>
         <CardContent>
