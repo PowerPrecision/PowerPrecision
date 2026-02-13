@@ -1000,6 +1000,7 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
 async def analyze_single_file(
     file: UploadFile = File(...),
+    force_client_id: Optional[str] = None,
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
     """
@@ -1015,6 +1016,12 @@ async def analyze_single_file(
     - Detecta documentos duplicados (ex: 3 recibos de vencimento iguais)
     - Validação melhorada de NIF
     - NOVO (Item 17): Cache de sessão NIF - mapeamento pasta → cliente
+    - NOVO: Parâmetro force_client_id para forçar associação a um cliente específico
+    
+    Args:
+        file: Ficheiro a analisar
+        force_client_id: ID do processo/cliente para associar forçadamente (opcional)
+                        Se fornecido, ignora a detecção automática de cliente
     
     Estrutura do path: PastaRaiz/NomeCliente/[subpastas/]documento.pdf
     """
