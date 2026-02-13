@@ -403,10 +403,12 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     let skippedClients = 0;
     
     // Função auxiliar para actualizar sessão no backend
+    // A sessão agregada actualiza automaticamente via /analyze, mas actualizamos o background_job
     const updateBackendSession = async () => {
       if (!backendSessionId) return;
       try {
-        await fetch(`${API_URL}/api/ai/bulk/import-session/${backendSessionId}/update`, {
+        // Actualizar o job directamente na colecção background_jobs
+        await fetch(`${API_URL}/api/ai/bulk/background-job/${backendSessionId}/progress`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -415,7 +417,8 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
           body: JSON.stringify({ processed, errors }),
         });
       } catch (e) {
-        // Ignorar erros de actualização
+        // Ignorar erros de actualização - a sessão continua a funcionar
+        console.debug("Aviso: Não foi possível actualizar progresso do job", e);
       }
     };
 
