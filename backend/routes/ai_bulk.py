@@ -1200,6 +1200,20 @@ async def analyze_single_file(
                             if conflicts:
                                 result.conflicts = conflicts
                             
+                            # Registar sucesso no log de importação
+                            await log_import_result(
+                                client_name=actual_client_name,
+                                process_id=process_id,
+                                filename="CC_frente_verso.pdf",
+                                document_type="cc",
+                                success=True,
+                                extracted_data=extracted_data,
+                                updated_fields=fields,
+                                user_email=user.get("email"),
+                                folder_name=folder_name,
+                                full_path=filename
+                            )
+                            
                             logger.info(f"CC (frente+verso) analisado para {actual_client_name}: {len(result.fields_extracted)} campos, actualizados: {fields}")
                         else:
                             result.error = analysis_result.get("error", "Erro na análise do CC combinado")
