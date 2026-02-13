@@ -321,7 +321,7 @@ const AIDocumentAnalyzer = ({ processId, clientName, onDataExtracted }) => {
               </TabsTrigger>
               <TabsTrigger value="url">
                 <Link className="h-4 w-4 mr-1" />
-                URL / OneDrive
+                URL Externa
               </TabsTrigger>
             </TabsList>
 
@@ -368,12 +368,12 @@ const AIDocumentAnalyzer = ({ processId, clientName, onDataExtracted }) => {
               <div className="space-y-2">
                 <Label>URL do Documento</Label>
                 <Input
-                  placeholder="https://... ou link do OneDrive"
+                  placeholder="https://... ou s3://..."
                   value={documentUrl}
                   onChange={(e) => setDocumentUrl(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Cole o link directo do ficheiro no OneDrive (botão direito → Copiar ligação)
+                  Cole o link directo do ficheiro (S3, Google Drive, etc.)
                 </p>
               </div>
               <Button
