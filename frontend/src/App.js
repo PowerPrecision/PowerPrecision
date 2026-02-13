@@ -230,6 +230,16 @@ function App() {
             }
           />
           
+          {/* NIF Mappings - Admin only */}
+          <Route
+            path="/admin/mapeamentos-nif"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <NIFMappingsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Background Jobs - Admin only */}
           <Route
             path="/admin/processos-background"
