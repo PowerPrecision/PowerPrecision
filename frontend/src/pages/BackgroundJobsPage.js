@@ -477,6 +477,18 @@ const BackgroundJobsPage = () => {
             </CardContent>
           </Card>
           <Card 
+            className={`cursor-pointer transition-all ${statusFilter === 'paused' ? 'ring-2 ring-amber-500' : 'hover:shadow-md'}`}
+            onClick={() => setStatusFilter(statusFilter === 'paused' ? null : 'paused')}
+          >
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-amber-600 flex items-center gap-2">
+                {counts.paused || 0}
+                {(counts.paused || 0) > 0 && <Pause className="h-5 w-5" />}
+              </div>
+              <p className="text-sm text-muted-foreground">Pausados</p>
+            </CardContent>
+          </Card>
+          <Card 
             className={`cursor-pointer transition-all ${statusFilter === 'failed' ? 'ring-2 ring-red-500' : 'hover:shadow-md'}`}
             onClick={() => setStatusFilter(statusFilter === 'failed' ? null : 'failed')}
           >
@@ -525,6 +537,8 @@ const BackgroundJobsPage = () => {
                       job={job} 
                       onDelete={handleDelete}
                       onCancel={handleCancel}
+                      onPause={handlePause}
+                      onResume={handleResume}
                     />
                   ))}
                 </div>
