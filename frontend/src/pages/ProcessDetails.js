@@ -1888,22 +1888,6 @@ const ProcessDetails = () => {
                 </AccordionContent>
               </AccordionItem>
 
-              {/* Documentos S3 */}
-              <AccordionItem value="docs" className="border rounded-lg">
-                <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <FolderOpen className="h-4 w-4" />
-                    Documentos
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <S3FileManager 
-                    processId={id}
-                    clientName={process?.client_name}
-                  />
-                </AccordionContent>
-              </AccordionItem>
-
               {/* Emails */}
               <AccordionItem value="emails" className="border rounded-lg">
                 <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
@@ -1919,6 +1903,22 @@ const ProcessDetails = () => {
                     clientName={process?.client_name}
                     compact={true}
                     maxHeight="200px"
+                  />
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Documentos Unificados - Ficheiros + Links Drive */}
+              <AccordionItem value="docs" className="border rounded-lg">
+                <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    Documentos
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3">
+                  <UnifiedDocumentsPanel 
+                    processId={id}
+                    clientName={process?.client_name}
                   />
                 </AccordionContent>
               </AccordionItem>
