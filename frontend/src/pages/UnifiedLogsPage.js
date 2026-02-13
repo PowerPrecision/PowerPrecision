@@ -60,7 +60,10 @@ import {
   MoreHorizontal,
   TrendingUp,
   Loader2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
+import { Checkbox } from "../components/ui/checkbox";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
