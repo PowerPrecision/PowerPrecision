@@ -192,23 +192,13 @@ class TestBackgroundJobs:
 class TestSuggestClients:
     """Test /api/ai/bulk/suggest-clients endpoint"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Login and get token"""
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        self.token = login_response.json().get("access_token")
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-    
     def test_suggest_clients_basic(self):
         """Test GET /api/ai/bulk/suggest-clients?query=X returns suggestions"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=Test",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/suggest-clients?query=Test")
         assert response.status_code == 200
         
         data = response.json()
@@ -219,10 +209,11 @@ class TestSuggestClients:
     
     def test_suggest_clients_short_query(self):
         """Test suggest-clients with too short query"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=A",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/suggest-clients?query=A")
         assert response.status_code == 200
         
         data = response.json()
@@ -233,10 +224,11 @@ class TestSuggestClients:
     
     def test_suggest_clients_with_limit(self):
         """Test suggest-clients with limit parameter"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=Test&limit=3",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/suggest-clients?query=Test&limit=3")
         assert response.status_code == 200
         
         data = response.json()
