@@ -232,18 +232,20 @@ const AdminDashboard = () => {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="mt-6 space-y-6">
+          <TabsContent value="overview" className="mt-4 space-y-4">
             <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <LayoutGrid className="h-5 w-5" />Quadro Geral de Processos
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <LayoutGrid className="h-5 w-5 shrink-0" />
+                  <span className="hidden sm:inline">Quadro Geral de Processos</span>
+                  <span className="sm:hidden">Quadro Processos</span>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   {filteredProcesses.length} processos • Filtre por consultor ou intermediário
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div className="space-y-2">
                     <Label>Filtrar por Consultor</Label>
                     <Select value={consultorFilter} onValueChange={setConsultorFilter}>
