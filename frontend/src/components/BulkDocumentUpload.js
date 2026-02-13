@@ -310,6 +310,9 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
           break;
         }
 
+        const fileName = file.name || file.webkitRelativePath?.split("/").pop() || "ficheiro";
+        updateProgress(jobId, { currentFile: fileName });
+
         const result = await processOneFile(file);
 
         if (result.success) {
@@ -320,6 +323,9 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
         } else {
           errors++;
         }
+
+        // Actualizar progresso global
+        updateProgress(jobId, { processed, errors });
 
         // Pequena pausa entre ficheiros
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -340,6 +346,7 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
         
         // Verificar se o cliente existe ANTES de processar os ficheiros
         setCurrentFile({ name: "A verificar...", client: clientName });
+        updateProgress(jobId, { currentFile: `A verificar ${clientName}...` });
         const clientExists = await checkClientExists(clientName);
 
         if (!clientExists) {
@@ -349,6 +356,7 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
             updateFileStatus(path, FILE_STATUS.ERROR, `Cliente "${clientName}" não encontrado`);
             errors++;
           }
+          updateProgress(jobId, { errors });
           console.warn(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
           continue;
         }
@@ -360,6 +368,9 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
             break;
           }
 
+          const fileName = file.name || path.split("/").pop() || "ficheiro";
+          updateProgress(jobId, { currentFile: `${clientName}: ${fileName}` });
+
           const result = await processOneFile(file);
 
           if (result.success) {
@@ -370,6 +381,9 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
           } else {
             errors++;
           }
+
+          // Actualizar progresso global
+          updateProgress(jobId, { processed, errors });
 
           // Pequena pausa entre ficheiros
           await new Promise((resolve) => setTimeout(resolve, 100));
