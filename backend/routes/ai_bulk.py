@@ -1044,7 +1044,7 @@ async def analyze_single_file(
                             "cc"
                         )
                         
-                        # Limpar cache
+                        # Limpar cache CC
                         del cc_cache[process_id]
                         
                         if analysis_result.get("success") or analysis_result.get("extracted_data"):
@@ -1052,19 +1052,33 @@ async def analyze_single_file(
                             result.fields_extracted = list(analysis_result.get("extracted_data", {}).keys())
                             result.filename = normalized_name
                             
+                            # ================================================================
+                            # CACHE DE SESSÃO NIF (Item 17)
+                            # Se o CC extraiu NIF, guardar mapeamento pasta → cliente
+                            # ================================================================
+                            extracted_data = analysis_result.get("extracted_data", {})
+                            extracted_nif = extracted_data.get("nif")
+                            if extracted_nif:
+                                cache_nif_mapping(
+                                    folder_name=folder_name,
+                                    nif=extracted_nif,
+                                    process_id=process_id,
+                                    client_name=actual_client_name
+                                )
+                            
                             # Persistir análise do CC na DB
                             await persist_document_analysis(
                                 process_id,
                                 "cc",
                                 merged_pdf,
-                                analysis_result.get("extracted_data", {}),
+                                extracted_data,
                                 "CC_frente_verso.pdf"
                             )
                             
                             # Actualizar ficha do cliente
                             updated, fields, conflicts = await update_client_data(
                                 process_id,
-                                analysis_result.get("extracted_data", {}),
+                                extracted_data,
                                 document_type
                             )
                             result.updated = updated
