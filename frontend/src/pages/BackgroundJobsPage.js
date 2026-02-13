@@ -1,6 +1,7 @@
 /**
  * BackgroundJobsPage - Página de Processos em Background
  * Permite visualizar o estado de importações e outros processos a correr
+ * Suporta: Cancelar, Pausar e Retomar jobs
  */
 import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
@@ -19,6 +20,7 @@ import {
   Clock,
   Trash2,
   Play,
+  Pause,
   AlertTriangle,
   FileText,
   Upload,
