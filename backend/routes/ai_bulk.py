@@ -2199,12 +2199,14 @@ async def get_background_jobs(
     
     # Contar por status (da DB para precisão)
     running_count = await db.background_jobs.count_documents({"status": "running"})
+    paused_count = await db.background_jobs.count_documents({"status": "paused"})
     success_count = await db.background_jobs.count_documents({"status": "success", "started_at": {"$gte": cutoff}})
     failed_count = await db.background_jobs.count_documents({"status": "failed", "started_at": {"$gte": cutoff}})
     total_count = await db.background_jobs.count_documents({"started_at": {"$gte": cutoff}})
     
     counts = {
         "running": running_count,
+        "paused": paused_count,
         "success": success_count,
         "failed": failed_count,
         "total": total_count
