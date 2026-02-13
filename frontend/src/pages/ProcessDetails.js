@@ -56,6 +56,7 @@ import ProcessSummaryCard from "../components/ProcessSummaryCard";
 import EmailHistoryPanel from "../components/EmailHistoryPanel";
 import AIDocumentAnalyzer from "../components/AIDocumentAnalyzer";
 import UnifiedDocumentsPanel from "../components/UnifiedDocumentsPanel";
+import BulkDocumentUpload from "../components/BulkDocumentUpload";
 import ProcessTimeline from "../components/ProcessTimeline";
 import ClientPropertyMatch from "../components/ClientPropertyMatch";
 import TemplatesPanel from "../components/TemplatesPanel";
