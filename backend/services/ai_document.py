@@ -2323,6 +2323,13 @@ def build_update_data_from_extraction(
             else:
                 update_data["ai_extracted_notes"] = new_notes
     
+    # === LOG FINAL DO UPDATE_DATA ===
+    logger.info(f"[BUILD_UPDATE] Tipo: {document_type}, Campos a actualizar: {list(update_data.keys())}")
+    if update_data.get('financial_data'):
+        logger.info(f"[BUILD_UPDATE] financial_data: {json.dumps(update_data['financial_data'], ensure_ascii=False, default=str)[:1000]}")
+    if update_data.get('personal_data'):
+        logger.info(f"[BUILD_UPDATE] personal_data: {json.dumps(update_data['personal_data'], ensure_ascii=False, default=str)[:500]}")
+    
     return update_data
 
 
