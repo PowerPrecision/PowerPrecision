@@ -82,9 +82,15 @@ const roleColors = {
 
 const DashboardLayout = ({ children, title }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Keyboard shortcuts
+  const { showHelpModal, setShowHelpModal, showSearchModal, setShowSearchModal, shortcuts } = useKeyboardShortcuts({
+    onNew: () => navigate("/processos/novo"),
+  });
   
   // Determinar quais secções devem estar abertas baseado na rota actual
   const getInitialOpenSections = () => {
@@ -93,9 +99,9 @@ const DashboardLayout = ({ children, title }) => {
     // Rotas do grupo Negócio
     const negocioRoutes = ["/utilizadores", "/processos", "/clientes", "/leads", "/imoveis", "/minutas", "/meus-clientes"];
     // Rotas do grupo IA
-    const iaRoutes = ["/configuracoes/ia", "/ai-insights", "/revisao-dados-ia"];
+    const iaRoutes = ["/configuracoes/ia", "/ai-insights", "/revisao-dados-ia", "/configuracoes/treino-ia"];
     // Rotas do grupo Sistema
-    const sistemaRoutes = ["/admin/backups", "/definicoes", "/configuracoes", "/configuracoes/notificacoes", "/admin/logs"];
+    const sistemaRoutes = ["/admin/backups", "/definicoes", "/configuracoes", "/configuracoes/notificacoes", "/admin/logs", "/admin/mapeamentos-nif", "/admin/erros-importacao", "/admin/processos-background"];
     
     return {
       negocio: negocioRoutes.some(r => path.startsWith(r)),
