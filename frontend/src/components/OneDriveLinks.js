@@ -176,13 +176,13 @@ const OneDriveLinks = ({ processId, clientName }) => {
 
   return (
     <div className="space-y-4">
-      {/* Botão principal para abrir pasta do OneDrive */}
+      {/* Botão principal para abrir pasta do Drive */}
       {mainFolderUrl && (
-        <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-blue-600" />
+              <h4 className="font-medium text-sm flex items-center gap-2 dark:text-blue-200">
+                <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Pasta Drive: {clientName}
               </h4>
               <p className="text-xs text-muted-foreground mt-1">
@@ -204,7 +204,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
                   onClick={handleRemoveFolderUrl}
                   size="sm"
                   variant="outline"
-                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
