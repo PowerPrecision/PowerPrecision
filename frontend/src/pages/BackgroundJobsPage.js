@@ -43,10 +43,11 @@ const STATUS_CONFIG = {
 };
 
 // Componente de Job Individual
-const JobCard = ({ job, onDelete }) => {
+const JobCard = ({ job, onDelete, onCancel }) => {
   const Icon = JOB_TYPE_ICONS[job.type] || JOB_TYPE_ICONS.default;
   const statusConfig = STATUS_CONFIG[job.status] || STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
+  const [cancelling, setCancelling] = useState(false);
   
   const formatDate = (isoString) => {
     if (!isoString) return "-";
