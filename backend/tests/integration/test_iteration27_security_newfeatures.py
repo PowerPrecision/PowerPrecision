@@ -15,8 +15,39 @@ import os
 import pytest
 import requests
 import uuid
+import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+
+# Session to share token across tests (avoids rate limiting from multiple logins)
+_session = None
+_token = None
+
+def get_auth_session():
+    """Get or create authenticated session"""
+    global _session, _token
+    if _session is None or _token is None:
+        _session = requests.Session()
+        # Add delay to avoid rate limiting
+        time.sleep(0.5)
+        login_response = _session.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        if login_response.status_code == 200:
+            _token = login_response.json().get("access_token")
+            _session.headers.update({"Authorization": f"Bearer {_token}"})
+        elif login_response.status_code == 429:
+            # Wait and retry
+            time.sleep(2)
+            login_response = _session.post(
+                f"{BASE_URL}/api/auth/login",
+                json={"email": "admin@admin.com", "password": "admin"}
+            )
+            if login_response.status_code == 200:
+                _token = login_response.json().get("access_token")
+                _session.headers.update({"Authorization": f"Bearer {_token}"})
+    return _session, _token
 
 
 class TestSecurityHeaders:
