@@ -298,16 +298,21 @@ async def get_processes(user: dict = Depends(get_current_user)):
 
 
 @router.get("/kanban")
-async def get_kanban_board(user: dict = Depends(require_staff())):
+async def get_kanban_board(
+    consultor_id: Optional[str] = None,
+    mediador_id: Optional[str] = None,
+    user: dict = Depends(require_staff())
+):
     """
     Get processes organized by status for Kanban board.
     Admin/CEO see all, others see only their assigned processes.
+    Supports filtering by consultor_id and mediador_id.
     """
     role = user["role"]
     user_id = user["id"]
     query = {}
     
-    # Filter by role
+    # Filter by role (base visibility)
     if role == UserRole.CONSULTOR:
         query["assigned_consultor_id"] = user["id"]
     elif role in [UserRole.MEDIADOR, UserRole.INTERMEDIARIO]:
@@ -317,7 +322,21 @@ async def get_kanban_board(user: dict = Depends(require_staff())):
             {"assigned_consultor_id": user["id"]},
             {"assigned_mediador_id": user["id"]}
         ]
-    # Admin, CEO e Administrativo see all (no filter)
+    # Admin, CEO e Administrativo see all (no base filter)
+    
+    # Apply additional filters (only for roles that can see all)
+    if role in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
+        if consultor_id:
+            if consultor_id == "none":
+                query["$or"] = query.get("$or", [])
+                query["assigned_consultor_id"] = {"$in": [None, ""]}
+            else:
+                query["assigned_consultor_id"] = consultor_id
+        if mediador_id:
+            if mediador_id == "none":
+                query["assigned_mediador_id"] = {"$in": [None, ""]}
+            else:
+                query["assigned_mediador_id"] = mediador_id
     
     # Get all workflow statuses ordered
     statuses = await db.workflow_statuses.find({}, {"_id": 0}).sort("order", 1).to_list(100)
