@@ -195,13 +195,6 @@ const StaffDashboard = () => {
                 <span className="sm:hidden">Users</span>
               </TabsTrigger>
             )}
-            {canManageWorkflow && (
-              <TabsTrigger value="settings" className="gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Configurações</span>
-                <span className="sm:hidden">Config</span>
-              </TabsTrigger>
-            )}
           </TabsList>
 
           {/* Kanban Tab */}
@@ -387,22 +380,6 @@ const StaffDashboard = () => {
             </TabsContent>
           )}
 
-          {/* Settings Tab (Admin only) */}
-          {canManageWorkflow && (
-            <TabsContent value="settings" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configurações do Sistema</CardTitle>
-                  <CardDescription>Para gestão completa, aceda ao painel de administração</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Use o menu lateral para aceder à gestão completa de utilizadores e workflow.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
         </Tabs>
       </div>
     </DashboardLayout>
