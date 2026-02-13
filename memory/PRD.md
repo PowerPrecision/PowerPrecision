@@ -11,7 +11,40 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 18)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 19)
+
+### ✅ Tarefas Completadas (Sessão 19)
+
+#### P0: Correcção dos Filtros do Kanban - COMPLETO
+- **Problema**: Quando consultor_id=none E mediador_id=none eram passados, a segunda atribuição de `query["$or"]` sobrescrevia a primeira
+- **Solução**: Implementado uso de `$and` para combinar múltiplas condições de filtro
+- **Ficheiro**: `/app/backend/routes/processes.py` (linhas 327-356)
+- **Testes**: 
+  - Sem filtros: 218 processos
+  - consultor_id=none: 78 processos
+  - mediador_id=none: 213 processos
+  - Ambos none: 74 processos (interseção correcta)
+- **Status**: ✅ COMPLETO E TESTADO
+
+#### P0: Correcção da Exclusão de Clientes - COMPLETO
+- **Problema**: O endpoint DELETE /api/clients/{id} procurava na colecção `clients` mas os dados estão em `processes`
+- **Solução**: Modificado para procurar primeiro em `processes` e depois em `clients` para compatibilidade
+- **Funcionalidade adicional**: Agora também elimina documentos, tarefas e histórico associados
+- **Ficheiro**: `/app/backend/routes/clients.py` (linhas 571-632)
+- **Status**: ✅ COMPLETO E TESTADO
+
+#### P0: Verificação de Preferências de Email - VERIFICADO
+- **Endpoints**: 
+  - PUT /api/auth/preferences (utilizador actual)
+  - GET/PUT /api/admin/notification-preferences (admin para outros utilizadores)
+- **Status**: ✅ A FUNCIONAR CORRECTAMENTE
+
+#### P0: Dependência libmagic - RESOLVIDO
+- **Problema**: Backend falhava ao iniciar por falta de libmagic.so.1
+- **Solução**: Instalado libmagic1 e libmagic-dev via apt-get
+- **Status**: ✅ RESOLVIDO (temporariamente - precisa de solução permanente no Dockerfile)
+
+### Sessão 18 - Anteriormente Completado
 
 ### ✅ Tarefas Completadas (Sessão 18)
 
