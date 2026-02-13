@@ -123,7 +123,9 @@ document_hash_cache: Dict[str, Dict[str, Dict[str, dict]]] = {}
 # ====================================================================
 # Quando um CC é analisado e o NIF extraído, guarda o mapeamento
 # pasta → cliente para documentos subsequentes da mesma pasta.
-# Estrutura: {folder_name_normalized: {
+# PERSISTÊNCIA: Os mapeamentos são guardados na coleção 'nif_mappings' da DB
+# para sobreviver a reinícios do servidor.
+# Estrutura em memória: {folder_name_normalized: {
 #     "nif": "123456789",
 #     "process_id": "uuid",
 #     "client_name": "Nome Cliente",
@@ -131,8 +133,11 @@ document_hash_cache: Dict[str, Dict[str, Dict[str, dict]]] = {}
 # }}
 nif_session_cache: Dict[str, Dict[str, Any]] = {}
 
-# Tempo máximo de validade do cache NIF (2 horas = sessão típica de upload)
-NIF_CACHE_TTL_SECONDS = 7200
+# Tempo máximo de validade do cache NIF (30 dias para persistência)
+NIF_CACHE_TTL_SECONDS = 30 * 24 * 3600  # 30 dias
+
+# Flag para saber se já carregámos o cache da DB
+_nif_cache_loaded = False
 
 
 def get_nif_cache_key(folder_name: str) -> str:
@@ -140,9 +145,40 @@ def get_nif_cache_key(folder_name: str) -> str:
     return normalize_text_for_matching(folder_name)
 
 
-def cache_nif_mapping(folder_name: str, nif: str, process_id: str, client_name: str):
+async def _load_nif_cache_from_db():
+    """Carregar mapeamentos NIF da base de dados para memória."""
+    global nif_session_cache, _nif_cache_loaded
+    
+    if _nif_cache_loaded:
+        return
+    
+    try:
+        mappings = await db.nif_mappings.find({}, {"_id": 0}).to_list(1000)
+        
+        for mapping in mappings:
+            cache_key = mapping.get("cache_key")
+            if cache_key:
+                # Converter string ISO para datetime
+                matched_at = mapping.get("matched_at")
+                if isinstance(matched_at, str):
+                    matched_at = datetime.fromisoformat(matched_at.replace("Z", "+00:00"))
+                
+                nif_session_cache[cache_key] = {
+                    "nif": mapping.get("nif"),
+                    "process_id": mapping.get("process_id"),
+                    "client_name": mapping.get("client_name"),
+                    "matched_at": matched_at
+                }
+        
+        _nif_cache_loaded = True
+        logger.info(f"[NIF CACHE] {len(mappings)} mapeamentos carregados da base de dados")
+    except Exception as e:
+        logger.error(f"[NIF CACHE] Erro ao carregar da DB: {e}")
+
+
+async def cache_nif_mapping(folder_name: str, nif: str, process_id: str, client_name: str):
     """
-    Guardar mapeamento NIF → Cliente no cache de sessão.
+    Guardar mapeamento NIF → Cliente no cache de sessão E na base de dados.
     
     Args:
         folder_name: Nome da pasta do documento
@@ -151,35 +187,87 @@ def cache_nif_mapping(folder_name: str, nif: str, process_id: str, client_name: 
         client_name: Nome do cliente
     """
     cache_key = get_nif_cache_key(folder_name)
+    now = datetime.now(timezone.utc)
+    
+    # Guardar em memória
     nif_session_cache[cache_key] = {
         "nif": nif,
         "process_id": process_id,
         "client_name": client_name,
-        "matched_at": datetime.now(timezone.utc)
+        "matched_at": now
     }
-    logger.info(f"[NIF CACHE] Mapeamento guardado: '{folder_name}' -> NIF {nif} -> '{client_name}'")
+    
+    # Persistir na base de dados (upsert)
+    try:
+        await db.nif_mappings.update_one(
+            {"cache_key": cache_key},
+            {"$set": {
+                "cache_key": cache_key,
+                "folder_name": folder_name,
+                "nif": nif,
+                "process_id": process_id,
+                "client_name": client_name,
+                "matched_at": now.isoformat(),
+                "updated_at": now.isoformat()
+            }},
+            upsert=True
+        )
+        logger.info(f"[NIF CACHE] Mapeamento guardado (memória + DB): '{folder_name}' -> NIF {nif} -> '{client_name}'")
+    except Exception as e:
+        logger.error(f"[NIF CACHE] Erro ao persistir na DB: {e}")
 
 
-def get_cached_nif_mapping(folder_name: str) -> Optional[Dict[str, Any]]:
+async def get_cached_nif_mapping(folder_name: str) -> Optional[Dict[str, Any]]:
     """
     Obter mapeamento do cache de sessão NIF.
+    Primeiro verifica memória, depois a base de dados.
     
     Returns:
         Dict com {nif, process_id, client_name} ou None se não existe/expirou
     """
+    # Garantir que carregámos o cache da DB
+    await _load_nif_cache_from_db()
+    
     cache_key = get_nif_cache_key(folder_name)
     cached = nif_session_cache.get(cache_key)
+    
+    # Se não está em memória, tentar buscar da DB
+    if not cached:
+        try:
+            db_mapping = await db.nif_mappings.find_one({"cache_key": cache_key}, {"_id": 0})
+            if db_mapping:
+                matched_at = db_mapping.get("matched_at")
+                if isinstance(matched_at, str):
+                    matched_at = datetime.fromisoformat(matched_at.replace("Z", "+00:00"))
+                
+                cached = {
+                    "nif": db_mapping.get("nif"),
+                    "process_id": db_mapping.get("process_id"),
+                    "client_name": db_mapping.get("client_name"),
+                    "matched_at": matched_at
+                }
+                # Adicionar ao cache de memória
+                nif_session_cache[cache_key] = cached
+                logger.info(f"[NIF CACHE] Mapeamento carregado da DB: '{folder_name}'")
+        except Exception as e:
+            logger.error(f"[NIF CACHE] Erro ao buscar da DB: {e}")
+            return None
     
     if not cached:
         return None
     
-    # Verificar se expirou
+    # Verificar se expirou (30 dias)
     matched_at = cached.get("matched_at")
     if matched_at:
+        if isinstance(matched_at, str):
+            matched_at = datetime.fromisoformat(matched_at.replace("Z", "+00:00"))
+        
         age = (datetime.now(timezone.utc) - matched_at).total_seconds()
         if age > NIF_CACHE_TTL_SECONDS:
-            logger.info(f"[NIF CACHE] Mapeamento expirado para '{folder_name}' (idade: {age}s)")
+            logger.info(f"[NIF CACHE] Mapeamento expirado para '{folder_name}' (idade: {int(age/86400)} dias)")
+            # Remover da memória e da DB
             del nif_session_cache[cache_key]
+            await db.nif_mappings.delete_one({"cache_key": cache_key})
             return None
     
     logger.info(f"[NIF CACHE] Hit para '{folder_name}': NIF {cached.get('nif')} -> '{cached.get('client_name')}'")
