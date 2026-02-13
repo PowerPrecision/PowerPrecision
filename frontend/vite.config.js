@@ -87,6 +87,11 @@ export default defineConfig(({ mode }) => {
         'date-fns',
         'lucide-react',
       ],
+      esbuildOptions: {
+        loader: {
+          '.js': 'jsx',
+        },
+      },
     },
     
     // Definir variáveis de ambiente que começam com REACT_APP_
