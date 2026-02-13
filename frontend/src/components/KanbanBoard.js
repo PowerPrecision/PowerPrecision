@@ -47,7 +47,7 @@ const statusHeaderColors = {
   red: "bg-red-500",
 };
 
-const KanbanBoard = ({ token, user }) => {
+const KanbanBoard = ({ token, user, consultorFilter = "all", mediadorFilter = "all" }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [kanbanData, setKanbanData] = useState({ columns: [], total_processes: 0 });
