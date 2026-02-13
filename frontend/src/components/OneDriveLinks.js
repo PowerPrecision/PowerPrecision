@@ -183,7 +183,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm flex items-center gap-2">
                 <FolderOpen className="h-4 w-4 text-blue-600" />
-                Pasta OneDrive: {clientName}
+                Pasta Drive: {clientName}
               </h4>
               <p className="text-xs text-muted-foreground mt-1">
                 {savedFolderUrl ? "Link específico guardado" : "Pasta principal - pesquisar pelo nome do cliente"}
@@ -194,7 +194,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
                 onClick={handleOpenFolder}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
-                data-testid="open-onedrive-btn"
+                data-testid="open-drive-btn"
               >
                 <ExternalLink className="h-4 w-4 mr-1" />
                 Abrir
