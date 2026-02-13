@@ -1,0 +1,155 @@
+{
+  "summary": "Iteration 28: Testes completos do workflow do consultor. Corrigido bug no endpoint GET /api/onedrive/links/{process_id}. Todas as 7 funcionalidades solicitadas testadas e funcionais (100% success rate).",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "test_01: Login consultor flaviosilva@powerealestate.pt com sucesso",
+    "test_02: Login com senha inválida rejeitado correctamente",
+    "test_03: Listar processos como consultor (44 processos atribuídos)",
+    "test_04: Listar clientes via /my-clients endpoint",
+    "test_05: Ver detalhes de processo específico",
+    "test_06: GET /api/onedrive/links/{process_id} - Lista links (após fix)",
+    "test_07: POST /api/onedrive/links/{process_id} - Adicionar link Drive",
+    "test_08: Verificar persistência de link adicionado",
+    "test_09: DELETE /api/onedrive/links/{process_id}/{link_id} - Remover link",
+    "test_10: URL inválido rejeitado correctamente (status 400)",
+    "test_11: POST /api/processes/create-client - Criar processo como consultor",
+    "test_12: Verificar atribuição automática do consultor ao processo criado",
+    "test_99: Limpeza de dados de teste"
+  ],
+  
+  "failed_tests": [],
+  
+  "bugs_fixed_by_testing_agent": [
+    {
+      "endpoint": "GET /api/onedrive/links/{process_id}",
+      "issue": "Retornava 404 para processos novos sem campo onedrive_links",
+      "root_cause": "Query MongoDB com projection {onedrive_links: 1} retornava {} (dict vazio) quando campo não existia, e 'if not {}' é True em Python",
+      "fix": "Separada verificação de existência do processo (com projection {id: 1}) da busca de links",
+      "file_changed": "/app/backend/routes/onedrive.py",
+      "lines_changed": "247-266"
+    }
+  ],
+  
+  "features_verified": [
+    {
+      "feature": "Login como consultor",
+      "status": "WORKING",
+      "credentials": "flaviosilva@powerealestate.pt / flavio123",
+      "details": "Role 'consultor' confirmado, token JWT retornado correctamente"
+    },
+    {
+      "feature": "Listar processos como consultor",
+      "status": "WORKING",
+      "endpoint": "GET /api/processes",
+      "details": "Consultor vê apenas processos onde assigned_consultor_id = seu ID"
+    },
+    {
+      "feature": "Ver detalhes de processo",
+      "status": "WORKING", 
+      "endpoint": "GET /api/processes/{id}",
+      "details": "Consultor pode ver detalhes de processos atribuídos a si"
+    },
+    {
+      "feature": "Adicionar link Drive",
+      "status": "WORKING",
+      "endpoint": "POST /api/onedrive/links/{process_id}",
+      "details": "Suporta OneDrive, Google Drive, S3, SharePoint e URLs HTTP/HTTPS"
+    },
+    {
+      "feature": "Listar links de processo",
+      "status": "WORKING (após fix)",
+      "endpoint": "GET /api/onedrive/links/{process_id}",
+      "details": "Retorna array de links, [] se nenhum link"
+    },
+    {
+      "feature": "Criar processo como consultor",
+      "status": "WORKING",
+      "endpoint": "POST /api/processes/create-client",
+      "details": "Role 'consultor' agora permitido (junto com admin, ceo, intermediário, mediador, administrativo, diretor)"
+    },
+    {
+      "feature": "Atribuição automática do consultor",
+      "status": "WORKING",
+      "details": "Quando consultor cria processo, assigned_consultor_id é automaticamente preenchido com o ID do consultor"
+    }
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/integration/test_iteration28_consultor_workflow.py",
+    "/app/test_reports/pytest/pytest_results_iteration28.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "BUG CORRIGIDO: GET /api/onedrive/links/{process_id} agora funciona para processos sem links",
+    "POST /api/processes/create-client correctamente permite role 'consultor'",
+    "Atribuição automática funciona: consultor criando processo é automaticamente assigned_consultor_id"
+  ],
+  
+  "updated_files": [
+    "/app/backend/routes/onedrive.py",
+    "/app/backend/tests/integration/test_iteration28_consultor_workflow.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (13/13 pytest tests passed)",
+    "frontend": "N/A - backend only testing"
+  },
+  
+  "test_credentials": {
+    "consultor": {
+      "email": "flaviosilva@powerealestate.pt",
+      "password": "flavio123",
+      "role": "consultor"
+    },
+    "admin": {
+      "email": "admin@admin.com",
+      "password": "admin",
+      "role": "admin"
+    }
+  },
+  
+  "seed_data_creation": "Vários processos TEST_ criados durante testes (cleanup parcial executado)",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Workflow do consultor está 100% funcional. Bug do endpoint GET /api/onedrive/links foi corrigido - a causa era que MongoDB projection retornava {} quando campo não existia, e Python trata {} como falsy. Credenciais do consultor: flaviosilva@powerealestate.pt / flavio123",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "NO MOCKED APIs - All real integrations tested"
+  },
+  
+  "key_observations": {
+    "consultor_processes_count": "44 processos atribuídos ao consultor Flávio da Silva",
+    "onedrive_links_bug": "Corrigido - era problema de Python falsy check em dict vazio",
+    "auto_assignment": "Funciona correctamente para role consultor",
+    "allowed_roles_create_client": ["admin", "ceo", "consultor", "intermediario", "mediador", "administrativo", "diretor"]
+  },
+  
+  "rca_of_the_issue": {
+    "issue": "GET /api/onedrive/links/{process_id} retornava 404 para processos válidos",
+    "reproduction_steps": [
+      "1. Login como consultor",
+      "2. Criar novo processo via POST /api/processes/create-client",
+      "3. Tentar GET /api/onedrive/links/{process_id} com ID do processo criado",
+      "4. Recebia 404 'Processo não encontrado'"
+    ],
+    "root_cause": "A query MongoDB find_one({id: process_id}, {onedrive_links: 1, _id: 0}) retorna {} quando o campo onedrive_links não existe no documento. Em Python, 'if not {}' avalia como True, causando o raise HTTPException 404.",
+    "fix_applied": "Separada a verificação de existência do processo (com projection {id: 1} que sempre retorna algo se processo existe) da busca dos links.",
+    "prevention": "Evitar usar projection que pode retornar dict vazio como condição de existência. Sempre verificar existência com campo garantido (como id)."
+  }
+}
