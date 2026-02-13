@@ -1934,12 +1934,21 @@ async def get_nif_cache_stats(
 async def clear_nif_cache(
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
-    """Limpar todo o cache de sessão NIF."""
-    global nif_session_cache
-    count = len(nif_session_cache)
+    """Limpar todo o cache de sessão NIF (memória e DB)."""
+    global nif_session_cache, _nif_cache_loaded
+    
+    memory_count = len(nif_session_cache)
     nif_session_cache = {}
-    logger.info(f"[NIF CACHE] Cache limpo manualmente. {count} entradas removidas.")
-    return {"message": f"Cache NIF limpo. {count} mapeamentos removidos."}
+    _nif_cache_loaded = False
+    
+    # Limpar também da DB
+    db_result = await db.nif_mappings.delete_many({})
+    db_count = db_result.deleted_count
+    
+    logger.info(f"[NIF CACHE] Cache limpo manualmente. Memória: {memory_count}, DB: {db_count}")
+    return {
+        "message": f"Cache NIF limpo. {memory_count} mapeamentos removidos da memória, {db_count} da base de dados."
+    }
 
 
 @router.post("/nif-cache/add-mapping")
