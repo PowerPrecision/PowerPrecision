@@ -9,9 +9,47 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Base de Dados**: MongoDB Atlas (Cluster: cluster0.c8livu.mongodb.net)
   - **Desenvolvimento/Testes**: `powerprecision_dev`
   - **Produção**: `powerprecision`
-- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations)
+- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 23)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 24)
+
+### ✅ Tarefas Completadas (Sessão 24)
+
+#### P0: Background Jobs - Correcções - IMPLEMENTADO
+- **Problema**: Jobs de importação massiva não apareciam na página de processos em background
+- **Causa Raiz**: O novo fluxo agregado guardava jobs na DB mas o frontend usava ID errado para actualizar progresso
+- **Solução**:
+  - Novo endpoint `POST /api/ai/bulk/background-job/{job_id}/progress` para actualizar progresso
+  - Novo endpoint `POST /api/ai/bulk/background-jobs/clear-all` para limpar jobs stuck
+  - Frontend actualizado para usar o endpoint correcto de progresso
+- **Status**: ✅ VERIFICADO (100% testes passed - iteration_35)
+
+#### P0: Suporte para Documentos Estrangeiros (França) - IMPLEMENTADO
+- **Problema**: Clientes portugueses emigrados em França enviavam documentos em francês que não eram correctamente extraídos
+- **Solução**:
+  - Prompts de extração actualizados para suportar:
+    - Recibos franceses (Bulletin de paie / Fiche de paie)
+    - Declarações IRS francesas (Avis d'impôt sur le revenu)
+    - Declarações espanholas (Nómina, IRPF)
+  - Novos campos suportados: `pais_origem`, `moeda`, `nif_fr`, `morada_fiscal_fr`
+  - Agregador actualizado para processar salários de diferentes países
+  - Detecção automática de tipo de documento melhorada para ficheiros em francês
+- **Ficheiros modificados**:
+  - `/app/backend/services/ai_document.py` - Prompts multi-língua (linhas 726-810)
+  - `/app/backend/services/documents/data_aggregator.py` - Processamento de documentos estrangeiros
+- **Status**: ✅ VERIFICADO (20/20 testes passed)
+
+#### ⚠️ Idealista.pt Scraping - LIMITAÇÃO CONHECIDA
+- **Problema**: Importação de URLs do Idealista.pt não funciona (HTTP 403)
+- **Investigação**:
+  - Integrado ScraperAPI com modo `ultra_premium`
+  - Mesmo com ScraperAPI, o Idealista continua a bloquear (403)
+- **Conclusão**: O Idealista tem protecção anti-bot muito agressiva que bloqueia TODOS os scrapers
+- **Alternativas sugeridas**:
+  1. Parceria/API directa com Idealista
+  2. Utilizador cola o HTML da página manualmente
+  3. Extensão de browser para extrair dados
+- **Status**: ⏳ LIMITAÇÃO DO SERVIÇO EXTERNO
 
 ### ✅ Tarefas Completadas (Sessão 23)
 
