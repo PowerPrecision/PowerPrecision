@@ -1067,7 +1067,7 @@ async def analyze_single_file(
         # Verificar se já temos mapeamento pasta → cliente em cache
         # ================================================================
         process = None
-        cached_mapping = get_cached_nif_mapping(folder_name)
+        cached_mapping = await get_cached_nif_mapping(folder_name)
         
         if cached_mapping:
             # Usar mapeamento em cache (muito mais rápido)
