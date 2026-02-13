@@ -400,6 +400,7 @@ const NIFMappingsPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </DashboardLayout>
   );
 };
 
