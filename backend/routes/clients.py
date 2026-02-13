@@ -574,14 +574,44 @@ async def delete_client(
     user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
 ):
     """
-    Eliminar um cliente.
+    Eliminar um cliente/processo.
     
-    Apenas Admin e CEO podem eliminar clientes.
+    Nota: Neste sistema, clientes e processos são a mesma entidade.
+    Esta função procura primeiro na colecção 'processes' e depois em 'clients'.
+    
+    Apenas Admin, CEO e Diretor podem eliminar.
     """
     # Verificar também se é diretor
     if user.get("role") not in ["admin", "ceo", "diretor"]:
         raise HTTPException(status_code=403, detail="Sem permissão para eliminar clientes")
     
+    # Procurar primeiro em processes (tabela principal)
+    process = await db.processes.find_one({"id": client_id})
+    
+    if process:
+        # Verificar se o processo está activo
+        active_statuses = ["arquivado", "cancelado", "concluido", "desistencias"]
+        if process.get("status") not in active_statuses:
+            # Permitir eliminar mas avisar
+            logger.warning(f"Processo {client_id} eliminado com status activo: {process.get('status')}")
+        
+        # Eliminar documentos associados
+        await db.documents.delete_many({"process_id": client_id})
+        
+        # Eliminar tarefas associadas
+        await db.tasks.delete_many({"process_id": client_id})
+        
+        # Eliminar histórico associado
+        await db.history.delete_many({"process_id": client_id})
+        
+        # Eliminar o processo
+        await db.processes.delete_one({"id": client_id})
+        
+        logger.info(f"Processo/Cliente {client_id} ({process.get('client_name')}) eliminado por {user.get('email')}")
+        
+        return {"success": True, "message": f"Cliente '{process.get('client_name')}' eliminado com sucesso"}
+    
+    # Se não encontrou em processes, procurar em clients (compatibilidade)
     client = await db.clients.find_one({"id": client_id})
     
     if not client:
