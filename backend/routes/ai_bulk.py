@@ -321,20 +321,24 @@ async def find_client_by_nif(nif: str) -> Optional[dict]:
     return None
 
 
-def clear_expired_nif_cache():
-    """Limpar entradas expiradas do cache NIF."""
+async def clear_expired_nif_cache():
+    """Limpar entradas expiradas do cache NIF (memória e DB)."""
     now = datetime.now(timezone.utc)
     expired_keys = []
     
     for key, cached in nif_session_cache.items():
         matched_at = cached.get("matched_at")
         if matched_at:
+            if isinstance(matched_at, str):
+                matched_at = datetime.fromisoformat(matched_at.replace("Z", "+00:00"))
             age = (now - matched_at).total_seconds()
             if age > NIF_CACHE_TTL_SECONDS:
                 expired_keys.append(key)
     
     for key in expired_keys:
         del nif_session_cache[key]
+        # Remover também da DB
+        await db.nif_mappings.delete_one({"cache_key": key})
     
     if expired_keys:
         logger.info(f"[NIF CACHE] Limpeza: {len(expired_keys)} entradas expiradas removidas")
