@@ -239,23 +239,13 @@ class TestSuggestClients:
 class TestAIImportLogs:
     """Test /api/admin/ai-import-logs endpoint"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Login and get token"""
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        self.token = login_response.json().get("access_token")
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-    
     def test_get_ai_import_logs(self):
         """Test GET /api/admin/ai-import-logs returns logs"""
-        response = requests.get(
-            f"{BASE_URL}/api/admin/ai-import-logs",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/admin/ai-import-logs")
         assert response.status_code == 200
         
         data = response.json()
@@ -280,10 +270,11 @@ class TestAIImportLogs:
     
     def test_get_ai_import_logs_with_filters(self):
         """Test ai-import-logs with filters"""
-        response = requests.get(
-            f"{BASE_URL}/api/admin/ai-import-logs?page=1&limit=10&days=30",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/admin/ai-import-logs?page=1&limit=10&days=30")
         assert response.status_code == 200
         
         data = response.json()
