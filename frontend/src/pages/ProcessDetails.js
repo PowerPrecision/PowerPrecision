@@ -882,6 +882,13 @@ const ProcessDetails = () => {
               onDataExtracted={handleAIDataExtracted}
             />
             
+            {/* Upload Massivo para este Cliente */}
+            <BulkDocumentUpload
+              forceClientId={id}
+              forceClientName={process.client_name}
+              variant="compact"
+            />
+            
             {/* Botão para Gerir Atribuições */}
             <Button
               variant="outline"
