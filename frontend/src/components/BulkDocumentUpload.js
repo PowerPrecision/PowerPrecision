@@ -439,35 +439,52 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     }
   };
 
+  // Texto do botão e descrição baseado no modo
+  const buttonText = forceClientId 
+    ? (variant === "compact" ? "Upload Docs" : `Upload para ${forceClientName || "Cliente"}`)
+    : "Upload Massivo IA";
+  
+  const dialogTitle = forceClientId
+    ? `Upload de Documentos - ${forceClientName || "Cliente"}`
+    : "Upload Massivo de Documentos";
+  
+  const dialogDescription = forceClientId
+    ? "Todos os documentos serão associados a este cliente automaticamente."
+    : "Selecione uma pasta com subpastas de clientes. Os ficheiros são processados um a um.";
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open);
-      if (open) loadClientsList();
+      if (open && !forceClientId) loadClientsList();
     }}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 hover:from-purple-600 hover:to-indigo-600"
-          data-testid="bulk-upload-btn"
+          size={variant === "compact" ? "sm" : "default"}
+          className={forceClientId 
+            ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 hover:from-teal-600 hover:to-emerald-600"
+            : "bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 hover:from-purple-600 hover:to-indigo-600"
+          }
+          data-testid={forceClientId ? "client-bulk-upload-btn" : "bulk-upload-btn"}
         >
           <FolderUp className="h-4 w-4 mr-2" />
-          Upload Massivo IA
+          {buttonText}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
-            Upload Massivo de Documentos
+            {dialogTitle}
           </DialogTitle>
           <DialogDescription>
-            Selecione uma pasta com subpastas de clientes. Os ficheiros são processados um a um.
+            {dialogDescription}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto py-4 space-y-4">
-          {/* Instruções */}
-          {!uploading && !summary && (
+          {/* Instruções - apenas para upload massivo (sem forceClientId) */}
+          {!uploading && !summary && !forceClientId && (
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-4">
                 <h4 className="font-medium text-blue-800 mb-2">📁 Estrutura esperada:</h4>
@@ -485,6 +502,22 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
                 </pre>
                 <p className="text-xs text-blue-600 mt-2">
                   O nome da <strong>primeira pasta</strong> é o nome do cliente. Subpastas são suportadas.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Instruções simplificadas para upload de cliente específico */}
+          {!uploading && !summary && forceClientId && (
+            <Card className="bg-teal-50 border-teal-200">
+              <CardContent className="pt-4">
+                <h4 className="font-medium text-teal-800 mb-2">📄 Upload para {forceClientName}</h4>
+                <p className="text-sm text-teal-700">
+                  Selecione uma pasta com os documentos do cliente. Todos os ficheiros (PDFs, imagens) 
+                  serão automaticamente associados a <strong>{forceClientName}</strong>.
+                </p>
+                <p className="text-xs text-teal-600 mt-2">
+                  ✅ Subpastas são suportadas - todos os ficheiros serão processados.
                 </p>
               </CardContent>
             </Card>
