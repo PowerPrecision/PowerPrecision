@@ -144,7 +144,11 @@ class ClientDataAggregator:
         Processar dados do Recibo de Vencimento.
         
         REGRA ESPECIAL: Salários de empresas diferentes são agregados.
+        SUPORTE: Recibos de PT, FR, ES, UK, DE (portugueses no estrangeiro).
         """
+        # Identificar país de origem
+        pais_origem = data.get('pais_origem', 'PT')
+        
         # Extrair empresa
         empresa = data.get('empresa')
         if isinstance(empresa, dict):
@@ -162,6 +166,8 @@ class ClientDataAggregator:
             'tipo_contrato': data.get('tipo_contrato'),
             'categoria_profissional': data.get('categoria_profissional'),
             'mes_referencia': data.get('mes_referencia'),
+            'pais_origem': pais_origem,
+            'moeda': data.get('moeda', 'EUR'),
             'timestamp': timestamp.isoformat()
         }
         
@@ -174,16 +180,26 @@ class ClientDataAggregator:
                 # Actualizar apenas se mais recente ou com mais dados
                 if salario_info.get('salario_liquido') or salario_info.get('salario_bruto'):
                     self.salarios_por_empresa[empresa_norm] = salario_info
-                    logger.info(f"[AGGREGATOR] Actualizado salário empresa '{empresa}' (existia)")
+                    logger.info(f"[AGGREGATOR] Actualizado salário empresa '{empresa}' ({pais_origem}) (existia)")
             else:
                 self.salarios_por_empresa[empresa_norm] = salario_info
-                logger.info(f"[AGGREGATOR] Novo salário empresa '{empresa}'")
+                logger.info(f"[AGGREGATOR] Novo salário empresa '{empresa}' ({pais_origem})")
         
-        # NIF do funcionário (se presente)
-        if data.get('nif'):
-            self.personal_data['nif'] = data['nif']
+        # NIF do funcionário (se presente e válido para PT)
+        nif = data.get('nif')
+        if nif and pais_origem == 'PT':
+            self.personal_data['nif'] = nif
+        elif nif and pais_origem != 'PT':
+            # Guardar NIF estrangeiro separadamente
+            self.personal_data[f'nif_{pais_origem.lower()}'] = nif
+            
         if data.get('nome_funcionario'):
             self.personal_data['nome_recibo'] = data['nome_funcionario']
+        
+        # Guardar país de trabalho se diferente de PT
+        if pais_origem and pais_origem != 'PT':
+            self.other_data['pais_trabalho'] = pais_origem
+            self.other_data['trabalha_no_estrangeiro'] = True
     
     def _process_irs(self, data: Dict[str, Any], timestamp: datetime):
         """Processar dados da Declaração de IRS."""
