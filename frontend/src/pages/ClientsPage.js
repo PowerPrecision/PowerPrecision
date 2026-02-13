@@ -267,6 +267,11 @@ export default function ClientsPage() {
     setShowProcessDialog(true);
   };
 
+  // Redirecionar para criar novo processo (cliente = processo)
+  const handleCreateNewProcess = () => {
+    navigate("/processos/novo");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6" data-testid="clients-page">
@@ -282,12 +287,12 @@ export default function ClientsPage() {
             </p>
           </div>
           <Button
-            onClick={() => setShowCreateDialog(true)}
+            onClick={handleCreateNewProcess}
             className="gap-2"
             data-testid="create-client-btn"
           >
             <Plus className="h-4 w-4" />
-            Novo Cliente
+            Novo Processo
           </Button>
         </div>
 
