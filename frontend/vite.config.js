@@ -46,6 +46,8 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: '0.0.0.0',
       strictPort: true,
+      // Permitir todos os hosts (necessário para preview environments)
+      allowedHosts: 'all',
       hmr: {
         overlay: true,
       },
