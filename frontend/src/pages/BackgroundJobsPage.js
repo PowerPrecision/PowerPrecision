@@ -162,29 +162,94 @@ const JobCard = ({ job, onDelete, onCancel, onPause, onResume }) => {
           
           {/* Acções */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Botões para jobs em execução */}
             {job.status === 'running' && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                onClick={async () => {
-                  setCancelling(true);
-                  await onCancel(job.id);
-                  setCancelling(false);
-                }}
-                disabled={cancelling}
-              >
-                {cancelling ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4 mr-1" />
-                    Cancelar
-                  </>
-                )}
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={async () => {
+                    setActionLoading(true);
+                    await onPause(job.id);
+                    setActionLoading(false);
+                  }}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4 mr-1" />
+                      Pausar
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                  onClick={async () => {
+                    setActionLoading(true);
+                    await onCancel(job.id);
+                    setActionLoading(false);
+                  }}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Cancelar
+                    </>
+                  )}
+                </Button>
+              </>
             )}
-            {job.status !== 'running' && (
+            
+            {/* Botão para retomar jobs pausados */}
+            {job.status === 'paused' && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                  onClick={async () => {
+                    setActionLoading(true);
+                    await onResume(job.id);
+                    setActionLoading(false);
+                  }}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-1" />
+                      Retomar
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                  onClick={async () => {
+                    setActionLoading(true);
+                    await onCancel(job.id);
+                    setActionLoading(false);
+                  }}
+                  disabled={actionLoading}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Cancelar
+                </Button>
+              </>
+            )}
+            
+            {/* Botão de eliminar para jobs terminados */}
+            {!['running', 'paused'].includes(job.status) && (
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -203,7 +268,7 @@ const JobCard = ({ job, onDelete, onCancel, onPause, onResume }) => {
 
 const BackgroundJobsPage = () => {
   const [jobs, setJobs] = useState([]);
-  const [counts, setCounts] = useState({ running: 0, success: 0, failed: 0, total: 0 });
+  const [counts, setCounts] = useState({ running: 0, success: 0, failed: 0, paused: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
