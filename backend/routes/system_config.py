@@ -519,6 +519,69 @@ async def complete_setup(user: dict = Depends(require_roles([UserRole.ADMIN]))):
     return {"success": True, "message": "Configuração inicial concluída"}
 
 
+@router.get("/storage-info")
+async def get_storage_info(user: dict = Depends(get_current_user)):
+    """
+    Obter informação sobre o sistema de armazenamento configurado.
+    Disponível para todos os utilizadores autenticados.
+    
+    Retorna:
+    - provider: Tipo de storage (aws_s3, google_drive, onedrive, dropbox, none)
+    - provider_label: Nome amigável do provider
+    - configured: Se está configurado correctamente
+    - base_url: URL base para aceder aos ficheiros (se aplicável)
+    """
+    config = await get_system_config()
+    storage = config.storage
+    
+    # Converter para string para comparação segura
+    provider_value = str(storage.provider.value) if hasattr(storage.provider, 'value') else str(storage.provider)
+    
+    # Mapear provider para label amigável
+    provider_labels = {
+        "none": "Não configurado",
+        "aws_s3": "Amazon S3",
+        "google_drive": "Google Drive",
+        "onedrive": "OneDrive",
+        "dropbox": "Dropbox"
+    }
+    
+    result = {
+        "provider": provider_value,
+        "provider_label": provider_labels.get(provider_value, provider_value),
+        "configured": False,
+        "base_url": None,
+        "can_browse": False  # Se permite navegação de pastas
+    }
+    
+    if provider_value == "none":
+        return result
+    
+    elif provider_value == "aws_s3":
+        from services.s3_storage import s3_service
+        result["configured"] = s3_service.is_configured()
+        result["can_browse"] = True  # S3 permite listar ficheiros
+        if s3_service.is_configured():
+            result["base_url"] = f"s3://{s3_service.bucket_name}"
+    
+    elif provider_value == "onedrive":
+        result["configured"] = bool(storage.onedrive_shared_url)
+        result["base_url"] = storage.onedrive_shared_url
+        result["can_browse"] = False  # OneDrive usa links externos
+    
+    elif provider_value == "google_drive":
+        result["configured"] = bool(storage.google_folder_id)
+        if storage.google_folder_id:
+            result["base_url"] = f"https://drive.google.com/drive/folders/{storage.google_folder_id}"
+        result["can_browse"] = False
+    
+    elif provider_value == "dropbox":
+        result["configured"] = bool(storage.dropbox_access_token)
+        result["can_browse"] = False
+    
+    return result
+
+
 @router.post("/reset-cache")
 async def reset_cache(user: dict = Depends(require_roles([UserRole.ADMIN]))):
     """
