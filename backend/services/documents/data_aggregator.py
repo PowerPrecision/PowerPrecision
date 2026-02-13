@@ -202,28 +202,45 @@ class ClientDataAggregator:
             self.other_data['trabalha_no_estrangeiro'] = True
     
     def _process_irs(self, data: Dict[str, Any], timestamp: datetime):
-        """Processar dados da Declaração de IRS."""
+        """
+        Processar dados da Declaração de IRS.
+        SUPORTE: Declarações de PT, FR, ES (portugueses no estrangeiro).
+        """
+        # Identificar país de origem
+        pais_origem = data.get('pais_origem', 'PT')
+        
         # NIF do titular
         if data.get('nif_titular'):
-            self.personal_data['nif'] = data['nif_titular']
+            if pais_origem == 'PT':
+                self.personal_data['nif'] = data['nif_titular']
+            else:
+                self.personal_data[f'nif_{pais_origem.lower()}'] = data['nif_titular']
+        
+        # Morada fiscal (importante para residentes no estrangeiro)
+        if data.get('morada_fiscal'):
+            self.other_data['morada_fiscal'] = data['morada_fiscal']
+            self.other_data[f'morada_fiscal_{pais_origem.lower()}'] = data['morada_fiscal']
         
         # Estado civil
         if data.get('estado_civil_fiscal'):
             estado = data['estado_civil_fiscal'].lower()
-            if 'casad' in estado:
+            if any(x in estado for x in ['casad', 'marié', 'married']):
                 self.personal_data['estado_civil'] = 'casado'
-            elif 'soltei' in estado:
+            elif any(x in estado for x in ['soltei', 'célibat', 'single']):
                 self.personal_data['estado_civil'] = 'solteiro'
-            elif 'uni' in estado or 'facto' in estado:
+            elif any(x in estado for x in ['uni', 'facto', 'pacsé']):
                 self.personal_data['estado_civil'] = 'uniao_facto'
         
         # Rendimentos anuais
         if data.get('rendimento_liquido_anual'):
-            self.financial_data['rendimento_anual'] = self._parse_money(data['rendimento_liquido_anual'])
-            # Calcular mensal (14 meses em Portugal)
-            anual = self.financial_data['rendimento_anual']
+            self.financial_data[f'rendimento_anual_{pais_origem.lower()}'] = self._parse_money(data['rendimento_liquido_anual'])
+            # Calcular mensal dependendo do país
+            anual = self._parse_money(data['rendimento_liquido_anual'])
             if anual:
-                self.financial_data['rendimento_mensal_irs'] = round(anual / 14, 2)
+                # Portugal = 14 meses, França/outros = 12 meses
+                meses = 14 if pais_origem == 'PT' else 12
+                self.financial_data['rendimento_mensal_irs'] = round(anual / meses, 2)
+                self.financial_data['rendimento_anual'] = anual
         
         # Co-titular (cônjuge)
         if data.get('nif_titular_2') or data.get('nome_titular_2'):
@@ -231,6 +248,11 @@ class ClientDataAggregator:
                 'nome': data.get('nome_titular_2'),
                 'nif': data.get('nif_titular_2')
             }
+        
+        # Marcar se declaração estrangeira
+        if pais_origem and pais_origem != 'PT':
+            self.other_data['pais_residencia_fiscal'] = pais_origem
+            self.other_data['residente_no_estrangeiro'] = True
     
     def _process_crc(self, data: Dict[str, Any], timestamp: datetime):
         """Processar dados do Mapa CRC (Central Responsabilidades Crédito)."""
