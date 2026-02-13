@@ -182,17 +182,12 @@ const DashboardLayout = ({ children, title }) => {
                 href: "/utilizadores",
               },
               {
-                label: "Todos os Processos",
-                icon: FileText,
-                href: "/processos",
-              },
-              {
                 label: "Clientes",
                 icon: User,
                 href: "/clientes",
               },
               {
-                label: "Leads",
+                label: "Gestor de Visitas",
                 icon: Search,
                 href: "/leads",
               },
