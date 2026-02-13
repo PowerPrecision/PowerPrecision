@@ -1,8 +1,13 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from enum import Enum
 
 
-class UserRole:
+class UserRoleEnum(str, Enum):
+    """
+    Enum para roles de utilizador - garante type-safety e evita magic strings.
+    Herda de str para ser serializável em JSON automaticamente.
+    """
     CLIENTE = "cliente"
     CONSULTOR = "consultor"
     INTERMEDIARIO = "intermediario"  # Intermediário de Crédito (antes: mediador)
@@ -11,6 +16,56 @@ class UserRole:
     DIRETOR = "diretor"  # Diretor(a) - gestão de direção
     CEO = "ceo"  # Between admin and staff - can manage basic things + consultor/intermediário tasks
     ADMIN = "admin"
+    
+    @classmethod
+    def from_string(cls, role: str) -> "UserRoleEnum":
+        """Converte string para enum, com fallback para CLIENTE."""
+        try:
+            return cls(role.lower()) if role else cls.CLIENTE
+        except ValueError:
+            return cls.CLIENTE
+
+
+class UserRole:
+    """
+    Classe helper para verificações de permissões.
+    Mantida para compatibilidade com código existente.
+    Usa UserRoleEnum internamente para type-safety.
+    """
+    # Constantes de role (strings) - para compatibilidade
+    CLIENTE = UserRoleEnum.CLIENTE.value
+    CONSULTOR = UserRoleEnum.CONSULTOR.value
+    INTERMEDIARIO = UserRoleEnum.INTERMEDIARIO.value
+    MEDIADOR = UserRoleEnum.MEDIADOR.value
+    ADMINISTRATIVO = UserRoleEnum.ADMINISTRATIVO.value
+    DIRETOR = UserRoleEnum.DIRETOR.value
+    CEO = UserRoleEnum.CEO.value
+    ADMIN = UserRoleEnum.ADMIN.value
+    
+    # Lista de todos os roles válidos
+    ALL_ROLES = [e.value for e in UserRoleEnum]
+    
+    # Grupos de roles para permissões
+    STAFF_ROLES = [
+        UserRoleEnum.CONSULTOR.value,
+        UserRoleEnum.INTERMEDIARIO.value,
+        UserRoleEnum.MEDIADOR.value,
+        UserRoleEnum.ADMINISTRATIVO.value,
+        UserRoleEnum.DIRETOR.value,
+        UserRoleEnum.CEO.value,
+        UserRoleEnum.ADMIN.value,
+    ]
+    
+    MANAGEMENT_ROLES = [
+        UserRoleEnum.DIRETOR.value,
+        UserRoleEnum.CEO.value,
+        UserRoleEnum.ADMIN.value,
+    ]
+    
+    @classmethod
+    def is_valid_role(cls, role: str) -> bool:
+        """Verifica se o role é válido."""
+        return role in cls.ALL_ROLES
     
     @classmethod
     def can_act_as_consultor(cls, role: str) -> bool:
@@ -35,7 +90,17 @@ class UserRole:
     @classmethod
     def can_view_all_notifications(cls, role: str) -> bool:
         """Check if role can view all notifications (admin, CEO, diretor)"""
-        return role in [cls.ADMIN, cls.CEO, cls.DIRETOR]
+        return role in cls.MANAGEMENT_ROLES
+    
+    @classmethod
+    def can_manage_users(cls, role: str) -> bool:
+        """Check if role can manage other users"""
+        return role in [cls.ADMIN, cls.CEO]
+    
+    @classmethod
+    def can_access_admin_panel(cls, role: str) -> bool:
+        """Check if role can access admin panel"""
+        return role in cls.MANAGEMENT_ROLES
 
 
 class UserRegister(BaseModel):
