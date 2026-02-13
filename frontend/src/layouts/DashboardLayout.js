@@ -295,15 +295,6 @@ const DashboardLayout = ({ children, title }) => {
         });
       }
       
-      // "Todos os Processos" apenas para roles que não são consultor nem intermediário/mediador
-      if (!["consultor", "intermediario", "mediador"].includes(user?.role)) {
-        negocioItems.push({
-          label: "Todos os Processos",
-          icon: FileText,
-          href: "/processos",
-        });
-      }
-      
       // Clientes para todos
       negocioItems.push({
         label: "Clientes",
@@ -311,9 +302,9 @@ const DashboardLayout = ({ children, title }) => {
         href: "/clientes",
       });
       
-      // Leads para todos
+      // Gestor de Visitas para todos
       negocioItems.push({
-        label: "Leads",
+        label: "Gestor de Visitas",
         icon: Search,
         href: "/leads",
       });
