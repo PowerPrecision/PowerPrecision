@@ -419,11 +419,11 @@ const UsersManagementPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Pasta OneDrive</Label>
+              <Label>Pasta Drive</Label>
               <Input 
                 value={formData.onedrive_folder} 
                 onChange={(e) => setFormData({ ...formData, onedrive_folder: e.target.value })} 
-                placeholder="Nome da pasta no OneDrive" 
+                placeholder="Nome/caminho da pasta" 
               />
             </div>
             <div className="space-y-2">
