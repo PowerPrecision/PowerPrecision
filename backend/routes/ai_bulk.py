@@ -1160,7 +1160,7 @@ async def update_import_session(
         if session_id in background_processes:
             error_messages = background_processes[session_id].get("error_messages", [])
             error_messages.append(request.error_message)
-            update_fields["error_messages"] = error_messages[-50]  # Manter últimas 50
+            update_fields["error_messages"] = error_messages[-50:]  # Manter últimas 50
     
     if update_fields:
         await update_background_job_db(session_id, **update_fields)
