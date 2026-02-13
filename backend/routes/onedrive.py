@@ -225,6 +225,51 @@ async def get_document_checklist(
 
 
 # ============================================
+# Endpoints para listagem de ficheiros (S3 Storage)
+# ============================================
+
+@router.get("/files/{client_name}")
+async def get_client_files_by_name(
+    client_name: str,
+    subfolder: str = "",
+    user: dict = Depends(get_current_user)
+):
+    """
+    Listar ficheiros de um cliente pelo nome.
+    Redireciona para o serviço S3 de documentos.
+    
+    Este endpoint mantém compatibilidade com o frontend que usa o nome do cliente.
+    """
+    from services.s3_storage import s3_service
+    
+    # Procurar processo pelo nome do cliente
+    process = await db.processes.find_one(
+        {"client_name": {"$regex": f"^{client_name}$", "$options": "i"}},
+        {"_id": 0, "id": 1, "client_name": 1, "second_client_name": 1, "titular2_data": 1}
+    )
+    
+    if not process:
+        # Tentar busca parcial
+        process = await db.processes.find_one(
+            {"client_name": {"$regex": client_name, "$options": "i"}},
+            {"_id": 0, "id": 1, "client_name": 1, "second_client_name": 1, "titular2_data": 1}
+        )
+    
+    if not process:
+        return {"files": [], "folders": [], "message": f"Cliente '{client_name}' não encontrado"}
+    
+    client_id = process.get("id")
+    real_client_name = process.get("client_name", client_name)
+    second_client_name = process.get("second_client_name") or \
+                         process.get("titular2_data", {}).get("nome")
+    
+    # Obter ficheiros do S3
+    files_data = s3_service.list_files(client_id, real_client_name, second_client_name)
+    
+    return files_data
+
+
+# ============================================
 # Endpoints para Links adicionais (OneDrive, Google Drive, S3, etc.)
 # ============================================
 
