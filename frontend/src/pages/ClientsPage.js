@@ -62,6 +62,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,9 @@ export default function ClientsPage() {
     notas: "",
   });
   const [newProcessType, setNewProcessType] = useState("credito_habitacao");
+  
+  // Verificar se pode eliminar clientes (apenas admin, ceo, diretor)
+  const canDeleteClients = ["admin", "ceo", "diretor"].includes(user?.role);
 
   const fetchClients = useCallback(async () => {
     try {
