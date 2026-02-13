@@ -37,6 +37,18 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Componentes**: `/app/frontend/src/components/ui/skeletons.jsx`
 - **Status**: ✅ COMPLETO E TESTADO
 
+#### Enhancement: Upload de Documentos na Página do Cliente - COMPLETO
+- **Objectivo**: Permitir upload directo de documentos na ficha do cliente
+- **Implementação**:
+  - Adicionado botão "Upload Docs" na página de detalhes do processo
+  - Botão usa cor verde-teal para diferenciar do upload massivo (roxo)
+  - Usa `BulkDocumentUpload` com `forceClientId={processId}` e `forceClientName={clientName}`
+  - Instruções simplificadas no modal para contexto de cliente específico
+- **Ficheiros Modificados**:
+  - `/app/frontend/src/pages/ProcessDetails.js` - Import e uso do BulkDocumentUpload
+  - `/app/frontend/src/components/BulkDocumentUpload.js` - Suporte a variant="compact" e UI adaptada
+- **Status**: ✅ COMPLETO E TESTADO
+
 ### ✅ Tarefas Completadas (Sessão 17)
 
 #### P1: Migração CRA → Vite - COMPLETO
