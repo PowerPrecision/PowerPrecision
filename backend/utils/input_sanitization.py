@@ -291,7 +291,7 @@ def sanitize_url(url: str, max_length: int = 2000) -> str:
     url_lower = url.lower()
     if not any(url_lower.startswith(p + '://') for p in ['http', 'https']):
         # Adicionar https se não tiver protocolo
-        if not '://' in url:
+        if '://' not in url:
             url = 'https://' + url
         else:
             # Protocolo inválido
