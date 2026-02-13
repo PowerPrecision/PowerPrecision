@@ -35,6 +35,7 @@ import {
   Search,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
   Database,
   FileArchive,
   Brain,
