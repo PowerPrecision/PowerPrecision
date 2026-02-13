@@ -312,17 +312,6 @@ export default function ClientsPage() {
                     data-testid="search-clients-input"
                   />
                 </div>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[150px]" data-testid="filter-status">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filtrar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="with_process">Com Processos</SelectItem>
-                    <SelectItem value="without_process">Sem Processos</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Select value={`${sortField}_${sortOrder}`} onValueChange={(v) => {
                   const [field, order] = v.split('_');
                   setSortField(field);
