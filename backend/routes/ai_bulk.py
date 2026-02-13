@@ -1113,22 +1113,38 @@ async def analyze_single_file(
             result.fields_extracted = list(analysis_result["extracted_data"].keys())
             result.filename = normalized_name  # Nome normalizado
             
+            extracted_data = analysis_result["extracted_data"]
+            
+            # ================================================================
+            # CACHE DE SESSÃO NIF (Item 17)
+            # Se for CC e extraiu NIF, guardar mapeamento pasta → cliente
+            # ================================================================
+            if document_type == "cc":
+                extracted_nif = extracted_data.get("nif")
+                if extracted_nif:
+                    cache_nif_mapping(
+                        folder_name=folder_name,
+                        nif=extracted_nif,
+                        process_id=process_id,
+                        client_name=actual_client_name
+                    )
+            
             # Guardar em cache (memória) para detectar duplicados durante a sessão
-            cache_document_analysis(process_id, document_type, content, analysis_result["extracted_data"])
+            cache_document_analysis(process_id, document_type, content, extracted_data)
             
             # Persistir na DB para detectar duplicados após reinício
             await persist_document_analysis(
                 process_id, 
                 document_type, 
                 content, 
-                analysis_result["extracted_data"],
+                extracted_data,
                 doc_filename
             )
             
             # Actualizar ficha do cliente
             updated, fields, conflicts = await update_client_data(
                 process_id,
-                analysis_result["extracted_data"],
+                extracted_data,
                 document_type
             )
             result.updated = updated
