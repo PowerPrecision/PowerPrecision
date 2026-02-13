@@ -415,6 +415,7 @@ const BackgroundJobsPage = () => {
                       key={job.id} 
                       job={job} 
                       onDelete={handleDelete}
+                      onCancel={handleCancel}
                     />
                   ))}
                 </div>
