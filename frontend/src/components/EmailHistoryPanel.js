@@ -149,8 +149,8 @@ const EmailHistoryPanel = ({
   };
 
   const handleSyncEmails = async () => {
-    if (!clientEmail) {
-      toast.error("Cliente não tem email definido");
+    if (!clientEmail && monitoredEmails.length === 0) {
+      toast.error("Adicione pelo menos um email para monitorizar antes de sincronizar");
       return;
     }
 
@@ -164,11 +164,22 @@ const EmailHistoryPanel = ({
         toast.success(`Sincronização concluída: ${response.data.new_imported} novos emails importados`);
         fetchData();
       } else {
-        toast.error(response.data.error || "Erro na sincronização");
+        // Melhorar mensagem de erro
+        const errorMsg = response.data.error || "";
+        if (errorMsg.includes("não configurada") || errorMsg.includes("not configured")) {
+          toast.error("Conta de email não configurada. Contacte o administrador.");
+        } else {
+          toast.error(errorMsg || "Erro na sincronização");
+        }
       }
     } catch (error) {
       console.error("Erro ao sincronizar:", error);
-      toast.error(error.response?.data?.detail || "Erro ao sincronizar emails");
+      const detail = error.response?.data?.detail || "";
+      if (detail.includes("não configurada") || detail.includes("not configured") || detail.includes("IMAP")) {
+        toast.error("Conta de email não configurada pelo administrador. A sincronização não está disponível.");
+      } else {
+        toast.error(detail || "Erro ao sincronizar emails");
+      }
     } finally {
       setSyncing(false);
     }
