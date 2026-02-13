@@ -75,6 +75,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <UploadProgressProvider>
         <BrowserRouter>
         <Routes>
           {/* Public client registration form - no auth required */}
