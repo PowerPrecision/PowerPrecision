@@ -20,8 +20,8 @@ class ActivityResponse(BaseModel):
 class HistoryResponse(BaseModel):
     id: str
     process_id: str
-    user_id: str
-    user_name: str
+    user_id: Optional[str] = None
+    user_name: Optional[str] = None
     action: str
     field: Optional[str] = None
     old_value: Optional[Any] = None
