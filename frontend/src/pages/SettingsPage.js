@@ -76,6 +76,7 @@ const SettingsPage = () => {
     email_document_expiry: true,
     email_deadline_reminder: true,
   });
+  const [loadingPreferences, setLoadingPreferences] = useState(true);
   
   // Estado de loading
   const [loading, setLoading] = useState(false);
@@ -90,6 +91,32 @@ const SettingsPage = () => {
       });
     }
   }, [user]);
+  
+  // Carregar preferências de notificação
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!token) return;
+      try {
+        const response = await fetch(`${API_URL}/api/auth/preferences`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.notifications) {
+            setNotifications(prev => ({
+              ...prev,
+              ...data.notifications
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar preferências:", error);
+      } finally {
+        setLoadingPreferences(false);
+      }
+    };
+    loadPreferences();
+  }, [token]);
   
   // Guardar perfil
   const handleSaveProfile = async () => {
