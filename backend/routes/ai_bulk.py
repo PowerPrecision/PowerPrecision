@@ -118,6 +118,140 @@ cc_cache: Dict[str, Dict[str, Tuple[bytes, str]]] = {}
 # Estrutura: {process_id: {document_type: {hash: extracted_data}}}
 document_hash_cache: Dict[str, Dict[str, Dict[str, dict]]] = {}
 
+# ====================================================================
+# CACHE DE SESSÃO NIF - Mapeamento Pasta → Cliente (Item 17)
+# ====================================================================
+# Quando um CC é analisado e o NIF extraído, guarda o mapeamento
+# pasta → cliente para documentos subsequentes da mesma pasta.
+# Estrutura: {folder_name_normalized: {
+#     "nif": "123456789",
+#     "process_id": "uuid",
+#     "client_name": "Nome Cliente",
+#     "matched_at": datetime
+# }}
+nif_session_cache: Dict[str, Dict[str, Any]] = {}
+
+# Tempo máximo de validade do cache NIF (2 horas = sessão típica de upload)
+NIF_CACHE_TTL_SECONDS = 7200
+
+
+def get_nif_cache_key(folder_name: str) -> str:
+    """Gerar chave normalizada para o cache de NIF."""
+    return normalize_text_for_matching(folder_name)
+
+
+def cache_nif_mapping(folder_name: str, nif: str, process_id: str, client_name: str):
+    """
+    Guardar mapeamento NIF → Cliente no cache de sessão.
+    
+    Args:
+        folder_name: Nome da pasta do documento
+        nif: NIF extraído do CC
+        process_id: ID do processo/cliente na DB
+        client_name: Nome do cliente
+    """
+    cache_key = get_nif_cache_key(folder_name)
+    nif_session_cache[cache_key] = {
+        "nif": nif,
+        "process_id": process_id,
+        "client_name": client_name,
+        "matched_at": datetime.now(timezone.utc)
+    }
+    logger.info(f"[NIF CACHE] Mapeamento guardado: '{folder_name}' -> NIF {nif} -> '{client_name}'")
+
+
+def get_cached_nif_mapping(folder_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Obter mapeamento do cache de sessão NIF.
+    
+    Returns:
+        Dict com {nif, process_id, client_name} ou None se não existe/expirou
+    """
+    cache_key = get_nif_cache_key(folder_name)
+    cached = nif_session_cache.get(cache_key)
+    
+    if not cached:
+        return None
+    
+    # Verificar se expirou
+    matched_at = cached.get("matched_at")
+    if matched_at:
+        age = (datetime.now(timezone.utc) - matched_at).total_seconds()
+        if age > NIF_CACHE_TTL_SECONDS:
+            logger.info(f"[NIF CACHE] Mapeamento expirado para '{folder_name}' (idade: {age}s)")
+            del nif_session_cache[cache_key]
+            return None
+    
+    logger.info(f"[NIF CACHE] Hit para '{folder_name}': NIF {cached.get('nif')} -> '{cached.get('client_name')}'")
+    return cached
+
+
+async def find_client_by_nif(nif: str) -> Optional[dict]:
+    """
+    Encontrar cliente pelo NIF (busca exacta na DB).
+    
+    O NIF é o método mais fiável para ligar documentos a clientes,
+    pois é único e imutável.
+    
+    Args:
+        nif: Número de Identificação Fiscal (9 dígitos)
+        
+    Returns:
+        Processo/cliente completo ou None
+    """
+    if not nif:
+        return None
+    
+    # Limpar NIF (apenas dígitos)
+    nif_clean = re.sub(r'\D', '', str(nif))
+    
+    if len(nif_clean) != 9:
+        logger.warning(f"[NIF] NIF inválido (não tem 9 dígitos): {nif}")
+        return None
+    
+    # Buscar em personal_data.nif
+    process = await db.processes.find_one(
+        {"personal_data.nif": nif_clean},
+        {"_id": 0}
+    )
+    
+    if process:
+        logger.info(f"[NIF] Cliente encontrado por NIF {nif_clean}: '{process.get('client_name')}'")
+        return process
+    
+    # Buscar também no campo client_nif (se existir)
+    process = await db.processes.find_one(
+        {"client_nif": nif_clean},
+        {"_id": 0}
+    )
+    
+    if process:
+        logger.info(f"[NIF] Cliente encontrado por client_nif {nif_clean}: '{process.get('client_name')}'")
+        return process
+    
+    logger.info(f"[NIF] Nenhum cliente encontrado com NIF {nif_clean}")
+    return None
+
+
+def clear_expired_nif_cache():
+    """Limpar entradas expiradas do cache NIF."""
+    now = datetime.now(timezone.utc)
+    expired_keys = []
+    
+    for key, cached in nif_session_cache.items():
+        matched_at = cached.get("matched_at")
+        if matched_at:
+            age = (now - matched_at).total_seconds()
+            if age > NIF_CACHE_TTL_SECONDS:
+                expired_keys.append(key)
+    
+    for key in expired_keys:
+        del nif_session_cache[key]
+    
+    if expired_keys:
+        logger.info(f"[NIF CACHE] Limpeza: {len(expired_keys)} entradas expiradas removidas")
+
+
 # Tipos de documentos que tipicamente vêm em múltiplas cópias idênticas
 # Expandido para incluir mais tipos comuns
 DUPLICATE_PRONE_TYPES = {
