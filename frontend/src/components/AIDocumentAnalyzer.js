@@ -1,6 +1,6 @@
 /**
  * AIDocumentAnalyzer - Componente para análise de documentos com IA
- * Permite upload de ficheiros ou análise via URL do OneDrive
+ * Permite upload de ficheiros ou análise via URL externa (S3, Drive, etc.)
  * Preenche automaticamente os campos da ficha do cliente
  */
 import { useState, useRef } from "react";
