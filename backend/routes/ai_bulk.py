@@ -1796,6 +1796,96 @@ async def clear_duplicate_cache(
     return {"message": f"Cache limpo. {count} documentos removidos do cache."}
 
 
+@router.get("/nif-cache/stats")
+async def get_nif_cache_stats(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obter estatísticas do cache de sessão NIF.
+    
+    Mostra quantos mapeamentos pasta→cliente estão em cache
+    e há quanto tempo foram criados.
+    """
+    now = datetime.now(timezone.utc)
+    
+    stats = {
+        "total_entries": len(nif_session_cache),
+        "ttl_seconds": NIF_CACHE_TTL_SECONDS,
+        "entries": []
+    }
+    
+    for folder_key, cached in nif_session_cache.items():
+        matched_at = cached.get("matched_at")
+        age_seconds = (now - matched_at).total_seconds() if matched_at else 0
+        
+        stats["entries"].append({
+            "folder": folder_key,
+            "nif": cached.get("nif"),
+            "client_name": cached.get("client_name"),
+            "age_seconds": int(age_seconds),
+            "expires_in_seconds": max(0, int(NIF_CACHE_TTL_SECONDS - age_seconds))
+        })
+    
+    return stats
+
+
+@router.post("/nif-cache/clear")
+async def clear_nif_cache(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Limpar todo o cache de sessão NIF."""
+    global nif_session_cache
+    count = len(nif_session_cache)
+    nif_session_cache = {}
+    logger.info(f"[NIF CACHE] Cache limpo manualmente. {count} entradas removidas.")
+    return {"message": f"Cache NIF limpo. {count} mapeamentos removidos."}
+
+
+@router.post("/nif-cache/add-mapping")
+async def add_nif_mapping_manual(
+    folder_name: str,
+    nif: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Adicionar mapeamento NIF → Cliente manualmente.
+    
+    Útil quando se sabe o NIF mas a IA não conseguiu extrair automaticamente.
+    """
+    # Procurar cliente pelo NIF
+    process = await find_client_by_nif(nif)
+    
+    if not process:
+        # Tentar encontrar por nome da pasta
+        process = await find_client_by_name(folder_name)
+        
+        if process:
+            # Actualizar o NIF na ficha do cliente
+            await db.processes.update_one(
+                {"id": process["id"]},
+                {"$set": {"personal_data.nif": nif, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            logger.info(f"[NIF] NIF {nif} adicionado ao cliente '{process.get('client_name')}'")
+        else:
+            return {
+                "success": False,
+                "error": f"Nenhum cliente encontrado com NIF {nif} ou nome '{folder_name}'"
+            }
+    
+    # Guardar mapeamento em cache
+    cache_nif_mapping(
+        folder_name=folder_name,
+        nif=nif,
+        process_id=process["id"],
+        client_name=process.get("client_name")
+    )
+    
+    return {
+        "success": True,
+        "message": f"Mapeamento adicionado: '{folder_name}' -> NIF {nif} -> '{process.get('client_name')}'"
+    }
+
+
 @router.get("/import-errors/suggestions")
 async def get_import_improvement_suggestions(
     user: dict = Depends(require_roles([UserRole.ADMIN]))
