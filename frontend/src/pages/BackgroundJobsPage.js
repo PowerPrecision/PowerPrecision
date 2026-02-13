@@ -37,18 +37,19 @@ const JOB_TYPE_ICONS = {
 // Mapeamento de status para badges
 const STATUS_CONFIG = {
   running: { label: "A correr", variant: "default", className: "bg-blue-500", icon: Loader2 },
+  paused: { label: "Pausado", variant: "default", className: "bg-amber-500", icon: Clock },
   success: { label: "Concluído", variant: "default", className: "bg-green-500", icon: CheckCircle },
   failed: { label: "Falhado", variant: "destructive", icon: XCircle },
-  cancelled: { label: "Cancelado", variant: "secondary", className: "bg-amber-500", icon: XCircle },
+  cancelled: { label: "Cancelado", variant: "secondary", className: "bg-gray-500", icon: XCircle },
   pending: { label: "Pendente", variant: "secondary", icon: Clock },
 };
 
 // Componente de Job Individual
-const JobCard = ({ job, onDelete, onCancel }) => {
+const JobCard = ({ job, onDelete, onCancel, onPause, onResume }) => {
   const Icon = JOB_TYPE_ICONS[job.type] || JOB_TYPE_ICONS.default;
   const statusConfig = STATUS_CONFIG[job.status] || STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
-  const [cancelling, setCancelling] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   
   const formatDate = (isoString) => {
     if (!isoString) return "-";
