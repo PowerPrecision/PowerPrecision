@@ -961,10 +961,10 @@ Conteúdo:
             encoded_url = quote_plus(url)
             
             # Construir URL do ScraperAPI
-            # premium=true para sites difíceis como Idealista
-            scraper_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={encoded_url}&premium=true"
+            # ultra_premium=true para sites muito protegidos como Idealista
+            scraper_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={encoded_url}&ultra_premium=true"
             
-            logger.info(f"[SCRAPER] Usando ScraperAPI para: {url}")
+            logger.info(f"[SCRAPER] Usando ScraperAPI (ultra_premium) para: {url}")
             
             async with httpx.AsyncClient(timeout=90.0) as client:
                 response = await client.get(scraper_url)
@@ -975,7 +975,8 @@ Conteúdo:
                 elif response.status_code == 403:
                     logger.warning(f"[SCRAPER] ScraperAPI também bloqueado: {response.status_code}")
                 elif response.status_code == 500:
-                    logger.warning(f"[SCRAPER] ScraperAPI erro interno: {response.status_code} - {response.text[:200]}")
+                    error_msg = response.text[:300] if response.text else "Unknown error"
+                    logger.warning(f"[SCRAPER] ScraperAPI erro interno: {response.status_code} - {error_msg}")
                 else:
                     logger.warning(f"[SCRAPER] ScraperAPI retornou: {response.status_code}")
                 
