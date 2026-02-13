@@ -360,9 +360,93 @@ code {
     top: 0;
 }
 
+/* ============================================
+   DARK MODE - Melhorias de Legibilidade
+   ============================================ */
+
 /* Melhorar contraste de texto em modo escuro */
 .dark .text-muted-foreground {
-    color: hsl(var(--muted-foreground) / 0.9);
+    color: hsl(220 10% 75%);
+}
+
+/* Cartões do Kanban em dark mode */
+.dark .bg-yellow-100 { background-color: rgb(133 100 20 / 0.4); }
+.dark .bg-blue-100 { background-color: rgb(30 80 140 / 0.4); }
+.dark .bg-purple-100 { background-color: rgb(100 50 150 / 0.4); }
+.dark .bg-orange-100 { background-color: rgb(150 80 20 / 0.4); }
+.dark .bg-green-100 { background-color: rgb(30 100 50 / 0.4); }
+.dark .bg-red-100 { background-color: rgb(140 40 40 / 0.4); }
+
+/* Headers do Kanban - manter cores vivas */
+.dark .bg-yellow-500 { background-color: rgb(202 138 4); }
+.dark .bg-blue-500 { background-color: rgb(59 130 246); }
+.dark .bg-purple-500 { background-color: rgb(139 92 246); }
+.dark .bg-orange-500 { background-color: rgb(249 115 22); }
+.dark .bg-green-500 { background-color: rgb(34 197 94); }
+.dark .bg-red-500 { background-color: rgb(239 68 68); }
+
+/* Cartões internos em dark mode */
+.dark [data-testid*="process-card"] {
+    background-color: hsl(220 20% 18%) !important;
+    border-color: hsl(220 15% 28%) !important;
+}
+
+.dark [data-testid*="process-card"]:hover {
+    background-color: hsl(220 20% 22%) !important;
+}
+
+/* Badges em dark mode - texto legível */
+.dark .bg-gray-100 { background-color: hsl(220 15% 25%); }
+.dark .bg-gray-800 { background-color: hsl(220 15% 22%); }
+
+/* Ícones em dark mode - aumentar visibilidade */
+.dark .text-muted-foreground svg,
+.dark svg.text-muted-foreground {
+    color: hsl(220 10% 70%);
+}
+
+/* Badges de status em dark mode */
+.dark .status-clientes_espera { @apply bg-amber-900/50 text-amber-200 border-amber-700; }
+.dark .status-fase_documental,
+.dark .status-fase_documental_ii { @apply bg-blue-900/50 text-blue-200 border-blue-700; }
+.dark .status-enviado_bruno,
+.dark .status-enviado_luis,
+.dark .status-enviado_bcp_rui { @apply bg-purple-900/50 text-purple-200 border-purple-700; }
+.dark .status-entradas_precision,
+.dark .status-fase_bancaria { @apply bg-orange-900/50 text-orange-200 border-orange-700; }
+.dark .status-fase_visitas { @apply bg-sky-900/50 text-sky-200 border-sky-700; }
+.dark .status-ch_aprovado,
+.dark .status-fase_escritura,
+.dark .status-escritura_agendada,
+.dark .status-concluidos { @apply bg-emerald-900/50 text-emerald-200 border-emerald-700; }
+.dark .status-desistencias { @apply bg-red-900/50 text-red-200 border-red-700; }
+
+/* Inputs em dark mode */
+.dark input,
+.dark textarea,
+.dark select {
+    background-color: hsl(220 20% 14%);
+    border-color: hsl(220 15% 25%);
+    color: hsl(0 0% 95%);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: hsl(220 10% 50%);
+}
+
+/* Tabelas em dark mode */
+.dark table th {
+    background-color: hsl(220 20% 16%);
+    color: hsl(0 0% 90%);
+}
+
+.dark table td {
+    border-color: hsl(220 15% 22%);
+}
+
+.dark table tr:hover {
+    background-color: hsl(220 20% 18%);
 }
 
 /* Cursor pointer para elementos interactivos */
