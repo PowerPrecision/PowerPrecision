@@ -1930,11 +1930,11 @@ const ProcessDetails = () => {
               token={token}
             />
 
-            {/* Side Tabs - Prazos, Histórico, Documentos/Drive */}
+            {/* Side Tabs - Prazos e Histórico */}
             <Card className="border-border">
               <CardContent className="p-0">
                 <Tabs value={sideTab} onValueChange={setSideTab}>
-                  <TabsList className="w-full grid grid-cols-3 rounded-none rounded-t-md h-9">
+                  <TabsList className="w-full grid grid-cols-2 rounded-none rounded-t-md h-9">
                     <TabsTrigger value="deadlines" className="gap-1 text-xs">
                       <Clock className="h-3 w-3" />
                       Prazos
@@ -1942,10 +1942,6 @@ const ProcessDetails = () => {
                     <TabsTrigger value="history" className="gap-1 text-xs">
                       <History className="h-3 w-3" />
                       Histórico
-                    </TabsTrigger>
-                    <TabsTrigger value="files" className="gap-1 text-xs">
-                      <FolderOpen className="h-3 w-3" />
-                      Drive
                     </TabsTrigger>
                   </TabsList>
 
