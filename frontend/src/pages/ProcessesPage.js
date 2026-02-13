@@ -6,11 +6,12 @@ import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { 
-  Search, Eye, Loader2, FileText, Phone, Mail, MapPin, Euro, Filter
+  Search, Eye, FileText, Phone, Mail, MapPin, Euro, Filter
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getProcesses } from "../services/api";
+import { TableSkeleton } from "../components/ui/skeletons";
 
 const ProcessesPage = () => {
   const navigate = useNavigate();
@@ -58,8 +59,25 @@ const ProcessesPage = () => {
   if (loading) {
     return (
       <DashboardLayout title="Todos os Processos">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6 p-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Lista de Processos
+                  </CardTitle>
+                  <CardDescription>
+                    A carregar processos...
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <TableSkeleton rows={8} columns={7} />
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );
