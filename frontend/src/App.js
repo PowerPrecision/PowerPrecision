@@ -350,8 +350,10 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         <ImpersonateBanner />
+        <GlobalUploadProgress />
       </BrowserRouter>
       <Toaster position="bottom-right" richColors closeButton offset="20px" />
+      </UploadProgressProvider>
     </AuthProvider>
     </ThemeProvider>
   );
