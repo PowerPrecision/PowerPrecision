@@ -517,20 +517,14 @@ export default function ClientsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => openCreateProcessDialog(client)}
-                            >
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Novo Processo
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               onClick={() =>
                                 client.process_ids?.[0] &&
-                                navigate(`/processes/${client.process_ids[0]}`)
+                                navigate(`/processos/${client.process_ids[0]}`)
                               }
                               disabled={!client.process_ids?.length}
                             >
                               <Eye className="h-4 w-4 mr-2" />
-                              Ver Processos
+                              Ver Ficha
                             </DropdownMenuItem>
                             {canDeleteClients && (
                               <DropdownMenuItem
