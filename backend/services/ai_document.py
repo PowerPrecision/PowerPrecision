@@ -1546,8 +1546,19 @@ def build_update_data_from_extraction(
         employee = extracted_data.get('employee', {})
         payment = extracted_data.get('payment', extracted_data.get('payment_details', {}))
         recibo = extracted_data.get('recibo', {})
-        empresa = extracted_data.get('empresa', {})
+        empresa_raw = extracted_data.get('empresa')
         employer = extracted_data.get('employer', {})
+        
+        # Normalizar empresa (pode vir como string ou dict)
+        empresa = {}
+        if isinstance(empresa_raw, str):
+            empresa = {'nome': empresa_raw}
+        elif isinstance(empresa_raw, dict):
+            empresa = empresa_raw
+        
+        # Normalizar employer (pode vir como string ou dict)
+        if isinstance(employer, str):
+            employer = {'name': employer}
         
         # Dados do funcionário/employee
         if funcionario.get('nif'):
