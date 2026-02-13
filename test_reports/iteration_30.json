@@ -1,0 +1,113 @@
+{
+  "summary": "Iteration 30: All 5 bug fixes verified and working. Kanban filters with $and logic, client deletion from processes collection, email preferences, and admin notification preferences all tested successfully.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "test_01: Admin login - SUCCESS",
+    "test_02: Kanban without filters - 193 total processes",
+    "test_03: Kanban with consultor_id=none - 78 processes (0 with consultor)",
+    "test_04: Kanban with mediador_id=none - 187 processes (0 with mediador)",
+    "test_05: Kanban with BOTH consultor_id=none AND mediador_id=none - 74 processes (BUG FIX VERIFIED)",
+    "test_06: Kanban with specific consultor_id filter - works correctly",
+    "test_07: Create test process for deletion - SUCCESS",
+    "test_08: Verify process exists - SUCCESS",
+    "test_09: Delete client via DELETE /api/clients/{id} - SUCCESS (BUG FIX VERIFIED)",
+    "test_10: Verify process deleted (returns 404) - SUCCESS",
+    "test_11: PUT /api/auth/preferences - SUCCESS",
+    "test_12: Verify preferences via /api/auth/me - SUCCESS",
+    "test_13: GET /api/admin/notification-preferences (all users) - 13 users returned",
+    "test_14: GET /api/admin/notification-preferences/{user_id} - SUCCESS",
+    "test_99: Cleanup test data - SUCCESS"
+  ],
+  
+  "failed_tests": [],
+  
+  "bug_fixes_verified": [
+    {
+      "bug": "Kanban filter logic overwriting $or clause when both consultor_id and mediador_id were 'none'",
+      "fix": "Now using $and for multiple conditions",
+      "verification": "consultor_id=none&mediador_id=none returns 74 processes (intersection of 78 and 187)",
+      "status": "FIXED AND VERIFIED"
+    },
+    {
+      "bug": "Client deletion searching in 'clients' collection but data is in 'processes'",
+      "fix": "Now searches processes collection first",
+      "verification": "DELETE /api/clients/{id} correctly deletes from processes collection",
+      "status": "FIXED AND VERIFIED"
+    },
+    {
+      "bug": "Email preferences endpoint",
+      "endpoint": "PUT /api/auth/preferences",
+      "verification": "Endpoint works, updates notification_preferences in user document",
+      "status": "WORKING"
+    },
+    {
+      "bug": "Admin notification preferences endpoint",
+      "endpoint": "GET /api/admin/notification-preferences",
+      "verification": "Returns list of 13 users with their notification preferences",
+      "status": "WORKING"
+    }
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/integration/test_iteration30_bug_fixes.py",
+    "/app/test_reports/pytest/pytest_results_iteration30.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Kanban filter logic in processes.py now correctly uses $and when multiple 'none' filters are applied",
+    "Client deletion in clients.py correctly searches processes collection first before falling back to clients collection",
+    "Both endpoints PUT /api/auth/preferences and GET /api/admin/notification-preferences are working as expected"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/integration/test_iteration30_bug_fixes.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (15/15 pytest tests passed)",
+    "frontend": "N/A - backend only testing"
+  },
+  
+  "test_credentials": {
+    "admin": {
+      "email": "admin@admin.com",
+      "password": "admin",
+      "role": "admin"
+    }
+  },
+  
+  "seed_data_creation": "Test processes created with TEST_ prefix were deleted during cleanup",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All 5 bug fixes from iteration 30 verified. Kanban filters now correctly use $and for multiple 'none' conditions (74 processes without both consultor AND mediador). Client deletion correctly searches processes collection first. Email preferences and admin notification preferences endpoints working correctly.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "NO MOCKED APIs - All real integrations tested"
+  },
+  
+  "key_observations": {
+    "total_processes": 193,
+    "processes_without_consultor": 78,
+    "processes_without_mediador": 187,
+    "processes_without_both": 74,
+    "total_users": 13,
+    "kanban_filter_fix": "Using $and for multiple filter_conditions when both consultor_id and mediador_id are 'none'",
+    "client_deletion_fix": "Now searches db.processes.find_one({id: client_id}) BEFORE db.clients.find_one({id: client_id})"
+  }
+}
