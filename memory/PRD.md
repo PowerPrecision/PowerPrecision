@@ -11,6 +11,119 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
+## Última Actualização - 13 Fevereiro 2026 (Sessão 14)
+
+### ✅ Funcionalidades Implementadas (Sessão 14)
+
+#### 1. Security Headers Middleware - IMPLEMENTADO
+- **X-Frame-Options**: DENY (previne clickjacking)
+- **X-Content-Type-Options**: nosniff (previne MIME-type sniffing)
+- **X-XSS-Protection**: 1; mode=block
+- **Strict-Transport-Security**: max-age=31536000; includeSubDomains
+- **Referrer-Policy**: strict-origin-when-cross-origin
+- **Content-Security-Policy**: default-src 'self'; frame-ancestors 'none'
+- **Permissions-Policy**: camera=(), microphone=(), etc.
+- **Ficheiro**: `/app/backend/server.py` (linhas 74-129)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 2. Input Sanitization - IMPLEMENTADO
+- Novo módulo: `/app/backend/utils/input_sanitization.py`
+- Funções: `sanitize_string()`, `sanitize_html()`, `sanitize_email()`, `sanitize_phone()`, `sanitize_nif()`, `sanitize_name()`, `sanitize_url()`
+- Usa biblioteca `bleach` para limpeza segura de HTML
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 3. Field Constraints em Pydantic - IMPLEMENTADO
+- `PersonalData`: Campos com `Field(max_length=...)`, validators para sanitização
+- `PublicClientRegistration`: Validação de nome, email, telefone
+- **Ficheiro**: `/app/backend/models/process.py`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 4. Melhorias no Scraper Idealista - IMPLEMENTADO
+- Extração de referência do anúncio
+- Extração de link da agência
+- Extração de nome do consultor/agente
+- Extração de certificado energético
+- **Ficheiro**: `/app/backend/services/scraper.py` (método `_parse_idealista`)
+- **Status**: ✅ IMPLEMENTADO
+
+#### 5. Melhor Extração de Telefones Portugueses - IMPLEMENTADO
+- Novos padrões regex priorizando telemóveis (9X) sobre fixos (2X)
+- Selectores específicos por agência (REMAX, ERA, Century21, etc.)
+- Método `_extract_contacts_from_soup()` para extração via DOM
+- **Ficheiro**: `/app/backend/services/scraper.py`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 6. Fuzzy Matching com FuzzyWuzzy - IMPLEMENTADO
+- `find_client_by_name()` agora usa `fuzz.token_set_ratio`
+- Bónus de +20 para primeiro nome igual
+- Score mínimo aumentado para 70 (era 40)
+- **Ficheiro**: `/app/backend/routes/ai_bulk.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 7. Endpoint /suggest-clients - IMPLEMENTADO
+- `GET /api/ai/bulk/suggest-clients?query=X&limit=5`
+- Retorna sugestões com fuzzy matching
+- Inclui score, nome, id e contagem de documentos
+- **Ficheiro**: `/app/backend/routes/ai_bulk.py` (linhas 1183-1252)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 8. Tracking de Processos em Background - IMPLEMENTADO
+- Novo dicionário `background_processes` para tracking
+- `GET /api/ai/bulk/background-jobs` - Listar jobs
+- `GET /api/ai/bulk/background-jobs/{job_id}` - Estado de job específico
+- `DELETE /api/ai/bulk/background-jobs` - Limpar jobs terminados
+- **Ficheiro**: `/app/backend/routes/ai_bulk.py` (linhas 47-97, 1074-1180)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 9. Logs de Importação IA no Sistema de Logs - IMPLEMENTADO
+- `GET /api/admin/ai-import-logs` - Listar logs de importação
+- Filtros: status, days, client_name
+- Estatísticas: total_errors, unresolved, resolved
+- `POST /api/admin/ai-import-logs/{log_id}/resolve` - Marcar como resolvido
+- **Ficheiro**: `/app/backend/routes/admin.py` (linhas 1567-1662)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 10. Input para Treinar o Agente IA - IMPLEMENTADO
+- `GET /api/admin/ai-training` - Listar dados de treino
+- `POST /api/admin/ai-training` - Adicionar entrada
+- `PUT /api/admin/ai-training/{id}` - Actualizar entrada
+- `DELETE /api/admin/ai-training/{id}` - Remover entrada
+- `GET /api/admin/ai-training/prompt` - Gerar prompt consolidado
+- Categorias: document_types, field_mappings, client_patterns, custom_rules, extraction_tips
+- **Ficheiro**: `/app/backend/routes/admin.py` (linhas 1309-1504)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 11. Documentos para Imóveis da Empresa - IMPLEMENTADO
+- `POST /api/properties/{id}/documents` - Upload de documento
+- `GET /api/properties/{id}/documents` - Listar documentos
+- `DELETE /api/properties/{id}/documents/{doc_id}` - Remover documento
+- Tipos: caderneta_predial, certidao_registo, licenca_utilizacao, planta, cpcv, contrato, foto, outro
+- Armazenamento em S3
+- **Ficheiro**: `/app/backend/routes/properties.py` (linhas 962-1150)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### 12. Melhorias em detect_document_type() - IMPLEMENTADO
+- Mais padrões de keywords para cada tipo de documento
+- Suporte para abreviaturas comuns
+- **Ficheiro**: `/app/backend/services/ai_document.py`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 13. Melhorias em log_import_error() - IMPLEMENTADO
+- Novos campos: folder_name, attempted_matches, best_match_score, best_match_name, extracted_names, full_path
+- **Ficheiro**: `/app/backend/routes/ai_bulk.py`
+- **Status**: ✅ IMPLEMENTADO
+
+### Resultados do Testing Agent (Sessão 14)
+- **Backend**: 100% (20/20 testes passaram)
+- **Retest Necessário**: NÃO
+
+### Novas Dependências Adicionadas (Sessão 14)
+- `bleach==6.3.0` - Sanitização de HTML
+- `fuzzywuzzy==0.18.0` - Fuzzy string matching
+- `python-Levenshtein==0.27.3` - Performance para fuzzywuzzy
+
+---
+
 ## Última Actualização - 12 Fevereiro 2026 (Sessão 13)
 
 ### ✅ Funcionalidades Corrigidas (Sessão 13)
