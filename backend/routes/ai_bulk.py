@@ -1645,24 +1645,41 @@ async def get_background_jobs(
     Returns:
         Lista de jobs com estado, progresso e detalhes
     """
-    # Filtrar por status se especificado
+    # Carregar jobs recentes da DB (última semana)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    query = {"started_at": {"$gte": cutoff}}
+    
     if status:
-        jobs = [j for j in background_processes.values() if j.get("status") == status]
-    else:
-        jobs = list(background_processes.values())
+        query["status"] = status
     
-    # Ordenar por data de início (mais recentes primeiro)
+    # Buscar da DB
+    db_jobs = await db.background_jobs.find(
+        query,
+        {"_id": 0}
+    ).sort("started_at", -1).limit(limit).to_list(limit)
+    
+    # Juntar com jobs em memória (podem existir jobs novos ainda não na DB)
+    all_jobs = {job["id"]: job for job in db_jobs}
+    for job_id, job in background_processes.items():
+        if job_id not in all_jobs:
+            if not status or job.get("status") == status:
+                all_jobs[job_id] = job
+    
+    jobs = list(all_jobs.values())
     jobs.sort(key=lambda x: x.get("started_at", ""), reverse=True)
-    
-    # Limitar resultados
     jobs = jobs[:limit]
     
-    # Contar por status
+    # Contar por status (da DB para precisão)
+    running_count = await db.background_jobs.count_documents({"status": "running"})
+    success_count = await db.background_jobs.count_documents({"status": "success", "started_at": {"$gte": cutoff}})
+    failed_count = await db.background_jobs.count_documents({"status": "failed", "started_at": {"$gte": cutoff}})
+    total_count = await db.background_jobs.count_documents({"started_at": {"$gte": cutoff}})
+    
     counts = {
-        "running": sum(1 for j in background_processes.values() if j.get("status") == "running"),
-        "success": sum(1 for j in background_processes.values() if j.get("status") == "success"),
-        "failed": sum(1 for j in background_processes.values() if j.get("status") == "failed"),
-        "total": len(background_processes)
+        "running": running_count,
+        "success": success_count,
+        "failed": failed_count,
+        "total": total_count
     }
     
     return {
@@ -1679,10 +1696,16 @@ async def get_background_job_status(
     """
     Obter estado de um job específico.
     """
-    if job_id not in background_processes:
+    # Tentar memória primeiro (mais rápido)
+    if job_id in background_processes:
+        return background_processes[job_id]
+    
+    # Buscar na DB
+    job = await db.background_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
         raise HTTPException(status_code=404, detail="Job não encontrado")
     
-    return background_processes[job_id]
+    return job
 
 
 @router.delete("/background-jobs/{job_id}")
@@ -1694,10 +1717,14 @@ async def cancel_background_job(
     Cancelar/remover um job em background.
     Nota: Não interrompe processos já em execução.
     """
-    if job_id not in background_processes:
-        raise HTTPException(status_code=404, detail="Job não encontrado")
+    # Remover da memória
+    job = background_processes.pop(job_id, None)
     
-    job = background_processes.pop(job_id)
+    # Remover da DB
+    result = await db.background_jobs.delete_one({"id": job_id})
+    
+    if not job and result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
     
     return {
         "success": True,
@@ -1717,11 +1744,11 @@ async def clear_finished_jobs(
     Parâmetros:
     - only_failed: Se True, limpa apenas jobs falhados (default False)
     """
+    # Remover da memória
     to_remove = []
-    
     for job_id, job in background_processes.items():
         status = job.get("status")
-        if status != "running":  # Não remover jobs a correr
+        if status != "running":
             if only_failed:
                 if status == "failed":
                     to_remove.append(job_id)
@@ -1731,10 +1758,17 @@ async def clear_finished_jobs(
     for job_id in to_remove:
         del background_processes[job_id]
     
+    # Remover da DB
+    query = {"status": {"$ne": "running"}}
+    if only_failed:
+        query["status"] = "failed"
+    
+    db_result = await db.background_jobs.delete_many(query)
+    
     return {
         "success": True,
-        "removed_count": len(to_remove),
-        "message": f"{len(to_remove)} jobs removidos"
+        "removed_count": db_result.deleted_count,
+        "message": f"{db_result.deleted_count} jobs removidos"
     }
 
 
