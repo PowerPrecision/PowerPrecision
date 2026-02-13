@@ -254,6 +254,25 @@ const BackgroundJobsPage = () => {
     }
   };
 
+  const handleCancel = async (jobId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/ai/bulk/background-jobs/${jobId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        toast.success("Processo cancelado");
+        fetchJobs();
+      } else {
+        toast.error("Não foi possível cancelar o processo");
+      }
+    } catch (error) {
+      toast.error("Erro ao cancelar processo");
+    }
+  };
+
   const handleClearAll = async () => {
     if (!window.confirm("Tem a certeza que deseja limpar todos os jobs terminados?")) {
       return;
