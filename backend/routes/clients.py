@@ -571,42 +571,21 @@ async def find_or_create_client(
 @router.delete("/{client_id}")
 async def delete_client(
     client_id: str,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.CEO]))
 ):
     """
     Eliminar um cliente.
     
-    Permissões:
-    - Admin/CEO: podem eliminar qualquer cliente
-    - Consultor/Mediador: podem eliminar clientes que criaram ou que lhes estão atribuídos
+    Apenas Admin e CEO podem eliminar clientes.
     """
+    # Verificar também se é diretor
+    if user.get("role") not in ["admin", "ceo", "diretor"]:
+        raise HTTPException(status_code=403, detail="Sem permissão para eliminar clientes")
+    
     client = await db.clients.find_one({"id": client_id})
     
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
-    
-    user_role = user.get("role", "")
-    user_id = user.get("id", "")
-    
-    # Verificar permissões
-    can_delete = False
-    
-    if user_role in ["admin", "ceo", "diretor"]:
-        can_delete = True
-    elif user_role in ["consultor", "mediador", "intermediario"]:
-        # Pode eliminar se criou ou está atribuído
-        if client.get("created_by") == user_id or client.get("created_by") == user.get("email"):
-            can_delete = True
-        if client.get("assigned_to") == user_id:
-            can_delete = True
-        if client.get("consultor_id") == user_id:
-            can_delete = True
-    
-    if not can_delete:
-        raise HTTPException(
-            status_code=403, 
-            detail="Não tem permissão para eliminar este cliente"
-        )
     
     # Verificar se tem processos activos
     if client.get("process_ids"):
