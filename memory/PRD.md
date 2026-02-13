@@ -11,9 +11,33 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 17)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 18)
 
-### ✅ Tarefas P1 Completas (Sessão 17)
+### ✅ Tarefas Completadas (Sessão 18)
+
+#### P0: Lógica de Processamento de Documentos (Cenários A/B) - COMPLETO
+- **Objectivo**: Implementar lógica diferenciada para upload de documentos
+- **Cenário A (Upload Massivo)**: Nome da pasta raiz define o nome do cliente
+- **Cenário B (Página do Cliente)**: Parâmetro `force_client_id` associa todos os documentos ao cliente específico
+- **Implementação**:
+  - Backend: `POST /api/ai/bulk/analyze-single` aceita `force_client_id` como Form parameter
+  - Frontend: `BulkDocumentUpload.js` aceita props `forceClientId` e `forceClientName`
+  - Quando `forceClientId` está definido, ignora verificação de cliente e processa todos os ficheiros
+- **Ficheiros Modificados**:
+  - `/app/backend/routes/ai_bulk.py` - Added Form import, force_client_id parameter
+  - `/app/frontend/src/components/BulkDocumentUpload.js` - Full refactor for Scenario A/B support
+- **Status**: ✅ COMPLETO E TESTADO
+
+#### P1: Skeleton Loaders em Todas as Páginas - COMPLETO
+- **Objectivo**: Melhorar UX durante carregamento de dados
+- **Implementação**:
+  - `ProcessesPage.js`: `TableSkeleton` com 8 rows x 7 columns durante loading
+  - `KanbanBoard.js`: Skeleton loader com 5 colunas e 3 cards cada durante loading
+  - `ClientsPage.js`: `TableSkeleton` já implementado anteriormente
+- **Componentes**: `/app/frontend/src/components/ui/skeletons.jsx`
+- **Status**: ✅ COMPLETO E TESTADO
+
+### ✅ Tarefas Completadas (Sessão 17)
 
 #### P1: Migração CRA → Vite - COMPLETO
 - **Objectivo**: Migrar frontend de Create React App para Vite para melhor performance
@@ -38,13 +62,14 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Ficheiros**: `/app/backend/models/auth.py`
 - **Status**: ✅ COMPLETO
 
-#### P1: Parâmetro force_client_id na Extração - COMPLETO
-- **Problema**: Necessidade de forçar associação de documentos a um cliente específico
-- **Cenário A (Upload Massivo)**: Nome da pasta = nome do cliente
-- **Cenário B (Página do Cliente)**: Usa force_client_id, ignora nome da pasta
-- **Solução**: Adicionado parâmetro `force_client_id` ao endpoint `/api/ai/bulk/analyze-single`
-- **Ficheiros**: `/app/backend/routes/ai_bulk.py`
-- **Status**: ✅ COMPLETO
+#### P1: Remoção de "OneDrive não configurado" - COMPLETO
+- **Problema**: Mensagens específicas de "OneDrive" quando storage é configurável
+- **Solução**:
+  - Criado novo componente `DriveLinks.js` (genérico)
+  - Criado endpoint `/api/system-config/storage-info`
+  - Removidas todas as mensagens "OneDrive não configurado"
+  - Terminologia actualizada: "Pasta Drive" em vez de "Pasta OneDrive"
+- **Status**: ✅ COMPLETO E TESTADO
 
 #### P1: Processamento de Ficheiros em Threads - COMPLETO
 - **Problema**: Processamento de Excel/PDF em async def bloqueava event loop
@@ -55,38 +80,7 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Usa `run_in_executor()` para não bloquear
 - **Status**: ✅ COMPLETO
 
-#### P1: Remoção de "OneDrive não configurado" - COMPLETO
-- **Problema**: Mensagens específicas de "OneDrive" quando storage é configurável
-- **Solução**:
-  - Criado novo componente `DriveLinks.js` (genérico)
-  - Criado endpoint `/api/system-config/storage-info`
-  - Removidas todas as mensagens "OneDrive não configurado"
-  - Terminologia actualizada: "Pasta Drive" em vez de "Pasta OneDrive"
-- **Ficheiros Modificados**:
-  - `/app/frontend/src/components/DriveLinks.js` (novo)
-  - `/app/frontend/src/components/UnifiedDocumentsPanel.js`
-  - `/app/frontend/src/pages/UsersManagementPage.js`
-  - `/app/frontend/src/components/AIDocumentAnalyzer.js`
-  - `/app/frontend/src/components/DocumentChecklist.js`
-  - `/app/backend/routes/system_config.py`
-- **Status**: ✅ COMPLETO
-
-#### P1: Skeleton Loaders - PARCIALMENTE IMPLEMENTADO
-- **Estado**: Componentes existem em `/app/frontend/src/components/ui/skeletons.jsx`
-- **Integração**: `TableSkeleton` integrado na página de Clientes
-- **Pendente**: Integrar em mais páginas (Dashboard, Processos)
-
-### Bugs Corrigidos (Sessão 17)
-
-#### Bug: "OneDrive não configurado" aparecia mesmo com S3 configurado
-- **Causa**: Componente verificava apenas link do OneDrive, não o storage activo
-- **Solução**: Novo componente DriveLinks busca `/api/system-config/storage-info` para saber qual storage está activo
-- **Status**: ✅ CORRIGIDO
-
 ### 📋 Tarefas Pendentes
-
-#### P1 (Alta Prioridade)
-- [ ] Completar integração de skeleton loaders em todas as páginas
 
 #### P2 (Média Prioridade)
 - [ ] Implementar rate limiting no backend
@@ -94,7 +88,7 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 #### P3 (Baixa Prioridade)
 - [ ] Refactoring do `processes.py` (ficheiro muito grande)
-- [ ] Cache Redis para dados frequentes
+- [ ] Cache Redis para dados frequentes (nota: Redis não está disponível no ambiente actual)
 
 ### Credenciais de Teste
 - **Admin**: admin@admin.com / admin
@@ -106,8 +100,14 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - `/app/backend/services/file_processor.py` - Processamento ficheiros em threads
 - `/app/frontend/src/components/DriveLinks.js` - Componente de links genérico
 - `/app/backend/routes/system_config.py` - Endpoint storage-info
+- `/app/frontend/src/components/BulkDocumentUpload.js` - Upload massivo com Cenários A/B
+- `/app/backend/routes/ai_bulk.py` - Endpoint analyze-single com force_client_id
 
 ### Notas Técnicas
 - **Storage Dinâmico**: O admin escolhe o provider (S3, Google Drive, OneDrive, Dropbox) nas configurações do sistema
 - **force_client_id**: Quando na página de um cliente, todos os documentos são associados a esse cliente independentemente do nome da pasta
 - **ThreadPoolExecutor**: 4 workers para processamento de PDF/Excel (suficiente para operações I/O-bound)
+- **Skeleton Loaders**: Componentes reutilizáveis em `/app/frontend/src/components/ui/skeletons.jsx`
+
+### Test Reports
+- `/app/test_reports/iteration_29.json` - Último teste completo (100% pass rate)
