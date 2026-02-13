@@ -64,8 +64,10 @@ const FILE_STATUS = {
  */
 const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, variant = "default" }) => {
   const { token, user } = useAuth();
+  const { startUpload, updateProgress, finishUpload } = useUploadProgress();
   const folderInputRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const uploadJobIdRef = useRef(null);
   
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
