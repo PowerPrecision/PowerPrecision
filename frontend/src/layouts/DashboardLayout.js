@@ -221,6 +221,11 @@ const DashboardLayout = ({ children, title }) => {
             icon: Wrench,
             items: [
               {
+                label: "Mapeamentos NIF",
+                icon: Database,
+                href: "/admin/mapeamentos-nif",
+              },
+              {
                 label: "Processos Background",
                 icon: LayoutGrid,
                 href: "/admin/processos-background",
