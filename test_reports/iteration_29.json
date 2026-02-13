@@ -1,0 +1,120 @@
+{
+  "summary": "Iteration 29: Skeleton loaders e storage info testados. Migração Vite concluída. Todas as funcionalidades solicitadas verificadas e funcionais.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "test_01: Login admin@admin.com / admin - SUCCESS (role=admin)",
+    "test_02: GET /api/system-config/storage-info - Returns provider='aws_s3', provider_label='Amazon S3', configured=true",
+    "test_03: Dashboard stats endpoint",
+    "test_04: GET /api/processes - Returns 219 processes",
+    "test_05: GET /api/processes/kanban - Returns 15 columns, 219 total_processes",
+    "test_06: POST /api/ai/bulk/analyze-single endpoint exists (with force_client_id support)",
+    "test_07: Storage connection test - AWS S3 conectado com sucesso!",
+    "UI test: Skeleton loader na página de Processos - TableSkeleton com barras animadas visível",
+    "UI test: Skeleton loader no Kanban Board - Colunas skeleton durante carregamento",
+    "UI test: Drive status card mostra 'Drive - Configurado' (não 'OneDrive')",
+    "UI test: Dashboard mostra estatísticas correctamente (219 processos, 13 utilizadores)"
+  ],
+  
+  "failed_tests": [],
+  
+  "features_verified": [
+    {
+      "feature": "Skeleton loader na página de Processos (/processos)",
+      "status": "WORKING",
+      "details": "TableSkeleton component mostra loading state com barras animadas e texto 'A carregar processos...'"
+    },
+    {
+      "feature": "Skeleton loader no Kanban Board (Dashboard)",
+      "status": "WORKING",
+      "details": "Colunas skeleton (5 colunas) com cards skeleton (3 por coluna) durante carregamento"
+    },
+    {
+      "feature": "Drive status card mostra 'Drive - Configurado' (não 'OneDrive')",
+      "status": "WORKING",
+      "details": "Card mostra 'Drive' com check 'Configurado' - não hardcoded para 'OneDrive'"
+    },
+    {
+      "feature": "API endpoint /api/system-config/storage-info retorna provider correcto",
+      "status": "WORKING",
+      "details": "Returns: provider='aws_s3', provider_label='Amazon S3', configured=true, can_browse=true"
+    },
+    {
+      "feature": "Login com admin@admin.com / admin",
+      "status": "WORKING",
+      "details": "Login funciona, retorna access_token e user com role='admin'"
+    },
+    {
+      "feature": "Dashboard mostra estatísticas correctamente",
+      "status": "WORKING",
+      "details": "Total Processos: 219, Utilizadores: 13, Documentos a Expirar: 0"
+    },
+    {
+      "feature": "force_client_id support em /api/ai/bulk/analyze-single",
+      "status": "IMPLEMENTED",
+      "details": "Endpoint aceita force_client_id como Form parameter para Cenário B (upload na página do cliente)"
+    }
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/integration/test_iteration29_skeleton_storage.py",
+    "/app/test_reports/pytest/pytest_results_iteration29.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "ProcessesPage.js: TableSkeleton implementado correctamente com 8 rows x 7 columns",
+    "KanbanBoard.js: Skeleton loader com data-testid='kanban-loading' para testing",
+    "system_config.py: /storage-info endpoint retorna provider_label genérico baseado no provider configurado",
+    "ai_bulk.py: analyze-single suporta force_client_id via Form(None) - permite associar documentos a cliente específico",
+    "BulkDocumentUpload.js: Documentação clara dos Cenários A e B para upload de documentos"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/integration/test_iteration29_skeleton_storage.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (7/7 pytest tests passed)",
+    "frontend": "100% (todas as features UI verificadas via Playwright)"
+  },
+  
+  "test_credentials": {
+    "admin": {
+      "email": "admin@admin.com",
+      "password": "admin",
+      "role": "admin"
+    }
+  },
+  
+  "seed_data_creation": "Nenhum - usados dados existentes",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Migração Vite concluída. Skeleton loaders funcionam em ProcessesPage e KanbanBoard. Storage configurado como AWS S3. Endpoint /api/ai/bulk/analyze-single suporta force_client_id para upload de documentos no contexto de cliente específico.",
+  
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "NO MOCKED APIs - All real integrations tested"
+  },
+  
+  "key_observations": {
+    "vite_migration": "Concluída - frontend usa Vite em vez de CRA",
+    "skeleton_loaders": "Implementados com componentes reutilizáveis em /components/ui/skeletons.jsx",
+    "storage_provider": "AWS S3 configurado e funcionando (bucket: powerprecision-docs-storage)",
+    "drive_status_card": "Mostra 'Drive - Configurado' genérico (não OneDrive específico)",
+    "kanban_data_testid": "218 process cards com data-testid='process-card-{id}'"
+  }
+}
