@@ -139,6 +139,90 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 if os.getenv("TESTING") == "true":
     limiter.enabled = False
 
+
+# ====================================================================
+# EXCEPTION HANDLER GLOBAL - Registar erros no sistema de logs
+# ====================================================================
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Handler global para HTTPExceptions.
+    Regista erros 4xx e 5xx no sistema de logs para análise.
+    """
+    # Só logar erros significativos (não 401/403 de autenticação normal)
+    if exc.status_code >= 500 or exc.status_code in [400, 404]:
+        try:
+            from services.system_error_logger import system_error_logger
+            
+            # Determinar severidade baseada no código
+            if exc.status_code >= 500:
+                severity = "error"
+            elif exc.status_code == 404:
+                severity = "warning"
+            else:
+                severity = "info"
+            
+            # Extrair user_id do request se disponível
+            user_id = None
+            if hasattr(request.state, 'user'):
+                user_id = request.state.user.get('id')
+            
+            await system_error_logger.log_error(
+                error_type=f"http_{exc.status_code}",
+                message=str(exc.detail),
+                component="api",
+                details={
+                    "path": str(request.url.path),
+                    "method": request.method,
+                    "status_code": exc.status_code,
+                    "query_params": dict(request.query_params),
+                },
+                severity=severity,
+                user_id=user_id,
+                request_path=str(request.url.path)
+            )
+        except Exception as log_error:
+            logger.warning(f"Erro ao registar log: {log_error}")
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """
+    Handler para excepções não tratadas.
+    Regista o erro e retorna 500.
+    """
+    try:
+        from services.system_error_logger import system_error_logger
+        
+        await system_error_logger.log_error(
+            error_type="unhandled_exception",
+            message=str(exc),
+            component="api",
+            details={
+                "path": str(request.url.path),
+                "method": request.method,
+                "exception_type": type(exc).__name__,
+            },
+            severity="critical",
+            request_path=str(request.url.path)
+        )
+    except Exception as log_error:
+        logger.error(f"Erro ao registar excepção: {log_error}")
+    
+    logger.exception(f"Unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erro interno do servidor"}
+    )
+
 # Rotas
 app.include_router(auth_router, prefix="/api")
 app.include_router(public_router, prefix="/api")
