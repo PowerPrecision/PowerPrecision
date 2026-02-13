@@ -918,6 +918,88 @@ IMPORTANTE:
 Se houver apenas 1 proponente, o array deve ter apenas 1 elemento.
 Retorna APENAS o JSON, sem texto adicional."""
 
+    elif document_type == "mapa_crc":
+        system_prompt = """És um assistente especializado em extrair dados de Mapas da Central de Responsabilidades de Crédito (CRC) do Banco de Portugal.
+
+IMPORTANTE:
+- Extrai TODOS os créditos listados no documento
+- Valores monetários devem ser números decimais (usar 0.00 se não disponível)
+- Datas no formato YYYY-MM-DD
+- Inclui o nome da instituição financeira de cada crédito"""
+        
+        user_prompt = """Analisa este Mapa CRC (Central de Responsabilidades de Crédito) e extrai os seguintes dados em formato JSON:
+
+{
+    "titular": {
+        "nome": "Nome completo do titular",
+        "nif": "NIF do titular"
+    },
+    "data_referencia": "Data de referência do mapa (YYYY-MM-DD)",
+    "resumo": {
+        "total_divida": 0.00,
+        "total_em_incumprimento": 0.00,
+        "total_potencial": 0.00,
+        "prestacao_mensal_total": 0.00,
+        "numero_instituicoes": 0,
+        "numero_produtos": 0
+    },
+    "creditos": [
+        {
+            "instituicao": "Nome do banco/instituição financeira",
+            "tipo_produto": "Cartão de crédito/Crédito pessoal/Crédito habitação/Crédito automóvel/Outro",
+            "valor_em_divida": 0.00,
+            "valor_potencial": 0.00,
+            "prestacao_mensal": 0.00,
+            "data_inicio": "YYYY-MM-DD ou null",
+            "data_fim": "YYYY-MM-DD ou null",
+            "em_incumprimento": false,
+            "numero_devedores": 1
+        }
+    ]
+}
+
+Extrai TODOS os créditos presentes no documento.
+Calcula a soma das prestações mensais para "prestacao_mensal_total".
+Retorna APENAS o JSON, sem texto adicional."""
+
+    elif document_type == "extrato_bancario":
+        system_prompt = """És um assistente especializado em extrair dados de extratos bancários.
+Extrai o saldo e movimentos principais. Valores monetários devem ser números decimais."""
+        
+        user_prompt = """Analisa este extrato bancário e extrai os seguintes dados em formato JSON:
+
+{
+    "titular": "Nome do titular da conta",
+    "nif": "NIF se disponível",
+    "banco": "Nome do banco",
+    "numero_conta": "Número da conta (IBAN se disponível)",
+    "data_extrato": "Data do extrato (YYYY-MM-DD)",
+    "periodo": {
+        "inicio": "YYYY-MM-DD",
+        "fim": "YYYY-MM-DD"
+    },
+    "saldos": {
+        "inicial": 0.00,
+        "final": 0.00,
+        "disponivel": 0.00
+    },
+    "totais": {
+        "entradas": 0.00,
+        "saidas": 0.00
+    },
+    "movimentos_relevantes": [
+        {
+            "data": "YYYY-MM-DD",
+            "descricao": "Descrição do movimento",
+            "valor": 0.00,
+            "tipo": "credito/debito"
+        }
+    ]
+}
+
+Foca nos movimentos regulares como salários, rendas, prestações de crédito.
+Retorna APENAS o JSON, sem texto adicional."""
+
     else:
         system_prompt = """És um assistente especializado em extrair dados de documentos.
 Extrai todos os dados relevantes que encontrares no documento.
