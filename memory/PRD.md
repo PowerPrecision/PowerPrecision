@@ -148,9 +148,11 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 ### 📋 Tarefas Pendentes
 
 #### P1 (Alta Prioridade - Próximos)
-- [ ] **"Gestor de Visitas"** - Implementar funcionalidade de scraping de URLs de imóveis
-- [ ] **Configuração SMTP completa** - Preencher smtp_user na página de configurações
-- [ ] **Mobile menu overlap** - Verificar e corrigir se existe problema visual
+- [x] **"Gestor de Visitas"** - Funcionalidade já implementada! Renomeado de "Leads". Inclui:
+  - Kanban com estados: Novo, Contactado, Visita Agendada, Proposta, Reservado, Descartado
+  - Extração automática de dados de URLs de imóveis (scraping)
+  - Formulário completo para criar leads manualmente
+  - Filtros por consultor e estado
 
 #### P1 (Bugs Menores)
 - [ ] **ImportErrorsPage** - Campo `error_type` não existe na API, usa `error` (ajustar filtros)
