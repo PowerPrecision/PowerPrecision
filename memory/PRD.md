@@ -15,6 +15,35 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### ✅ Tarefas Completadas (Sessão 25)
 
+#### P1: Bookmarklet Avançado Idealista - IMPLEMENTADO
+- **Problema**: Utilizador queria método de "um clique" para importar dados do Idealista
+- **Solução**: Criados dois bookmarklets com funcionalidades diferentes
+- **Funcionalidades implementadas**:
+  - **Bookmarklet "Um Clique"** (Recomendado): Abre o CRM automaticamente com dados pré-preenchidos
+    - Codifica HTML em Base64 e passa via URL params
+    - Auto-processa os dados ao carregar a página
+  - **Bookmarklet "Copiar"** (Alternativo): Copia dados para clipboard
+    - Utilizador cola manualmente no CRM
+- **Ficheiros modificados**:
+  - `/app/frontend/src/pages/IdealistaImportPage.js` - Dois bookmarklets, useEffect para auto-processamento
+- **Status**: ✅ VERIFICADO (100% testes passed - iteration_37)
+
+#### P1: Pausar/Retomar Jobs em Background - IMPLEMENTADO
+- **Problema**: Utilizador queria pausar importações longas e retomar mais tarde
+- **Solução**: Adicionados endpoints e UI para pausar/retomar jobs
+- **Funcionalidades implementadas**:
+  - Botão "Pausar" aparece para jobs com status "running"
+  - Botão "Retomar" aparece para jobs com status "paused"
+  - Novo card de estatísticas "Pausados" na página de Background Jobs
+  - Status "paused" guardado na DB com timestamp
+- **Ficheiros modificados**:
+  - `/app/backend/routes/ai_bulk.py` - Endpoints POST /pause e POST /resume
+  - `/app/frontend/src/pages/BackgroundJobsPage.js` - Handlers e UI para pausar/retomar
+- **Novos Endpoints**:
+  - `POST /api/ai/bulk/background-jobs/{job_id}/pause`
+  - `POST /api/ai/bulk/background-jobs/{job_id}/resume`
+- **Status**: ✅ VERIFICADO (100% testes passed - iteration_37)
+
 #### P0: Página de Importação Idealista (HTML Paste) - IMPLEMENTADO
 - **Problema**: O Idealista bloqueia scrapers com HTTP 403, impedindo importação directa de URLs
 - **Solução**: Criada página para o utilizador colar o HTML da página manualmente
