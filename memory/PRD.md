@@ -11,6 +11,35 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (OneDrive, S3, Google Drive), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
+## Última Actualização - 13 Fevereiro 2026 (Sessão 16)
+
+### ✅ Bugs Corrigidos (Sessão 16)
+
+#### Bug P0: Workflow do Consultor Não Funcionava - CORRIGIDO
+- **Problema Reportado**: Utilizador `flaviosilva@powerealestate.pt` (role consultor) não conseguia realizar operações básicas (adicionar links, criar processos)
+- **Causa Raiz 1**: Endpoint `POST /api/processes/create-client` não incluía role `consultor` na lista de permitidos
+- **Causa Raiz 2**: Endpoint `GET /api/onedrive/links/{process_id}` retornava 404 para processos sem links (bug de dict vazio em Python)
+- **Causa Raiz 3**: Endpoints `GET/POST/PUT/DELETE /api/onedrive/links/{process_id}` não existiam no backend
+- **Soluções Implementadas**:
+  1. Adicionado `consultor` à lista de roles permitidos em `/create-client`
+  2. Criados endpoints completos para gestão de links (GET, POST, PUT, DELETE)
+  3. Corrigida verificação de existência de processo (separada da busca de links)
+- **Ficheiros Modificados**: `/app/backend/routes/onedrive.py`, `/app/backend/routes/processes.py`
+- **Testes**: 13/13 testes passaram (100% success rate)
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Novos Endpoints de Links de Drive
+- `GET /api/onedrive/links/{process_id}` - Listar links de um processo
+- `POST /api/onedrive/links/{process_id}` - Adicionar link (suporta OneDrive, Google Drive, S3, SharePoint)
+- `PUT /api/onedrive/links/{process_id}/{link_id}` - Actualizar link
+- `DELETE /api/onedrive/links/{process_id}/{link_id}` - Remover link
+
+### Credenciais de Teste Verificadas
+- **Consultor**: `flaviosilva@powerealestate.pt` / `flavio123` (role: consultor)
+- **Admin**: `admin@admin.com` / `admin` (role: admin)
+
+---
+
 ## Última Actualização - 13 Fevereiro 2026 (Sessão 15 - Parte 2)
 
 ### ✅ Funcionalidades Implementadas (Sessão 15 - Parte 2)
