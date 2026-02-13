@@ -1576,6 +1576,48 @@ async def get_aggregated_session_status(
     }
 
 
+# ====================================================================
+# ACTUALIZAÇÃO DE PROGRESSO DO BACKGROUND JOB
+# ====================================================================
+class ProgressUpdateRequest(BaseModel):
+    """Request para actualizar progresso de um job."""
+    processed: Optional[int] = None
+    errors: Optional[int] = None
+    message: Optional[str] = None
+
+
+@router.post("/background-job/{job_id}/progress")
+async def update_background_job_progress(
+    job_id: str,
+    request: ProgressUpdateRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualizar progresso de um job em background.
+    
+    Usado pelo frontend para reportar progresso de uploads.
+    Actualiza tanto o cache em memória como a DB.
+    """
+    update_fields = {}
+    
+    if request.processed is not None:
+        update_fields["processed"] = request.processed
+    if request.errors is not None:
+        update_fields["errors"] = request.errors
+    if request.message:
+        update_fields["message"] = request.message
+    
+    if update_fields:
+        await update_background_job_db(job_id, **update_fields)
+    
+    # Retornar estado actual
+    job = background_processes.get(job_id)
+    if not job:
+        job = await db.background_jobs.find_one({"id": job_id}, {"_id": 0})
+    
+    return job or {"error": "Job não encontrado", "updated": bool(update_fields)}
+
+
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
 async def analyze_single_file(
     file: UploadFile = File(...),
