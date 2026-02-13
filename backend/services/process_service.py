@@ -78,9 +78,8 @@ def can_view_process(user: dict, process: dict) -> bool:
     Verifica se o utilizador pode ver o processo baseado no seu papel.
     
     Regras:
-    - Admin/CEO/Diretor/Administrativo: podem ver todos
-    - Consultores: processos atribuídos como consultor ou criados por eles
-    - Intermediários/Mediadores: processos atribuídos como mediador ou criados por eles
+    - Staff (admin, ceo, diretor, administrativo, consultor, mediador, intermediario): 
+      podem ver TODOS os processos da empresa
     - Clientes: apenas os seus próprios processos
     
     Args:
@@ -92,50 +91,17 @@ def can_view_process(user: dict, process: dict) -> bool:
     """
     user_role = user.get("role", "")
     user_id = user.get("id", "")
-    user_email = user.get("email", "")
     
-    # Admin, CEO, Diretor e Administrativo veem tudo
-    if user_role in ["admin", "ceo", "diretor", "administrativo"]:
+    # Todos os staff podem ver todos os processos
+    staff_roles = ["admin", "ceo", "diretor", "administrativo", "consultor", "mediador", "intermediario"]
+    if user_role in staff_roles:
         return True
     
     # Cliente só vê os seus próprios processos
     if user_role == "cliente":
         return process.get("client_id") == user_id
     
-    # Para outros papéis (consultor, mediador, intermediario), verificar atribuição
-    # Verificar campos de atribuição CORRECTOS (assigned_consultor_id, assigned_mediador_id)
-    assigned_consultor_id = process.get("assigned_consultor_id")
-    assigned_mediador_id = process.get("assigned_mediador_id")
-    
-    if user_id == assigned_consultor_id:
-        return True
-    if user_id == assigned_mediador_id:
-        return True
-    
-    # Verificar campos antigos também (consultant_id, mediador_id) para compatibilidade
-    if user_id == process.get("consultant_id"):
-        return True
-    if user_id == process.get("mediador_id"):
-        return True
-    
-    # Verificar na lista de utilizadores atribuídos
-    assigned_users = process.get("assigned_users", [])
-    for assigned in assigned_users:
-        if isinstance(assigned, dict):
-            if assigned.get("id") == user_id or assigned.get("user_id") == user_id:
-                return True
-        elif assigned == user_id:
-            return True
-    
-    # Verificar se criou o processo (por ID ou por email)
-    created_by = process.get("created_by")
-    if created_by:
-        if created_by == user_id:
-            return True
-        # Verificar também por email (alguns processos guardam email em created_by)
-        if created_by == user_email:
-            return True
-    
+    # Por defeito, negar acesso
     return False
 
 
