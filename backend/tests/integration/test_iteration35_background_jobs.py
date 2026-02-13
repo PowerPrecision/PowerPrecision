@@ -405,17 +405,18 @@ class TestDataAggregatorMultiLanguage:
         # Consolidate using correct method name
         result = aggregator.get_consolidated_data()
         
-        assert "salarios" in result, "Consolidated should have salarios"
-        assert len(result["salarios"]) > 0, "Should have at least one salary"
+        # Salaries are nested under financial_data
+        financial_data = result.get("financial_data", {})
+        assert "salarios" in financial_data, "Consolidated financial_data should have salarios"
+        assert len(financial_data["salarios"]) > 0, "Should have at least one salary"
         
-        # Check that foreign flags are set
-        if result.get("outros"):
-            if result["outros"].get("trabalha_no_estrangeiro"):
-                print("✓ 'trabalha_no_estrangeiro' flag correctly set")
-            if result["outros"].get("pais_trabalho"):
-                print(f"✓ 'pais_trabalho' correctly set to {result['outros']['pais_trabalho']}")
+        # Verify French data in salarios
+        salario = financial_data["salarios"][0]
+        assert salario.get("pais_origem") == "FR", f"Salary should have pais_origem=FR"
+        assert salario.get("moeda") == "EUR", f"Salary should have moeda=EUR"
         
         print(f"✓ Consolidation includes foreign country data")
+        print(f"  - Salary from {salario.get('empresa')} ({salario.get('pais_origem')}): {salario.get('salario_liquido')}€")
 
 
 class TestAIDocumentPrompts:
