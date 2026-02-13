@@ -117,30 +117,14 @@ def build_query_filter(user: dict) -> dict:
     """
     user_role = user.get("role", "")
     user_id = user.get("id", "")
-    user_email = user.get("email", "")
     
-    # Admin, CEO, Diretor e Administrativo veem tudo
-    if user_role in ["admin", "ceo", "diretor", "administrativo"]:
+    # Todos os staff veem todos os processos
+    staff_roles = ["admin", "ceo", "diretor", "administrativo", "consultor", "mediador", "intermediario"]
+    if user_role in staff_roles:
         return {}
     
-    # Outros utilizadores só veem processos atribuídos ou criados por eles
-    return {
-        "$or": [
-            # Campos de atribuição correctos
-            {"assigned_consultor_id": user_id},
-            {"assigned_mediador_id": user_id},
-            # Campos antigos (compatibilidade)
-            {"consultant_id": user_id},
-            {"mediador_id": user_id},
-            # Lista de utilizadores atribuídos
-            {"assigned_users.id": user_id},
-            {"assigned_users.user_id": user_id},
-            {"assigned_users": user_id},
-            # Criado por (pode ser ID ou email)
-            {"created_by": user_id},
-            {"created_by": user_email}
-        ]
-    }
+    # Clientes só veem os seus próprios processos
+    return {"client_id": user_id}
 
 
 # ==== FUNÇÕES DE CRIAÇÃO E ATUALIZAÇÃO ====
