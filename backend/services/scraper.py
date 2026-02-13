@@ -978,36 +978,56 @@ Conteúdo:
         
         html_content = None
         parser_used = None
+        used_scraper_api = False
         
-        # Tentar obter HTML (primeiro com SSL, depois sem)
-        for verify_ssl in [True, False]:
-            try:
-                import random
-                await asyncio.sleep(random.uniform(0.3, 1.0))
-                
-                async with httpx.AsyncClient(
-                    timeout=self.timeout,
-                    follow_redirects=True,
-                    verify=verify_ssl,
-                    http2=True
-                ) as client:
-                    response = await client.get(url, headers=self._get_headers())
+        # Verificar se o site requer ScraperAPI
+        parsed_url = urlparse(url)
+        requires_scraper_api = any(site in parsed_url.netloc.lower() for site in SCRAPER_API_REQUIRED_SITES)
+        
+        # Se ScraperAPI disponível e site requer, usar directamente
+        if requires_scraper_api and SCRAPERAPI_KEY:
+            logger.info(f"[SCRAPER] Site {parsed_url.netloc} requer ScraperAPI - usando proxy")
+            html_content = await self._fetch_with_scraperapi(url)
+            if html_content:
+                used_scraper_api = True
+        
+        # Tentar obter HTML directamente (se não usou ScraperAPI)
+        if not html_content:
+            for verify_ssl in [True, False]:
+                try:
+                    import random
+                    await asyncio.sleep(random.uniform(0.3, 1.0))
                     
-                    if response.status_code == 200:
-                        html_content = response.text
-                        break
-                    elif response.status_code == 403:
-                        return {"error": "Acesso bloqueado (403). Site pode ter protecção anti-bot."}
-                    elif response.status_code == 404:
-                        return {"error": "Página não encontrada (404)"}
+                    async with httpx.AsyncClient(
+                        timeout=self.timeout,
+                        follow_redirects=True,
+                        verify=verify_ssl,
+                        http2=True
+                    ) as client:
+                        response = await client.get(url, headers=self._get_headers())
                         
-            except httpx.ConnectError:
-                if verify_ssl:
-                    logger.warning(f"SSL error em {url}, tentando sem verificação")
-                    continue
-            except Exception as e:
-                logger.error(f"Erro HTTP: {e}")
-                return {"error": f"Erro de conexão: {str(e)}"}
+                        if response.status_code == 200:
+                            html_content = response.text
+                            break
+                        elif response.status_code == 403:
+                            # Tentar com ScraperAPI como fallback
+                            if SCRAPERAPI_KEY and not used_scraper_api:
+                                logger.info(f"[SCRAPER] 403 recebido, tentando ScraperAPI para {url}")
+                                html_content = await self._fetch_with_scraperapi(url)
+                                if html_content:
+                                    used_scraper_api = True
+                                    break
+                            return {"error": "Acesso bloqueado (403). Site tem protecção anti-bot."}
+                        elif response.status_code == 404:
+                            return {"error": "Página não encontrada (404)"}
+                            
+                except httpx.ConnectError:
+                    if verify_ssl:
+                        logger.warning(f"SSL error em {url}, tentando sem verificação")
+                        continue
+                except Exception as e:
+                    logger.error(f"Erro HTTP: {e}")
+                    return {"error": f"Erro de conexão: {str(e)}"}
         
         if not html_content:
             return {"error": "Não foi possível obter o conteúdo da página"}
