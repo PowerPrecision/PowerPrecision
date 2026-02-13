@@ -246,6 +246,11 @@ const DashboardLayout = ({ children, title }) => {
                 href: "/admin/processos-background",
               },
               {
+                label: "Importar Idealista",
+                icon: Home,
+                href: "/admin/importar-idealista",
+              },
+              {
                 label: "Backups",
                 icon: Database,
                 href: "/admin/backups",

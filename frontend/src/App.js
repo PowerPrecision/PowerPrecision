@@ -342,6 +342,16 @@ function App() {
             }
           />
           
+          {/* Idealista Import - Admin only */}
+          <Route
+            path="/admin/importar-idealista"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <IdealistaImportPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
