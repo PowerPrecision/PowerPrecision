@@ -265,24 +265,20 @@ function App() {
             }
           />
           
-          {/* System Logs - Admin only */}
+          {/* System Logs (Unified) - Admin only */}
           <Route
             path="/admin/logs"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <SystemLogsPage />
+                <UnifiedLogsPage />
               </ProtectedRoute>
             }
           />
           
-          {/* AI Import Logs - Admin only */}
+          {/* Redirect old import logs route to unified logs */}
           <Route
             path="/admin/logs-importacao"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AIImportLogsPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/admin/logs" replace />}
           />
           
           {/* Backups Management - Admin only */}
