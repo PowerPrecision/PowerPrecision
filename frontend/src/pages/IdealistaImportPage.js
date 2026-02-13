@@ -2,10 +2,12 @@
  * IdealistaImportPage - Importação de dados do Idealista
  * 
  * Como o Idealista bloqueia scrapers, oferecemos duas opções:
- * 1. Bookmarklet - Arrastar para a barra de favoritos
- * 2. Colar HTML - Copiar página e colar aqui
+ * 1. Bookmarklet Simples - Copia dados para clipboard
+ * 2. Bookmarklet Avançado - Abre o CRM automaticamente com dados
+ * 3. Colar HTML - Copiar página e colar aqui
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -30,18 +32,22 @@ import {
   Building,
   User,
   Phone,
+  Zap,
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const CRM_URL = window.location.origin;
 
 const IdealistaImportPage = () => {
+  const [searchParams] = useSearchParams();
   const [htmlContent, setHtmlContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [activeTab, setActiveTab] = useState("paste"); // "paste" ou "bookmarklet"
+  const [autoExtractDone, setAutoExtractDone] = useState(false);
 
-  // Bookmarklet code - quando clicado no Idealista, copia dados para clipboard
-  const bookmarkletCode = `javascript:(function(){
+  // Bookmarklet SIMPLES - copia dados para clipboard
+  const bookmarkletSimple = `javascript:(function(){
     const data = {
       url: window.location.href,
       html: document.documentElement.outerHTML,
@@ -60,6 +66,73 @@ const IdealistaImportPage = () => {
       alert('Dados copiados! Cole no CRM para importar.');
     });
   })();`;
+
+  // Bookmarklet AVANÇADO - abre o CRM automaticamente com dados codificados
+  const bookmarkletAdvanced = `javascript:(function(){
+    var html=document.documentElement.outerHTML;
+    var url=window.location.href;
+    var encoded=btoa(unescape(encodeURIComponent(html.substring(0,50000))));
+    var crmUrl='${CRM_URL}/admin/importar-idealista?auto=1&url='+encodeURIComponent(url)+'&data='+encoded;
+    window.open(crmUrl,'_blank');
+  })();`;
+
+  // Auto-processar dados se vieram do bookmarklet avançado
+  useEffect(() => {
+    const autoProcess = searchParams.get("auto");
+    const encodedData = searchParams.get("data");
+    const sourceUrl = searchParams.get("url");
+    
+    if (autoProcess === "1" && encodedData && !autoExtractDone) {
+      try {
+        const decodedHtml = decodeURIComponent(escape(atob(encodedData)));
+        const dataObj = {
+          html: decodedHtml,
+          url: sourceUrl || "idealista-bookmarklet"
+        };
+        setHtmlContent(JSON.stringify(dataObj));
+        setAutoExtractDone(true);
+        toast.info("Dados recebidos do Idealista! A processar automaticamente...");
+        
+        // Auto-extrair após um breve delay
+        setTimeout(() => {
+          handleExtractAuto(dataObj);
+        }, 500);
+      } catch (e) {
+        console.error("Erro ao decodificar dados:", e);
+        toast.error("Erro ao processar dados do bookmarklet");
+      }
+    }
+  }, [searchParams, autoExtractDone]);
+
+  // Função de extracção automática (para bookmarklet avançado)
+  const handleExtractAuto = async (dataObj) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/scraper/extract-html`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dataObj),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExtractedData(data);
+        toast.success("Dados extraídos automaticamente!");
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || "Erro ao extrair dados");
+      }
+    } catch (error) {
+      console.error("Erro:", error);
+      toast.error("Erro ao processar dados");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExtract = async () => {
     if (!htmlContent.trim()) {
