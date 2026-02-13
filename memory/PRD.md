@@ -9,7 +9,65 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Base de Dados**: MongoDB Atlas (Cluster: cluster0.c8livu.mongodb.net)
   - **Desenvolvimento/Testes**: `powerprecision_dev`
   - **Produção**: `powerprecision`
-- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), OneDrive (via link partilhado), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
+- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (OneDrive, S3, Google Drive), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
+
+## Última Actualização - 13 Fevereiro 2026 (Sessão 14 - Continuação)
+
+### ✅ Bugs Corrigidos (Sessão 14 - Continuação)
+
+#### Bug 1: "Adicionar Link" mencionava OneDrive - CORRIGIDO
+- **Problema**: O diálogo dizia "OneDrive" quando o sistema suporta múltiplos drives
+- **Solução**: Mudado todos os textos de "OneDrive" para "Drive" genérico
+- **Ficheiros**: `/app/frontend/src/components/OneDriveLinks.js`
+- **Status**: ✅ CORRIGIDO
+
+#### Bug 2: Links S3 davam erro "Not Found" - CORRIGIDO
+- **Problema**: Validação só aceitava URLs do OneDrive
+- **Solução**: Expandida validação para aceitar S3, Google Drive, SharePoint, e qualquer HTTP/HTTPS
+- **Ficheiros**: `/app/backend/routes/onedrive.py`
+- **Padrões aceites**: `s3://`, `https://drive.google.com/`, `.sharepoint.com/`, `https://1drv.ms/`
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Bug 3: Router OneDrive não estava registado - CORRIGIDO
+- **Problema**: Router de onedrive não estava incluído no server.py
+- **Solução**: Adicionado import e include_router para onedrive_router
+- **Ficheiro**: `/app/backend/server.py`
+- **Status**: ✅ CORRIGIDO
+
+### ✅ Novas Funcionalidades UI (Sessão 14 - Continuação)
+
+#### 1. Página de Treino do Agente IA - IMPLEMENTADO
+- **Rota**: `/configuracoes/treino-ia`
+- **Funcionalidades**:
+  - CRUD de entradas de treino
+  - 5 categorias: Tipos de Documentos, Mapeamento de Campos, Padrões de Clientes, Regras Personalizadas, Dicas de Extração
+  - Visualização do prompt gerado
+  - Activar/desactivar entradas
+- **Ficheiro**: `/app/frontend/src/pages/AITrainingPage.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 2. Página de Processos em Background - IMPLEMENTADO
+- **Rota**: `/admin/processos-background`
+- **Funcionalidades**:
+  - Visualização de jobs em tempo real (auto-refresh 5s)
+  - Filtros por estado (running, success, failed)
+  - Barra de progresso para jobs a correr
+  - Limpeza de jobs terminados
+- **Ficheiro**: `/app/frontend/src/pages/BackgroundJobsPage.js`
+- **Status**: ✅ IMPLEMENTADO
+
+#### 3. Novos Links no Menu Lateral - IMPLEMENTADO
+- **Ferramentas IA**: Adicionado "Treino do Agente"
+- **Sistema**: Adicionado "Processos Background"
+- **Ficheiro**: `/app/frontend/src/layouts/DashboardLayout.js`
+- **Status**: ✅ IMPLEMENTADO
+
+### Sobre Emails Monitorizados
+- **Funcionalidade existe**: Botão de Settings (engrenagem) no painel de Histórico de Email
+- **Como usar**: Clicar no ícone ⚙️ no canto superior direito do painel de emails
+- **Ficheiro**: `/app/frontend/src/components/EmailHistoryPanel.js` (linhas 550-665)
+
+---
 
 ## Última Actualização - 13 Fevereiro 2026 (Sessão 14)
 
