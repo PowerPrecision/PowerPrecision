@@ -1,6 +1,30 @@
 import os
+import subprocess
 import logging
 from datetime import datetime, timezone
+
+# Garantir que libmagic está instalado (necessário para python-magic)
+def ensure_libmagic():
+    try:
+        import magic
+        magic.Magic()  # Testa se consegue criar instância
+    except (ImportError, OSError) as e:
+        logging.warning(f"libmagic não encontrado, a instalar... ({e})")
+        try:
+            subprocess.run(
+                ["apt-get", "update"], 
+                check=True, capture_output=True, timeout=60
+            )
+            subprocess.run(
+                ["apt-get", "install", "-y", "libmagic1"], 
+                check=True, capture_output=True, timeout=60
+            )
+            logging.info("libmagic instalado com sucesso")
+        except Exception as install_error:
+            logging.error(f"Erro ao instalar libmagic: {install_error}")
+
+ensure_libmagic()
+
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
