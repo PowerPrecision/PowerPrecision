@@ -303,7 +303,7 @@ const UsersManagementPage = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Perfil</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Pasta OneDrive</TableHead>
+                    <TableHead>Pasta Drive</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
