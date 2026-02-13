@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://process-logs-ui.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ai-document-flow.preview.emergentagent.com')
 
 # Test credentials from review request
 ADMIN_CREDENTIALS = {"email": "admin@sistema.pt", "password": "admin2026"}
