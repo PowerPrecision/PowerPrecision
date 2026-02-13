@@ -486,7 +486,7 @@ const MediadorDashboard = () => {
                     {selectedClient && (
                       <div className="p-4 bg-muted/50 rounded-lg">
                         <p className="font-medium mb-2">Cliente: {selectedClient.client_name}</p>
-                        <p className="text-sm text-muted-foreground">Pasta OneDrive: {selectedClient.client_name}</p>
+                        <p className="text-sm text-muted-foreground">Pasta Drive: {selectedClient.client_name}</p>
                       </div>
                     )}
 
@@ -520,7 +520,7 @@ const MediadorDashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FolderOpen className="h-5 w-5" />
-                    Ficheiros do OneDrive
+                    Ficheiros do Drive
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -531,7 +531,7 @@ const MediadorDashboard = () => {
                     </div>
                   ) : oneDriveFiles.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <p>Nenhum ficheiro encontrado ou OneDrive não configurado</p>
+                      <p>Nenhum ficheiro encontrado ou Drive não configurado</p>
                     </div>
                   ) : (
                     <div className="space-y-2">

@@ -187,7 +187,7 @@ const AdminDashboard = () => {
           </Card>
           <Card className="border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">OneDrive</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Drive</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">

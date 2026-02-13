@@ -365,7 +365,7 @@ const BackupsPage = () => {
                   <p className="text-sm text-muted-foreground truncate">{config.backup_dir}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Pasta OneDrive</p>
+                  <p className="text-sm font-medium">Pasta Drive</p>
                   <p className="text-sm text-muted-foreground">{config.onedrive_folder || "N/D"}</p>
                 </div>
                 <div>
