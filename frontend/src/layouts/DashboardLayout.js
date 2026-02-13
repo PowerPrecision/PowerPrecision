@@ -199,6 +199,11 @@ const DashboardLayout = ({ children, title }) => {
                 href: "/configuracoes/ia",
               },
               {
+                label: "Treino do Agente",
+                icon: Brain,
+                href: "/configuracoes/treino-ia",
+              },
+              {
                 label: "Agente IA",
                 icon: Brain,
                 href: "/ai-insights",
@@ -215,6 +220,11 @@ const DashboardLayout = ({ children, title }) => {
             label: "Sistema",
             icon: Wrench,
             items: [
+              {
+                label: "Processos Background",
+                icon: LayoutGrid,
+                href: "/admin/processos-background",
+              },
               {
                 label: "Backups",
                 icon: Database,
