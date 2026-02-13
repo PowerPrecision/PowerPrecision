@@ -3,6 +3,7 @@
  * Permite visualizar e gerir os mapeamentos pasta -> cliente baseados em NIF
  */
 import { useState, useEffect } from "react";
+import DashboardLayout from "../layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
