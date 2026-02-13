@@ -339,12 +339,12 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     uploadJobIdRef.current = jobId;
     
     // ======================================
-    // CRIAR SESSÃO DE IMPORTAÇÃO NO BACKEND
-    // Permite tracking na página de Background Jobs
+    // CRIAR SESSÃO DE IMPORTAÇÃO AGREGADA
+    // Novo fluxo: acumula dados → deduplica → salva uma vez por cliente
     // ======================================
     let backendSessionId = null;
     try {
-      const sessionResponse = await fetch(`${API_URL}/api/ai/bulk/import-session/start`, {
+      const sessionResponse = await fetch(`${API_URL}/api/ai/bulk/aggregated-session/start`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -352,7 +352,7 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
         },
         body: JSON.stringify({
           total_files: totalFiles,
-          folder_name: forceClientName || clientNamesLocal[0] || "Importação Massiva",
+          client_name: forceClientName || clientNamesLocal[0] || "Importação Massiva",
           client_id: forceClientId,
         }),
       });
@@ -360,11 +360,11 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
       if (sessionResponse.ok) {
         const sessionData = await sessionResponse.json();
         backendSessionId = sessionData.session_id;
-        console.log("Sessão de importação criada:", backendSessionId);
+        console.log("Sessão agregada criada:", backendSessionId);
       }
     } catch (error) {
-      console.warn("Não foi possível criar sessão de background:", error);
-      // Continuar mesmo sem sessão - apenas não aparece no tracking
+      console.warn("Não foi possível criar sessão agregada:", error);
+      // Fallback para modo não-agregado
     }
     
     // Fechar o modal imediatamente
@@ -380,7 +380,7 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     startUpload(jobId, { total: totalFiles, clientName: clientInfo });
     
     // Mostrar toast de início
-    toast.info(`Upload iniciado: ${totalFiles} ficheiros`, {
+    toast.info(`Upload iniciado (modo agregado): ${totalFiles} ficheiros`, {
       duration: 3000,
     });
 
@@ -398,7 +398,7 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     setFileStatuses(initialStatuses);
 
     let processed = 0;
-    let updatedClients = 0;
+    let aggregatedFiles = 0;
     let errors = 0;
     let skippedClients = 0;
     
@@ -420,100 +420,144 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     };
 
     // ======================================
-    // CENÁRIO B: forceClientId está definido
-    // Processar todos os ficheiros directamente sem verificar cliente
+    // MODO AGREGADO: Processar ficheiros e acumular dados
     // ======================================
-    if (forceClientId) {
-      for (const file of filesToProcess) {
-        // Verificar se foi cancelado
-        if (abortControllerRef.current?.signal.aborted) {
-          break;
-        }
+    if (backendSessionId) {
+      // CENÁRIO B: forceClientId definido - processar todos directamente
+      if (forceClientId) {
+        for (const file of filesToProcess) {
+          if (abortControllerRef.current?.signal.aborted) break;
 
-        const fileName = file.name || file.webkitRelativePath?.split("/").pop() || "ficheiro";
-        updateProgress(jobId, { currentFile: fileName });
+          const fileName = file.name || file.webkitRelativePath?.split("/").pop() || "ficheiro";
+          updateProgress(jobId, { currentFile: fileName });
 
-        const result = await processOneFile(file);
-
-        if (result.success) {
-          processed++;
-          if (result.updated) {
-            updatedClients++;
-          }
-        } else {
-          errors++;
-        }
-
-        // Actualizar progresso global e backend
-        updateProgress(jobId, { processed, errors });
-        if (processed % 5 === 0 || errors > 0) {
-          await updateBackendSession();
-        }
-
-        // Pequena pausa entre ficheiros
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    } 
-    // ======================================
-    // CENÁRIO A: Upload massivo (forceClientId = null)
-    // Verificar cliente por cliente antes de processar
-    // ======================================
-    else {
-      for (const clientName of clientNamesLocal) {
-        // Verificar se foi cancelado
-        if (abortControllerRef.current?.signal.aborted) {
-          break;
-        }
-
-        const clientFiles = filesByClientData[clientName];
-        
-        // Verificar se o cliente existe ANTES de processar os ficheiros
-        setCurrentFile({ name: "A verificar...", client: clientName });
-        updateProgress(jobId, { currentFile: `A verificar ${clientName}...` });
-        const clientExists = await checkClientExists(clientName);
-
-        if (!clientExists) {
-          // Cliente não existe - marcar todos os ficheiros como erro e passar ao próximo
-          skippedClients++;
-          for (const { path } of clientFiles) {
-            updateFileStatus(path, FILE_STATUS.ERROR, `Cliente "${clientName}" não encontrado`);
-            errors++;
-          }
-          updateProgress(jobId, { errors });
-          await updateBackendSession();
-          console.warn(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
-          continue;
-        }
-
-        // Cliente existe - processar os ficheiros
-        for (const { file, path } of clientFiles) {
-          // Verificar se foi cancelado
-          if (abortControllerRef.current?.signal.aborted) {
-            break;
-          }
-
-          const fileName = file.name || path.split("/").pop() || "ficheiro";
-          updateProgress(jobId, { currentFile: `${clientName}: ${fileName}` });
-
-          const result = await processOneFile(file);
+          const result = await processOneFileAggregated(file, backendSessionId);
 
           if (result.success) {
             processed++;
-            if (result.updated) {
-              updatedClients++;
-            }
+            if (result.aggregated) aggregatedFiles++;
           } else {
             errors++;
           }
 
-          // Actualizar progresso global e backend
           updateProgress(jobId, { processed, errors });
-          if (processed % 5 === 0 || errors > 0) {
+          if (processed % 5 === 0) await updateBackendSession();
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      } 
+      // CENÁRIO A: Upload massivo - verificar cliente primeiro
+      else {
+        for (const clientName of clientNamesLocal) {
+          if (abortControllerRef.current?.signal.aborted) break;
+
+          const clientFiles = filesByClientData[clientName];
+          
+          // Verificar se o cliente existe
+          setCurrentFile({ name: "A verificar...", client: clientName });
+          updateProgress(jobId, { currentFile: `A verificar ${clientName}...` });
+          const clientExists = await checkClientExists(clientName);
+
+          if (!clientExists) {
+            skippedClients++;
+            for (const { path } of clientFiles) {
+              updateFileStatus(path, FILE_STATUS.ERROR, `Cliente "${clientName}" não encontrado`);
+              errors++;
+            }
+            updateProgress(jobId, { errors });
             await updateBackendSession();
+            continue;
           }
 
-          // Pequena pausa entre ficheiros
+          // Processar ficheiros do cliente (agregando dados)
+          for (const { file, path } of clientFiles) {
+            if (abortControllerRef.current?.signal.aborted) break;
+
+            const fileName = file.name || path.split("/").pop() || "ficheiro";
+            updateProgress(jobId, { currentFile: `${clientName}: ${fileName}` });
+
+            const result = await processOneFileAggregated(file, backendSessionId);
+
+            if (result.success) {
+              processed++;
+              if (result.aggregated) aggregatedFiles++;
+            } else {
+              errors++;
+            }
+
+            updateProgress(jobId, { processed, errors });
+            if (processed % 5 === 0) await updateBackendSession();
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        }
+      }
+
+      // ======================================
+      // FINALIZAR SESSÃO AGREGADA - Consolidar e salvar
+      // ======================================
+      try {
+        setCurrentFile({ name: "A consolidar dados...", client: "Todos" });
+        updateProgress(jobId, { currentFile: "A consolidar dados agregados..." });
+        
+        const finishResponse = await fetch(`${API_URL}/api/ai/bulk/aggregated-session/${backendSessionId}/finish`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (finishResponse.ok) {
+          const finishData = await finishResponse.json();
+          console.log("Sessão agregada finalizada:", finishData);
+          
+          // Mostrar resumo detalhado
+          if (finishData.summary?.clients) {
+            const clientsSummary = finishData.summary.clients;
+            const salariosSummary = clientsSummary.reduce((acc, c) => acc + (c.salarios_count || 0), 0);
+            if (salariosSummary > 0) {
+              toast.info(`💰 ${salariosSummary} salários agregados`, { duration: 5000 });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao finalizar sessão agregada:", e);
+      }
+    } 
+    // ======================================
+    // FALLBACK: Modo não-agregado (sessão não criada)
+    // ======================================
+    else {
+      // Usar o fluxo antigo se a sessão agregada falhar
+      if (forceClientId) {
+        for (const file of filesToProcess) {
+          if (abortControllerRef.current?.signal.aborted) break;
+          const fileName = file.name || file.webkitRelativePath?.split("/").pop() || "ficheiro";
+          updateProgress(jobId, { currentFile: fileName });
+          const result = await processOneFile(file);
+          if (result.success) { processed++; if (result.updated) aggregatedFiles++; } else { errors++; }
+          updateProgress(jobId, { processed, errors });
           await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      } else {
+        for (const clientName of clientNamesLocal) {
+          if (abortControllerRef.current?.signal.aborted) break;
+          const clientFiles = filesByClientData[clientName];
+          setCurrentFile({ name: "A verificar...", client: clientName });
+          const clientExists = await checkClientExists(clientName);
+          if (!clientExists) {
+            skippedClients++;
+            for (const { path } of clientFiles) { updateFileStatus(path, FILE_STATUS.ERROR, `Cliente não encontrado`); errors++; }
+            continue;
+          }
+          for (const { file, path } of clientFiles) {
+            if (abortControllerRef.current?.signal.aborted) break;
+            const fileName = file.name || path.split("/").pop() || "ficheiro";
+            updateProgress(jobId, { currentFile: `${clientName}: ${fileName}` });
+            const result = await processOneFile(file);
+            if (result.success) { processed++; if (result.updated) aggregatedFiles++; } else { errors++; }
+            updateProgress(jobId, { processed, errors });
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
         }
       }
     }
@@ -526,29 +570,11 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
       success: processed > 0,
       total: totalFiles,
       processed,
-      updated_clients: updatedClients,
+      updated_clients: aggregatedFiles,
       errors_count: errors,
       skipped_clients: skippedClients,
     };
     setSummary(finalSummary);
-
-    // ======================================
-    // FINALIZAR SESSÃO NO BACKEND
-    // ======================================
-    if (backendSessionId) {
-      try {
-        await fetch(`${API_URL}/api/ai/bulk/import-session/${backendSessionId}/finish?success=${processed > 0}`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        console.log("Sessão de importação finalizada:", backendSessionId);
-      } catch (e) {
-        console.warn("Erro ao finalizar sessão:", e);
-      }
-    }
 
     // Finalizar tracking global de progresso
     const successMessage = processed > 0 
@@ -559,9 +585,9 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
       message: successMessage 
     });
 
-    // Notificação com toast mais duradouro para resultado final
+    // Notificação com toast
     if (processed > 0) {
-      let msg = `✅ Upload Concluído!\n${processed}/${totalFiles} processados\n${updatedClients} fichas actualizadas`;
+      let msg = `✅ Importação Agregada Concluída!\n${processed}/${totalFiles} processados\n${aggregatedFiles} ficheiros agregados`;
       if (skippedClients > 0) {
         msg += `\n⚠️ ${skippedClients} clientes não encontrados`;
       }
@@ -574,8 +600,6 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     } else {
       toast.error("❌ Upload Falhou\nNenhum documento foi processado com sucesso.", { duration: 8000 });
     }
-    
-    // Limpar estado (já foi limpo antes)
   };
 
   // Cancelar processamento
