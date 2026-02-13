@@ -13,6 +13,29 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização - 13 Fevereiro 2026 (Sessão 16)
 
+### ✅ Tarefas P1 Completas
+
+#### P1: Unificação das Abas "Documentos" e "Drive" - COMPLETO
+- **Problema**: Existiam duas secções separadas: "Documentos" (S3) e "Links Drive" (OneDrive Links)
+- **Solução**: Criado componente `UnifiedDocumentsPanel.js` que combina ambas funcionalidades
+- **Nova Estrutura**:
+  - Accordion "Documentos" no sidebar direito da ficha do processo
+  - Dentro: tabs "Ficheiros" (upload S3) e "Links Drive" (links externos)
+- **Ficheiros Modificados**:
+  - `/app/frontend/src/components/UnifiedDocumentsPanel.js` (novo)
+  - `/app/frontend/src/pages/ProcessDetails.js` (integração)
+- **Status**: ✅ COMPLETO E TESTADO
+
+#### P1: Funcionalidade de Emails com CC - COMPLETO
+- **Problema**: Sistema não capturava emails em CC
+- **Solução**: 
+  - Backend: Adicionado campo `cc_emails` na sincronização IMAP (3 locais)
+  - Frontend: Exibição de CC na lista de emails do processo
+- **Ficheiros Modificados**:
+  - `/app/backend/services/email_service.py`
+  - `/app/frontend/src/components/EmailHistoryPanel.js`
+- **Status**: ✅ COMPLETO
+
 ### ✅ Bugs Corrigidos (Sessão 16)
 
 #### Bug P0: Workflow do Consultor Não Funcionava - CORRIGIDO
