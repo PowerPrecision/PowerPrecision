@@ -15,13 +15,18 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### ✅ Funcionalidades Implementadas (Sessão 15)
 
-#### Cache de Sessão NIF (Item 17) - IMPLEMENTADO
+#### Cache de Sessão NIF (Item 17) - IMPLEMENTADO COM PERSISTÊNCIA
 - **Problema**: Documentos da mesma pasta precisavam de matching por nome repetidamente
-- **Solução**: Quando um CC é analisado e o NIF extraído, o mapeamento pasta→cliente é guardado em cache
+- **Solução**: Quando um CC é analisado e o NIF extraído, o mapeamento pasta→cliente é guardado em cache E na base de dados
+- **Persistência**: 
+  - Mapeamentos guardados na coleção `nif_mappings` da MongoDB
+  - Sobrevivem a reinícios do servidor
+  - TTL de 30 dias (automático)
 - **Benefícios**:
   - Lookup instantâneo para documentos subsequentes da mesma pasta
   - Redução de chamadas fuzzy matching à base de dados
   - Maior fiabilidade (NIF é único e imutável)
+  - Mapeamentos persistem entre sessões de upload
 - **Ficheiro**: `/app/backend/routes/ai_bulk.py`
 - **Funções Adicionadas**:
   - `cache_nif_mapping()` - Guardar mapeamento
