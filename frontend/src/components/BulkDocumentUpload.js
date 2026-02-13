@@ -260,17 +260,24 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     const clientNamesLocal = Object.keys(filesByClientData);
     const totalFiles = filesToProcess.length;
     
+    // Gerar ID único para este job de upload
+    const jobId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    uploadJobIdRef.current = jobId;
+    
     // Fechar o modal imediatamente
     setIsOpen(false);
     
     // Limpar selecção
     setSelectedFiles([]);
     
-    // Mostrar toast de início
+    // Iniciar tracking global de progresso
     const clientInfo = forceClientId 
-      ? `para ${forceClientName || "este cliente"}`
-      : `de ${clientNamesLocal.length} clientes`;
-    toast.info(`Upload iniciado: ${totalFiles} ficheiros ${clientInfo}`, {
+      ? (forceClientName || "Cliente")
+      : `${clientNamesLocal.length} clientes`;
+    startUpload(jobId, { total: totalFiles, clientName: clientInfo });
+    
+    // Mostrar toast de início
+    toast.info(`Upload iniciado: ${totalFiles} ficheiros`, {
       duration: 3000,
     });
 
