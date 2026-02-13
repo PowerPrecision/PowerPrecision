@@ -13,6 +13,28 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização - 13 Fevereiro 2026 (Sessão 15)
 
+### ✅ Funcionalidades Implementadas (Sessão 15)
+
+#### Cache de Sessão NIF (Item 17) - IMPLEMENTADO
+- **Problema**: Documentos da mesma pasta precisavam de matching por nome repetidamente
+- **Solução**: Quando um CC é analisado e o NIF extraído, o mapeamento pasta→cliente é guardado em cache
+- **Benefícios**:
+  - Lookup instantâneo para documentos subsequentes da mesma pasta
+  - Redução de chamadas fuzzy matching à base de dados
+  - Maior fiabilidade (NIF é único e imutável)
+- **Ficheiro**: `/app/backend/routes/ai_bulk.py`
+- **Funções Adicionadas**:
+  - `cache_nif_mapping()` - Guardar mapeamento
+  - `get_cached_nif_mapping()` - Obter mapeamento
+  - `find_client_by_nif()` - Encontrar cliente por NIF
+  - `clear_expired_nif_cache()` - Limpeza automática
+- **Novos Endpoints**:
+  - `GET /api/ai/bulk/nif-cache/stats` - Ver estatísticas do cache
+  - `POST /api/ai/bulk/nif-cache/clear` - Limpar cache
+  - `POST /api/ai/bulk/nif-cache/add-mapping` - Adicionar mapeamento manual
+- **TTL**: 2 horas (sessão típica de upload)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
 ### ✅ Bugs Corrigidos (Sessão 15)
 
 #### Bug P0: Erro "Acesso Negado" para Consultores - CORRIGIDO
