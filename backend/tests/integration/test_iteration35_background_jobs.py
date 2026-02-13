@@ -402,8 +402,8 @@ class TestDataAggregatorMultiLanguage:
             "moeda": "EUR"
         }, "test.pdf")
         
-        # Consolidate
-        result = aggregator.consolidate()
+        # Consolidate using correct method name
+        result = aggregator.get_consolidated_data()
         
         assert "salarios" in result, "Consolidated should have salarios"
         assert len(result["salarios"]) > 0, "Should have at least one salary"
