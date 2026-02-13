@@ -499,14 +499,61 @@ const DashboardLayout = ({ children, title }) => {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Search Button (Ctrl+K) */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowSearchModal(true)}
+                className="hidden sm:flex items-center gap-2 text-muted-foreground"
+              >
+                <Search className="h-4 w-4" />
+                <span className="text-xs">Pesquisar...</span>
+                <kbd className="ml-2 px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">
+                  Ctrl+K
+                </kbd>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowSearchModal(true)}
+                className="sm:hidden"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              
+              {/* Dark Mode Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                title={isDark ? "Modo Claro" : "Modo Escuro"}
+              >
+                {isDark ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </Button>
+              
+              {/* Keyboard Shortcuts Help */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowHelpModal(true)}
+                title="Atalhos de Teclado (Ctrl+/)"
+                className="hidden sm:flex"
+              >
+                <Keyboard className="h-5 w-5" />
+              </Button>
+              
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => navigate("/")}
-                className="gap-2"
+                className="gap-2 hidden sm:flex"
               >
                 <Home className="h-4 w-4" />
-                <span className="hidden sm:inline">Página Inicial</span>
+                <span className="hidden md:inline">Página Inicial</span>
               </Button>
               
               {/* Notificações - só para utilizadores autenticados (não clientes) */}
@@ -537,8 +584,27 @@ const DashboardLayout = ({ children, title }) => {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6 pb-20 md:pb-6">{children}</main>
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+      
+      {/* Global Search Modal */}
+      <GlobalSearchModal open={showSearchModal} onOpenChange={setShowSearchModal} />
+      
+      {/* Keyboard Shortcuts Help Modal */}
+      <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Keyboard className="h-5 w-5" />
+              Atalhos de Teclado
+            </DialogTitle>
+          </DialogHeader>
+          <KeyboardShortcutsHelp shortcuts={shortcuts} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
