@@ -81,6 +81,13 @@ async def save_process_folder_url(
     """
     Guardar o link da pasta do cliente no processo.
     Permite ao utilizador guardar o link específico da pasta após encontrá-la.
+    
+    Suporta:
+    - OneDrive: https://1drv.ms/..., https://onedrive.live.com/...
+    - SharePoint: https://....sharepoint.com/...
+    - Google Drive: https://drive.google.com/...
+    - S3: s3://bucket/path/...
+    - Outros links HTTP/HTTPS
     """
     # Verificar se processo existe
     process = await db.processes.find_one({"id": process_id})
@@ -88,14 +95,39 @@ async def save_process_folder_url(
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")
     
-    # Validar URL (deve ser do OneDrive)
-    if not folder_url.startswith(("https://1drv.ms/", "https://onedrive.live.com/", "https://onedrive.sharepoint.com/")):
-        raise HTTPException(status_code=400, detail="URL inválido. Deve ser um link do OneDrive.")
+    # Validar URL (aceitar múltiplos tipos de cloud storage)
+    valid_prefixes = (
+        # OneDrive
+        "https://1drv.ms/",
+        "https://onedrive.live.com/",
+        "https://onedrive.sharepoint.com/",
+        # SharePoint genérico
+        ".sharepoint.com/",
+        # Google Drive
+        "https://drive.google.com/",
+        # AWS S3
+        "s3://",
+        # HTTP/HTTPS genérico
+        "https://",
+        "http://",
+    )
     
-    # Guardar no processo
+    is_valid = False
+    for prefix in valid_prefixes:
+        if folder_url.startswith(prefix) or prefix in folder_url:
+            is_valid = True
+            break
+    
+    if not is_valid:
+        raise HTTPException(
+            status_code=400, 
+            detail="URL inválido. Use um link de Drive, OneDrive, Google Drive, S3 ou outro serviço de cloud."
+        )
+    
+    # Guardar no processo (campo genérico para compatibilidade)
     await db.processes.update_one(
         {"id": process_id},
-        {"$set": {"onedrive_folder_url": folder_url}}
+        {"$set": {"onedrive_folder_url": folder_url, "cloud_folder_url": folder_url}}
     )
     
     return {
