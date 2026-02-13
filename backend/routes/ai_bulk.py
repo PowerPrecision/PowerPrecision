@@ -1090,6 +1090,103 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
         return False, [], {"error": str(e)}
 
 
+
+# ====================================================================
+# ENDPOINTS DE SESSÃO DE IMPORTAÇÃO (P1 - Background Jobs)
+# ====================================================================
+
+class ImportSessionRequest(BaseModel):
+    total_files: int
+    folder_name: Optional[str] = None
+    client_id: Optional[str] = None
+
+
+class ImportSessionResponse(BaseModel):
+    session_id: str
+    message: str
+
+
+@router.post("/import-session/start", response_model=ImportSessionResponse)
+async def start_import_session(
+    request: ImportSessionRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Iniciar uma sessão de importação em massa.
+    Cria um job de background para tracking do progresso.
+    
+    O frontend deve chamar este endpoint antes de começar a enviar ficheiros.
+    """
+    details = {
+        "folder_name": request.folder_name,
+        "client_id": request.client_id
+    }
+    
+    session_id = await create_background_job_db(
+        job_type="bulk_import",
+        user_email=user.get("email"),
+        details=details,
+        total_files=request.total_files
+    )
+    
+    return ImportSessionResponse(
+        session_id=session_id,
+        message=f"Sessão de importação iniciada com {request.total_files} ficheiros"
+    )
+
+
+class UpdateSessionRequest(BaseModel):
+    processed: Optional[int] = None
+    errors: Optional[int] = None
+    error_message: Optional[str] = None
+
+
+@router.post("/import-session/{session_id}/update")
+async def update_import_session(
+    session_id: str,
+    request: UpdateSessionRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualizar o progresso de uma sessão de importação.
+    """
+    update_fields = {}
+    if request.processed is not None:
+        update_fields["processed"] = request.processed
+    if request.errors is not None:
+        update_fields["errors"] = request.errors
+    if request.error_message:
+        # Adicionar à lista de mensagens de erro
+        if session_id in background_processes:
+            error_messages = background_processes[session_id].get("error_messages", [])
+            error_messages.append(request.error_message)
+            update_fields["error_messages"] = error_messages[-50]  # Manter últimas 50
+    
+    if update_fields:
+        await update_background_job_db(session_id, **update_fields)
+    
+    # Retornar estado actual
+    job = background_processes.get(session_id) or await db.background_jobs.find_one({"id": session_id}, {"_id": 0})
+    return job or {"error": "Sessão não encontrada"}
+
+
+@router.post("/import-session/{session_id}/finish")
+async def finish_import_session(
+    session_id: str,
+    success: bool = True,
+    message: Optional[str] = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Finalizar uma sessão de importação.
+    """
+    await finish_background_job_db(session_id, success, message)
+    
+    job = background_processes.get(session_id) or await db.background_jobs.find_one({"id": session_id}, {"_id": 0})
+    return job or {"error": "Sessão não encontrada"}
+
+
+
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
 async def analyze_single_file(
     file: UploadFile = File(...),
