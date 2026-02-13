@@ -6,7 +6,7 @@ import KanbanBoard from "../components/KanbanBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
-import { Loader2, LayoutGrid, Calendar, Users, Settings, FileText, CheckCircle, XCircle, TrendingUp, ClipboardList } from "lucide-react";
+import { Loader2, LayoutGrid, Calendar, Users, FileText, CheckCircle, XCircle, TrendingUp, ClipboardList } from "lucide-react";
 import TasksPanel from "../components/TasksPanel";
 import { toast } from "sonner";
 import { getStats, getUsers, getUpcomingExpiries, getCalendarDeadlines } from "../services/api";
