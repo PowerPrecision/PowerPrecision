@@ -266,6 +266,11 @@ const DashboardLayout = ({ children, title }) => {
                 icon: AlertCircle,
                 href: "/admin/logs",
               },
+              {
+                label: "Logs Importação IA",
+                icon: FileText,
+                href: "/admin/logs-importacao",
+              },
             ],
           },
         ],
