@@ -1560,12 +1560,15 @@ Conteúdo:
         parsed_start = urlparse(start_url)
         base_domain = parsed_start.netloc
         
+        # Verificar se o site requer ScraperAPI
+        requires_scraper_api = any(site in base_domain.lower() for site in SCRAPER_API_REQUIRED_SITES)
+        
         queue = deque([(start_url, 0)])
         visited = set()
         properties = []
         errors = []
         
-        logger.info(f"Iniciando crawl em {base_domain} (max_pages={max_pages})")
+        logger.info(f"Iniciando crawl em {base_domain} (max_pages={max_pages}, scraperapi={'sim' if requires_scraper_api else 'não'})")
         
         while queue and len(visited) < max_pages:
             current_url, depth = queue.popleft()
@@ -1579,45 +1582,64 @@ Conteúdo:
                 import random
                 await asyncio.sleep(random.uniform(0.5, 1.5))
                 
-                # Tentar com SSL primeiro
-                for verify_ssl in [True, False]:
-                    try:
-                        async with httpx.AsyncClient(
-                            timeout=self.timeout,
-                            follow_redirects=True,
-                            verify=verify_ssl,
-                            http2=True
-                        ) as client:
-                            response = await client.get(current_url, headers=self._get_headers())
-                            
-                            if response.status_code != 200:
-                                errors.append({"url": current_url, "error": f"HTTP {response.status_code}"})
-                                break
-                            
-                            html_content = response.text
-                            soup = BeautifulSoup(html_content, 'html.parser')
-                            
-                            # Extrair dados
-                            property_data = await self.scrape_url(current_url)
-                            
-                            if property_data and not property_data.get("error"):
-                                if property_data.get("titulo") or property_data.get("preco"):
-                                    property_data["crawl_depth"] = depth
-                                    properties.append(property_data)
-                            
-                            # Encontrar mais links se não atingimos profundidade máxima
-                            if depth < max_depth:
-                                new_links = self._extract_property_links(soup, base_domain, current_url)
-                                for link in new_links:
-                                    if link not in visited:
-                                        queue.append((link, depth + 1))
-                            
-                            break  # Sucesso
-                            
-                    except httpx.ConnectError:
-                        if verify_ssl:
-                            continue
-                        raise
+                html_content = None
+                
+                # Se site requer ScraperAPI, usar
+                if requires_scraper_api and SCRAPERAPI_KEY:
+                    html_content = await self._fetch_with_scraperapi(current_url)
+                
+                # Fallback para request directo
+                if not html_content:
+                    for verify_ssl in [True, False]:
+                        try:
+                            async with httpx.AsyncClient(
+                                timeout=self.timeout,
+                                follow_redirects=True,
+                                verify=verify_ssl,
+                                http2=True
+                            ) as client:
+                                response = await client.get(current_url, headers=self._get_headers())
+                                
+                                if response.status_code == 200:
+                                    html_content = response.text
+                                    break
+                                elif response.status_code == 403:
+                                    # Tentar ScraperAPI se ainda não tentou
+                                    if SCRAPERAPI_KEY and not requires_scraper_api:
+                                        html_content = await self._fetch_with_scraperapi(current_url)
+                                        if html_content:
+                                            break
+                                    errors.append({"url": current_url, "error": f"HTTP 403 - Bloqueado"})
+                                    break
+                                else:
+                                    errors.append({"url": current_url, "error": f"HTTP {response.status_code}"})
+                                    break
+                                
+                        except httpx.ConnectError:
+                            if verify_ssl:
+                                continue
+                            errors.append({"url": current_url, "error": "Erro de conexão"})
+                            break
+                
+                if not html_content:
+                    continue
+                
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # Extrair dados usando o scrape_url (que já tem toda a lógica)
+                property_data = await self.scrape_url(current_url)
+                
+                if property_data and not property_data.get("error"):
+                    if property_data.get("titulo") or property_data.get("preco"):
+                        property_data["crawl_depth"] = depth
+                        properties.append(property_data)
+                
+                # Encontrar mais links se não atingimos profundidade máxima
+                if depth < max_depth:
+                    new_links = self._extract_property_links(soup, base_domain, current_url)
+                    for link in new_links:
+                        if link not in visited:
+                            queue.append((link, depth + 1))
                         
             except Exception as e:
                 errors.append({"url": current_url, "error": str(e)})
