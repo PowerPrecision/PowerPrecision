@@ -95,7 +95,7 @@ const NIFMappingsPage = () => {
     try {
       setAdding(true);
       const response = await api.post(
-        `/api/ai/bulk/nif-cache/add-mapping?folder_name=${encodeURIComponent(newMapping.folder_name)}&nif=${newMapping.nif}`
+        `/ai/bulk/nif-cache/add-mapping?folder_name=${encodeURIComponent(newMapping.folder_name)}&nif=${newMapping.nif}`
       );
       
       if (response.data.success) {
