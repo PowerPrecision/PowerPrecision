@@ -33,14 +33,21 @@ import hashlib
 from bs4 import BeautifulSoup
 from typing import Optional, Dict, Any, List
 from fake_useragent import UserAgent
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, quote_plus
 from collections import deque
 import asyncio
+import os
 from datetime import datetime, timezone, timedelta
 
 from config import GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
+
+# API Key do ScraperAPI para sites com proteção anti-bot
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_API_KEY")
+
+# Sites que requerem ScraperAPI (proteção anti-bot forte)
+SCRAPER_API_REQUIRED_SITES = ["idealista.pt", "idealista.com"]
 
 # Padrões de domínios de agências imobiliárias
 AGENCY_DOMAINS = [
