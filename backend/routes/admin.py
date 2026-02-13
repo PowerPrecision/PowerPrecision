@@ -1864,10 +1864,136 @@ async def resolve_ai_import_log(
         }
     )
     
+    # Também actualizar na colecção ai_import_logs
+    await db.ai_import_logs.update_one(
+        {"id": log_id},
+        {
+            "$set": {
+                "resolved": True,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": user.get("email", "admin")
+            }
+        }
+    )
+    
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Log não encontrado")
     
     return {"success": True, "message": "Log marcado como resolvido"}
+
+
+# ============== AI IMPORT LOGS V2 - Com categorização de dados ==============
+
+@router.get("/ai-import-logs-v2")
+async def get_ai_import_logs_v2(
+    page: int = 1,
+    limit: int = 50,
+    status: str = None,
+    days: int = 7,
+    client_name: str = None,
+    document_type: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém logs de importação IA com dados categorizados por tabs.
+    
+    Query params:
+    - page: Página (default 1)
+    - limit: Items por página (default 50)
+    - status: Filtrar por estado (success, error, all)
+    - days: Últimos N dias (default 7)
+    - client_name: Filtrar por nome de cliente
+    - document_type: Filtrar por tipo de documento (cc, irs, recibo_vencimento, etc.)
+    
+    Returns:
+    - logs: Lista de logs com dados categorizados
+    - stats: Estatísticas de sucesso/erro
+    - pagination: Info de paginação
+    """
+    skip = (page - 1) * limit
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    # Query base
+    query = {"timestamp": {"$gte": cutoff_date}}
+    
+    if status == "error":
+        query["status"] = "error"
+    elif status == "success":
+        query["status"] = "success"
+    
+    if client_name:
+        query["client_name"] = {"$regex": client_name, "$options": "i"}
+    
+    if document_type:
+        query["document_type"] = document_type
+    
+    # Buscar logs da nova colecção
+    logs = await db.ai_import_logs.find(
+        query,
+        {"_id": 0}
+    ).sort("timestamp", -1).skip(skip).limit(limit).to_list(None)
+    
+    # Contagem total
+    total = await db.ai_import_logs.count_documents(query)
+    
+    # Estatísticas
+    base_query = {"timestamp": {"$gte": cutoff_date}}
+    stats = {
+        "total": await db.ai_import_logs.count_documents(base_query),
+        "success": await db.ai_import_logs.count_documents({**base_query, "status": "success"}),
+        "error": await db.ai_import_logs.count_documents({**base_query, "status": "error"}),
+        "fields_updated": 0,
+    }
+    
+    # Contar campos actualizados
+    pipeline = [
+        {"$match": {**base_query, "status": "success"}},
+        {"$group": {"_id": None, "total_fields": {"$sum": "$fields_count"}}}
+    ]
+    agg_result = await db.ai_import_logs.aggregate(pipeline).to_list(1)
+    if agg_result:
+        stats["fields_updated"] = agg_result[0].get("total_fields", 0)
+    
+    # Tipos de documentos mais comuns
+    doc_types_pipeline = [
+        {"$match": base_query},
+        {"$group": {"_id": "$document_type", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    doc_types = await db.ai_import_logs.aggregate(doc_types_pipeline).to_list(10)
+    stats["by_document_type"] = [{"type": d["_id"], "count": d["count"]} for d in doc_types]
+    
+    return {
+        "logs": logs,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": (total + limit - 1) // limit if total > 0 else 1
+        },
+        "stats": stats
+    }
+
+
+@router.get("/ai-import-logs-v2/{log_id}")
+async def get_ai_import_log_detail(
+    log_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém detalhes de um log de importação específico.
+    Inclui dados categorizados por tabs.
+    """
+    log = await db.ai_import_logs.find_one(
+        {"id": log_id},
+        {"_id": 0}
+    )
+    
+    if not log:
+        raise HTTPException(status_code=404, detail="Log não encontrado")
+    
+    return log
 
 
 @router.post("/db/indexes/repair")
