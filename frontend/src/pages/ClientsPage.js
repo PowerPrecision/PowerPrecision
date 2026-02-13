@@ -527,13 +527,15 @@ export default function ClientsPage() {
                               <Eye className="h-4 w-4 mr-2" />
                               Ver Processos
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClient(client.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Eliminar
-                            </DropdownMenuItem>
+                            {canDeleteClients && (
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteClient(client.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Eliminar
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
