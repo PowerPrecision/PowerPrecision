@@ -47,6 +47,55 @@ from services.ai_document import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ai/bulk", tags=["AI Bulk Analysis"])
 
+# ====================================================================
+# TRACKING DE PROCESSOS EM BACKGROUND (Item 2 - Outros erros/melhorias)
+# ====================================================================
+background_processes: Dict[str, dict] = {}  # job_id -> status
+
+
+def create_background_job(job_type: str, user_email: str, details: dict = None) -> str:
+    """Criar registo de job em background."""
+    job_id = str(uuid.uuid4())
+    background_processes[job_id] = {
+        "id": job_id,
+        "type": job_type,
+        "status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "user_email": user_email,
+        "progress": 0,
+        "total": 0,
+        "processed": 0,
+        "errors": 0,
+        "details": details or {},
+        "error_messages": [],
+        "finished_at": None
+    }
+    logger.info(f"Job background criado: {job_id} ({job_type})")
+    return job_id
+
+
+def update_background_job(job_id: str, **kwargs):
+    """Atualizar estado de um job em background."""
+    if job_id in background_processes:
+        background_processes[job_id].update(kwargs)
+        
+        # Calcular progresso percentual
+        if background_processes[job_id].get("total", 0) > 0:
+            processed = background_processes[job_id].get("processed", 0)
+            total = background_processes[job_id]["total"]
+            background_processes[job_id]["progress"] = int((processed / total) * 100)
+
+
+def finish_background_job(job_id: str, success: bool, message: str = None):
+    """Marcar job como terminado."""
+    if job_id in background_processes:
+        background_processes[job_id]["status"] = "success" if success else "failed"
+        background_processes[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+        if message:
+            background_processes[job_id]["message"] = message
+        logger.info(f"Job background terminado: {job_id} ({background_processes[job_id]['status']})")
+
+
 # Tamanho do chunk para leitura (64KB)
 CHUNK_SIZE = 64 * 1024
 
