@@ -44,7 +44,21 @@ const FILE_STATUS = {
   ERROR: "error",
 };
 
-const BulkDocumentUpload = () => {
+/**
+ * Props:
+ * - forceClientId: (opcional) ID do processo/cliente para associar todos os documentos
+ *                  Usado quando se faz upload a partir da página de um cliente específico (Cenário B)
+ * - forceClientName: (opcional) Nome do cliente para exibição
+ * - variant: "default" | "compact" - estilo do componente
+ * 
+ * Cenários de Upload:
+ * - Cenário A (Dashboard - Upload Massivo): forceClientId = null
+ *   -> Nome da pasta define o cliente (estrutura: PastaRaiz/NomeCliente/documento.pdf)
+ * 
+ * - Cenário B (Página do Cliente): forceClientId = processId
+ *   -> Todos os documentos são associados ao cliente específico, ignorando estrutura de pastas
+ */
+const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, variant = "default" }) => {
   const { token, user } = useAuth();
   const folderInputRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -58,8 +72,9 @@ const BulkDocumentUpload = () => {
   const [loadingClients, setLoadingClients] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
 
-  // Verificar se é admin
-  if (user?.role !== "admin") {
+  // Verificar se é admin (ou se tem forceClientId definido - qualquer user com acesso ao processo pode enviar)
+  const canUpload = user?.role === "admin" || forceClientId;
+  if (!canUpload) {
     return null;
   }
 
@@ -145,7 +160,9 @@ const BulkDocumentUpload = () => {
         : "Desconhecido";
     }
 
-    setCurrentFile({ name: docFilename, client: clientName });
+    // Se forceClientId está definido (Cenário B), usar o nome do cliente forçado
+    const displayClientName = forceClientId ? (forceClientName || "Cliente") : clientName;
+    setCurrentFile({ name: docFilename, client: displayClientName });
     updateFileStatus(path, FILE_STATUS.PROCESSING, "A enviar...");
 
     try {
@@ -153,6 +170,11 @@ const BulkDocumentUpload = () => {
       const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
       const formData = new FormData();
       formData.append("file", fileBlob, path);
+      
+      // Adicionar force_client_id se definido (Cenário B)
+      if (forceClientId) {
+        formData.append("force_client_id", forceClientId);
+      }
 
       const response = await fetch(`${API_URL}/api/ai/bulk/analyze-single`, {
         method: "POST",
