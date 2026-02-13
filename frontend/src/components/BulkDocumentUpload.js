@@ -240,7 +240,8 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
   };
 
   // Processar ficheiros um a um (fila de espera)
-  // Verifica primeiro se o cliente existe antes de processar os seus ficheiros
+  // Cenário A (forceClientId = null): Verifica primeiro se o cliente existe antes de processar os seus ficheiros
+  // Cenário B (forceClientId definido): Processa todos os ficheiros associando ao cliente forçado
   const handleUpload = async () => {
     if (selectedFiles.length === 0) {
       toast.error("Selecione uma pasta com documentos");
@@ -260,7 +261,10 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     setSelectedFiles([]);
     
     // Mostrar toast de início
-    toast.info(`Upload iniciado: ${totalFiles} ficheiros de ${clientNamesLocal.length} clientes`, {
+    const clientInfo = forceClientId 
+      ? `para ${forceClientName || "este cliente"}`
+      : `de ${clientNamesLocal.length} clientes`;
+    toast.info(`Upload iniciado: ${totalFiles} ficheiros ${clientInfo}`, {
       duration: 3000,
     });
 
@@ -282,32 +286,12 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     let errors = 0;
     let skippedClients = 0;
 
-    // Processar cliente a cliente
-    for (const clientName of clientNamesLocal) {
-      // Verificar se foi cancelado
-      if (abortControllerRef.current?.signal.aborted) {
-        break;
-      }
-
-      const clientFiles = filesByClientData[clientName];
-      
-      // Verificar se o cliente existe ANTES de processar os ficheiros
-      setCurrentFile({ name: "A verificar...", client: clientName });
-      const clientExists = await checkClientExists(clientName);
-
-      if (!clientExists) {
-        // Cliente não existe - marcar todos os ficheiros como erro e passar ao próximo
-        skippedClients++;
-        for (const { path } of clientFiles) {
-          updateFileStatus(path, FILE_STATUS.ERROR, `Cliente "${clientName}" não encontrado`);
-          errors++;
-        }
-        console.warn(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
-        continue;
-      }
-
-      // Cliente existe - processar os ficheiros
-      for (const { file, path } of clientFiles) {
+    // ======================================
+    // CENÁRIO B: forceClientId está definido
+    // Processar todos os ficheiros directamente sem verificar cliente
+    // ======================================
+    if (forceClientId) {
+      for (const file of filesToProcess) {
         // Verificar se foi cancelado
         if (abortControllerRef.current?.signal.aborted) {
           break;
@@ -326,6 +310,57 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
 
         // Pequena pausa entre ficheiros
         await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    } 
+    // ======================================
+    // CENÁRIO A: Upload massivo (forceClientId = null)
+    // Verificar cliente por cliente antes de processar
+    // ======================================
+    else {
+      for (const clientName of clientNamesLocal) {
+        // Verificar se foi cancelado
+        if (abortControllerRef.current?.signal.aborted) {
+          break;
+        }
+
+        const clientFiles = filesByClientData[clientName];
+        
+        // Verificar se o cliente existe ANTES de processar os ficheiros
+        setCurrentFile({ name: "A verificar...", client: clientName });
+        const clientExists = await checkClientExists(clientName);
+
+        if (!clientExists) {
+          // Cliente não existe - marcar todos os ficheiros como erro e passar ao próximo
+          skippedClients++;
+          for (const { path } of clientFiles) {
+            updateFileStatus(path, FILE_STATUS.ERROR, `Cliente "${clientName}" não encontrado`);
+            errors++;
+          }
+          console.warn(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
+          continue;
+        }
+
+        // Cliente existe - processar os ficheiros
+        for (const { file, path } of clientFiles) {
+          // Verificar se foi cancelado
+          if (abortControllerRef.current?.signal.aborted) {
+            break;
+          }
+
+          const result = await processOneFile(file);
+
+          if (result.success) {
+            processed++;
+            if (result.updated) {
+              updatedClients++;
+            }
+          } else {
+            errors++;
+          }
+
+          // Pequena pausa entre ficheiros
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
     }
 
