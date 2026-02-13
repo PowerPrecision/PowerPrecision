@@ -363,6 +363,8 @@ const PublicClientForm = () => {
         setBlockedMessage(response.data.message);
         toast.info(response.data.message);
       } else {
+        // Limpar rascunho após submissão com sucesso
+        clearDraft();
         setSubmitted(true);
         toast.success("Registo enviado com sucesso!");
       }
