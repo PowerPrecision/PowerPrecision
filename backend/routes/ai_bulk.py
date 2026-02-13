@@ -2310,6 +2310,99 @@ async def cancel_background_job(
     }
 
 
+@router.post("/background-jobs/{job_id}/pause")
+async def pause_background_job(
+    job_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Pausar um job em execução.
+    
+    Marca o job como 'paused' e os ficheiros pendentes não serão processados
+    até o job ser retomado.
+    """
+    # Verificar se existe na memória
+    job = background_processes.get(job_id)
+    
+    if not job:
+        # Tentar encontrar na DB
+        job = await db.background_jobs.find_one({"id": job_id}, {"_id": 0})
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    if job.get("status") != "running":
+        raise HTTPException(status_code=400, detail="Apenas jobs em execução podem ser pausados")
+    
+    # Marcar como pausado
+    update_data = {
+        "status": "paused",
+        "paused_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Actualizar na memória
+    if job_id in background_processes:
+        background_processes[job_id].update(update_data)
+    
+    # Actualizar na DB
+    await db.background_jobs.update_one(
+        {"id": job_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Job {job_id} pausado",
+        "status": "paused"
+    }
+
+
+@router.post("/background-jobs/{job_id}/resume")
+async def resume_background_job(
+    job_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Retomar um job pausado.
+    
+    Marca o job como 'running' novamente para continuar o processamento.
+    """
+    # Verificar se existe na memória
+    job = background_processes.get(job_id)
+    
+    if not job:
+        # Tentar encontrar na DB
+        job = await db.background_jobs.find_one({"id": job_id}, {"_id": 0})
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    if job.get("status") != "paused":
+        raise HTTPException(status_code=400, detail="Apenas jobs pausados podem ser retomados")
+    
+    # Marcar como running novamente
+    update_data = {
+        "status": "running",
+        "resumed_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Actualizar na memória
+    if job_id in background_processes:
+        background_processes[job_id].update(update_data)
+    
+    # Actualizar na DB
+    await db.background_jobs.update_one(
+        {"id": job_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Job {job_id} retomado",
+        "status": "running"
+    }
+
+
 @router.delete("/background-jobs")
 async def clear_finished_jobs(
     only_failed: bool = False,
