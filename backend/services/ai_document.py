@@ -1777,26 +1777,115 @@ def build_update_data_from_extraction(
             update_data["real_estate_data"] = existing_real_estate
     
     elif document_type == 'mapa_crc':
-        # Mapa Central de Responsabilidades de Crédito
+        # Mapa Central de Responsabilidades de Crédito - NOVO FORMATO
         financial_update = {}
+        personal_update = {}
         
-        # Extrair resumo de responsabilidades
-        resumo = extracted_data.get('resumo_responsabilidades_credito', {})
-        montante = resumo.get('montante_em_divida', {})
+        # === NOVO FORMATO: Extrair dados do titular ===
+        titular = extracted_data.get('titular', {})
+        if titular.get('nome'):
+            # Não sobrescrever nome do cliente
+            pass
+        if titular.get('nif'):
+            personal_update['nif'] = titular['nif']
         
-        if montante.get('total'):
-            financial_update['divida_total'] = montante['total']
-        if montante.get('em_incumprimento'):
-            financial_update['divida_incumprimento'] = montante['em_incumprimento']
+        # === NOVO FORMATO: Extrair resumo ===
+        resumo = extracted_data.get('resumo', {})
+        if resumo:
+            if resumo.get('total_divida'):
+                financial_update['encargos_totais'] = resumo['total_divida']
+                financial_update['divida_total_crc'] = resumo['total_divida']
+            if resumo.get('total_em_incumprimento'):
+                financial_update['divida_incumprimento'] = resumo['total_em_incumprimento']
+            if resumo.get('prestacao_mensal_total'):
+                financial_update['prestacao_creditos_mensal'] = resumo['prestacao_mensal_total']
+                financial_update['encargos_mensais'] = resumo['prestacao_mensal_total']
+            if resumo.get('numero_produtos'):
+                financial_update['numero_creditos_ativos'] = resumo['numero_produtos']
+        
+        # === FORMATO ANTIGO: Fallback ===
+        if not resumo:
+            resumo_old = extracted_data.get('resumo_responsabilidades_credito', {})
+            montante = resumo_old.get('montante_em_divida', {})
+            if montante.get('total'):
+                financial_update['divida_total_crc'] = montante['total']
+            if montante.get('em_incumprimento'):
+                financial_update['divida_incumprimento'] = montante['em_incumprimento']
+        
+        # === EXTRAIR LISTA DE CRÉDITOS ===
+        creditos = extracted_data.get('creditos', [])
+        if not creditos:
+            # Fallback para formato antigo
+            creditos = extracted_data.get('responsabilidades_credito', [])
+        
+        if creditos:
+            # Guardar lista de créditos detalhada
+            creditos_processados = []
+            prestacao_total = 0
+            divida_total = 0
+            tem_credito_habitacao = False
             
-        # Extrair detalhes dos créditos
-        responsabilidades = extracted_data.get('responsabilidades_credito', [])
-        if responsabilidades:
-            # Procurar crédito habitação existente
-            for resp in responsabilidades:
-                if 'habitação' in resp.get('produto_financeiro', '').lower():
-                    financial_update['credito_habitacao_existente'] = resp.get('montantes', {}).get('total_em_divida', 0)
-                    financial_update['prestacao_ch_atual'] = resp.get('prestacao', {}).get('valor', None)
+            for credito in creditos:
+                if not isinstance(credito, dict):
+                    continue
+                
+                # Normalizar dados do crédito
+                credito_info = {
+                    'instituicao': credito.get('instituicao') or credito.get('entidade_participante'),
+                    'tipo': credito.get('tipo_produto') or credito.get('produto_financeiro', 'Outro'),
+                    'valor_divida': credito.get('valor_em_divida') or credito.get('montantes', {}).get('total_em_divida', 0),
+                    'prestacao': credito.get('prestacao_mensal') or credito.get('prestacao', {}).get('valor', 0),
+                    'data_fim': credito.get('data_fim') or credito.get('fim'),
+                    'em_incumprimento': credito.get('em_incumprimento', False)
+                }
+                
+                # Converter valores para float
+                try:
+                    if credito_info['valor_divida']:
+                        credito_info['valor_divida'] = float(str(credito_info['valor_divida']).replace(',', '.').replace('€', '').strip())
+                        divida_total += credito_info['valor_divida']
+                except (ValueError, TypeError):
+                    pass
+                    
+                try:
+                    if credito_info['prestacao']:
+                        credito_info['prestacao'] = float(str(credito_info['prestacao']).replace(',', '.').replace('€', '').strip())
+                        if credito_info['prestacao'] > 0:
+                            prestacao_total += credito_info['prestacao']
+                except (ValueError, TypeError):
+                    pass
+                
+                # Verificar se é crédito habitação
+                tipo_lower = str(credito_info['tipo']).lower()
+                if 'habitação' in tipo_lower or 'habitacao' in tipo_lower or 'hipoteca' in tipo_lower:
+                    tem_credito_habitacao = True
+                    financial_update['credito_habitacao_existente'] = credito_info['valor_divida']
+                    financial_update['prestacao_ch_atual'] = credito_info['prestacao']
+                
+                creditos_processados.append(credito_info)
+            
+            # Guardar lista completa de créditos
+            if creditos_processados:
+                financial_update['creditos_ativos'] = creditos_processados
+                financial_update['numero_creditos_ativos'] = len(creditos_processados)
+            
+            # Calcular totais se não vieram no resumo
+            if not financial_update.get('divida_total_crc') and divida_total > 0:
+                financial_update['divida_total_crc'] = round(divida_total, 2)
+                financial_update['encargos_totais'] = round(divida_total, 2)
+            
+            if not financial_update.get('prestacao_creditos_mensal') and prestacao_total > 0:
+                financial_update['prestacao_creditos_mensal'] = round(prestacao_total, 2)
+                financial_update['encargos_mensais'] = round(prestacao_total, 2)
+            
+            financial_update['tem_credito_habitacao_existente'] = tem_credito_habitacao
+        
+        logger.info(f"[MAPA CRC] Dados extraídos: {json.dumps(financial_update, ensure_ascii=False, default=str)}")
+        
+        if personal_update:
+            existing_personal = existing_data.get("personal_data") or {}
+            existing_personal.update(personal_update)
+            update_data["personal_data"] = existing_personal
                     
         if financial_update:
             existing_financial = existing_data.get("financial_data") or {}
