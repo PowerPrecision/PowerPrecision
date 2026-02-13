@@ -86,11 +86,14 @@ export default defineConfig(({ mode }) => {
     },
     
     // Definir variáveis de ambiente que começam com REACT_APP_
+    // Usando import.meta.env para compatibilidade com Vite
     define: {
-      'process.env': Object.keys(env)
+      // Manter compatibilidade com process.env (CRA legacy)
+      ...Object.keys(env)
         .filter(key => key.startsWith('REACT_APP_'))
         .reduce((acc, key) => {
-          acc[key] = JSON.stringify(env[key])
+          // JSON.stringify é necessário porque define substitui literalmente
+          acc[`process.env.${key}`] = JSON.stringify(env[key])
           return acc
         }, {}),
     },
