@@ -11,11 +11,73 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (OneDrive, S3, Google Drive), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 15)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 15 - Parte 2)
 
-### ✅ Funcionalidades Implementadas (Sessão 15)
+### ✅ Funcionalidades Implementadas (Sessão 15 - Parte 2)
 
-#### Cache de Sessão NIF (Item 17) - IMPLEMENTADO COM PERSISTÊNCIA
+#### Novas Páginas de Administração
+1. **NIFMappingsPage** (`/admin/mapeamentos-nif`)
+   - Visualizar mapeamentos pasta→cliente em cache
+   - Adicionar mapeamentos manualmente
+   - Limpar cache (memória + DB)
+   - Status: ✅ IMPLEMENTADO
+
+2. **ImportErrorsPage** (`/admin/erros-importacao`)
+   - Dashboard de erros de upload massivo
+   - Filtros por tipo de erro
+   - Botão "Resolver" para associar pastas a clientes
+   - Exportar CSV de erros
+   - Status: ✅ IMPLEMENTADO
+
+#### Melhorias de User Experience (Doc 4)
+1. **Dark Mode Toggle**
+   - Alterna entre tema claro/escuro
+   - Detecta preferência do sistema
+   - Persiste escolha no localStorage
+   - Ficheiros: `ThemeContext.js`, `index.css` (variáveis .dark)
+   - Status: ✅ IMPLEMENTADO
+
+2. **Keyboard Shortcuts (Ctrl+K)**
+   - `Ctrl+K` - Abrir pesquisa global
+   - `Ctrl+N` - Novo processo
+   - `Ctrl+/` - Mostrar atalhos
+   - `ESC` - Fechar modal
+   - Ficheiros: `useKeyboardShortcuts.js`, `GlobalSearchModal.jsx`
+   - Status: ✅ IMPLEMENTADO
+
+3. **Global Search Modal**
+   - Pesquisa unificada em processos, clientes e tarefas
+   - Navegação por teclado (↑↓ Enter)
+   - Resultados instantâneos com debounce
+   - Endpoint: `GET /api/search/global`
+   - Status: ✅ IMPLEMENTADO
+
+4. **Mobile Bottom Navigation**
+   - Navegação fixa no fundo para mobile
+   - Links: Kanban, Tarefas, Agenda, Perfil
+   - Visível apenas em ecrãs < md
+   - Ficheiro: `MobileBottomNav.jsx`
+   - Status: ✅ IMPLEMENTADO
+
+5. **Skeleton Loaders**
+   - Componentes de loading elegantes
+   - Tipos: ProcessCard, Table, Stats, Form
+   - Ficheiro: `skeletons.jsx`
+   - Status: ✅ IMPLEMENTADO
+
+#### Novos Endpoints Backend
+- `GET /api/search/global` - Pesquisa unificada
+- `GET /api/search/processes` - Pesquisa avançada processos
+- `GET /api/search/suggestions` - Sugestões de pesquisa
+
+#### Scraper Idealista (Doc 1) - JÁ EXISTENTE
+- ✅ `agency_link` - Link para página da agência
+- ✅ `referencia` - Referência do imóvel
+- ✅ `certificado_energetico` - Certificado energético
+- ✅ Deep link navigation
+- ✅ Extracção de telefone de agências
+
+### ✅ Cache de Sessão NIF (Item 17) - COM PERSISTÊNCIA
 - **Problema**: Documentos da mesma pasta precisavam de matching por nome repetidamente
 - **Solução**: Quando um CC é analisado e o NIF extraído, o mapeamento pasta→cliente é guardado em cache E na base de dados
 - **Persistência**: 
