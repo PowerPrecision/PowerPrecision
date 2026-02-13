@@ -132,6 +132,12 @@ const BANCOS = [
   "CTT", "Millennium bcp", "Novo Banco", "Popular", "Santander Totta", "Outro"
 ];
 
+// Campos obrigatórios para calcular progresso
+const REQUIRED_FIELDS = [
+  "name", "email", "nif", "phone", "birth_date", "estado_civil",
+  "tipo_imovel", "localizacao", "profissao", "tipo_contrato"
+];
+
 const PublicClientForm = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -139,45 +145,95 @@ const PublicClientForm = () => {
   const [submitted, setSubmitted] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState(null);
   
-  const [formData, setFormData] = useState({
-    // Dados Pessoais - Titular
-    name: "",
-    email: "",
-    nif: "",
-    documento_id: "",
-    naturalidade: "",
-    nacionalidade: "Portuguesa",
-    phone: "",
-    morada_fiscal: "",
-    birth_date: "",
-    estado_civil: "",
-    compra_tipo: "individual",
-    menor_35_anos: false,  // Checkbox para apoio ao estado
-    
-    // Dados do 2º Titular
-    titular2_name: "",
-    titular2_email: "",
-    titular2_nif: "",
-    titular2_documento_id: "",
-    titular2_naturalidade: "",
-    titular2_nacionalidade: "",
-    titular2_phone: "",
-    titular2_morada_fiscal: "",
-    titular2_birth_date: "",
-    titular2_estado_civil: "",
-    
-    // Imóvel Pretendido
-    tipo_imovel: "",
-    num_quartos: "",
-    localizacao: "",
-    caracteristicas: [],
-    outras_caracteristicas: "",
-    
-    // Outras Informações
-    outras_informacoes: "",
-    
-    // Situação Financeira
-    acesso_portal_financas: "",
+  // Auto-save state
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+  
+  // Carregar rascunho do localStorage
+  const loadDraft = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const timestamp = localStorage.getItem(DRAFT_TIMESTAMP_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setHasDraft(true);
+        return { data: parsed, timestamp: timestamp ? new Date(timestamp) : null };
+      }
+    } catch (e) {
+      console.error("Erro ao carregar rascunho:", e);
+    }
+    return null;
+  }, []);
+
+  // Guardar rascunho no localStorage
+  const saveDraft = useCallback((data) => {
+    try {
+      setIsSaving(true);
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
+      setLastSaved(new Date());
+      setHasDraft(true);
+    } catch (e) {
+      console.error("Erro ao guardar rascunho:", e);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  // Limpar rascunho
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+    setHasDraft(false);
+    setLastSaved(null);
+  }, []);
+  
+  const [formData, setFormData] = useState(() => {
+    // Tentar carregar rascunho ao iniciar
+    const draft = loadDraft();
+    if (draft?.data) {
+      return draft.data;
+    }
+    return {
+      // Dados Pessoais - Titular
+      name: "",
+      email: "",
+      nif: "",
+      documento_id: "",
+      naturalidade: "",
+      nacionalidade: "Portuguesa",
+      phone: "",
+      morada_fiscal: "",
+      birth_date: "",
+      estado_civil: "",
+      compra_tipo: "individual",
+      menor_35_anos: false,
+      
+      // Dados do 2º Titular
+      titular2_name: "",
+      titular2_email: "",
+      titular2_nif: "",
+      titular2_documento_id: "",
+      titular2_naturalidade: "",
+      titular2_nacionalidade: "",
+      titular2_phone: "",
+      titular2_morada_fiscal: "",
+      titular2_birth_date: "",
+      titular2_estado_civil: "",
+      
+      // Imóvel Pretendido
+      tipo_imovel: "",
+      num_quartos: "",
+      localizacao: "",
+      caracteristicas: [],
+      outras_caracteristicas: "",
+      
+      // Outras Informações
+      outras_informacoes: "",
+      
+      // Situação Financeira
+      acesso_portal_financas: "",
     chave_movel_digital: "",
     renda_habitacao_atual: "",
     precisa_vender_casa: "",
