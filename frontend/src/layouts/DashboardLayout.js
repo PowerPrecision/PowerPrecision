@@ -241,11 +241,6 @@ const DashboardLayout = ({ children, title }) => {
                 href: "/admin/mapeamentos-nif",
               },
               {
-                label: "Erros Importação",
-                icon: AlertTriangle,
-                href: "/admin/erros-importacao",
-              },
-              {
                 label: "Processos Background",
                 icon: LayoutGrid,
                 href: "/admin/processos-background",
