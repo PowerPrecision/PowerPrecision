@@ -2239,12 +2239,12 @@ async def get_background_job_status(
 
 
 @router.delete("/background-jobs/{job_id}")
-async def cancel_background_job(
+async def delete_background_job(
     job_id: str,
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
     """
-    Cancelar/remover um job em background.
+    Remover um job do histórico.
     Nota: Não interrompe processos já em execução.
     """
     # Remover da memória
