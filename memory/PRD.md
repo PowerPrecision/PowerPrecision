@@ -28,7 +28,37 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Testes**: 13/13 testes passaram (100% success rate)
 - **Status**: ✅ CORRIGIDO E TESTADO
 
-#### Novos Endpoints de Links de Drive
+#### Bug P1: Dark Mode com Problemas de Visualização - CORRIGIDO
+- **Problema Reportado**: Ícones que não se viam bem, textos difíceis de ler, Kanban com má visualização
+- **Soluções Implementadas**:
+  1. Reformuladas variáveis CSS do tema escuro para melhor contraste
+  2. Adicionados estilos específicos para:
+     - Colunas do Kanban (cores de fundo e headers)
+     - Cartões de processos (fundo e bordas)
+     - Badges de status (cores adaptadas)
+     - Inputs, tabelas e textos
+  3. Melhorada visibilidade de ícones em modo escuro
+- **Ficheiros Modificados**: `/app/frontend/src/index.css`, `/app/frontend/src/components/KanbanBoard.js`
+- **Status**: ✅ CORRIGIDO
+
+#### Bug P1: Logs de Erro Não Apareciam - CORRIGIDO
+- **Problema Reportado**: Erros reportados pelo utilizador não apareciam no menu "Log do Sistema"
+- **Causa**: O sistema apenas logava erros de importação, não erros HTTP gerais
+- **Solução**: Adicionado exception handler global no FastAPI que regista automaticamente erros 4xx e 5xx no sistema de logs
+- **Ficheiro Modificado**: `/app/backend/server.py`
+- **Status**: ✅ CORRIGIDO
+
+#### Nomenclatura: OneDrive → Drive - ACTUALIZADO
+- **Problema**: Sistema usava "OneDrive" quando suporta múltiplos providers de cloud
+- **Solução**: Substituído todas as referências visíveis ao utilizador de "OneDrive" para "Drive" genérico
+- **Ficheiros Modificados**: Múltiplos ficheiros frontend (AdminDashboard, ConsultorDashboard, MediadorDashboard, BackupsPage, OneDriveLinks, ProcessDetails)
+- **Status**: ✅ ACTUALIZADO
+
+#### Tab "Links Drive" Renomeada para "Drive" - ACTUALIZADO
+- **Local**: ProcessDetails.js - Side Tabs
+- **Status**: ✅ ACTUALIZADO
+
+### Novos Endpoints de Links de Drive
 - `GET /api/onedrive/links/{process_id}` - Listar links de um processo
 - `POST /api/onedrive/links/{process_id}` - Adicionar link (suporta OneDrive, Google Drive, S3, SharePoint)
 - `PUT /api/onedrive/links/{process_id}/{link_id}` - Actualizar link
