@@ -9,14 +9,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
+} from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
 import { 
   Search, FileText, User, CheckSquare, 
   Building2, Loader2, ArrowRight
 } from "lucide-react";
-import api from "../../services/api";
+import api from "../services/api";
 
 const GlobalSearchModal = ({ open, onOpenChange }) => {
   const navigate = useNavigate();
