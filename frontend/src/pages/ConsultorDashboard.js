@@ -492,7 +492,7 @@ const ConsultorDashboard = () => {
                     </div>
                   ) : oneDriveFiles.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <p>Nenhum ficheiro encontrado ou Drive não configurado</p>
+                      <p>Nenhum ficheiro disponível nesta pasta</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
