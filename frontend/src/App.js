@@ -350,6 +350,7 @@ function App() {
       </BrowserRouter>
       <Toaster position="bottom-right" richColors closeButton offset="20px" />
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 
