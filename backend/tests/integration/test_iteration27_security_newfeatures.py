@@ -123,23 +123,13 @@ class TestSecurityHeaders:
 class TestBackgroundJobs:
     """Test /api/ai/bulk/background-jobs endpoint"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Login and get token"""
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        self.token = login_response.json().get("access_token")
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-    
     def test_get_background_jobs_list(self):
         """Test GET /api/ai/bulk/background-jobs returns job list"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/background-jobs",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/background-jobs")
         assert response.status_code == 200
         
         data = response.json()
@@ -157,10 +147,11 @@ class TestBackgroundJobs:
     
     def test_get_background_jobs_with_status_filter(self):
         """Test GET /api/ai/bulk/background-jobs with status filter"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/background-jobs?status=running",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/background-jobs?status=running")
         assert response.status_code == 200
         
         data = response.json()
@@ -172,10 +163,11 @@ class TestBackgroundJobs:
     
     def test_get_background_jobs_with_limit(self):
         """Test GET /api/ai/bulk/background-jobs with limit parameter"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/background-jobs?limit=5",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/background-jobs?limit=5")
         assert response.status_code == 200
         
         data = response.json()
@@ -184,10 +176,11 @@ class TestBackgroundJobs:
     
     def test_clear_finished_jobs(self):
         """Test DELETE /api/ai/bulk/background-jobs clears finished jobs"""
-        response = requests.delete(
-            f"{BASE_URL}/api/ai/bulk/background-jobs?only_failed=false",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.delete(f"{BASE_URL}/api/ai/bulk/background-jobs?only_failed=false")
         assert response.status_code == 200
         
         data = response.json()
