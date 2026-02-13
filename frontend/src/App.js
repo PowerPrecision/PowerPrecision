@@ -71,8 +71,9 @@ const DashboardRedirect = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           {/* Public client registration form - no auth required */}
           <Route path="/" element={<PublicClientForm />} />
