@@ -2261,6 +2261,55 @@ async def cancel_background_job(
     }
 
 
+@router.post("/background-jobs/{job_id}/cancel")
+async def cancel_background_job(
+    job_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Cancelar um job em execução.
+    
+    Marca o job como 'cancelled' e actualiza a DB.
+    Os processos já em execução não podem ser interrompidos,
+    mas ficheiros pendentes serão ignorados.
+    """
+    # Verificar se existe na memória
+    job = background_processes.get(job_id)
+    
+    if not job:
+        # Tentar encontrar na DB
+        job = await db.background_jobs.find_one({"id": job_id}, {"_id": 0})
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    if job.get("status") != "running":
+        raise HTTPException(status_code=400, detail="Apenas jobs em execução podem ser cancelados")
+    
+    # Marcar como cancelado
+    update_data = {
+        "status": "cancelled",
+        "message": "Cancelado pelo utilizador",
+        "finished_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Actualizar na memória
+    if job_id in background_processes:
+        background_processes[job_id].update(update_data)
+    
+    # Actualizar na DB
+    await db.background_jobs.update_one(
+        {"id": job_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Job {job_id} cancelado",
+        "status": "cancelled"
+    }
+
+
 @router.delete("/background-jobs")
 async def clear_finished_jobs(
     only_failed: bool = False,
