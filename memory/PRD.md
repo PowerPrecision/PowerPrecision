@@ -49,6 +49,26 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - `/app/frontend/src/components/BulkDocumentUpload.js` - Suporte a variant="compact" e UI adaptada
 - **Status**: ✅ COMPLETO E TESTADO
 
+#### Enhancement: Barra de Progresso Global para Uploads - COMPLETO
+- **Objectivo**: Mostrar progresso de uploads mesmo quando o utilizador navega para outras páginas
+- **Implementação**:
+  - Criado `UploadProgressContext` para gestão global de estado de uploads
+  - Criado componente `GlobalUploadProgress` fixo no canto inferior direito
+  - Integrado no `App.js` com `UploadProgressProvider`
+  - `BulkDocumentUpload` actualizado para usar o contexto global
+- **Funcionalidades**:
+  - Mostra progresso em tempo real (ficheiro actual, % concluído)
+  - Minimizável para ícone flutuante
+  - Auto-remove após conclusão com sucesso (5 segundos)
+  - Múltiplos uploads simultâneos suportados
+- **Ficheiros Criados**:
+  - `/app/frontend/src/contexts/UploadProgressContext.js`
+  - `/app/frontend/src/components/GlobalUploadProgress.js`
+- **Ficheiros Modificados**:
+  - `/app/frontend/src/App.js` - Import e integração do provider e componente
+  - `/app/frontend/src/components/BulkDocumentUpload.js` - Uso do contexto global
+- **Status**: ✅ COMPLETO
+
 ### ✅ Tarefas Completadas (Sessão 17)
 
 #### P1: Migração CRA → Vite - COMPLETO
