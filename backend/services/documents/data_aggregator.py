@@ -171,7 +171,6 @@ class ClientDataAggregator:
         if empresa_norm:
             # Verificar se já existe salário desta empresa
             if empresa_norm in self.salarios_por_empresa:
-                existing = self.salarios_por_empresa[empresa_norm]
                 # Actualizar apenas se mais recente ou com mais dados
                 if salario_info.get('salario_liquido') or salario_info.get('salario_bruto'):
                     self.salarios_por_empresa[empresa_norm] = salario_info
