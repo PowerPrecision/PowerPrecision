@@ -1068,6 +1068,118 @@ async def log_import_error(
         logger.error(f"Falha ao registar erro de importação: {e}")
 
 
+# ====================================================================
+# ENDPOINT PARA PROCESSOS EM BACKGROUND (Item 2)
+# ====================================================================
+@router.get("/background-jobs")
+async def get_background_jobs(
+    status: Optional[str] = None,
+    limit: int = 20,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Listar processos em background (Item 2 - Outros erros/melhorias).
+    
+    Parâmetros:
+    - status: Filtrar por estado (running, success, failed)
+    - limit: Número máximo de resultados (default 20)
+    
+    Returns:
+        Lista de jobs com estado, progresso e detalhes
+    """
+    # Filtrar por status se especificado
+    if status:
+        jobs = [j for j in background_processes.values() if j.get("status") == status]
+    else:
+        jobs = list(background_processes.values())
+    
+    # Ordenar por data de início (mais recentes primeiro)
+    jobs.sort(key=lambda x: x.get("started_at", ""), reverse=True)
+    
+    # Limitar resultados
+    jobs = jobs[:limit]
+    
+    # Contar por status
+    counts = {
+        "running": sum(1 for j in background_processes.values() if j.get("status") == "running"),
+        "success": sum(1 for j in background_processes.values() if j.get("status") == "success"),
+        "failed": sum(1 for j in background_processes.values() if j.get("status") == "failed"),
+        "total": len(background_processes)
+    }
+    
+    return {
+        "jobs": jobs,
+        "counts": counts
+    }
+
+
+@router.get("/background-jobs/{job_id}")
+async def get_background_job_status(
+    job_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obter estado de um job específico.
+    """
+    if job_id not in background_processes:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    return background_processes[job_id]
+
+
+@router.delete("/background-jobs/{job_id}")
+async def cancel_background_job(
+    job_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Cancelar/remover um job em background.
+    Nota: Não interrompe processos já em execução.
+    """
+    if job_id not in background_processes:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    job = background_processes.pop(job_id)
+    
+    return {
+        "success": True,
+        "message": f"Job {job_id} removido",
+        "job": job
+    }
+
+
+@router.delete("/background-jobs")
+async def clear_finished_jobs(
+    only_failed: bool = False,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Limpar jobs terminados do histórico.
+    
+    Parâmetros:
+    - only_failed: Se True, limpa apenas jobs falhados (default False)
+    """
+    to_remove = []
+    
+    for job_id, job in background_processes.items():
+        status = job.get("status")
+        if status != "running":  # Não remover jobs a correr
+            if only_failed:
+                if status == "failed":
+                    to_remove.append(job_id)
+            else:
+                to_remove.append(job_id)
+    
+    for job_id in to_remove:
+        del background_processes[job_id]
+    
+    return {
+        "success": True,
+        "removed_count": len(to_remove),
+        "message": f"{len(to_remove)} jobs removidos"
+    }
+
+
 @router.get("/import-errors")
 async def get_import_errors(
     limit: int = 100,
