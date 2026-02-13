@@ -43,6 +43,7 @@ from routes.scraper import router as scraper_router
 from routes.minutas import router as minutas_router
 from routes.ai_agent import router as ai_agent_router
 from routes.templates import router as templates_router
+from routes.onedrive import router as onedrive_router
 
 # Configuração Sentry
 if SENTRY_DSN:
