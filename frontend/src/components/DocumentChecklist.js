@@ -299,7 +299,7 @@ const DocumentChecklist = ({ processId, clientName, onUpdate }) => {
           <DialogHeader>
             <DialogTitle>Verificar Documentos</DialogTitle>
             <DialogDescription>
-              Cole a lista de ficheiros da pasta do OneDrive ou selecione a
+              Cole a lista de ficheiros da pasta de armazenamento ou selecione a
               pasta local
             </DialogDescription>
           </DialogHeader>
@@ -311,7 +311,7 @@ const DocumentChecklist = ({ processId, clientName, onUpdate }) => {
               <div className="text-sm text-blue-700">
                 <p className="font-medium">Como obter a lista de ficheiros:</p>
                 <ol className="list-decimal list-inside mt-1 space-y-1">
-                  <li>Abra a pasta do cliente no OneDrive</li>
+                  <li>Abra a pasta do cliente no sistema de armazenamento</li>
                   <li>Seleccione todos os ficheiros (Ctrl+A)</li>
                   <li>Copie os nomes ou use o botão "Seleccionar Pasta"</li>
                 </ol>
