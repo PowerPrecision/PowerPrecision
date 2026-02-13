@@ -83,7 +83,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
   // Guardar link da pasta específica do cliente
   const handleSaveFolderUrl = async () => {
     const url = prompt(
-      "Cole aqui o link da pasta específica do cliente no OneDrive:\n\n(Ex: https://1drv.ms/f/...)",
+      "Cole aqui o link da pasta específica do cliente no Drive:\n\n(Ex: https://1drv.ms/f/... ou s3://bucket/path/...)",
       ""
     );
     if (!url) return;
