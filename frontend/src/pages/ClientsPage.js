@@ -117,15 +117,6 @@ export default function ClientsPage() {
   useEffect(() => {
     let result = [...clients];
     
-    // Filtrar por status
-    if (filterStatus !== "all") {
-      result = result.filter(c => {
-        if (filterStatus === "with_process") return c.process_count > 0;
-        if (filterStatus === "without_process") return !c.process_count || c.process_count === 0;
-        return true;
-      });
-    }
-    
     // Ordenar
     result.sort((a, b) => {
       let aVal = a[sortField];
@@ -156,7 +147,7 @@ export default function ClientsPage() {
     });
     
     setFilteredClients(result);
-  }, [clients, sortField, sortOrder, filterStatus]);
+  }, [clients, sortField, sortOrder]);
 
   const toggleSort = (field) => {
     if (sortField === field) {
