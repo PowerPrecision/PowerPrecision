@@ -252,15 +252,22 @@ async def get_process_links(
     """
     Obter todos os links de um processo.
     """
+    # Verificar se o processo existe (sem projection para evitar problema de dict vazio)
+    process_exists = await db.processes.find_one(
+        {"id": process_id},
+        {"id": 1}
+    )
+    
+    if not process_exists:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Buscar os links separadamente
     process = await db.processes.find_one(
         {"id": process_id},
         {"onedrive_links": 1, "_id": 0}
     )
     
-    if not process:
-        raise HTTPException(status_code=404, detail="Processo não encontrado")
-    
-    return process.get("onedrive_links") or []
+    return process.get("onedrive_links") if process else []
 
 
 @router.post("/links/{process_id}")
