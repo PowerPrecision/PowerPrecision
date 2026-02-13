@@ -439,36 +439,24 @@ class TestPropertyDocuments:
 class TestInputSanitization:
     """Test input sanitization doesn't break normal flows"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Login and get token"""
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        self.token = login_response.json().get("access_token")
-        self.headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json"
-        }
-    
     def test_normal_client_search(self):
         """Test that normal text search works with sanitization enabled"""
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=João Silva",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/suggest-clients?query=João Silva")
         assert response.status_code == 200
         print("✅ Normal search with accented characters works")
     
     def test_xss_attempt_blocked(self):
         """Test that XSS attempts are handled (either blocked or sanitized)"""
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
         # This should not cause a server error - it should be sanitized or handled
-        response = requests.get(
-            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=<script>alert('xss')</script>",
-            headers=self.headers
-        )
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/ai/bulk/suggest-clients?query=<script>alert('xss')</script>")
         # Should return 200 with empty/safe results, not 500
         assert response.status_code in [200, 400]
         print("✅ XSS attempt in query handled safely")
