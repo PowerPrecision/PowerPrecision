@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -13,11 +13,16 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Checkbox } from "../components/ui/checkbox";
-import { Building2, Loader2, ArrowLeft, ArrowRight, Check, User, Briefcase, Home, Users, CreditCard, HelpCircle, Info } from "lucide-react";
+import { Progress } from "../components/ui/progress";
+import { Building2, Loader2, ArrowLeft, ArrowRight, Check, User, Briefcase, Home, Users, CreditCard, HelpCircle, Info, Save, Clock } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL + "/api";
+
+// Chave para localStorage
+const DRAFT_STORAGE_KEY = "public_client_form_draft";
+const DRAFT_TIMESTAMP_KEY = "public_client_form_draft_timestamp";
 
 // Helper component for field hints
 const FieldHint = ({ children }) => (
@@ -26,6 +31,65 @@ const FieldHint = ({ children }) => (
     <span>{children}</span>
   </p>
 );
+
+// Progress Bar Component com percentagem
+const FormProgressBar = ({ currentStep, totalSteps, completedFields, totalFields }) => {
+  const stepProgress = ((currentStep - 1) / totalSteps) * 100;
+  const fieldProgress = totalFields > 0 ? (completedFields / totalFields) * 100 : 0;
+  
+  return (
+    <div className="space-y-2 mb-6">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <span className="font-medium text-teal-600">
+          {Math.round(fieldProgress)}% completo
+        </span>
+      </div>
+      <Progress value={fieldProgress} className="h-2" />
+      <div className="flex justify-between">
+        {Array.from({ length: totalSteps }).map((_, idx) => (
+          <div 
+            key={idx}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
+              idx + 1 < currentStep 
+                ? "bg-teal-600 text-white" 
+                : idx + 1 === currentStep 
+                  ? "bg-teal-100 text-teal-700 border-2 border-teal-600" 
+                  : "bg-gray-100 text-gray-400"
+            }`}
+          >
+            {idx + 1 < currentStep ? <Check className="h-4 w-4" /> : idx + 1}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Auto-save indicator
+const AutoSaveIndicator = ({ lastSaved, isSaving }) => {
+  if (isSaving) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        A guardar...
+      </div>
+    );
+  }
+  
+  if (lastSaved) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-green-600">
+        <Save className="h-3 w-3" />
+        Rascunho guardado às {lastSaved.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
+      </div>
+    );
+  }
+  
+  return null;
+};
 
 const ESTADOS_CIVIS = [
   { value: "solteiro", label: "Solteiro/a" },
