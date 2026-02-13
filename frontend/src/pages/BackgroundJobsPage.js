@@ -287,7 +287,7 @@ const BackgroundJobsPage = () => {
       if (response.ok) {
         const data = await response.json();
         setJobs(data.jobs || []);
-        setCounts(data.counts || { running: 0, success: 0, failed: 0, total: 0 });
+        setCounts(data.counts || { running: 0, success: 0, failed: 0, paused: 0, total: 0 });
       }
     } catch (error) {
       console.error("Erro ao carregar jobs:", error);
@@ -339,6 +339,46 @@ const BackgroundJobsPage = () => {
       }
     } catch (error) {
       toast.error("Erro ao cancelar processo");
+    }
+  };
+
+  const handlePause = async (jobId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/ai/bulk/background-jobs/${jobId}/pause`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        toast.success("Processo pausado");
+        fetchJobs();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || "Não foi possível pausar o processo");
+      }
+    } catch (error) {
+      toast.error("Erro ao pausar processo");
+    }
+  };
+
+  const handleResume = async (jobId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/ai/bulk/background-jobs/${jobId}/resume`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        toast.success("Processo retomado");
+        fetchJobs();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || "Não foi possível retomar o processo");
+      }
+    } catch (error) {
+      toast.error("Erro ao retomar processo");
     }
   };
 
