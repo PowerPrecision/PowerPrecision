@@ -1306,6 +1306,130 @@ async def analyze_single_file(
     return result
 
 
+def categorize_extracted_fields(extracted_data: dict, document_type: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Categorizar campos extraídos em: dados_pessoais, imovel, financiamento, outros.
+    Baseado na estrutura da ficha de cliente.
+    """
+    categories = {
+        "dados_pessoais": {},
+        "imovel": {},
+        "financiamento": {},
+        "outros": {}
+    }
+    
+    # Mapeamento de campos para categorias
+    personal_fields = [
+        "nome", "name", "nif", "NIF", "data_nascimento", "morada", "codigo_postal",
+        "localidade", "telefone", "email", "estado_civil", "nacionalidade",
+        "cc_numero", "cc_validade", "genero", "profissao", "entidade_empregadora",
+        "tipo_contrato", "antiguidade", "rendimento_mensal", "outros_rendimentos"
+    ]
+    
+    property_fields = [
+        "tipo_imovel", "finalidade", "valor_imovel", "valor_escritura",
+        "morada_imovel", "distrito", "concelho", "freguesia", "ano_construcao",
+        "area_bruta", "area_util", "tipologia", "caderneta_predial", "artigo"
+    ]
+    
+    finance_fields = [
+        "valor_financiamento", "prazo", "taxa_esforco", "spread", "euribor",
+        "prestacao", "lti", "ltv", "banco", "entidade_bancaria",
+        "despesas_mensais", "encargos", "creditos_existentes"
+    ]
+    
+    for key, value in extracted_data.items():
+        if value is None or value == "":
+            continue
+            
+        key_lower = key.lower()
+        
+        if key_lower in [f.lower() for f in personal_fields] or key_lower.startswith("personal"):
+            categories["dados_pessoais"][key] = value
+        elif key_lower in [f.lower() for f in property_fields] or key_lower.startswith("property") or key_lower.startswith("imovel"):
+            categories["imovel"][key] = value
+        elif key_lower in [f.lower() for f in finance_fields] or key_lower.startswith("financ"):
+            categories["financiamento"][key] = value
+        else:
+            categories["outros"][key] = value
+    
+    # Remover categorias vazias
+    return {k: v for k, v in categories.items() if v}
+
+
+async def log_import_result(
+    client_name: str,
+    process_id: Optional[str],
+    filename: str,
+    document_type: str,
+    success: bool,
+    extracted_data: Optional[dict] = None,
+    updated_fields: Optional[List[str]] = None,
+    error: Optional[str] = None,
+    user_email: str = None,
+    folder_name: str = None,
+    full_path: str = None
+):
+    """
+    Registar resultado de importação (sucesso ou erro) na base de dados.
+    Organiza os dados por categorias para visualização em tabs.
+    """
+    try:
+        log_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        # Categorizar dados extraídos
+        categorized_data = {}
+        if extracted_data:
+            categorized_data = categorize_extracted_fields(extracted_data, document_type)
+        
+        # Construir log completo
+        import_log = {
+            "id": log_id,
+            "timestamp": timestamp,
+            "status": "success" if success else "error",
+            "client_name": client_name,
+            "process_id": process_id,
+            "filename": filename,
+            "document_type": document_type,
+            "folder_name": folder_name or client_name,
+            "full_path": full_path or filename,
+            "user_email": user_email,
+            # Dados categorizados para visualização em tabs
+            "categorized_data": categorized_data,
+            "updated_fields": updated_fields or [],
+            "fields_count": len(updated_fields) if updated_fields else 0,
+            "error": error,
+            "resolved": success,  # Sucessos já estão "resolvidos"
+        }
+        
+        # Guardar na nova colecção de logs de importação
+        await db.ai_import_logs.insert_one(import_log)
+        
+        # Se for erro, também guardar na colecção de erros (compatibilidade)
+        if not success and error:
+            error_log = {
+                "id": log_id,
+                "timestamp": timestamp,
+                "client_name": client_name,
+                "process_id": process_id,
+                "filename": filename,
+                "document_type": document_type,
+                "error": error,
+                "user_email": user_email,
+                "resolved": False,
+                "folder_name": folder_name or client_name,
+                "full_path": full_path or filename,
+            }
+            await db.import_errors.insert_one(error_log)
+        
+        log_status = "✅ Sucesso" if success else "❌ Erro"
+        logger.info(f"Log de importação registado: {log_status} - {filename} -> {client_name}")
+        
+    except Exception as e:
+        logger.error(f"Falha ao registar log de importação: {e}")
+
+
 async def log_import_error(
     client_name: str,
     process_id: Optional[str],
@@ -1323,13 +1447,25 @@ async def log_import_error(
 ):
     """
     Guardar erro de importação na base de dados para análise posterior.
-    Também regista nos logs do sistema para visualização unificada.
+    Usa a nova função log_import_result para consistência.
     """
+    await log_import_result(
+        client_name=client_name,
+        process_id=process_id,
+        filename=filename,
+        document_type=document_type,
+        success=False,
+        error=error,
+        user_email=user_email,
+        folder_name=folder_name,
+        full_path=full_path
+    )
+    
+    # Também registar nos logs do sistema para visualização unificada
     try:
         error_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
         
-        # Construir detalhes do erro
         error_details = {
             "client_name": client_name,
             "process_id": process_id,
@@ -1340,7 +1476,6 @@ async def log_import_error(
             "user_email": user_email
         }
         
-        # Adicionar detalhes de matching se disponíveis
         if any([attempted_matches, best_match_score, extracted_names]):
             error_details["matching_details"] = {
                 "attempted_matches": attempted_matches[:10] if attempted_matches else [],
@@ -1349,23 +1484,6 @@ async def log_import_error(
                 "extracted_names": list(extracted_names)[:5] if extracted_names else []
             }
         
-        # Guardar na colecção import_errors (mantém compatibilidade)
-        error_log = {
-            "id": error_id,
-            "timestamp": timestamp,
-            "client_name": client_name,
-            "process_id": process_id,
-            "filename": filename,
-            "document_type": document_type,
-            "error": error,
-            "user_email": user_email,
-            "resolved": False,
-            "folder_name": folder_name or client_name,
-            "full_path": full_path or filename,
-        }
-        await db.import_errors.insert_one(error_log)
-        
-        # Registar também nos logs do sistema para visualização unificada
         system_log = {
             "id": error_id,
             "timestamp": timestamp,
@@ -1383,10 +1501,8 @@ async def log_import_error(
         }
         await db.system_error_logs.insert_one(system_log)
         
-        logger.info(f"Erro de importação registado: {filename} -> {error[:50]}...")
-        
     except Exception as e:
-        logger.error(f"Falha ao registar erro de importação: {e}")
+        logger.error(f"Falha ao registar erro no system_error_logs: {e}")
 
 
 # ====================================================================
