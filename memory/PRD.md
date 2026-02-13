@@ -362,15 +362,6 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### 📋 Tarefas Pendentes
 
-#### P1 (Alta Prioridade - Próximas)
-- [ ] **Bookmarklet Idealista avançado** - Criar versão que abre automaticamente o CRM com dados preenchidos
-- [ ] **Pausar/Retomar jobs em background** - Funcionalidade para pausar e retomar importações longas
-- [x] **"Gestor de Visitas"** - Funcionalidade já implementada! Renomeado de "Leads". Inclui:
-  - Kanban com estados: Novo, Contactado, Visita Agendada, Proposta, Reservado, Descartado
-  - Extração automática de dados de URLs de imóveis (scraping)
-  - Formulário completo para criar leads manualmente
-  - Filtros por consultor e estado
-
 #### P2 (Média Prioridade)
 - [ ] Implementar rate limiting no backend
 - [ ] Paginação cursor-based para listas grandes
