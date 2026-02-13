@@ -169,6 +169,7 @@ app.include_router(minutas_router, prefix="/api")
 app.include_router(ai_agent_router, prefix="/api")
 app.include_router(templates_router, prefix="/api")
 app.include_router(onedrive_router, prefix="/api")
+app.include_router(search_router, prefix="/api")
 
 @app.get("/health")
 async def health_check():
