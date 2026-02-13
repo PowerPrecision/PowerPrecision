@@ -234,7 +234,11 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### 📋 Tarefas Pendentes
 
-#### P1 (Alta Prioridade - Próximos)
+#### P0 (Críticas - Próximas)
+- [ ] **Documentos não aparecem na página do cliente** - O endpoint `/onedrive/files/{clientName}` não existe no backend. Precisa implementação ou verificação da integração OneDrive/S3
+- [ ] **Teste da correcção OpenAI 401** - O código foi actualizado para usar emergentintegrations mas precisa teste com importação real de documentos
+
+#### P1 (Alta Prioridade)
 - [x] **"Gestor de Visitas"** - Funcionalidade já implementada! Renomeado de "Leads". Inclui:
   - Kanban com estados: Novo, Contactado, Visita Agendada, Proposta, Reservado, Descartado
   - Extração automática de dados de URLs de imóveis (scraping)
@@ -248,6 +252,7 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 #### P2 (Média Prioridade)
 - [ ] Implementar rate limiting no backend
 - [ ] Paginação cursor-based para listas grandes
+- [ ] Funcionalidade "selecionar erros" nos logs - Precisa clarificação do utilizador sobre o objectivo
 
 #### P3 (Baixa Prioridade)
 - [ ] Refactoring do `processes.py` (ficheiro muito grande)
