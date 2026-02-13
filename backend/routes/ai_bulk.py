@@ -1193,6 +1193,388 @@ async def finish_import_session(
     return job or {"error": "Sessão não encontrada"}
 
 
+# ====================================================================
+# IMPORTAÇÃO AGREGADA - CLIENTE A CLIENTE (P0)
+# ====================================================================
+# Nova lógica de importação que:
+# 1. Acumula dados extraídos de múltiplos documentos por cliente
+# 2. Deduplica campos (usa valor mais recente quando há conflito)
+# 3. Agrega salários por empresa (lista + soma total)
+# 4. Salva uma única vez por cliente após processar todos os documentos
+# ====================================================================
+
+class AggregatedSessionRequest(BaseModel):
+    """Request para iniciar sessão de importação agregada."""
+    total_files: int
+    client_id: Optional[str] = None  # Se definido, todos os ficheiros vão para este cliente
+    client_name: Optional[str] = None
+
+
+class AggregatedSessionResponse(BaseModel):
+    """Response da sessão de importação agregada."""
+    session_id: str
+    message: str
+    aggregation_mode: bool = True
+
+
+@router.post("/aggregated-session/start", response_model=AggregatedSessionResponse)
+async def start_aggregated_session(
+    request: AggregatedSessionRequest,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Iniciar sessão de importação AGREGADA.
+    
+    Diferente da sessão normal, esta sessão:
+    1. Acumula dados extraídos em memória (não salva imediatamente)
+    2. Quando finalizada, consolida e deduplica dados
+    3. Agrega salários por empresa (lista separada + soma)
+    4. Salva uma única vez por cliente
+    
+    Returns:
+        session_id: ID único da sessão para usar nos próximos requests
+    """
+    # Criar job de background para tracking
+    details = {
+        "aggregation_mode": True,
+        "client_id": request.client_id,
+        "client_name": request.client_name
+    }
+    
+    session_id = await create_background_job_db(
+        job_type="aggregated_import",
+        user_email=user.get("email"),
+        details=details,
+        total_files=request.total_files
+    )
+    
+    # Criar sessão de agregação em memória
+    get_or_create_session(session_id, user.get("email"))
+    
+    logger.info(f"[AGGREGATED] Sessão iniciada: {session_id} com {request.total_files} ficheiros")
+    
+    return AggregatedSessionResponse(
+        session_id=session_id,
+        message=f"Sessão agregada iniciada com {request.total_files} ficheiros",
+        aggregation_mode=True
+    )
+
+
+class AggregatedFileResult(BaseModel):
+    """Resultado do processamento de um ficheiro na sessão agregada."""
+    success: bool
+    client_name: str
+    filename: str
+    document_type: str = ""
+    fields_extracted: List[str] = []
+    aggregated: bool = True  # Indica que os dados foram agregados (não salvos ainda)
+    error: Optional[str] = None
+
+
+@router.post("/aggregated-session/{session_id}/analyze", response_model=AggregatedFileResult)
+async def analyze_file_aggregated(
+    session_id: str,
+    file: UploadFile = File(...),
+    force_client_id: Optional[str] = Form(None),
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Analisar ficheiro e AGREGAR dados (não salva ainda).
+    
+    Os dados extraídos são acumulados na sessão de agregação.
+    A consolidação e salvamento só acontece quando a sessão é finalizada.
+    
+    Args:
+        session_id: ID da sessão de importação agregada
+        file: Ficheiro a analisar
+        force_client_id: ID do cliente para forçar associação (Cenário B)
+    """
+    # Verificar se sessão existe
+    session = get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessão de agregação não encontrada")
+    
+    filename = file.filename or "documento.pdf"
+    
+    # Extrair nome do cliente do path
+    parts = filename.replace("\\", "/").split("/")
+    if len(parts) >= 2:
+        folder_name = parts[1]
+        doc_filename = parts[-1]
+    else:
+        doc_filename = parts[0]
+        folder_name = doc_filename.rsplit("_", 1)[0] if "_" in doc_filename else "Desconhecido"
+    
+    client_name = folder_name
+    
+    result = AggregatedFileResult(
+        success=False,
+        client_name=client_name,
+        filename=doc_filename,
+        aggregated=True
+    )
+    
+    try:
+        # Ler ficheiro
+        content = await read_file_with_limit(file)
+        
+        # Validação de segurança
+        try:
+            validate_file_content(content, doc_filename)
+        except HTTPException as e:
+            result.error = f"Ficheiro rejeitado: {e.detail}"
+            session.increment_error()
+            return result
+        
+        # Encontrar cliente
+        process = None
+        process_id = None
+        
+        if force_client_id:
+            process = await db.processes.find_one({"id": force_client_id}, {"_id": 0})
+            if process:
+                process_id = force_client_id
+            else:
+                result.error = f"Cliente com ID '{force_client_id}' não encontrado"
+                session.increment_error()
+                return result
+        else:
+            # Cache NIF ou busca por nome
+            cached_mapping = await get_cached_nif_mapping(folder_name)
+            if cached_mapping:
+                process_id = cached_mapping["process_id"]
+                process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+            
+            if not process:
+                process = await find_client_by_name(client_name)
+        
+        if not process:
+            result.error = f"Cliente não encontrado: {client_name}"
+            session.increment_error()
+            return result
+        
+        process_id = process.get("id")
+        actual_client_name = process.get("client_name", client_name)
+        result.client_name = actual_client_name
+        
+        # Detectar tipo de documento
+        document_type = detect_document_type(doc_filename)
+        result.document_type = document_type
+        
+        # Verificar duplicado
+        duplicate_data = await check_duplicate_comprehensive(process_id, document_type, content)
+        if duplicate_data:
+            result.success = True
+            result.error = "Documento idêntico já analisado (ignorado)"
+            return result
+        
+        # Analisar documento com IA
+        analysis_result = await analyze_single_document(
+            content=content,
+            filename=doc_filename,
+            client_name=actual_client_name,
+            process_id=process_id
+        )
+        
+        if analysis_result.get("success") and analysis_result.get("extracted_data"):
+            extracted_data = analysis_result["extracted_data"]
+            
+            # === AGREGAR DADOS NA SESSÃO (não salva ainda) ===
+            session.add_file_extraction(
+                process_id=process_id,
+                client_name=actual_client_name,
+                document_type=document_type,
+                extracted_data=extracted_data,
+                filename=doc_filename
+            )
+            
+            # Guardar em cache de duplicados
+            cache_document_analysis(process_id, document_type, content, extracted_data)
+            
+            # Persistir registo do documento analisado
+            await persist_document_analysis(
+                process_id, document_type, content, extracted_data, doc_filename
+            )
+            
+            result.success = True
+            result.fields_extracted = list(extracted_data.keys())
+            
+            logger.info(f"[AGGREGATED] {doc_filename} agregado para '{actual_client_name}': {len(extracted_data)} campos")
+        else:
+            result.error = analysis_result.get("error", "Erro na análise")
+            session.increment_error()
+        
+    except Exception as e:
+        result.error = f"Erro inesperado: {str(e)}"
+        session.increment_error()
+        logger.error(f"[AGGREGATED] Erro ao processar {filename}: {e}", exc_info=True)
+    
+    return result
+
+
+class AggregatedFinishResponse(BaseModel):
+    """Response da finalização da sessão agregada."""
+    success: bool
+    message: str
+    clients_updated: int
+    total_documents: int
+    errors: int
+    summary: Dict[str, Any] = {}
+
+
+@router.post("/aggregated-session/{session_id}/finish", response_model=AggregatedFinishResponse)
+async def finish_aggregated_session(
+    session_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Finalizar sessão de importação AGREGADA.
+    
+    Este endpoint:
+    1. Consolida todos os dados acumulados por cliente
+    2. Deduplica campos (valor mais recente ganha)
+    3. Agrega salários por empresa (lista + soma)
+    4. Salva uma única vez na DB para cada cliente
+    5. Fecha a sessão de agregação
+    
+    Returns:
+        Resumo da importação com dados de cada cliente actualizado
+    """
+    session = get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessão de agregação não encontrada")
+    
+    clients_updated = 0
+    errors_count = session.errors
+    
+    try:
+        # Obter dados consolidados de todos os clientes
+        all_consolidated = session.get_all_consolidated_data()
+        
+        for process_id, consolidated_data in all_consolidated.items():
+            try:
+                # Obter dados existentes do cliente
+                existing_process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+                if not existing_process:
+                    logger.warning(f"[AGGREGATED] Processo não encontrado: {process_id}")
+                    continue
+                
+                # Merge com dados existentes
+                update_data = {}
+                
+                # Personal data - merge
+                if consolidated_data.get("personal_data"):
+                    existing_personal = existing_process.get("personal_data") or {}
+                    existing_personal.update(consolidated_data["personal_data"])
+                    update_data["personal_data"] = existing_personal
+                
+                # Financial data - merge
+                if consolidated_data.get("financial_data"):
+                    existing_financial = existing_process.get("financial_data") or {}
+                    existing_financial.update(consolidated_data["financial_data"])
+                    update_data["financial_data"] = existing_financial
+                
+                # Real estate data - merge
+                if consolidated_data.get("real_estate_data"):
+                    existing_real_estate = existing_process.get("real_estate_data") or {}
+                    existing_real_estate.update(consolidated_data["real_estate_data"])
+                    update_data["real_estate_data"] = existing_real_estate
+                
+                # Co-buyers e co-applicants
+                if consolidated_data.get("co_buyers"):
+                    update_data["co_buyers"] = consolidated_data["co_buyers"]
+                if consolidated_data.get("co_applicants"):
+                    update_data["co_applicants"] = consolidated_data["co_applicants"]
+                
+                # Metadata da importação
+                update_data["updated_at"] = consolidated_data.get("updated_at")
+                update_data["ai_import_aggregated"] = True
+                update_data["ai_import_timestamp"] = consolidated_data.get("ai_import_timestamp")
+                update_data["ai_documents_count"] = consolidated_data.get("ai_documents_count", 0)
+                
+                # Histórico de extracções
+                if consolidated_data.get("ai_extraction_history"):
+                    update_data["$push"] = {
+                        "ai_extraction_history": {
+                            "$each": consolidated_data["ai_extraction_history"]
+                        }
+                    }
+                    # Separar $push do $set
+                    push_data = update_data.pop("$push")
+                    
+                    # Aplicar actualização
+                    await db.processes.update_one(
+                        {"id": process_id},
+                        {"$set": update_data, "$push": push_data}
+                    )
+                else:
+                    await db.processes.update_one(
+                        {"id": process_id},
+                        {"$set": update_data}
+                    )
+                
+                clients_updated += 1
+                client_name = existing_process.get("client_name", process_id)
+                logger.info(f"[AGGREGATED] Cliente '{client_name}' actualizado com dados agregados")
+                
+            except Exception as e:
+                errors_count += 1
+                logger.error(f"[AGGREGATED] Erro ao actualizar {process_id}: {e}")
+        
+        # Obter resumo da sessão
+        summary = session.get_session_summary()
+        
+        # Finalizar job de background
+        await finish_background_job_db(
+            session_id,
+            success=clients_updated > 0,
+            message=f"{clients_updated} clientes actualizados, {session.processed_files} documentos processados"
+        )
+        
+        # Fechar e remover sessão de memória
+        close_session(session_id)
+        
+        return AggregatedFinishResponse(
+            success=clients_updated > 0,
+            message=f"Importação agregada concluída: {clients_updated} clientes actualizados",
+            clients_updated=clients_updated,
+            total_documents=session.processed_files,
+            errors=errors_count,
+            summary=summary
+        )
+        
+    except Exception as e:
+        logger.error(f"[AGGREGATED] Erro ao finalizar sessão {session_id}: {e}", exc_info=True)
+        close_session(session_id)
+        raise HTTPException(status_code=500, detail=f"Erro ao finalizar importação: {str(e)}")
+
+
+@router.get("/aggregated-session/{session_id}/status")
+async def get_aggregated_session_status(
+    session_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """Obter estado da sessão de importação agregada."""
+    session = get_session(session_id)
+    if not session:
+        # Tentar buscar da DB
+        job = await db.background_jobs.find_one({"id": session_id}, {"_id": 0})
+        if job:
+            return {
+                "session_id": session_id,
+                "status": job.get("status", "unknown"),
+                "from_db": True,
+                **job
+            }
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+    
+    return {
+        "session_id": session_id,
+        "status": "active",
+        "in_memory": True,
+        **session.get_session_summary()
+    }
+
 
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
 async def analyze_single_file(
