@@ -368,38 +368,25 @@ class TestAITraining:
 class TestPropertyDocuments:
     """Test /api/properties/{id}/documents endpoints"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Login and get token"""
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        self.token = login_response.json().get("access_token")
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-        self.property_id = None
-    
     def test_get_property_documents(self):
         """Test GET /api/properties/{id}/documents returns documents list"""
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
         # First get a property ID
-        props_response = requests.get(
-            f"{BASE_URL}/api/properties?limit=1",
-            headers=self.headers
-        )
+        time.sleep(0.3)
+        props_response = session.get(f"{BASE_URL}/api/properties")
         assert props_response.status_code == 200
         
         props = props_response.json()
         if not props:
             pytest.skip("No properties found in database")
         
-        self.property_id = props[0]["id"]
+        property_id = props[0]["id"]
         
         # Get documents for this property
-        response = requests.get(
-            f"{BASE_URL}/api/properties/{self.property_id}/documents",
-            headers=self.headers
-        )
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/properties/{property_id}/documents")
         assert response.status_code == 200
         
         data = response.json()
@@ -407,28 +394,27 @@ class TestPropertyDocuments:
         assert "total" in data
         assert "documents" in data
         assert isinstance(data["documents"], list)
-        print(f"✅ GET /api/properties/{self.property_id}/documents: {data['total']} documents")
+        print(f"✅ GET /api/properties/{property_id}/documents: {data['total']} documents")
     
     def test_get_property_documents_filtered(self):
         """Test GET /api/properties/{id}/documents with document_type filter"""
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
         # First get a property ID
-        props_response = requests.get(
-            f"{BASE_URL}/api/properties?limit=1",
-            headers=self.headers
-        )
+        time.sleep(0.3)
+        props_response = session.get(f"{BASE_URL}/api/properties")
         assert props_response.status_code == 200
         
         props = props_response.json()
         if not props:
             pytest.skip("No properties found in database")
         
-        self.property_id = props[0]["id"]
+        property_id = props[0]["id"]
         
         # Get documents with filter
-        response = requests.get(
-            f"{BASE_URL}/api/properties/{self.property_id}/documents?document_type=caderneta_predial",
-            headers=self.headers
-        )
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/properties/{property_id}/documents?document_type=caderneta_predial")
         assert response.status_code == 200
         
         data = response.json()
@@ -439,12 +425,13 @@ class TestPropertyDocuments:
     
     def test_property_documents_not_found(self):
         """Test GET /api/properties/{id}/documents returns 404 for invalid property"""
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
         fake_id = "non-existent-property-id"
         
-        response = requests.get(
-            f"{BASE_URL}/api/properties/{fake_id}/documents",
-            headers=self.headers
-        )
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/properties/{fake_id}/documents")
         assert response.status_code == 404
         print("✅ GET /api/properties/{invalid_id}/documents returns 404")
 
