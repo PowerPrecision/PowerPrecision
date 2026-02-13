@@ -157,16 +157,40 @@ const JobCard = ({ job, onDelete, onCancel }) => {
           </div>
           
           {/* Acções */}
-          {job.status !== 'running' && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="shrink-0 text-muted-foreground hover:text-destructive"
-              onClick={() => onDelete(job.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {job.status === 'running' && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                onClick={async () => {
+                  setCancelling(true);
+                  await onCancel(job.id);
+                  setCancelling(false);
+                }}
+                disabled={cancelling}
+              >
+                {cancelling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Cancelar
+                  </>
+                )}
+              </Button>
+            )}
+            {job.status !== 'running' && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(job.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
