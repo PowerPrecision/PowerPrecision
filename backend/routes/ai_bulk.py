@@ -50,11 +50,104 @@ router = APIRouter(prefix="/ai/bulk", tags=["AI Bulk Analysis"])
 # ====================================================================
 # TRACKING DE PROCESSOS EM BACKGROUND (Item 2 - Outros erros/melhorias)
 # ====================================================================
+# Cache em memória para performance (a DB é a fonte de verdade)
 background_processes: Dict[str, dict] = {}  # job_id -> status
 
 
+async def create_background_job_db(job_type: str, user_email: str, details: dict = None, total_files: int = 0) -> str:
+    """Criar registo de job em background (persistido na DB)."""
+    job_id = str(uuid.uuid4())
+    job = {
+        "id": job_id,
+        "type": job_type,
+        "status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "user_email": user_email,
+        "progress": 0,
+        "total": total_files,
+        "processed": 0,
+        "errors": 0,
+        "details": details or {},
+        "error_messages": [],
+        "finished_at": None
+    }
+    
+    # Guardar em memória e na DB
+    background_processes[job_id] = job
+    await db.background_jobs.insert_one({**job, "_id": job_id})
+    
+    logger.info(f"Job background criado: {job_id} ({job_type}) com {total_files} ficheiros")
+    return job_id
+
+
+async def update_background_job_db(job_id: str, **kwargs):
+    """Atualizar estado de um job em background (persistido na DB)."""
+    # Calcular progresso percentual se houver total
+    update_data = {**kwargs, "updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    # Actualizar cache em memória
+    if job_id in background_processes:
+        background_processes[job_id].update(update_data)
+        if background_processes[job_id].get("total", 0) > 0:
+            processed = background_processes[job_id].get("processed", 0)
+            total = background_processes[job_id]["total"]
+            update_data["progress"] = int((processed / total) * 100)
+            background_processes[job_id]["progress"] = update_data["progress"]
+    
+    # Actualizar na DB
+    await db.background_jobs.update_one(
+        {"id": job_id},
+        {"$set": update_data}
+    )
+
+
+async def finish_background_job_db(job_id: str, success: bool, message: str = None):
+    """Marcar job como terminado (persistido na DB)."""
+    status = "success" if success else "failed"
+    finished_at = datetime.now(timezone.utc).isoformat()
+    
+    update_data = {
+        "status": status,
+        "finished_at": finished_at
+    }
+    if message:
+        update_data["message"] = message
+    
+    # Actualizar cache em memória
+    if job_id in background_processes:
+        background_processes[job_id].update(update_data)
+    
+    # Actualizar na DB
+    await db.background_jobs.update_one(
+        {"id": job_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Job background terminado: {job_id} ({status})")
+
+
+async def load_background_jobs_from_db():
+    """Carregar jobs da DB para memória (chamado no startup)."""
+    global background_processes
+    try:
+        # Carregar apenas jobs recentes (últimos 7 dias)
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        jobs = await db.background_jobs.find(
+            {"started_at": {"$gte": cutoff}},
+            {"_id": 0}
+        ).to_list(100)
+        
+        for job in jobs:
+            background_processes[job["id"]] = job
+        
+        logger.info(f"[BACKGROUND JOBS] {len(jobs)} jobs carregados da DB")
+    except Exception as e:
+        logger.error(f"[BACKGROUND JOBS] Erro ao carregar da DB: {e}")
+
+
+# Funções legadas para compatibilidade (usam as novas funções async)
 def create_background_job(job_type: str, user_email: str, details: dict = None) -> str:
-    """Criar registo de job em background."""
+    """[LEGACY] Criar registo de job em background (apenas memória)."""
     job_id = str(uuid.uuid4())
     background_processes[job_id] = {
         "id": job_id,
@@ -70,12 +163,12 @@ def create_background_job(job_type: str, user_email: str, details: dict = None) 
         "error_messages": [],
         "finished_at": None
     }
-    logger.info(f"Job background criado: {job_id} ({job_type})")
+    logger.info(f"Job background criado (legacy): {job_id} ({job_type})")
     return job_id
 
 
 def update_background_job(job_id: str, **kwargs):
-    """Atualizar estado de um job em background."""
+    """[LEGACY] Atualizar estado de um job em background (apenas memória)."""
     if job_id in background_processes:
         background_processes[job_id].update(kwargs)
         
@@ -87,13 +180,13 @@ def update_background_job(job_id: str, **kwargs):
 
 
 def finish_background_job(job_id: str, success: bool, message: str = None):
-    """Marcar job como terminado."""
+    """[LEGACY] Marcar job como terminado (apenas memória)."""
     if job_id in background_processes:
         background_processes[job_id]["status"] = "success" if success else "failed"
         background_processes[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
         if message:
             background_processes[job_id]["message"] = message
-        logger.info(f"Job background terminado: {job_id} ({background_processes[job_id]['status']})")
+        logger.info(f"Job background terminado (legacy): {job_id} ({background_processes[job_id]['status']})")
 
 
 # Tamanho do chunk para leitura (64KB)
