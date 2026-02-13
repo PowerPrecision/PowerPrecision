@@ -2300,6 +2300,29 @@ async def clear_finished_jobs(
     }
 
 
+@router.delete("/background-jobs/clear-all")
+async def clear_all_jobs(
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Limpar TODOS os jobs do histórico (incluindo running).
+    Útil para limpar jobs stuck.
+    """
+    # Limpar da memória
+    count_memory = len(background_processes)
+    background_processes.clear()
+    
+    # Limpar da DB
+    db_result = await db.background_jobs.delete_many({})
+    
+    return {
+        "success": True,
+        "removed_memory": count_memory,
+        "removed_db": db_result.deleted_count,
+        "message": f"Removidos {count_memory} jobs da memória e {db_result.deleted_count} da DB"
+    }
+
+
 @router.get("/import-errors")
 async def get_import_errors(
     limit: int = 100,
