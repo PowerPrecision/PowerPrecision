@@ -326,26 +326,40 @@ async def get_kanban_board(
     
     # Apply additional filters (only for roles that can see all)
     if role in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
+        filter_conditions = []
+        
         if consultor_id:
             if consultor_id == "none":
                 # Sem consultor atribuído = null, undefined, ou string vazia
-                query["$or"] = [
-                    {"assigned_consultor_id": None},
-                    {"assigned_consultor_id": ""},
-                    {"assigned_consultor_id": {"$exists": False}}
-                ]
+                filter_conditions.append({
+                    "$or": [
+                        {"assigned_consultor_id": None},
+                        {"assigned_consultor_id": ""},
+                        {"assigned_consultor_id": {"$exists": False}}
+                    ]
+                })
             else:
                 query["assigned_consultor_id"] = consultor_id
+        
         if mediador_id:
             if mediador_id == "none":
                 # Sem mediador atribuído
-                query["$or"] = [
-                    {"assigned_mediador_id": None},
-                    {"assigned_mediador_id": ""},
-                    {"assigned_mediador_id": {"$exists": False}}
-                ]
+                filter_conditions.append({
+                    "$or": [
+                        {"assigned_mediador_id": None},
+                        {"assigned_mediador_id": ""},
+                        {"assigned_mediador_id": {"$exists": False}}
+                    ]
+                })
             else:
                 query["assigned_mediador_id"] = mediador_id
+        
+        # Combine filter conditions with $and if there are any
+        if filter_conditions:
+            if len(filter_conditions) == 1:
+                query["$or"] = filter_conditions[0]["$or"]
+            else:
+                query["$and"] = filter_conditions
     
     # Get all workflow statuses ordered
     statuses = await db.workflow_statuses.find({}, {"_id": 0}).sort("order", 1).to_list(100)
