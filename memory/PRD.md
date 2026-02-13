@@ -11,7 +11,38 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 24)
+## Última Actualização - 14 Fevereiro 2026 (Sessão 25)
+
+### ✅ Tarefas Completadas (Sessão 25)
+
+#### P0: Página de Importação Idealista (HTML Paste) - IMPLEMENTADO
+- **Problema**: O Idealista bloqueia scrapers com HTTP 403, impedindo importação directa de URLs
+- **Solução**: Criada página para o utilizador colar o HTML da página manualmente
+- **Funcionalidades implementadas**:
+  - Página `/admin/importar-idealista` com instruções claras
+  - Método "Colar Página": Ctrl+A, Ctrl+C no browser → colar no CRM
+  - Método "Bookmarklet": Um-clique para copiar dados automaticamente
+  - Extracção de dados com IA (título, preço, localização, tipologia, área, agente)
+  - Botão "Criar Lead" após extracção bem-sucedida
+- **Ficheiros criados/modificados**:
+  - `/app/frontend/src/pages/IdealistaImportPage.js` - Nova página de importação
+  - `/app/frontend/src/App.js` - Adicionada rota `/admin/importar-idealista`
+  - `/app/frontend/src/layouts/DashboardLayout.js` - Link "Importar Idealista" no menu Sistema
+- **Endpoint backend**: `POST /api/scraper/extract-html`
+- **Status**: ✅ VERIFICADO (100% testes passed - iteration_36)
+
+#### P0: Funcionalidade Cancelar Jobs em Background - IMPLEMENTADO
+- **Problema**: Utilizador não conseguia parar jobs de importação em execução
+- **Solução**: Adicionado botão "Cancelar" na página de Background Jobs
+- **Funcionalidades implementadas**:
+  - Botão "Cancelar" só aparece para jobs com status "running"
+  - Confirmação visual de cancelamento com spinner
+  - Job é marcado como "cancelled" na DB
+  - Toast de confirmação após cancelamento
+- **Ficheiros modificados**:
+  - `/app/frontend/src/pages/BackgroundJobsPage.js` - UI do botão cancelar (linhas 160-183)
+- **Endpoint backend**: `POST /api/ai/bulk/background-jobs/{job_id}/cancel`
+- **Status**: ✅ VERIFICADO (100% testes passed - iteration_36)
 
 ### ✅ Tarefas Completadas (Sessão 24)
 
