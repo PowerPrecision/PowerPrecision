@@ -178,12 +178,23 @@ class TestOneDriveLinks:
     """Testes dos endpoints de links OneDrive/Drive."""
     
     @pytest.fixture
-    def test_process_id(self, admin_session):
-        """Obter um processo válido para testes de links."""
-        response = admin_session.get(f"{BASE_URL}/api/processes")
-        if response.status_code != 200 or not response.json():
-            pytest.skip("Nenhum processo disponível")
-        return response.json()[0]["id"]
+    def test_process_id(self, consultor_session):
+        """Obter um processo válido para testes de links - precisa ser um que o consultor criou ou tenha acesso."""
+        # Criar um processo de teste para garantir acesso
+        process_data = {
+            "process_type": "credito_habitacao",
+            "client_name": "TEST_Process_Links",
+            "personal_data": {
+                "nome_completo": "TEST Process Links",
+                "email": "test.links@test.com"
+            }
+        }
+        
+        response = consultor_session.post(f"{BASE_URL}/api/processes/create-client", json=process_data)
+        if response.status_code != 200:
+            pytest.skip(f"Não foi possível criar processo de teste: {response.text}")
+        
+        return response.json()["id"]
     
     def test_06_listar_links_processo(self, consultor_session, test_process_id):
         """5. Listar links de um processo (GET /api/onedrive/links/{process_id})."""
