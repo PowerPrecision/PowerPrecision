@@ -43,6 +43,13 @@ from services.ai_document import (
     merge_images_to_pdf,
     analyze_document_from_base64
 )
+from services.documents.data_aggregator import (
+    get_or_create_session,
+    get_session,
+    close_session,
+    SessionAggregator,
+    ClientDataAggregator
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ai/bulk", tags=["AI Bulk Analysis"])
