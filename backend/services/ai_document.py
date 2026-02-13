@@ -1475,15 +1475,35 @@ def build_update_data_from_extraction(
         financial_update = {}
         personal_update = {}
         
+        logger.info(f"[RECIBO/IRS] Dados extraídos: {json.dumps(extracted_data, ensure_ascii=False, default=str)[:2000]}")
+        
+        # Função para converter valor monetário
+        def parse_money(value):
+            if not value:
+                return None
+            try:
+                if isinstance(value, (int, float)):
+                    return float(value)
+                val_str = str(value).replace('€', '').replace(',', '.').replace(' ', '').strip()
+                return float(val_str)
+            except (ValueError, TypeError):
+                return None
+        
         # Mapeamento direto de campos
         field_mapping = {
             'salario_liquido': 'rendimento_mensal',
             'rendimento_liquido_mensal': 'rendimento_mensal',
-            'salario_bruto': 'rendimento_bruto',
+            'salario_bruto': 'rendimento_bruto_mensal',
             'empresa': 'empresa',
             'tipo_contrato': 'tipo_contrato',
             'categoria_profissional': 'categoria_profissional',
             'rendimento_liquido_anual': 'rendimento_anual',
+            # Campos adicionais do recibo
+            'nome_funcionario': '_nome_func',
+            'nif': '_nif_func',
+            'descontos_irs': 'descontos_irs',
+            'descontos_ss': 'descontos_ss',
+            'subsidio_alimentacao': 'subsidio_alimentacao',
             # UK fields
             'net_pay': 'rendimento_liquido',
             'total_payments': 'rendimento_bruto',
@@ -1491,8 +1511,18 @@ def build_update_data_from_extraction(
         }
         
         for src_key, dest_key in field_mapping.items():
-            if extracted_data.get(src_key):
-                financial_update[dest_key] = extracted_data[src_key]
+            value = extracted_data.get(src_key)
+            if value:
+                # Converter valores monetários
+                if dest_key in ['rendimento_mensal', 'rendimento_bruto_mensal', 'rendimento_bruto', 
+                               'rendimento_liquido', 'rendimento_anual', 'descontos_irs', 
+                               'descontos_ss', 'subsidio_alimentacao']:
+                    value = parse_money(value)
+                
+                if value and not dest_key.startswith('_'):
+                    financial_update[dest_key] = value
+                elif value and dest_key == '_nif_func':
+                    personal_update['nif'] = value
         
         # === PROCESSAR CÔNJUGE DO IRS (se existir) ===
         if extracted_data.get('nif_titular_2') or extracted_data.get('nome_titular_2'):
