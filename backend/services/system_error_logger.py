@@ -180,6 +180,29 @@ class SystemErrorLogger:
         )
         return result.modified_count > 0
     
+    async def bulk_mark_as_resolved(
+        self,
+        error_ids: list,
+        resolved_by: str
+    ) -> int:
+        """Marca múltiplos erros como resolvidos em massa."""
+        if not error_ids:
+            return 0
+        
+        db = await self._get_db()
+        result = await db.system_error_logs.update_many(
+            {"id": {"$in": error_ids}, "resolved": {"$ne": True}},
+            {
+                "$set": {
+                    "resolved": True,
+                    "resolved_at": datetime.now(timezone.utc).isoformat(),
+                    "resolved_by": resolved_by,
+                    "notes": "Resolvido em massa"
+                }
+            }
+        )
+        return result.modified_count
+    
     async def get_stats(self, days: int = 7) -> Dict[str, Any]:
         """Obtém estatísticas de erros."""
         db = await self._get_db()
