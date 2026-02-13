@@ -159,7 +159,7 @@ RapidFuzz==3.14.3
 redis==5.3.1
 referencing==0.37.0
 regex==2025.11.3
-requests==2.32.5
+requests>=2.31.0,<3.0.0
 requests-oauthlib==2.0.0
 resend==2.19.0
 rich==14.2.0
@@ -170,7 +170,7 @@ s3transfer==0.16.0
 s5cmd==0.2.0
 safety==3.7.0
 safety-schemas==0.0.16
-scraperapi-sdk==1.6.0
+scraperapi-sdk
 sentry-sdk==2.52.0
 shellingham==1.5.4
 simple-websocket==1.1.0
