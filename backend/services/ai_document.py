@@ -496,7 +496,7 @@ async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
 
 async def analyze_with_vision(base64_content: str, mime_type: str, document_type: str) -> Dict[str, Any]:
     """
-    Analisar documento usando modelo de visão.
+    Analisar documento usando modelo de visão via litellm.
     Usado quando extracção de texto não é possível.
     
     Inclui retry automático para erros 429 (rate limit).
@@ -528,6 +528,9 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
     logger.info(f"Análise com visão: tipo={document_type}, detail={image_detail}")
     
     try:
+        # Usar litellm que está incluído no emergentintegrations
+        import litellm
+        
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -545,16 +548,16 @@ async def analyze_with_vision(base64_content: str, mime_type: str, document_type
             }
         ]
         
-        payload = {
-            "model": AI_MODEL,
-            "messages": messages,
-            "max_tokens": 2000,
-            "temperature": 0.1
-        }
+        # Chamar litellm com a chave Emergent
+        response = await litellm.acompletion(
+            model=f"openai/{AI_MODEL}",
+            messages=messages,
+            max_tokens=2000,
+            temperature=0.1,
+            api_key=EMERGENT_LLM_KEY,
+        )
         
-        result = await call_openai_api(payload, timeout=90.0)
-        
-        ai_response = result["choices"][0]["message"]["content"]
+        ai_response = response.choices[0].message.content
         extracted_data = parse_ai_response(ai_response, document_type)
         
         return {
