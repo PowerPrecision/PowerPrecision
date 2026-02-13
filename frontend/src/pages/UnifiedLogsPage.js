@@ -476,12 +476,52 @@ const SystemLogsTab = ({ token }) => {
         </CardContent>
       </Card>
 
+      {/* Barra de Acções em Massa */}
+      {selectedIds.length > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="h-5 w-5 text-primary" />
+                <span className="font-medium">
+                  {selectedIds.length} {selectedIds.length === 1 ? 'log seleccionado' : 'logs seleccionados'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Limpar Selecção
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkResolve}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Marcar como Resolvidos
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabela */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedIds.length > 0 && selectedIds.length === logs.filter(l => !l.resolved).length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Seleccionar todos"
+                  />
+                </TableHead>
                 <TableHead className="w-32">Severidade</TableHead>
                 <TableHead className="w-32">Componente</TableHead>
                 <TableHead>Mensagem</TableHead>
@@ -493,7 +533,7 @@ const SystemLogsTab = ({ token }) => {
             <TableBody>
               {logs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum log encontrado
                   </TableCell>
                 </TableRow>
@@ -501,22 +541,29 @@ const SystemLogsTab = ({ token }) => {
                 logs.map((log) => (
                   <TableRow
                     key={log.id}
-                    className={`cursor-pointer hover:bg-muted/50 ${!log.read ? "bg-yellow-50/50 dark:bg-yellow-900/10" : ""}`}
-                    onClick={() => openDetails(log)}
+                    className={`cursor-pointer hover:bg-muted/50 ${!log.read ? "bg-yellow-50/50 dark:bg-yellow-900/10" : ""} ${selectedIds.includes(log.id) ? "bg-primary/10" : ""}`}
                   >
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.includes(log.id)}
+                        onCheckedChange={() => toggleSelectLog(log.id)}
+                        disabled={log.resolved}
+                        aria-label={`Seleccionar log ${log.id}`}
+                      />
+                    </TableCell>
+                    <TableCell onClick={() => openDetails(log)}>
                       <SeverityBadge severity={log.severity} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => openDetails(log)}>
                       <span className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
                         {log.component || "geral"}
                       </span>
                     </TableCell>
-                    <TableCell className="max-w-md truncate">{log.message}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="max-w-md truncate" onClick={() => openDetails(log)}>{log.message}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground" onClick={() => openDetails(log)}>
                       {formatDate(log.timestamp)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => openDetails(log)}>
                       {log.resolved ? (
                         <Badge variant="outline" className="bg-green-100 text-green-800">
                           <Check className="h-3 w-3 mr-1" />
