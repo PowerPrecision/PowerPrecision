@@ -90,3 +90,7 @@ pywebpush>=2.0.0
 
 # Stripe
 stripe>=8.0.0
+bleach==6.3.0
+fuzzywuzzy==0.18.0
+Levenshtein==0.27.3
+python-Levenshtein==0.27.3
