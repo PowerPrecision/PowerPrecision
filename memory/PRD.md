@@ -333,25 +333,18 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### 📋 Tarefas Pendentes
 
-#### P0 (Críticas - Próximas)
-- [ ] **Documentos não aparecem na página do cliente** - O endpoint `/onedrive/files/{clientName}` não existe no backend. Precisa implementação ou verificação da integração OneDrive/S3
-- [ ] **Teste da correcção OpenAI 401** - O código foi actualizado para usar emergentintegrations mas precisa teste com importação real de documentos
-
-#### P1 (Alta Prioridade)
+#### P1 (Alta Prioridade - Próximas)
+- [ ] **Bookmarklet Idealista avançado** - Criar versão que abre automaticamente o CRM com dados preenchidos
+- [ ] **Pausar/Retomar jobs em background** - Funcionalidade para pausar e retomar importações longas
 - [x] **"Gestor de Visitas"** - Funcionalidade já implementada! Renomeado de "Leads". Inclui:
   - Kanban com estados: Novo, Contactado, Visita Agendada, Proposta, Reservado, Descartado
   - Extração automática de dados de URLs de imóveis (scraping)
   - Formulário completo para criar leads manualmente
   - Filtros por consultor e estado
 
-#### P1 (Bugs Menores)
-- [ ] **ImportErrorsPage** - Campo `error_type` não existe na API, usa `error` (ajustar filtros)
-- [ ] **Toast de erro** - Algumas páginas mostram toast "Erro ao carregar" mesmo quando dados carregam
-
 #### P2 (Média Prioridade)
 - [ ] Implementar rate limiting no backend
 - [ ] Paginação cursor-based para listas grandes
-- [ ] Funcionalidade "selecionar erros" nos logs - Precisa clarificação do utilizador sobre o objectivo
 
 #### P3 (Baixa Prioridade)
 - [ ] Refactoring do `processes.py` (ficheiro muito grande)
