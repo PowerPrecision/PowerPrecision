@@ -931,6 +931,20 @@ const ProcessDetails = () => {
                 </SelectContent>
               </Select>
             )}
+            
+            {/* Botão Eliminar Cliente - apenas para Admin/CEO/Diretor */}
+            {canDeleteClient && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                onClick={handleDeleteClient}
+                data-testid="delete-client-btn"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </Button>
+            )}
           </div>
         </div>
 
