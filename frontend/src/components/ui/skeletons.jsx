@@ -2,7 +2,7 @@
  * Skeleton Loaders - Componentes de loading elegantes
  * Para melhor UX durante carregamento de dados
  */
-import { Skeleton } from "../components/ui/skeleton";
+import { Skeleton } from "./skeleton";
 
 // Skeleton para cards de processo/cliente
 export const ProcessCardSkeleton = () => (
