@@ -50,8 +50,14 @@ import {
   ChevronRight,
   Bell,
   Wrench,
+  Sun,
+  Moon,
+  Keyboard,
 } from "lucide-react";
 import NotificationsDropdown from "../components/NotificationsDropdown";
+import MobileBottomNav from "../components/layout/MobileBottomNav";
+import GlobalSearchModal from "../components/GlobalSearchModal";
+import { useKeyboardShortcuts, KeyboardShortcutsHelp } from "../hooks/useKeyboardShortcuts";
 
 const roleLabels = {
   cliente: "Cliente",
