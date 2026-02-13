@@ -49,7 +49,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
     }
   };
 
-  // Buscar URL da pasta do OneDrive
+  // Buscar URL da pasta do Drive
   const fetchFolderUrl = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -68,15 +68,15 @@ const OneDriveLinks = ({ processId, clientName }) => {
     }
   };
 
-  // Abrir pasta do cliente no OneDrive
+  // Abrir pasta do cliente no Drive
   const handleOpenFolder = () => {
     if (savedFolderUrl) {
       window.open(savedFolderUrl, "_blank");
     } else if (mainFolderUrl) {
       window.open(mainFolderUrl, "_blank");
-      toast.info(`Procure pela pasta "${clientName}" no OneDrive`, { duration: 5000 });
+      toast.info(`Procure pela pasta "${clientName}" no Drive`, { duration: 5000 });
     } else {
-      toast.error("OneDrive não configurado");
+      toast.error("Drive não configurado");
     }
   };
 
