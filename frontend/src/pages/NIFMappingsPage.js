@@ -117,7 +117,7 @@ const NIFMappingsPage = () => {
   const handleClearAll = async () => {
     try {
       setClearing(true);
-      const response = await api.post("/api/ai/bulk/nif-cache/clear");
+      const response = await api.post("/ai/bulk/nif-cache/clear");
       toast.success(response.data.message);
       setIsClearDialogOpen(false);
       fetchMappings();
