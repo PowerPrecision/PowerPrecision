@@ -17,6 +17,7 @@ import SystemConfigPage from "./pages/SystemConfigPage";
 import AIConfigPage from "./pages/AIConfigPage";
 import AITrainingPage from "./pages/AITrainingPage";
 import BackgroundJobsPage from "./pages/BackgroundJobsPage";
+import NIFMappingsPage from "./pages/NIFMappingsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 import SystemLogsPage from "./pages/SystemLogsPage";
 import PropertiesPage from "./pages/PropertiesPage";
