@@ -249,6 +249,46 @@ const SystemLogsTab = ({ token }) => {
     }
   };
 
+  const handleBulkResolve = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const response = await fetch(`${API_URL}/api/admin/system-logs/bulk-resolve`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ error_ids: selectedIds }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(`${data.resolved_count || selectedIds.length} logs marcados como resolvidos`);
+        setSelectedIds([]);
+        fetchLogs();
+        fetchStats();
+      }
+    } catch (error) {
+      toast.error("Erro ao resolver em massa");
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const unresolvedIds = logs.filter(log => !log.resolved).map(log => log.id);
+    if (selectedIds.length === unresolvedIds.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(unresolvedIds);
+    }
+  };
+
+  const toggleSelectLog = (logId) => {
+    setSelectedIds(prev => 
+      prev.includes(logId) 
+        ? prev.filter(id => id !== logId) 
+        : [...prev, logId]
+    );
+  };
+
   const handleResolve = async () => {
     if (!selectedLog) return;
     setResolving(true);
