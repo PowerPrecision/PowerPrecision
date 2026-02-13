@@ -961,13 +961,12 @@ Conteúdo:
             encoded_url = quote_plus(url)
             
             # Construir URL do ScraperAPI
-            # render=true para sites com JavaScript
-            # country_code=pt para IP português
-            scraper_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={encoded_url}&render=true&country_code=pt"
+            # premium=true para sites difíceis como Idealista
+            scraper_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={encoded_url}&premium=true"
             
             logger.info(f"[SCRAPER] Usando ScraperAPI para: {url}")
             
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=90.0) as client:
                 response = await client.get(scraper_url)
                 
                 if response.status_code == 200:
@@ -975,6 +974,8 @@ Conteúdo:
                     return response.text
                 elif response.status_code == 403:
                     logger.warning(f"[SCRAPER] ScraperAPI também bloqueado: {response.status_code}")
+                elif response.status_code == 500:
+                    logger.warning(f"[SCRAPER] ScraperAPI erro interno: {response.status_code} - {response.text[:200]}")
                 else:
                     logger.warning(f"[SCRAPER] ScraperAPI retornou: {response.status_code}")
                 
