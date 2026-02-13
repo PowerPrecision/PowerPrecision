@@ -251,6 +251,16 @@ function App() {
             }
           />
           
+          {/* Import Errors - Admin only */}
+          <Route
+            path="/admin/erros-importacao"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <ImportErrorsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Notification Settings - Admin only */}
           <Route
             path="/configuracoes/notificacoes"
