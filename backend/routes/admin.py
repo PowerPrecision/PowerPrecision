@@ -1735,6 +1735,34 @@ async def resolve_system_error(
     return {"success": True, "message": "Erro marcado como resolvido"}
 
 
+@router.post("/system-logs/bulk-resolve")
+async def bulk_resolve_system_errors(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Marca múltiplos erros como resolvidos em massa.
+    
+    Body: {"error_ids": ["id1", "id2", ...]}
+    """
+    error_ids = data.get("error_ids", [])
+    
+    if not error_ids:
+        raise HTTPException(status_code=400, detail="Nenhum ID fornecido")
+    
+    from services.system_error_logger import system_error_logger
+    resolved_count = await system_error_logger.bulk_mark_as_resolved(
+        error_ids=error_ids,
+        resolved_by=user.get("email", "admin")
+    )
+    
+    return {
+        "success": True, 
+        "resolved_count": resolved_count,
+        "message": f"{resolved_count} erros marcados como resolvidos"
+    }
+
+
 @router.delete("/system-logs/cleanup")
 async def cleanup_old_system_logs(
     days: int = 90,
