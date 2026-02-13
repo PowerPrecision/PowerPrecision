@@ -138,6 +138,7 @@ const NIFMappingsPage = () => {
   );
 
   return (
+    <DashboardLayout title="Mapeamentos NIF">
     <div className="space-y-6" data-testid="nif-mappings-page">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
