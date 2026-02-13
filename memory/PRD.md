@@ -9,9 +9,39 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Base de Dados**: MongoDB Atlas (Cluster: cluster0.c8livu.mongodb.net)
   - **Desenvolvimento/Testes**: `powerprecision_dev`
   - **Produção**: `powerprecision`
-- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
+- **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 21)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 22)
+
+### ✅ Tarefas Completadas (Sessão 22)
+
+#### P0: ModuleNotFoundError - emergentintegrations - CORRIGIDO
+- **Problema**: Erro `ModuleNotFoundError: No module named 'emergentintegrations'` durante importação massiva AI
+- **Causa Raiz**: O pacote `emergentintegrations` não estava persistido no `requirements.txt`
+- **Solução**: 
+  - Instalado pacote via `pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/`
+  - Actualizado `requirements.txt` com `pip freeze`
+  - Corrigido `ai_improvement_agent.py` para usar sintaxe correcta do LlmChat (requer session_id e system_message)
+- **Ficheiros modificados**:
+  - `/app/backend/requirements.txt` - Adicionado emergentintegrations
+  - `/app/backend/services/ai_improvement_agent.py` - Corrigida inicialização do LlmChat
+- **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_33)
+
+#### P1: Background Jobs não aparecem - CORRIGIDO
+- **Problema**: Ficheiros importados via AI não apareciam na página de "Processos em Background"
+- **Causa Raiz**: Jobs eram guardados apenas em memória, perdidos ao reiniciar o servidor
+- **Solução**: 
+  - Criado sistema de persistência na colecção MongoDB `background_jobs`
+  - Novos endpoints para criar/actualizar/finalizar sessões de importação
+  - Frontend actualizado para criar sessões no backend durante upload
+- **Novos Endpoints**:
+  - `POST /api/ai/bulk/import-session/start` - Criar sessão de importação
+  - `POST /api/ai/bulk/import-session/{id}/update` - Actualizar progresso
+  - `POST /api/ai/bulk/import-session/{id}/finish` - Finalizar sessão
+- **Ficheiros modificados**:
+  - `/app/backend/routes/ai_bulk.py` - Novos endpoints e funções de persistência (linhas 51-170)
+  - `/app/frontend/src/components/BulkDocumentUpload.js` - Integração com backend
+- **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_33)
 
 ### ✅ Tarefas Completadas (Sessão 21)
 
@@ -48,56 +78,6 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Solução**: Envolvido o conteúdo da página com DashboardLayout
 - **Ficheiro**: `/app/frontend/src/pages/NIFMappingsPage.js`
 - **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_31)
-
-#### P0: Correcção do Erro 401 OpenAI - EM ANÁLISE
-- **Problema**: Erro 401 Unauthorized ao chamar API OpenAI durante importações massivas
-- **Solução Aplicada**: Modificado ai_document.py para usar emergentintegrations/litellm em vez de chamadas directas à API OpenAI
-- **Ficheiros**: `/app/backend/services/ai_document.py`
-- **Status**: ⏳ CÓDIGO ACTUALIZADO, AGUARDA TESTE COM DOCUMENTOS REAIS
-
-### ✅ Tarefas Completadas (Sessão 20)
-
-#### P1: Unificação das Páginas de Logs - COMPLETO
-- **Problema**: Utilizador pediu para juntar as páginas de logs
-- **Solução**: Criada página unificada `UnifiedLogsPage.js` com duas tabs:
-  - Tab "Erros do Sistema" - Logs de erros da aplicação
-  - Tab "Importações IA" - Logs de importação massiva com dados categorizados
-- **Funcionalidades**:
-  - Cards de estatísticas para ambas as tabs
-  - Filtros avançados (severidade, componente, estado, período, tipo documento, cliente)
-  - Visualização detalhada com dados organizados por categoria (Dados Pessoais, Imóvel, Financiamento, Outros)
-- **Ficheiros modificados**:
-  - `/app/frontend/src/pages/UnifiedLogsPage.js` - Nova página criada
-  - `/app/frontend/src/App.js` - Rota actualizada
-  - `/app/frontend/src/layouts/DashboardLayout.js` - Menu simplificado
-- **Ficheiros removidos**:
-  - `/app/frontend/src/pages/SystemLogsPage.js`
-  - `/app/frontend/src/pages/AIImportLogsPage.js`
-- **Status**: ✅ COMPLETO E TESTADO
-
-#### P0: Correcção das Preferências de Email - COMPLETO
-- **Problema**: Preferências de notificação não eram carregadas do servidor
-- **Solução**: Adicionado `useEffect` para carregar preferências ao abrir a página de definições
-- **Ficheiro**: `/app/frontend/src/pages/SettingsPage.js`
-- **Status**: ✅ CORRIGIDO
-
-#### P1: Correcção da Página "Mapeamento NIF" - COMPLETO
-- **Problema**: Erro toast ao carregar página devido a URL duplicada `/api/api/...`
-- **Solução**: Corrigidos os paths da API (removido `/api` duplicado)
-- **Ficheiro**: `/app/frontend/src/pages/NIFMappingsPage.js`
-- **Status**: ✅ CORRIGIDO
-
-#### P1: Correcção do Menu Mobile - COMPLETO
-- **Problema**: Potencial sobreposição de z-index entre sidebar e bottom nav
-- **Solução**: Ajustado z-index do MobileBottomNav de z-50 para z-40
-- **Ficheiro**: `/app/frontend/src/components/layout/MobileBottomNav.jsx`
-- **Status**: ✅ CORRIGIDO
-
-#### P1: Configuração SMTP - VERIFICADO
-- **Problema**: Utilizador pediu para finalizar configuração SMTP
-- **Solução**: Verificado que a configuração SMTP já existia e está funcional
-- **Localização**: Página `/configuracoes` → Tab "Configuração"
-- **Status**: ✅ JÁ IMPLEMENTADO E FUNCIONAL
 
 #### P1: Sistema de Logs para Importação IA Massiva - COMPLETO
 - **Problema**: Utilizador pediu sistema de logs para ver sucessos E erros das importações
