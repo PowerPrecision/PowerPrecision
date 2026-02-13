@@ -1,0 +1,498 @@
+"""
+=============================================================================
+ITERATION 27 - TESTING NEW SECURITY & AI FEATURES
+=============================================================================
+Tests for:
+1. Security Headers in all HTTP responses (X-Frame-Options, CSP, etc.)
+2. /api/ai/bulk/background-jobs - Background job tracking
+3. /api/ai/bulk/suggest-clients - Client suggestions with fuzzy matching
+4. /api/admin/ai-import-logs - AI import logs endpoint
+5. /api/admin/ai-training - AI training data CRUD
+6. /api/properties/{id}/documents - Property documents endpoints
+=============================================================================
+"""
+import os
+import pytest
+import requests
+import uuid
+
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+
+
+class TestSecurityHeaders:
+    """Test security headers presence in HTTP responses"""
+    
+    def test_health_check_security_headers(self):
+        """Test security headers are present in health check response"""
+        response = requests.get(f"{BASE_URL}/health")
+        assert response.status_code == 200
+        
+        # Verify X-Frame-Options header
+        assert "X-Frame-Options" in response.headers
+        assert response.headers["X-Frame-Options"] == "DENY"
+        print("✅ X-Frame-Options: DENY")
+        
+        # Verify X-Content-Type-Options header
+        assert "X-Content-Type-Options" in response.headers
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        print("✅ X-Content-Type-Options: nosniff")
+        
+        # Verify X-XSS-Protection header
+        assert "X-XSS-Protection" in response.headers
+        assert "1; mode=block" in response.headers["X-XSS-Protection"]
+        print("✅ X-XSS-Protection: 1; mode=block")
+        
+        # Verify Strict-Transport-Security header
+        assert "Strict-Transport-Security" in response.headers
+        assert "max-age=31536000" in response.headers["Strict-Transport-Security"]
+        print("✅ Strict-Transport-Security present")
+        
+        # Verify Referrer-Policy header
+        assert "Referrer-Policy" in response.headers
+        assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+        print("✅ Referrer-Policy: strict-origin-when-cross-origin")
+        
+        # Verify Content-Security-Policy header
+        assert "Content-Security-Policy" in response.headers
+        csp = response.headers["Content-Security-Policy"]
+        assert "default-src 'self'" in csp
+        assert "frame-ancestors 'none'" in csp
+        print("✅ Content-Security-Policy present with default-src 'self' and frame-ancestors 'none'")
+        
+        # Verify Permissions-Policy header
+        assert "Permissions-Policy" in response.headers
+        pp = response.headers["Permissions-Policy"]
+        assert "camera=()" in pp
+        assert "microphone=()" in pp
+        print("✅ Permissions-Policy present with restricted features")
+    
+    def test_api_endpoint_security_headers(self):
+        """Test security headers are present in API responses (authenticated)"""
+        # Login first
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        token = login_response.json().get("access_token")
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Test GET /api/properties
+        response = requests.get(f"{BASE_URL}/api/properties", headers=headers)
+        assert response.status_code == 200
+        
+        # Verify security headers on authenticated endpoint
+        assert "X-Frame-Options" in response.headers
+        assert "X-Content-Type-Options" in response.headers
+        assert "Content-Security-Policy" in response.headers
+        print("✅ Security headers present on /api/properties endpoint")
+
+
+class TestBackgroundJobs:
+    """Test /api/ai/bulk/background-jobs endpoint"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login and get token"""
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        self.token = login_response.json().get("access_token")
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+    
+    def test_get_background_jobs_list(self):
+        """Test GET /api/ai/bulk/background-jobs returns job list"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/background-jobs",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "jobs" in data
+        assert "counts" in data
+        assert isinstance(data["jobs"], list)
+        
+        # Verify counts structure
+        counts = data["counts"]
+        assert "running" in counts
+        assert "success" in counts
+        assert "failed" in counts
+        assert "total" in counts
+        print(f"✅ GET /api/ai/bulk/background-jobs: {counts['total']} jobs found")
+    
+    def test_get_background_jobs_with_status_filter(self):
+        """Test GET /api/ai/bulk/background-jobs with status filter"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/background-jobs?status=running",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "jobs" in data
+        # All returned jobs should have status "running" (or be empty)
+        for job in data["jobs"]:
+            assert job.get("status") == "running"
+        print("✅ GET /api/ai/bulk/background-jobs?status=running: filter works")
+    
+    def test_get_background_jobs_with_limit(self):
+        """Test GET /api/ai/bulk/background-jobs with limit parameter"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/background-jobs?limit=5",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert len(data["jobs"]) <= 5
+        print("✅ GET /api/ai/bulk/background-jobs?limit=5: limit works")
+    
+    def test_clear_finished_jobs(self):
+        """Test DELETE /api/ai/bulk/background-jobs clears finished jobs"""
+        response = requests.delete(
+            f"{BASE_URL}/api/ai/bulk/background-jobs?only_failed=false",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("success") == True
+        assert "removed_count" in data
+        print(f"✅ DELETE /api/ai/bulk/background-jobs: {data['removed_count']} jobs removed")
+
+
+class TestSuggestClients:
+    """Test /api/ai/bulk/suggest-clients endpoint"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login and get token"""
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        self.token = login_response.json().get("access_token")
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+    
+    def test_suggest_clients_basic(self):
+        """Test GET /api/ai/bulk/suggest-clients?query=X returns suggestions"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=Test",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "query" in data
+        assert "suggestions" in data
+        assert isinstance(data["suggestions"], list)
+        print(f"✅ GET /api/ai/bulk/suggest-clients: {len(data['suggestions'])} suggestions for 'Test'")
+    
+    def test_suggest_clients_short_query(self):
+        """Test suggest-clients with too short query"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=A",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        # Should return message about minimum characters
+        assert data.get("suggestions") == []
+        assert "pelo menos 2" in data.get("message", "").lower() or len(data.get("message", "")) > 0
+        print("✅ GET /api/ai/bulk/suggest-clients: handles short query correctly")
+    
+    def test_suggest_clients_with_limit(self):
+        """Test suggest-clients with limit parameter"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=Test&limit=3",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert len(data["suggestions"]) <= 3
+        print("✅ GET /api/ai/bulk/suggest-clients?limit=3: limit works")
+
+
+class TestAIImportLogs:
+    """Test /api/admin/ai-import-logs endpoint"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login and get token"""
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        self.token = login_response.json().get("access_token")
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+    
+    def test_get_ai_import_logs(self):
+        """Test GET /api/admin/ai-import-logs returns logs"""
+        response = requests.get(
+            f"{BASE_URL}/api/admin/ai-import-logs",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "logs" in data
+        assert "pagination" in data
+        assert "stats" in data
+        
+        # Verify pagination structure
+        pagination = data["pagination"]
+        assert "page" in pagination
+        assert "limit" in pagination
+        assert "total" in pagination
+        assert "total_pages" in pagination
+        
+        # Verify stats structure
+        stats = data["stats"]
+        assert "total_errors" in stats
+        assert "unresolved" in stats
+        assert "resolved" in stats
+        
+        print(f"✅ GET /api/admin/ai-import-logs: {stats['total_errors']} total logs")
+    
+    def test_get_ai_import_logs_with_filters(self):
+        """Test ai-import-logs with filters"""
+        response = requests.get(
+            f"{BASE_URL}/api/admin/ai-import-logs?page=1&limit=10&days=30",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data["pagination"]["limit"] == 10
+        print("✅ GET /api/admin/ai-import-logs with filters works")
+
+
+class TestAITraining:
+    """Test /api/admin/ai-training CRUD endpoints"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login and get token"""
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        self.token = login_response.json().get("access_token")
+        self.headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+        self.created_entry_id = None
+    
+    def test_get_ai_training_data(self):
+        """Test GET /api/admin/ai-training returns training data"""
+        response = requests.get(
+            f"{BASE_URL}/api/admin/ai-training",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "total" in data
+        assert "categories" in data
+        assert "data" in data
+        print(f"✅ GET /api/admin/ai-training: {data['total']} training entries")
+    
+    def test_create_ai_training_entry(self):
+        """Test POST /api/admin/ai-training creates new entry"""
+        test_entry = {
+            "category": "custom_rules",
+            "title": f"TEST_Entry_{uuid.uuid4().hex[:8]}",
+            "content": "Test content for AI training",
+            "examples": ["example1", "example2"],
+            "is_active": True
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/api/admin/ai-training",
+            headers=self.headers,
+            json=test_entry
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("success") == True
+        assert "entry" in data
+        assert data["entry"]["title"] == test_entry["title"]
+        assert data["entry"]["category"] == "custom_rules"
+        
+        self.created_entry_id = data["entry"]["id"]
+        print(f"✅ POST /api/admin/ai-training: created entry {self.created_entry_id}")
+        
+        # Cleanup - delete the test entry
+        if self.created_entry_id:
+            requests.delete(
+                f"{BASE_URL}/api/admin/ai-training/{self.created_entry_id}",
+                headers=self.headers
+            )
+    
+    def test_ai_training_invalid_category(self):
+        """Test POST /api/admin/ai-training rejects invalid category"""
+        test_entry = {
+            "category": "invalid_category",
+            "title": "Test",
+            "content": "Test content"
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/api/admin/ai-training",
+            headers=self.headers,
+            json=test_entry
+        )
+        assert response.status_code == 400
+        assert "inválida" in response.json().get("detail", "").lower() or "invalid" in response.json().get("detail", "").lower()
+        print("✅ POST /api/admin/ai-training: rejects invalid category")
+    
+    def test_get_ai_training_prompt(self):
+        """Test GET /api/admin/ai-training/prompt returns consolidated prompt"""
+        response = requests.get(
+            f"{BASE_URL}/api/admin/ai-training/prompt",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "prompt" in data
+        assert "entries_count" in data
+        assert "categories" in data
+        print(f"✅ GET /api/admin/ai-training/prompt: {data['entries_count']} active entries in prompt")
+
+
+class TestPropertyDocuments:
+    """Test /api/properties/{id}/documents endpoints"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login and get token"""
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        self.token = login_response.json().get("access_token")
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.property_id = None
+    
+    def test_get_property_documents(self):
+        """Test GET /api/properties/{id}/documents returns documents list"""
+        # First get a property ID
+        props_response = requests.get(
+            f"{BASE_URL}/api/properties?limit=1",
+            headers=self.headers
+        )
+        assert props_response.status_code == 200
+        
+        props = props_response.json()
+        if not props:
+            pytest.skip("No properties found in database")
+        
+        self.property_id = props[0]["id"]
+        
+        # Get documents for this property
+        response = requests.get(
+            f"{BASE_URL}/api/properties/{self.property_id}/documents",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "property_id" in data
+        assert "total" in data
+        assert "documents" in data
+        assert isinstance(data["documents"], list)
+        print(f"✅ GET /api/properties/{self.property_id}/documents: {data['total']} documents")
+    
+    def test_get_property_documents_filtered(self):
+        """Test GET /api/properties/{id}/documents with document_type filter"""
+        # First get a property ID
+        props_response = requests.get(
+            f"{BASE_URL}/api/properties?limit=1",
+            headers=self.headers
+        )
+        assert props_response.status_code == 200
+        
+        props = props_response.json()
+        if not props:
+            pytest.skip("No properties found in database")
+        
+        self.property_id = props[0]["id"]
+        
+        # Get documents with filter
+        response = requests.get(
+            f"{BASE_URL}/api/properties/{self.property_id}/documents?document_type=caderneta_predial",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        # All returned documents should have the filtered type
+        for doc in data.get("documents", []):
+            assert doc.get("document_type") == "caderneta_predial"
+        print("✅ GET /api/properties/{id}/documents with filter works")
+    
+    def test_property_documents_not_found(self):
+        """Test GET /api/properties/{id}/documents returns 404 for invalid property"""
+        fake_id = "non-existent-property-id"
+        
+        response = requests.get(
+            f"{BASE_URL}/api/properties/{fake_id}/documents",
+            headers=self.headers
+        )
+        assert response.status_code == 404
+        print("✅ GET /api/properties/{invalid_id}/documents returns 404")
+
+
+class TestInputSanitization:
+    """Test input sanitization doesn't break normal flows"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login and get token"""
+        login_response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": "admin@admin.com", "password": "admin"}
+        )
+        assert login_response.status_code == 200
+        self.token = login_response.json().get("access_token")
+        self.headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json"
+        }
+    
+    def test_normal_client_search(self):
+        """Test that normal text search works with sanitization enabled"""
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=João Silva",
+            headers=self.headers
+        )
+        assert response.status_code == 200
+        print("✅ Normal search with accented characters works")
+    
+    def test_xss_attempt_blocked(self):
+        """Test that XSS attempts are handled (either blocked or sanitized)"""
+        # This should not cause a server error - it should be sanitized or handled
+        response = requests.get(
+            f"{BASE_URL}/api/ai/bulk/suggest-clients?query=<script>alert('xss')</script>",
+            headers=self.headers
+        )
+        # Should return 200 with empty/safe results, not 500
+        assert response.status_code in [200, 400]
+        print("✅ XSS attempt in query handled safely")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])
