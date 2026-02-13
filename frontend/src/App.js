@@ -219,6 +219,26 @@ function App() {
             }
           />
           
+          {/* AI Training - Admin only */}
+          <Route
+            path="/configuracoes/treino-ia"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AITrainingPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Background Jobs - Admin only */}
+          <Route
+            path="/admin/processos-background"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <BackgroundJobsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Notification Settings - Admin only */}
           <Route
             path="/configuracoes/notificacoes"
