@@ -359,42 +359,76 @@ def resize_image_base64(base64_content: str, mime_type: str, max_size: int = MAX
 )
 async def call_openai_api(payload: dict, timeout: float = 60.0) -> dict:
     """
-    Chamar API do OpenAI com retry automático para erros 429.
+    Chamar API do OpenAI através da biblioteca emergentintegrations.
     
     Usa exponential backoff: 2s, 4s, 8s, 16s, 32s
     Máximo 5 tentativas antes de desistir.
     
     Args:
-        payload: Payload JSON para enviar
-        timeout: Timeout em segundos
+        payload: Payload JSON para enviar (model, messages, etc.)
+        timeout: Timeout em segundos (não usado directamente pela lib)
     
     Returns:
-        Resposta JSON da API
+        Resposta no formato compatível com OpenAI API
     
     Raises:
-        RateLimitError: Se receber 429 (será tentado novamente)
+        RateLimitError: Se receber erro de rate limit
         Exception: Outros erros
     """
-    headers = {
-        "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers=headers,
-            json=payload
-        )
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
-        # Verificar rate limit
-        if response.status_code == 429:
-            retry_after = response.headers.get("Retry-After", "2")
-            logger.warning(f"Rate limit atingido (429). Retry-After: {retry_after}s")
-            raise RateLimitError(f"Rate limit atingido. Retry-After: {retry_after}s")
+        messages = payload.get("messages", [])
+        model = payload.get("model", "gpt-4o-mini")
         
-        response.raise_for_status()
-        return response.json()
+        # Extrair system message e user message
+        system_message = "Você é um assistente de extracção de dados de documentos."
+        user_text = ""
+        
+        for msg in messages:
+            if msg.get("role") == "system":
+                system_message = msg.get("content", system_message)
+            elif msg.get("role") == "user":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    user_text = content
+                elif isinstance(content, list):
+                    # Para mensagens com imagem (visão)
+                    for item in content:
+                        if item.get("type") == "text":
+                            user_text = item.get("text", "")
+                            break
+        
+        # Criar sessão única para esta análise
+        import uuid
+        session_id = f"doc-analysis-{uuid.uuid4().hex[:8]}"
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=system_message
+        ).with_model("openai", model)
+        
+        # Enviar mensagem
+        user_message = UserMessage(text=user_text)
+        response = await chat.send_message(user_message)
+        
+        # Formatar resposta no formato esperado
+        return {
+            "choices": [{
+                "message": {
+                    "content": response
+                }
+            }]
+        }
+        
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "rate" in error_msg or "429" in error_msg or "limit" in error_msg:
+            logger.warning(f"Rate limit detectado: {e}")
+            raise RateLimitError(f"Rate limit: {e}")
+        logger.error(f"Erro ao chamar OpenAI via emergentintegrations: {e}")
+        raise
 
 
 async def analyze_with_text(text: str, document_type: str) -> Dict[str, Any]:
