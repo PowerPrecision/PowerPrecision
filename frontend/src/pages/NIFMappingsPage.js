@@ -66,7 +66,7 @@ const NIFMappingsPage = () => {
   const fetchMappings = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/ai/bulk/nif-cache/stats");
+      const response = await api.get("/ai/bulk/nif-cache/stats");
       setStats({
         total_entries_memory: response.data.total_entries_memory || 0,
         total_entries_db: response.data.total_entries_db || 0,
