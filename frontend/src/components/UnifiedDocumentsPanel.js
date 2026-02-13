@@ -2,28 +2,28 @@
  * UnifiedDocumentsPanel - Painel Unificado de Documentos
  * Combina:
  * - Upload de ficheiros (S3)
- * - Links externos (Drive, OneDrive, SharePoint, etc.)
+ * - Links externos (Drive, Google Drive, SharePoint, etc.)
  */
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Upload, Link2, FolderOpen } from "lucide-react";
+import { Upload, Link2 } from "lucide-react";
 import S3FileManager from "./S3FileManager";
-import OneDriveLinks from "./OneDriveLinks";
+import DriveLinks from "./DriveLinks";
 
 const UnifiedDocumentsPanel = ({ processId, clientName }) => {
   const [activeTab, setActiveTab] = useState("files");
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="unified-documents-panel">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-8">
-          <TabsTrigger value="files" className="text-xs gap-1.5">
+          <TabsTrigger value="files" className="text-xs gap-1.5" data-testid="files-tab">
             <Upload className="h-3.5 w-3.5" />
             Ficheiros
           </TabsTrigger>
-          <TabsTrigger value="links" className="text-xs gap-1.5">
+          <TabsTrigger value="links" className="text-xs gap-1.5" data-testid="links-tab">
             <Link2 className="h-3.5 w-3.5" />
-            Links Drive
+            Links
           </TabsTrigger>
         </TabsList>
 
@@ -35,7 +35,7 @@ const UnifiedDocumentsPanel = ({ processId, clientName }) => {
         </TabsContent>
 
         <TabsContent value="links" className="mt-3">
-          <OneDriveLinks 
+          <DriveLinks 
             processId={processId} 
             clientName={clientName} 
           />
