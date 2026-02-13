@@ -101,7 +101,7 @@ const DashboardLayout = ({ children, title }) => {
     // Rotas do grupo IA
     const iaRoutes = ["/configuracoes/ia", "/ai-insights", "/revisao-dados-ia", "/configuracoes/treino-ia"];
     // Rotas do grupo Sistema
-    const sistemaRoutes = ["/admin/backups", "/definicoes", "/configuracoes", "/configuracoes/notificacoes", "/admin/logs", "/admin/mapeamentos-nif", "/admin/erros-importacao", "/admin/processos-background"];
+    const sistemaRoutes = ["/admin/backups", "/definicoes", "/configuracoes", "/configuracoes/notificacoes", "/admin/logs", "/admin/mapeamentos-nif", "/admin/processos-background"];
     
     return {
       negocio: negocioRoutes.some(r => path.startsWith(r)),
