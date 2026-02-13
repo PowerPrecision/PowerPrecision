@@ -151,20 +151,28 @@ def build_query_filter(user: dict) -> dict:
     """
     user_role = user.get("role", "")
     user_id = user.get("id", "")
+    user_email = user.get("email", "")
     
-    # Admin e CEO veem tudo
-    if user_role in ["admin", "ceo"]:
+    # Admin, CEO, Diretor e Administrativo veem tudo
+    if user_role in ["admin", "ceo", "diretor", "administrativo"]:
         return {}
     
-    # Outros utilizadores só veem processos atribuídos
+    # Outros utilizadores só veem processos atribuídos ou criados por eles
     return {
         "$or": [
+            # Campos de atribuição correctos
+            {"assigned_consultor_id": user_id},
+            {"assigned_mediador_id": user_id},
+            # Campos antigos (compatibilidade)
             {"consultant_id": user_id},
             {"mediador_id": user_id},
+            # Lista de utilizadores atribuídos
             {"assigned_users.id": user_id},
             {"assigned_users.user_id": user_id},
             {"assigned_users": user_id},
-            {"created_by": user_id}
+            # Criado por (pode ser ID ou email)
+            {"created_by": user_id},
+            {"created_by": user_email}
         ]
     }
 
