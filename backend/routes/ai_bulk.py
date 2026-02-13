@@ -1323,19 +1323,36 @@ async def log_import_error(
 ):
     """
     Guardar erro de importação na base de dados para análise posterior.
-    
-    Melhorias (Item 15):
-    - folder_name: Pasta que falhou no match
-    - attempted_matches: Lista de nomes DB comparados
-    - best_match_score: Maior score de fuzzy matching
-    - best_match_name: Nome mais próximo na DB
-    - extracted_names: Nomes extraídos da pasta
-    - full_path: Caminho completo do ficheiro
+    Também regista nos logs do sistema para visualização unificada.
     """
     try:
+        error_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        # Construir detalhes do erro
+        error_details = {
+            "client_name": client_name,
+            "process_id": process_id,
+            "filename": filename,
+            "document_type": document_type,
+            "folder_name": folder_name or client_name,
+            "full_path": full_path or filename,
+            "user_email": user_email
+        }
+        
+        # Adicionar detalhes de matching se disponíveis
+        if any([attempted_matches, best_match_score, extracted_names]):
+            error_details["matching_details"] = {
+                "attempted_matches": attempted_matches[:10] if attempted_matches else [],
+                "best_match_score": best_match_score,
+                "best_match_name": best_match_name,
+                "extracted_names": list(extracted_names)[:5] if extracted_names else []
+            }
+        
+        # Guardar na colecção import_errors (mantém compatibilidade)
         error_log = {
-            "id": str(uuid.uuid4()),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "id": error_id,
+            "timestamp": timestamp,
             "client_name": client_name,
             "process_id": process_id,
             "filename": filename,
@@ -1343,27 +1360,29 @@ async def log_import_error(
             "error": error,
             "user_email": user_email,
             "resolved": False,
-            # Novos campos para diagnóstico (Item 15)
             "folder_name": folder_name or client_name,
             "full_path": full_path or filename,
-            "matching_details": {
-                "attempted_matches": attempted_matches[:10] if attempted_matches else [],
-                "best_match_score": best_match_score,
-                "best_match_name": best_match_name,
-                "extracted_names": list(extracted_names)[:5] if extracted_names else []
-            } if any([attempted_matches, best_match_score, extracted_names]) else None
         }
-        
-        # Remover campos None do matching_details
-        if error_log.get("matching_details"):
-            error_log["matching_details"] = {
-                k: v for k, v in error_log["matching_details"].items() 
-                if v is not None and v != []
-            }
-            if not error_log["matching_details"]:
-                del error_log["matching_details"]
-        
         await db.import_errors.insert_one(error_log)
+        
+        # Registar também nos logs do sistema para visualização unificada
+        system_log = {
+            "id": error_id,
+            "timestamp": timestamp,
+            "severity": "warning",
+            "component": "import",
+            "error_type": "import_error",
+            "message": f"Erro de importação: {error}",
+            "details": error_details,
+            "resolved": False,
+            "context": {
+                "filename": filename,
+                "client": client_name,
+                "user": user_email
+            }
+        }
+        await db.system_error_logs.insert_one(system_log)
+        
         logger.info(f"Erro de importação registado: {filename} -> {error[:50]}...")
         
     except Exception as e:
