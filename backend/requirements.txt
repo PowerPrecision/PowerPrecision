@@ -1,3 +1,4 @@
+--extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.3
 aiosignal==1.4.0
@@ -208,3 +209,4 @@ yarl==1.22.0
 zipp==3.23.0
 zope.event==6.1
 zope.interface==8.2
+emergentintegrations
