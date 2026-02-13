@@ -1112,6 +1112,7 @@ def detect_document_type(filename: str) -> str:
     - Suporte para abreviaturas comuns
     - Detecção de CC frente/verso
     - Prioridade de padrões mais específicos
+    - NOVO: Suporte para documentos em Francês e Espanhol (portugueses emigrados)
     """
     filename_lower = filename.lower()
     
@@ -1123,26 +1124,40 @@ def detect_document_type(filename: str) -> str:
         'cc', 'cartao', 'cartão', 'cidadao', 'cidadão', 
         'identificacao', 'identificação', 'bi ', 'b.i.',
         'cc_', 'frente', 'verso', 'identidade',
-        'documento_id', 'doc_id', 'id_card'
+        'documento_id', 'doc_id', 'id_card',
+        # Portugal específico
+        'portugal', 'portugues'
     ]
     if any(x in name_without_ext for x in cc_patterns):
         return 'cc'
     
-    # === Recibo de Vencimento (expandido) ===
+    # === Recibo de Vencimento (expandido + Internacional) ===
     recibo_patterns = [
+        # Português
         'recibo', 'vencimento', 'salario', 'salário', 'ordenado',
-        'payslip', 'wage', 'rec', 'venc', 'sal',
-        'remunera', 'remuneração', 'folha_pagamento',
-        'holerite', 'contracheque'
+        'rec', 'venc', 'sal', 'remunera', 'remuneração', 
+        'folha_pagamento', 'holerite', 'contracheque',
+        # Francês
+        'bulletin', 'paie', 'fiche', 'salaire', 'brut', 'net',
+        # Espanhol
+        'nomina', 'nómina', 'recibo_sueldo',
+        # Inglês
+        'payslip', 'wage', 'salary_slip', 'pay_statement'
     ]
     if any(x in name_without_ext for x in recibo_patterns):
         return 'recibo_vencimento'
     
-    # === IRS / Declaração de Rendimentos (expandido) ===
+    # === IRS / Declaração de Rendimentos (expandido + Internacional) ===
     irs_patterns = [
+        # Português
         'irs', 'modelo3', 'modelo 3', 'rendimentos', 'rendimento',
-        'p60', 'p45', 'tax return', 'hmrc', 'declaracao_rend',
-        'decl_irs', 'nota_liquid', 'liquidacao'
+        'decl_irs', 'nota_liquid', 'liquidacao', 'declaracao_rend',
+        # Francês
+        'avis', 'impot', 'impôt', 'revenu', 'fiscal', 'declaration',
+        # Espanhol
+        'renta', 'irpf', 'declaracion', 'hacienda',
+        # Inglês
+        'p60', 'p45', 'tax return', 'hmrc', 'tax_statement'
     ]
     if any(x in name_without_ext for x in irs_patterns):
         return 'irs'
