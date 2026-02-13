@@ -264,6 +264,35 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     const jobId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     uploadJobIdRef.current = jobId;
     
+    // ======================================
+    // CRIAR SESSÃO DE IMPORTAÇÃO NO BACKEND
+    // Permite tracking na página de Background Jobs
+    // ======================================
+    let backendSessionId = null;
+    try {
+      const sessionResponse = await fetch(`${API_URL}/api/ai/bulk/import-session/start`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          total_files: totalFiles,
+          folder_name: forceClientName || clientNamesLocal[0] || "Importação Massiva",
+          client_id: forceClientId,
+        }),
+      });
+      
+      if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json();
+        backendSessionId = sessionData.session_id;
+        console.log("Sessão de importação criada:", backendSessionId);
+      }
+    } catch (error) {
+      console.warn("Não foi possível criar sessão de background:", error);
+      // Continuar mesmo sem sessão - apenas não aparece no tracking
+    }
+    
     // Fechar o modal imediatamente
     setIsOpen(false);
     
@@ -298,6 +327,23 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     let updatedClients = 0;
     let errors = 0;
     let skippedClients = 0;
+    
+    // Função auxiliar para actualizar sessão no backend
+    const updateBackendSession = async () => {
+      if (!backendSessionId) return;
+      try {
+        await fetch(`${API_URL}/api/ai/bulk/import-session/${backendSessionId}/update`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ processed, errors }),
+        });
+      } catch (e) {
+        // Ignorar erros de actualização
+      }
+    };
 
     // ======================================
     // CENÁRIO B: forceClientId está definido
@@ -324,8 +370,11 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
           errors++;
         }
 
-        // Actualizar progresso global
+        // Actualizar progresso global e backend
         updateProgress(jobId, { processed, errors });
+        if (processed % 5 === 0 || errors > 0) {
+          await updateBackendSession();
+        }
 
         // Pequena pausa entre ficheiros
         await new Promise((resolve) => setTimeout(resolve, 100));
