@@ -1,0 +1,396 @@
+/**
+ * IdealistaImportPage - Importação de dados do Idealista
+ * 
+ * Como o Idealista bloqueia scrapers, oferecemos duas opções:
+ * 1. Bookmarklet - Arrastar para a barra de favoritos
+ * 2. Colar HTML - Copiar página e colar aqui
+ */
+import React, { useState } from "react";
+import DashboardLayout from "../layouts/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Badge } from "../components/ui/badge";
+import { toast } from "sonner";
+import {
+  Home,
+  Copy,
+  Sparkles,
+  Loader2,
+  CheckCircle,
+  ExternalLink,
+  BookmarkPlus,
+  ClipboardPaste,
+  MapPin,
+  Euro,
+  Bed,
+  Maximize,
+  Building,
+  User,
+  Phone,
+} from "lucide-react";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const IdealistaImportPage = () => {
+  const [htmlContent, setHtmlContent] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [extractedData, setExtractedData] = useState(null);
+  const [activeTab, setActiveTab] = useState("paste"); // "paste" ou "bookmarklet"
+
+  // Bookmarklet code - quando clicado no Idealista, copia dados para clipboard
+  const bookmarkletCode = `javascript:(function(){
+    const data = {
+      url: window.location.href,
+      html: document.documentElement.outerHTML,
+      title: document.title
+    };
+    const json = JSON.stringify(data);
+    navigator.clipboard.writeText(json).then(() => {
+      alert('Dados copiados! Cole no CRM para importar.');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = json;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Dados copiados! Cole no CRM para importar.');
+    });
+  })();`;
+
+  const handleExtract = async () => {
+    if (!htmlContent.trim()) {
+      toast.error("Cole o conteúdo da página primeiro");
+      return;
+    }
+
+    setLoading(true);
+    setExtractedData(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Tentar parsear como JSON (do bookmarklet)
+      let dataToSend = { html: htmlContent };
+      try {
+        const parsed = JSON.parse(htmlContent);
+        if (parsed.html) {
+          dataToSend = { html: parsed.html, url: parsed.url };
+        }
+      } catch {
+        // Não é JSON, é HTML directo
+      }
+
+      const response = await fetch(`${API_URL}/api/scraper/extract-html`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExtractedData(data);
+        toast.success("Dados extraídos com sucesso!");
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || "Erro ao extrair dados");
+      }
+    } catch (error) {
+      console.error("Erro:", error);
+      toast.error("Erro ao processar dados");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateLead = async () => {
+    if (!extractedData) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/leads`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...extractedData,
+          source: "idealista_import",
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Lead criado com sucesso!");
+        setExtractedData(null);
+        setHtmlContent("");
+      } else {
+        toast.error("Erro ao criar lead");
+      }
+    } catch (error) {
+      toast.error("Erro ao criar lead");
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Home className="h-6 w-6 text-primary" />
+              Importar do Idealista
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Extraia dados de imóveis do Idealista de forma simples
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Painel de Instruções */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookmarkPlus className="h-5 w-5" />
+                Como Usar
+              </CardTitle>
+              <CardDescription>
+                Escolha um dos métodos abaixo para importar dados
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Tabs */}
+              <div className="flex gap-2">
+                <Button
+                  variant={activeTab === "paste" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveTab("paste")}
+                >
+                  <ClipboardPaste className="h-4 w-4 mr-2" />
+                  Colar Página
+                </Button>
+                <Button
+                  variant={activeTab === "bookmarklet" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveTab("bookmarklet")}
+                >
+                  <BookmarkPlus className="h-4 w-4 mr-2" />
+                  Bookmarklet
+                </Button>
+              </div>
+
+              {activeTab === "paste" ? (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Método Simples - Colar Página</h3>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                    <li>Abra a página do imóvel no Idealista</li>
+                    <li>Prima <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Ctrl+A</kbd> para seleccionar tudo</li>
+                    <li>Prima <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Ctrl+C</kbd> para copiar</li>
+                    <li>Cole no campo ao lado e clique "Extrair Dados"</li>
+                  </ol>
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg text-sm">
+                    <p className="text-blue-700 dark:text-blue-300">
+                      <strong>Dica:</strong> Funciona com qualquer página de imóvel do Idealista!
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Método Rápido - Bookmarklet</h3>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                    <li>Arraste o botão abaixo para a sua barra de favoritos</li>
+                    <li>Quando estiver no Idealista, clique no favorito</li>
+                    <li>Os dados são copiados automaticamente</li>
+                    <li>Cole no campo ao lado</li>
+                  </ol>
+                  
+                  <div className="flex justify-center py-4">
+                    <a
+                      href={bookmarkletCode}
+                      onClick={(e) => e.preventDefault()}
+                      draggable="true"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg font-medium shadow-lg hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Importar Idealista
+                    </a>
+                  </div>
+                  
+                  <p className="text-xs text-center text-muted-foreground">
+                    Arraste este botão para os seus favoritos
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Painel de Input */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardPaste className="h-5 w-5" />
+                Colar Conteúdo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="html-content">Conteúdo da Página</Label>
+                <Textarea
+                  id="html-content"
+                  placeholder="Cole aqui o conteúdo da página do Idealista (Ctrl+V)..."
+                  value={htmlContent}
+                  onChange={(e) => setHtmlContent(e.target.value)}
+                  className="min-h-[200px] font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {htmlContent.length > 0 ? `${htmlContent.length.toLocaleString()} caracteres` : "Aguardando conteúdo..."}
+                </p>
+              </div>
+
+              <Button 
+                onClick={handleExtract} 
+                disabled={loading || !htmlContent.trim()}
+                className="w-full"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    A extrair dados...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Extrair Dados com IA
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Resultados */}
+        {extractedData && (
+          <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                <CheckCircle className="h-5 w-5" />
+                Dados Extraídos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Título */}
+                {extractedData.titulo && (
+                  <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground">Título</Label>
+                    <p className="font-medium">{extractedData.titulo}</p>
+                  </div>
+                )}
+
+                {/* Preço */}
+                {extractedData.preco && (
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Euro className="h-3 w-3" /> Preço
+                    </Label>
+                    <p className="font-bold text-lg text-green-600">
+                      {typeof extractedData.preco === 'number' 
+                        ? `€${extractedData.preco.toLocaleString()}`
+                        : extractedData.preco}
+                    </p>
+                  </div>
+                )}
+
+                {/* Localização */}
+                {extractedData.localizacao && (
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> Localização
+                    </Label>
+                    <p className="font-medium">{extractedData.localizacao}</p>
+                  </div>
+                )}
+
+                {/* Tipologia */}
+                {extractedData.tipologia && (
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Bed className="h-3 w-3" /> Tipologia
+                    </Label>
+                    <p className="font-medium">{extractedData.tipologia}</p>
+                  </div>
+                )}
+
+                {/* Área */}
+                {extractedData.area_util && (
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Maximize className="h-3 w-3" /> Área
+                    </Label>
+                    <p className="font-medium">{extractedData.area_util} m²</p>
+                  </div>
+                )}
+
+                {/* Agente */}
+                {extractedData.agente_nome && (
+                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" /> Agente
+                    </Label>
+                    <p className="font-medium">{extractedData.agente_nome}</p>
+                    {extractedData.agente_telefone && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" /> {extractedData.agente_telefone}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Características */}
+                {extractedData.caracteristicas && extractedData.caracteristicas.length > 0 && (
+                  <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
+                    <Label className="text-xs text-muted-foreground">Características</Label>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {extractedData.caracteristicas.map((c, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {c}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Acções */}
+              <div className="flex gap-3 mt-6">
+                <Button onClick={handleCreateLead} className="flex-1">
+                  <Building className="h-4 w-4 mr-2" />
+                  Criar Lead com estes dados
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setExtractedData(null);
+                    setHtmlContent("");
+                  }}
+                >
+                  Limpar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default IdealistaImportPage;
