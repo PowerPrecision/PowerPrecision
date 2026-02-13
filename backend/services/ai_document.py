@@ -724,52 +724,71 @@ ATENÇÃO AO NIF:
 Retorna APENAS o JSON, sem texto adicional."""
 
     elif document_type == "recibo_vencimento":
-        system_prompt = """És um assistente especializado em extrair dados de recibos de vencimento portugueses.
+        system_prompt = """És um assistente especializado em extrair dados de recibos de vencimento.
         
+Suportas recibos de vários países:
+- Portugal: "Recibo de vencimento", valores em EUR
+- França: "Bulletin de paie/Fiche de paie", "Salaire brut/net"  
+- Espanha: "Nómina", valores em EUR
+- Reino Unido: "Payslip", valores em GBP
+- Alemanha: "Gehaltsabrechnung", valores em EUR
+
 Extrai TODOS os valores financeiros e dados do funcionário visíveis.
-Valores monetários devem ser números decimais.
+Valores monetários devem ser números decimais (na moeda original).
+IMPORTANTE: Identifica o país de origem do documento pelo idioma e formato.
 Se algum campo não for legível ou não existir, usa null."""
         
-        user_prompt = """Analisa este recibo de vencimento e extrai os seguintes dados em formato JSON:
+        user_prompt = """Analisa este recibo de vencimento (pode ser de Portugal, França, ou outro país) e extrai os seguintes dados em formato JSON:
 
 {
-    "nome_funcionario": "Nome do funcionário",
-    "nif": "NIF do funcionário",
+    "nome_funcionario": "Nome do funcionário/salarié/employee",
+    "nif": "NIF/Numéro fiscal/Tax ID do funcionário (se visível)",
     "empresa": "Nome da empresa empregadora",
+    "pais_origem": "PT/FR/ES/UK/DE (código do país do documento)",
     "mes_referencia": "Mês de referência (formato YYYY-MM)",
     "salario_bruto": 0.00,
     "salario_liquido": 0.00,
-    "descontos_irs": 0.00,
+    "moeda": "EUR/GBP",
+    "descontos_imposto": 0.00,
     "descontos_ss": 0.00,
     "subsidio_alimentacao": 0.00,
     "outros_abonos": 0.00,
-    "tipo_contrato": "Efetivo/Termo/Outro",
-    "categoria_profissional": "Categoria/função"
+    "tipo_contrato": "Efetivo/CDI/CDD/Termo/Permanent/Outro",
+    "categoria_profissional": "Categoria/função/poste"
 }
 
 Retorna APENAS o JSON, sem texto adicional."""
 
     elif document_type == "irs":
-        system_prompt = """És um assistente especializado em extrair dados de declarações de IRS portuguesas.
+        system_prompt = """És um assistente especializado em extrair dados de declarações fiscais de rendimentos.
         
+Suportas declarações de vários países:
+- Portugal: Declaração de IRS, Mod. 3
+- França: "Avis d'impôt sur le revenu", "Déclaration de revenus"
+- Espanha: "Declaración de la Renta", IRPF
+- Outros países europeus
+
 Extrai os dados fiscais principais visíveis no documento.
 Valores monetários devem ser números decimais.
-Se algum campo não for legível ou não existir, usa null.
-IMPORTANTE: Se for uma declaração conjunta (casados/unidos de facto), extrai dados de AMBOS os titulares."""
+IMPORTANTE: Identifica o país de origem pelo formato e idioma.
+Se for uma declaração conjunta (casados/unidos de facto), extrai dados de AMBOS os titulares."""
         
-        user_prompt = """Analisa esta declaração de IRS e extrai os seguintes dados em formato JSON:
+        user_prompt = """Analisa esta declaração de rendimentos/IRS (pode ser de Portugal, França, ou outro país) e extrai os seguintes dados em formato JSON:
 
 {
     "ano_fiscal": 2024,
-    "nif_titular": "NIF do titular 1 (sujeito passivo A)",
+    "pais_origem": "PT/FR/ES (código do país do documento)",
+    "nif_titular": "NIF/Numéro fiscal do titular 1",
     "nome_titular": "Nome do titular 1",
-    "nif_titular_2": "NIF do titular 2/cônjuge (sujeito passivo B) ou null se individual",
+    "nif_titular_2": "NIF do titular 2/cônjuge ou null se individual",
     "nome_titular_2": "Nome do titular 2/cônjuge ou null se individual",
-    "estado_civil_fiscal": "Solteiro/Casado/União de facto",
+    "estado_civil_fiscal": "Solteiro/Casado/União de facto/Célibataire/Marié",
+    "morada_fiscal": "Morada/adresse fiscal",
     "rendimento_bruto_anual": 0.00,
     "rendimento_liquido_anual": 0.00,
     "imposto_pago": 0.00,
     "reembolso_ou_pagamento": 0.00,
+    "moeda": "EUR",
     "numero_dependentes": 0,
     "tem_imoveis": true,
     "tem_creditos_habitacao": true
