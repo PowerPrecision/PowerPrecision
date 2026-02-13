@@ -22,7 +22,7 @@ import AITrainingPage from "./pages/AITrainingPage";
 import BackgroundJobsPage from "./pages/BackgroundJobsPage";
 import NIFMappingsPage from "./pages/NIFMappingsPage";
 import NotificationSettingsPage from "./pages/NotificationSettingsPage";
-import SystemLogsPage from "./pages/SystemLogsPage";
+import UnifiedLogsPage from "./pages/UnifiedLogsPage";
 import PropertiesPage from "./pages/PropertiesPage";
 import ClientsPage from "./pages/ClientsPage";
 import LeadsPage from "./pages/LeadsPage";
@@ -31,7 +31,6 @@ import BackupsPage from "./pages/BackupsPage";
 import MinutasPage from "./pages/MinutasPage";
 import AIInsightsPage from "./pages/AIInsightsPage";
 import AIDataReviewPage from "./pages/AIDataReviewPage";
-import AIImportLogsPage from "./pages/AIImportLogsPage";
 import "./App.css";
 
 // Staff roles that can access the Kanban dashboard
