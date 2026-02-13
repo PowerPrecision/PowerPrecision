@@ -1212,6 +1212,19 @@ const PublicClientForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
+            {/* Progress Bar com percentagem */}
+            <FormProgressBar 
+              currentStep={step} 
+              totalSteps={6} 
+              completedFields={progress.completed}
+              totalFields={progress.total}
+            />
+            
+            {/* Auto-save indicator */}
+            <div className="flex justify-end mb-4">
+              <AutoSaveIndicator lastSaved={lastSaved} isSaving={isSaving} />
+            </div>
+            
             {renderStepIndicator()}
             
             {step === 1 && renderStep1()}
