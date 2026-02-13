@@ -942,6 +942,49 @@ Conteúdo:
             return {"_error": str(e)}
     
     # ================================================================
+    # SCRAPERAPI PARA SITES COM PROTEÇÃO ANTI-BOT
+    # ================================================================
+    
+    async def _fetch_with_scraperapi(self, url: str) -> Optional[str]:
+        """
+        Obtém HTML usando ScraperAPI para contornar protecções anti-bot.
+        
+        ScraperAPI usa proxies rotativos e rendering JavaScript para 
+        aceder a sites como Idealista que bloqueiam scrapers.
+        """
+        if not SCRAPERAPI_KEY:
+            logger.warning("[SCRAPER] ScraperAPI key não configurada")
+            return None
+        
+        try:
+            # URL encode da URL original
+            encoded_url = quote_plus(url)
+            
+            # Construir URL do ScraperAPI
+            # render=true para sites com JavaScript
+            # country_code=pt para IP português
+            scraper_url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url={encoded_url}&render=true&country_code=pt"
+            
+            logger.info(f"[SCRAPER] Usando ScraperAPI para: {url}")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.get(scraper_url)
+                
+                if response.status_code == 200:
+                    logger.info(f"[SCRAPER] ScraperAPI sucesso para {url}")
+                    return response.text
+                elif response.status_code == 403:
+                    logger.warning(f"[SCRAPER] ScraperAPI também bloqueado: {response.status_code}")
+                else:
+                    logger.warning(f"[SCRAPER] ScraperAPI retornou: {response.status_code}")
+                
+                return None
+                
+        except Exception as e:
+            logger.error(f"[SCRAPER] Erro ScraperAPI: {e}")
+            return None
+    
+    # ================================================================
     # SCRAPING PRINCIPAL (HÍBRIDO COM DEEP LINK E CACHE)
     # ================================================================
     
