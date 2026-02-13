@@ -190,12 +190,12 @@ async def create_client_process(data: ProcessCreate, user: dict = Depends(get_cu
     Returns:
         ProcessResponse: Processo criado
     """
-    allowed_roles = [UserRole.INTERMEDIARIO, UserRole.MEDIADOR]
+    allowed_roles = [UserRole.ADMIN, UserRole.CEO, UserRole.CONSULTOR, UserRole.INTERMEDIARIO, UserRole.MEDIADOR, UserRole.ADMINISTRATIVO, UserRole.DIRETOR]
     
     if user["role"] not in allowed_roles:
         raise HTTPException(
             status_code=403, 
-            detail="Não tem permissão para criar clientes. Apenas Intermediários de Crédito podem criar."
+            detail="Não tem permissão para criar clientes/processos."
         )
     
     # Obter o primeiro estado do workflow
