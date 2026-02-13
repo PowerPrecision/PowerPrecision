@@ -1,83 +1,62 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build and refine a process management CRM. The initial focus was on fixing a series of critical bugs. The most recent task was to implement a client-by-client mass AI document import feature, where all documents for a single client are processed together, data is deduplicated and aggregated, and then saved in a single database update.
+The user's primary goal is to build and refine a process management CRM. The initial focus was on fixing three critical bugs that emerged after a new client-by-client mass AI document import feature was implemented:
+1.  The mass import process was not appearing on the background processes page.
+2.  Importing property data from an  URL was failing.
+3.  The system failed to correctly extract information from a Portuguese ID card for a client working abroad.
 
-After the agent implemented and tested this feature, the user reported three new critical issues:
-1.  The mass import process is no longer appearing on the background processes page.
-2.  Importing property data from an  URL is not working.
-3.  The system failed to correctly extract information from a Portuguese ID card () for a client working abroad.
-
-The user also requested a new feature: create specific rules to handle document processing for Portuguese clients who work and reside in other countries. The user has provided sample documents for this scenario.
+During the course of the session, the user added several new feature requests:
+-   Train the AI to extract data from a web page as a workaround for the Idealista issue.
+-   Add the ability to stop or pause background processes.
+-   Implement a simple, one-click method (like a browser button or bookmarklet) for the Idealista import.
 
 **PRODUCT REQUIREMENTS:**
--   **P0 Feature: Client-by-Client AI Import Logic (Completed, but see issues)**
-    -   Refactor the import to process all files for one client as a single batch.
-    -   Accumulate extracted data in memory.
-    -   Deduplicate data, prioritize recent values, and aggregate salaries from different employers.
-    -   Perform a single, consolidated update to the client's record.
--   **P0 Bug Fixes (New):**
+-   **P0 Bug Fixes (Now Completed):**
     -   Fix the missing background job tracking for mass imports.
-    -   Fix the Idealista URL import feature.
-    -   Improve data extraction accuracy for Portuguese ID cards.
--   **P1 Feature: Foreign Resident Logic (New):**
-    -   Develop rules to correctly process documents (ID, tax, salary) for Portuguese nationals living and working abroad.
+    -   Address the Idealista URL import failure.
+    -   Improve data extraction accuracy for Portuguese ID cards and foreign documents.
+-   **P0 Feature: Cancel Background Jobs (In Progress):** Add a button to cancel a running background job.
+-   **P0 Feature: Idealista HTML Import (In Progress):** Create a page where users can paste HTML from an Idealista property page to extract data.
+-   **P1 Feature: Idealista Bookmarklet (Upcoming):** Create a simple one-click bookmarklet to automate the HTML import process.
+-   **P2 Feature: Pause/Resume Background Jobs (Upcoming):** Add functionality to pause and resume jobs.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-A full-stack CRM application. The previous session resolved several critical bugs, stabilizing the AI data extraction pipeline. The agent has just implemented the new client-by-client aggregated import logic as requested by the user. This involved creating a new backend service () for consolidation, adding new API endpoints (), and updating the frontend component () to use this new flow. The core aggregation logic (e.g., summing salaries from different companies) passed automated tests.
+A full-stack CRM application (React + FastAPI + MongoDB). The previous session successfully resolved the three critical bugs reported by the user.
+1.  **Background Jobs:** The agent fixed the issue by adding a new progress-update endpoint for aggregated sessions and updating the frontend to use it.
+2.  **Idealista Scraper:** The agent identified that Idealista actively blocks scrapers (even ScraperAPI) and communicated this limitation. An alternative feature (import via HTML paste) is now being built.
+3.  **Data Extraction:** The agent improved the AI prompts in the backend to correctly process documents for Portuguese nationals living abroad, specifically handling French payslips and tax documents.
+
+The agent is now in the middle of implementing two new features requested by the user: a Cancel button for background jobs and the Idealista HTML Import page.
 
 **Last working item**:
--   **Last item agent was working**: The agent had just received a bug report and a new feature request from the user after they tested the newly implemented client-by-client import feature. The agent acknowledged the user's message and was about to begin investigating the three reported issues.
+-   **Last item agent was working**: The agent was implementing the Idealista HTML Import feature. It had just created the frontend page, the backend endpoint, and added the new route to the main  router. The last action was acknowledging the user's continue message, with the immediate next step being to add a link to this new page in the admin navigation sidebar.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (For the aggregation feature, which passed. Not for the new bugs).
--   **Which testing method agent to use?**: both. The backend logic for the background jobs, URL scraper, and document parsing needs to be investigated and tested (using  or ). The frontend flow needs to be re-verified with the testing agent once the backend fixes are in place. The  should be used on the user-provided PDFs.
--   **User Testing Done**: Y (This is how the new bugs were discovered).
+-   **Agent Testing Done**: Y (For the bug fixes, which passed via the testing agent).
+-   **Which testing method agent to use?**: frontend testing agent. The agent should be used to verify the new Cancel button functionality on the background jobs page and the full user flow for the new Idealista HTML import page.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Mass import not visible in background processes (P0, HIGHEST PRIORITY)**
--   **Issue 2: Idealista.pt URL import fails (P0)**
--   **Issue 3: Faulty data extraction from Portuguese ID Card (P0)**
-
-**Issues Detail:**
--   **Issue 1: Mass import not visible in background processes**
-    -   **Attempted fixes**: None. This is a new regression likely introduced by the new aggregated import flow.
-    -   **Next debug checklist**:
-        -   Review : Check if the new  function correctly calls the endpoints to create and manage a background job session. It's likely the new logic bypasses this step.
-        -   Review : Verify if the new aggregated import endpoints (, etc.) interact with the  MongoDB collection. The implementation may have focused only on data aggregation and missed the job tracking integration.
-    -   **Why fix this issue and what will be achieved with the fix?**: The user needs to be able to track the status and outcome of long-running file uploads. This is a critical UX feature for the mass import process.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both
-    -   **Blocked on other issue**: No.
--   **Issue 2: Idealista.pt URL import fails**
-    -   **Attempted fixes**: None. New issue.
-    -   **Next debug checklist**:
-        -   Use  to locate the code responsible for handling URL-based imports.
-        -   Investigate the web scraping logic. It's possible Idealista is blocking the requests (e.g., via User-Agent checks, CAPTCHA, or IP rate limiting).
-        -   Check the API endpoint that receives the URL. Ensure it's correctly parsing the URL and triggering the scraping/analysis process. Check logs for any errors.
-    -   **Why fix this issue and what will be achieved with the fix?**: This feature allows users to quickly import property data, which is a core part of the CRM's functionality.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: No.
--   **Issue 3: Faulty data extraction from Portuguese ID Card**
-    -   **Attempted fixes**: None. New issue.
-    -   **Next debug checklist**:
-        -   Use  on the user-provided artifacts (, ) to inspect the document structure and text.
-        -   Review the LLM prompts in . The prompt for identity document extraction needs to be refined to handle the specific layout of the Portuguese ID card and accommodate details for citizens living abroad.
-        -   Examine the mapping logic in  to ensure fields extracted from the LLM are correctly assigned to the client schema.
-    -   **Why fix this issue and what will be achieved with the fix?**: Accurate client identity information is fundamental to the CRM.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: No.
+-   None. The previously reported critical bugs have been resolved or have a defined workaround in progress.
 
 **In progress Task List**:
--   None. The agent's focus has shifted to the new P0 issues.
+-   **Task 1: Complete Idealista HTML Import Feature (P0)**
+    -   **Where to resume**: The route  exists but is not yet accessible from the UI. The next step is to add a link to this page in the admin navigation menu (likely in a sidebar component). After that, the bookmarklet needs to be created.
+    -   **What will be achieved with this?**: A workaround for the blocked Idealista web scraper, allowing users to import property data by pasting the page's HTML source.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on something**: No.
+-   **Task 2: Complete Cancel Background Job Feature (P0)**
+    -   **Where to resume**: The backend endpoint () and frontend UI button () have been created. The logic needs to be fully connected and tested to ensure that clicking the button successfully updates the job status to cancelled in the database and reflects it on the UI.
+    -   **What will be achieved with this?**: Users will be able to stop background jobs that are running, stuck, or no longer needed.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
--   **P1: Implement Logic for Foreign Residents**: Based on the user's latest request, create rules to handle documents for Portuguese clients working abroad. This will likely involve enhancing the  and prompts to recognize and process foreign tax forms, addresses, and salary slips.
+-   **P1: Implement Idealista Bookmarklet**: Create the Javascript code for a browser bookmarklet. When clicked on an Idealista page, it should grab the page's HTML and open the CRM's  page with the HTML content pre-filled in the text area.
+-   **P2: Implement Pause/Resume for Background Jobs**: Add backend and frontend logic to allow users to pause and later resume background import processes.
 
 **Future Tasks (Backlog):**
 -   **P3**: Replace offset-based pagination with cursor-based pagination.
@@ -85,78 +64,75 @@ A full-stack CRM application. The previous session resolved several critical bug
 -   **P3**: Implement a Redis caching layer for frequently accessed data.
 
 **Completed work in this session**
--   **Feature: Client-by-Client AI Import Logic (DONE)**:
-    -   Created  for in-memory data consolidation, deduplication, and aggregation.
-    -   Added new endpoints (, , ) to .
-    -   Refactored  to orchestrate the new client-by-client upload flow.
-    -   Successfully verified the core aggregation logic via the testing agent.
+-   **Bug Fix: Mass import background job visibility (DONE)**:
+    -   Fixed by creating a new progress update endpoint () and modifying  to use it.
+    -   Added a  debug endpoint for jobs.
+-   **Bug Analysis: Idealista.pt URL import failure (LIMITATION IDENTIFIED)**:
+    -   Confirmed that Idealista returns a 403 Forbidden error, blocking all scraping attempts. Communicated this to the user and pivoted to an alternative solution.
+-   **Bug Fix: Data extraction for foreign resident (DONE)**:
+    -   Enhanced AI prompts in  and  to correctly parse documents like French payslips and tax returns for Portuguese clients.
+-   **User Query: Missing NIF Mappings (RESOLVED)**:
+    -   Investigated and confirmed the development database was empty, explaining to the user this is expected.
+-   **Validation**: All bug fixes were successfully validated with a 100% pass rate by the testing agent ().
 
 **Earlier issues found/mentioned but not fixed**
--   None. All issues are recent and captured in the Pending Issues list.
+-   None.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**:  dependency failure.
 -   **Recurrence count**: 2+
--   **Status**: RESOLVED. The fix in  appears to be stable.
+-   **Status**: RESOLVED. This issue did not occur in the current session.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Data Aggregation & Deduplication**: The new  service implements a pattern to collect data from multiple sources (documents), consolidate it based on rules (e.g., most recent), and perform calculations (e.g., sum of salaries) before a final update.
--   **Stateful API Sessions**: The aggregated import uses a series of endpoints (, , ) to manage the state of a multi-file upload session on the backend.
--   **AI-Powered Data Extraction**: Using targeted LLM prompts to extract structured data from unstructured PDFs. This needs refinement for the ID card issue.
+-   **Background Job Management**: The system now supports state changes for jobs (e.g., to cancelled), managed via REST endpoints.
+-   **AI Prompt Engineering**: Prompts were enhanced to handle multi-lingual documents (Portuguese, French) within a single client context, improving data extraction for expatriates.
+-   **Scraping Workaround**: When direct web scraping is blocked, an alternative user-assisted method (HTML paste) is being implemented. A bookmarklet will be used to simplify this process for the user.
 
 **key DB schema**
--   ****: Stores metadata for background processes. The new mass import flow is currently failing to create entries here.
--   ****: The target collection for the consolidated data update. The schema supports financial, credit, and professional information.
+-   ****: The  field can now have the value .
 
 **All files of reference**
--   **Files Modified for Last Feature**:
-    -    (New file with aggregation logic)
-    -    (Modified with new aggregated import endpoints)
-    -    (Modified to use the new flow)
--   **Files for Debugging New Issues**:
-    -   The files listed above, plus:
-    -    (For ID card extraction issue)
-    -    (For background job visibility issue)
-    -   Any file containing idealista.pt (For URL import issue)
+-   **New Files**:
+    -   : A new page for the user to paste HTML from Idealista for data extraction.
+-   **Modified Files**:
+    -   , : Fixed the background job progress tracking.
+    -   , : Improved AI data extraction for foreign documents.
+    -   , , : Implemented the Cancel Job feature.
+    -   , : Created the backend and frontend routing for the new Idealista import feature.
 
 **Areas that need refactoring**:
--   The  function in  remains a candidate for refactoring due to its complexity, but bug fixing is the current priority.
+-   The backlog item to refactor  still stands but is low priority.
 
 **key api endpoints**
--   **New Endpoints (Aggregated Import)**:
-    -   
-    -   
-    -   
--   **Existing Endpoints (Relevant to Bugs)**:
-    -   
-    -   The endpoint handling URL imports (to be identified).
+-   **New Endpoints Created**:
+    -   : Updates the progress of a running aggregated import job.
+    -   : Cancels a specific background job.
+    -   : Receives HTML content and uses AI to extract structured data from it.
+-   **Debugging Endpoint**:
+    -   : Clears all jobs from the database (used for debugging stuck jobs).
 
 **Critical Info for New Agent**
--   Your immediate priority is to address the three bugs reported by the user. Do not move on to other tasks until these are resolved and verified.
--   The client-by-client aggregation feature is functionally complete but has a regression: it broke the background job tracking. This is likely the first bug to tackle.
--   The user has provided four new documents. Use these to reproduce and fix the ID card extraction issue and to develop the new logic for foreign residents. The files are: , , , and .
--   Acknowledge the user's report and explain your plan to investigate the three issues sequentially, starting with the background job visibility.
+-   Your immediate priority is to complete the two in-progress features: the Idealista HTML Import and the Cancel Background Job functionality.
+-   For the Idealista feature, the next step is to make the new page accessible by adding a link to it in the UI's navigation menu.
+-   For the Cancel feature, the UI and backend are mostly in place but require end-to-end testing to ensure they work together correctly.
+-   After completing these, the next task is to implement the Javascript bookmarklet for the Idealista import.
+-   Remember to communicate with the user in Portuguese.
 
 **documents and test reports created in this job**
--   
--   
--   User uploaded artifacts for debugging:
-    -   
-    -   
-    -   
-    -   
+-    (Confirms bug fixes passed).
+-    (Updated with progress).
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User #110**: (PENDING) Reports three new bugs: 1) Mass import not showing in background jobs. 2) Idealista link import failed. 3) ID card data extraction failed for Élson Silva. User requests rules for clients working abroad and provides four documents.
--   **User #103**: (Agent internal) Notes the successful test run of the aggregation feature.
--   **User #4-102**: (Agent internal) Series of thoughts and actions implementing the aggregated import feature, including creating the aggregator, adding backend endpoints, modifying the frontend, and running tests.
--   **User #5**: (PENDING) User provides clarification on salary aggregation: keep a separate list of salaries and sum them only if they are from different companies.
+-   **User #262**: (PENDING) . The user is signaling the agent to proceed with its plan.
+-   **User #219**: Approves the plan. Asks for a simple one-click solution for the Idealista import and asks the agent to verify the NIF mapping issue.
+-   **User #216**: Asks for help training the AI to extract data from HTML, how a browser extension works, requests a pause/stop feature for background jobs, and questions why no NIF mappings have appeared yet.
+-   **User #5**: Agrees with the agent's initial plan and adds that errors during mass import are not appearing in the system logs.
 
 **Project Health Check:**
--   **Broken**: Yes. While the main application is running, the user has identified three P0 bugs in a core workflow, one of which is a regression.
+-   **Broken**: No. The critical bugs that were blocking the user have been fixed and validated. The application is stable.
 -   **Mocked**: No.
 
 **3rd Party Integrations**
@@ -165,17 +141,17 @@ A full-stack CRM application. The previous session resolved several critical bug
 -    library
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, on the recently completed aggregation feature.
+-   **Testing agent used after significant changes**: YES. The testing agent was used to validate all three major bug fixes, with a 100% success rate reported in .
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: No.
--   **Known regressions**: YES. The mass import process is no longer visible on the background jobs page.
+-   **Known regressions**: NO. The previous regression was fixed.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 -   **Consultant Email**: 
 -   **Consultant Password**: 
--   **Test Client**: Bruna Gonçalves Caetano (NIF ) and now Élson Silva (using the provided documents).
 
 **What agent forgot to execute**
--   When implementing the new aggregated import flow, the agent forgot to integrate it with the existing  system. The new endpoints and frontend logic were created but were not hooked into the service that creates and updates the jobs displayed on the UI.</analysis>
+-   The agent is currently mid-task. It needs to complete the implementation of the Idealista HTML Import feature by adding the navigation link and then creating the bookmarklet.
+-   The user's request for a pause button has been acknowledged but not yet started; it is correctly listed in Upcoming Tasks.</analysis>
