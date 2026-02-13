@@ -1895,27 +1895,36 @@ async def get_nif_cache_stats(
     """
     Obter estatísticas do cache de sessão NIF.
     
-    Mostra quantos mapeamentos pasta→cliente estão em cache
-    e há quanto tempo foram criados.
+    Mostra quantos mapeamentos pasta→cliente estão em cache (memória e DB).
     """
+    # Carregar da DB se ainda não foi feito
+    await _load_nif_cache_from_db()
+    
     now = datetime.now(timezone.utc)
     
+    # Também contar na DB para comparação
+    db_count = await db.nif_mappings.count_documents({})
+    
     stats = {
-        "total_entries": len(nif_session_cache),
-        "ttl_seconds": NIF_CACHE_TTL_SECONDS,
+        "total_entries_memory": len(nif_session_cache),
+        "total_entries_db": db_count,
+        "ttl_days": NIF_CACHE_TTL_SECONDS // 86400,
         "entries": []
     }
     
     for folder_key, cached in nif_session_cache.items():
         matched_at = cached.get("matched_at")
+        if isinstance(matched_at, str):
+            matched_at = datetime.fromisoformat(matched_at.replace("Z", "+00:00"))
+        
         age_seconds = (now - matched_at).total_seconds() if matched_at else 0
         
         stats["entries"].append({
             "folder": folder_key,
             "nif": cached.get("nif"),
             "client_name": cached.get("client_name"),
-            "age_seconds": int(age_seconds),
-            "expires_in_seconds": max(0, int(NIF_CACHE_TTL_SECONDS - age_seconds))
+            "age_days": round(age_seconds / 86400, 1),
+            "expires_in_days": max(0, round((NIF_CACHE_TTL_SECONDS - age_seconds) / 86400, 1))
         })
     
     return stats
