@@ -922,23 +922,30 @@ async def analyze_single_file(
     - Normaliza nomes de ficheiros
     - Detecta documentos duplicados (ex: 3 recibos de vencimento iguais)
     - Validação melhorada de NIF
+    - NOVO (Item 17): Cache de sessão NIF - mapeamento pasta → cliente
     
     Estrutura do path: PastaRaiz/NomeCliente/[subpastas/]documento.pdf
     """
     filename = file.filename or "documento.pdf"
     
-    # Extrair nome do cliente do path
+    # Limpar cache NIF expirado periodicamente
+    clear_expired_nif_cache()
+    
+    # Extrair nome do cliente (pasta) do path
     parts = filename.replace("\\", "/").split("/")
     
     if len(parts) >= 2:
-        client_name = parts[1]
+        folder_name = parts[1]  # Nome da pasta = nome do cliente
         doc_filename = parts[-1]
     else:
         doc_filename = parts[0]
         if "_" in doc_filename:
-            client_name = doc_filename.rsplit("_", 1)[0]
+            folder_name = doc_filename.rsplit("_", 1)[0]
         else:
-            client_name = "Desconhecido"
+            folder_name = "Desconhecido"
+    
+    # Usar folder_name como client_name inicial
+    client_name = folder_name
     
     result = SingleAnalysisResult(
         success=False,
