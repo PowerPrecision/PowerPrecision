@@ -405,9 +405,18 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     };
     setSummary(finalSummary);
 
+    // Finalizar tracking global de progresso
+    const successMessage = processed > 0 
+      ? `${processed}/${totalFiles} ficheiros processados` 
+      : "Nenhum ficheiro processado";
+    finishUpload(jobId, { 
+      success: processed > 0, 
+      message: successMessage 
+    });
+
     // Notificação com toast mais duradouro para resultado final
     if (processed > 0) {
-      let msg = `✅ Upload Massivo Concluído!\n${processed}/${totalFiles} processados\n${updatedClients} fichas actualizadas`;
+      let msg = `✅ Upload Concluído!\n${processed}/${totalFiles} processados\n${updatedClients} fichas actualizadas`;
       if (skippedClients > 0) {
         msg += `\n⚠️ ${skippedClients} clientes não encontrados`;
       }
@@ -416,9 +425,9 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
       }
       toast.success(msg, { duration: 8000 });
     } else if (skippedClients > 0) {
-      toast.error(`❌ Upload Massivo Falhou\nNenhum documento processado.\n${skippedClients} clientes não encontrados.`, { duration: 8000 });
+      toast.error(`❌ Upload Falhou\nNenhum documento processado.\n${skippedClients} clientes não encontrados.`, { duration: 8000 });
     } else {
-      toast.error("❌ Upload Massivo Falhou\nNenhum documento foi processado com sucesso.", { duration: 8000 });
+      toast.error("❌ Upload Falhou\nNenhum documento foi processado com sucesso.", { duration: 8000 });
     }
     
     // Limpar estado (já foi limpo antes)
