@@ -11,7 +11,35 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 22)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 23)
+
+### ✅ Tarefas Completadas (Sessão 23)
+
+#### P0: Importação Agregada "Cliente a Cliente" - IMPLEMENTADO E TESTADO
+- **Problema**: O utilizador pediu nova lógica de importação massiva de documentos que:
+  1. Processa documentos cliente a cliente (não documento a documento)
+  2. Acumula dados extraídos em memória antes de salvar
+  3. Deduplica campos (usa valor mais recente quando há conflito)
+  4. Agrega salários por empresa (lista separada + soma total)
+  5. Salva uma única vez por cliente após processar todos os documentos
+- **Solução Implementada**:
+  - Criado novo serviço `data_aggregator.py` com classes `ClientDataAggregator` e `SessionAggregator`
+  - Novos endpoints de sessão agregada no `ai_bulk.py`
+  - Frontend actualizado para usar modo agregado
+- **Lógica de Salários**:
+  - Salários de empresas diferentes são agregados (lista com N entradas + soma total)
+  - Salários da mesma empresa mantêm apenas a entrada mais recente
+  - Normalização de nomes de empresa (remove Lda, SA, Unipessoal, etc.)
+- **Novos Endpoints**:
+  - `POST /api/ai/bulk/aggregated-session/start` - Criar sessão agregada
+  - `POST /api/ai/bulk/aggregated-session/{id}/analyze` - Analisar ficheiro e agregar dados
+  - `GET /api/ai/bulk/aggregated-session/{id}/status` - Estado da sessão
+  - `POST /api/ai/bulk/aggregated-session/{id}/finish` - Consolidar e salvar dados
+- **Ficheiros criados/modificados**:
+  - `/app/backend/services/documents/data_aggregator.py` (NOVO) - Classes de agregação
+  - `/app/backend/routes/ai_bulk.py` - Novos endpoints agregados
+  - `/app/frontend/src/components/BulkDocumentUpload.js` - Integração com modo agregado
+- **Status**: ✅ IMPLEMENTADO E VERIFICADO (15/15 testes passed - iteration_34)
 
 ### ✅ Tarefas Completadas (Sessão 22)
 
