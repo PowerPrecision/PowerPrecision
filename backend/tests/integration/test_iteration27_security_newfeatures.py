@@ -285,27 +285,13 @@ class TestAIImportLogs:
 class TestAITraining:
     """Test /api/admin/ai-training CRUD endpoints"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Login and get token"""
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        self.token = login_response.json().get("access_token")
-        self.headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json"
-        }
-        self.created_entry_id = None
-    
     def test_get_ai_training_data(self):
         """Test GET /api/admin/ai-training returns training data"""
-        response = requests.get(
-            f"{BASE_URL}/api/admin/ai-training",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/admin/ai-training")
         assert response.status_code == 200
         
         data = response.json()
@@ -316,6 +302,9 @@ class TestAITraining:
     
     def test_create_ai_training_entry(self):
         """Test POST /api/admin/ai-training creates new entry"""
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
         test_entry = {
             "category": "custom_rules",
             "title": f"TEST_Entry_{uuid.uuid4().hex[:8]}",
@@ -324,11 +313,9 @@ class TestAITraining:
             "is_active": True
         }
         
-        response = requests.post(
-            f"{BASE_URL}/api/admin/ai-training",
-            headers=self.headers,
-            json=test_entry
-        )
+        time.sleep(0.3)
+        session.headers.update({"Content-Type": "application/json"})
+        response = session.post(f"{BASE_URL}/api/admin/ai-training", json=test_entry)
         assert response.status_code == 200
         
         data = response.json()
@@ -337,39 +324,38 @@ class TestAITraining:
         assert data["entry"]["title"] == test_entry["title"]
         assert data["entry"]["category"] == "custom_rules"
         
-        self.created_entry_id = data["entry"]["id"]
-        print(f"✅ POST /api/admin/ai-training: created entry {self.created_entry_id}")
+        created_entry_id = data["entry"]["id"]
+        print(f"✅ POST /api/admin/ai-training: created entry {created_entry_id}")
         
         # Cleanup - delete the test entry
-        if self.created_entry_id:
-            requests.delete(
-                f"{BASE_URL}/api/admin/ai-training/{self.created_entry_id}",
-                headers=self.headers
-            )
+        time.sleep(0.3)
+        session.delete(f"{BASE_URL}/api/admin/ai-training/{created_entry_id}")
     
     def test_ai_training_invalid_category(self):
         """Test POST /api/admin/ai-training rejects invalid category"""
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
         test_entry = {
             "category": "invalid_category",
             "title": "Test",
             "content": "Test content"
         }
         
-        response = requests.post(
-            f"{BASE_URL}/api/admin/ai-training",
-            headers=self.headers,
-            json=test_entry
-        )
+        time.sleep(0.3)
+        session.headers.update({"Content-Type": "application/json"})
+        response = session.post(f"{BASE_URL}/api/admin/ai-training", json=test_entry)
         assert response.status_code == 400
         assert "inválida" in response.json().get("detail", "").lower() or "invalid" in response.json().get("detail", "").lower()
         print("✅ POST /api/admin/ai-training: rejects invalid category")
     
     def test_get_ai_training_prompt(self):
         """Test GET /api/admin/ai-training/prompt returns consolidated prompt"""
-        response = requests.get(
-            f"{BASE_URL}/api/admin/ai-training/prompt",
-            headers=self.headers
-        )
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/admin/ai-training/prompt")
         assert response.status_code == 200
         
         data = response.json()
