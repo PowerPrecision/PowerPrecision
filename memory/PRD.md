@@ -65,6 +65,31 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
    - Ficheiro: `skeletons.jsx`
    - Status: ✅ IMPLEMENTADO
 
+6. **Auto-save Draft (D1)**
+   - Guarda automaticamente rascunho no localStorage
+   - Debounce de 2 segundos
+   - Detecta rascunho ao reabrir formulário
+   - Limpa após submissão bem sucedida
+   - Ficheiro: `PublicClientForm.js`
+   - Status: ✅ IMPLEMENTADO
+
+7. **Progress Bar com Percentagem (D2)**
+   - Mostra "Passo X de Y"
+   - Percentagem de campos obrigatórios preenchidos
+   - Indicadores visuais de passos (círculos)
+   - Componente: `FormProgressBar`
+   - Status: ✅ IMPLEMENTADO
+
+8. **Acessibilidade (D7)**
+   - Focus outlines visíveis (`:focus-visible`)
+   - Skip link para navegação por teclado
+   - Touch targets mínimos 44x44px para mobile
+   - Respeita `prefers-reduced-motion`
+   - Safe area padding para notch
+   - Scrollbar estilizada
+   - Ficheiro: `index.css`
+   - Status: ✅ IMPLEMENTADO
+
 #### Novos Endpoints Backend
 - `GET /api/search/global` - Pesquisa unificada
 - `GET /api/search/processes` - Pesquisa avançada processos
