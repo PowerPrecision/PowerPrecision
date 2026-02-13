@@ -35,7 +35,6 @@ const StaffDashboard = () => {
   const isAdmin = user?.role === "admin";
   const isCeo = user?.role === "ceo";
   const canManageUsers = isAdmin;
-  const canManageWorkflow = isAdmin;
   const canSeeAllStats = isAdmin || isCeo;
 
   useEffect(() => {
