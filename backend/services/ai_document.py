@@ -969,33 +969,116 @@ def map_irs_to_financial_data(irs_data: Dict[str, Any]) -> Dict[str, Any]:
 # ====================================================================
 
 def detect_document_type(filename: str) -> str:
-    """Detectar tipo de documento pelo nome do ficheiro."""
+    """
+    Detectar tipo de documento pelo nome do ficheiro.
+    
+    Melhorias (Item 16):
+    - Mais padrões de keywords para cada tipo
+    - Suporte para abreviaturas comuns
+    - Detecção de CC frente/verso
+    - Prioridade de padrões mais específicos
+    """
     filename_lower = filename.lower()
     
-    if any(x in filename_lower for x in ['cc', 'cartao', 'cidadao', 'identificacao', 'bi ']):
+    # Remover extensão para melhor matching
+    name_without_ext = filename_lower.rsplit('.', 1)[0] if '.' in filename_lower else filename_lower
+    
+    # === CC / Cartão de Cidadão (expandido) ===
+    cc_patterns = [
+        'cc', 'cartao', 'cartão', 'cidadao', 'cidadão', 
+        'identificacao', 'identificação', 'bi ', 'b.i.',
+        'cc_', 'frente', 'verso', 'identidade',
+        'documento_id', 'doc_id', 'id_card'
+    ]
+    if any(x in name_without_ext for x in cc_patterns):
         return 'cc'
-    elif any(x in filename_lower for x in ['recibo', 'vencimento', 'salario', 'ordenado', 'payslip', 'wage']):
+    
+    # === Recibo de Vencimento (expandido) ===
+    recibo_patterns = [
+        'recibo', 'vencimento', 'salario', 'salário', 'ordenado',
+        'payslip', 'wage', 'rec', 'venc', 'sal',
+        'remunera', 'remuneração', 'folha_pagamento',
+        'holerite', 'contracheque'
+    ]
+    if any(x in name_without_ext for x in recibo_patterns):
         return 'recibo_vencimento'
-    elif any(x in filename_lower for x in ['irs', 'p60', 'p45', 'tax return', 'hmrc']):
+    
+    # === IRS / Declaração de Rendimentos (expandido) ===
+    irs_patterns = [
+        'irs', 'modelo3', 'modelo 3', 'rendimentos', 'rendimento',
+        'p60', 'p45', 'tax return', 'hmrc', 'declaracao_rend',
+        'decl_irs', 'nota_liquid', 'liquidacao'
+    ]
+    if any(x in name_without_ext for x in irs_patterns):
         return 'irs'
-    elif any(x in filename_lower for x in ['contrato', 'trabalho', 'vinculo', 'efetividade', 'employment']):
+    
+    # === Contrato de Trabalho ===
+    contrato_patterns = [
+        'contrato', 'trabalho', 'vinculo', 'vínculo', 
+        'efetividade', 'employment', 'contract',
+        'declaracao_emprego', 'decl_trab'
+    ]
+    if any(x in name_without_ext for x in contrato_patterns):
         return 'contrato_trabalho'
-    elif any(x in filename_lower for x in ['caderneta', 'predial']):
+    
+    # === Caderneta Predial ===
+    caderneta_patterns = [
+        'caderneta', 'predial', 'cadpredial', 'cad_pred'
+    ]
+    if any(x in name_without_ext for x in caderneta_patterns):
         return 'caderneta_predial'
-    elif any(x in filename_lower for x in ['extrato', 'bancario', 'banco', 'ext_']):
+    
+    # === Extrato Bancário (expandido) ===
+    extrato_patterns = [
+        'extrato', 'bancario', 'bancário', 'banco', 
+        'ext_', 'mov', 'movimentos', 'conta',
+        'multibanco', 'statement', 'bank_statement'
+    ]
+    if any(x in name_without_ext for x in extrato_patterns):
         return 'extrato_bancario'
-    elif any(x in filename_lower for x in ['simulacao', 'simulação', 'proposta financ', 'credito', 'crédito', 'financiamento']):
+    
+    # === Simulação de Crédito ===
+    simulacao_patterns = [
+        'simulacao', 'simulação', 'proposta financ', 
+        'credito', 'crédito', 'financiamento',
+        'proposta_banco', 'sim_ch', 'simul'
+    ]
+    if any(x in name_without_ext for x in simulacao_patterns):
         return 'simulacao_credito'
-    elif any(x in filename_lower for x in ['certidao', 'certidão', 'domicilio', 'domicílio', 'fiscal']):
+    
+    # === Certidão ===
+    certidao_patterns = [
+        'certidao', 'certidão', 'domicilio', 'domicílio', 
+        'fiscal', 'cert_', 'certificado'
+    ]
+    if any(x in name_without_ext for x in certidao_patterns):
         return 'certidao'
-    elif any(x in filename_lower for x in ['crc', 'responsabilidade', 'mapa_crc', 'central']):
+    
+    # === Mapa CRC (Central de Responsabilidades de Crédito) ===
+    crc_patterns = [
+        'crc', 'responsabilidade', 'mapa_crc', 'central',
+        'banco_portugal', 'resp_credito'
+    ]
+    if any(x in name_without_ext for x in crc_patterns):
         return 'mapa_crc'
-    elif any(x in filename_lower for x in ['cpcv', 'promessa', 'compra e venda', 'sinal']):
+    
+    # === CPCV ===
+    cpcv_patterns = [
+        'cpcv', 'promessa', 'compra e venda', 'sinal',
+        'contrato_promessa', 'cpv'
+    ]
+    if any(x in name_without_ext for x in cpcv_patterns):
         return 'cpcv'
-    elif any(x in filename_lower for x in ['imovel', 'imóvel', 'casa', 'apartamento', 'moradia', 'fracao', 'fração']):
+    
+    # === Dados de Imóvel ===
+    imovel_patterns = [
+        'imovel', 'imóvel', 'casa', 'apartamento', 
+        'moradia', 'fracao', 'fração', 'propriedade'
+    ]
+    if any(x in name_without_ext for x in imovel_patterns):
         return 'dados_imovel'
-    else:
-        return 'outro'
+    
+    return 'outro'
 
 
 def get_mime_type(filename: str) -> str:
