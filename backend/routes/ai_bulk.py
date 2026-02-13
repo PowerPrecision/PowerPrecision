@@ -970,8 +970,24 @@ async def analyze_single_file(
         
         mime_type = get_mime_type(doc_filename)
         
-        # Procurar cliente
-        process = await find_client_by_name(client_name)
+        # ================================================================
+        # CACHE DE SESSÃO NIF (Item 17)
+        # Verificar se já temos mapeamento pasta → cliente em cache
+        # ================================================================
+        process = None
+        cached_mapping = get_cached_nif_mapping(folder_name)
+        
+        if cached_mapping:
+            # Usar mapeamento em cache (muito mais rápido)
+            process_id = cached_mapping["process_id"]
+            process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+            if process:
+                logger.info(f"[NIF CACHE] Usando mapeamento em cache para '{folder_name}' -> '{cached_mapping['client_name']}'")
+        
+        # Se não encontrou em cache, procurar por nome
+        if not process:
+            process = await find_client_by_name(client_name)
+        
         if not process:
             result.error = f"Cliente não encontrado: {client_name}. Verifique se o nome está correcto (acentos, parênteses)."
             logger.warning(f"Cliente não encontrado para '{client_name}'. Pasta: {filename}")
