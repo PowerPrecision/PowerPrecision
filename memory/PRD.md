@@ -15,6 +15,28 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### ✅ Tarefas Completadas (Sessão 21)
 
+#### P0: Endpoint de Listagem de Ficheiros por Cliente - COMPLETO
+- **Problema**: Documentos não apareciam na página do cliente porque o endpoint `/onedrive/files/{client_name}` não existia
+- **Solução**: Criado novo endpoint que busca ficheiros do S3 pelo nome do cliente
+- **Ficheiro**: `/app/backend/routes/onedrive.py` (linhas 231-269)
+- **Endpoint**: `GET /api/onedrive/files/{client_name}`
+- **Resposta**: `{files: {...}, folders: [], categories: [...], stats: {...}}`
+- **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_32)
+
+#### P2: Selecção Múltipla de Logs para Resolução em Massa - COMPLETO
+- **Problema**: Utilizador pediu funcionalidade de "seleccionar erros" nos logs
+- **Solução**: Implementado sistema de checkboxes com acções em massa
+- **Funcionalidades**:
+  - Checkbox "Seleccionar Todos" no cabeçalho da tabela
+  - Checkboxes individuais por linha (desactivados para logs já resolvidos)
+  - Barra de acções em massa com contador de logs seleccionados
+  - Botões "Limpar Selecção" e "Marcar como Resolvidos"
+- **Ficheiros**:
+  - `/app/frontend/src/pages/UnifiedLogsPage.js` - UI de selecção
+  - `/app/backend/routes/admin.py` - Endpoint `POST /api/admin/system-logs/bulk-resolve`
+  - `/app/backend/services/system_error_logger.py` - Função `bulk_mark_as_resolved`
+- **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_32)
+
 #### P1: Remoção da Aba "Configurações" do StaffDashboard - COMPLETO
 - **Problema**: Utilizador reportou aba "Configurações" indesejada no dashboard
 - **Solução**: Removido TabsTrigger e TabsContent para a aba "Configurações" do StaffDashboard.js
