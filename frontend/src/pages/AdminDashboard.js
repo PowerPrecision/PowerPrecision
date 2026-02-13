@@ -269,7 +269,12 @@ const AdminDashboard = () => {
                     </Select>
                   </div>
                 </div>
-                <KanbanBoard token={localStorage.getItem('token')} user={user} />
+                <KanbanBoard 
+                  token={localStorage.getItem('token')} 
+                  user={user} 
+                  consultorFilter={consultorFilter}
+                  mediadorFilter={mediadorFilter}
+                />
               </CardContent>
             </Card>
           </TabsContent>
