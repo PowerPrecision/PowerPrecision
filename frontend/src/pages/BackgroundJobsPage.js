@@ -39,6 +39,7 @@ const STATUS_CONFIG = {
   running: { label: "A correr", variant: "default", className: "bg-blue-500", icon: Loader2 },
   success: { label: "Concluído", variant: "default", className: "bg-green-500", icon: CheckCircle },
   failed: { label: "Falhado", variant: "destructive", icon: XCircle },
+  cancelled: { label: "Cancelado", variant: "secondary", className: "bg-amber-500", icon: XCircle },
   pending: { label: "Pendente", variant: "secondary", icon: Clock },
 };
 
