@@ -1021,7 +1021,7 @@ async def analyze_single_file(
     filename = file.filename or "documento.pdf"
     
     # Limpar cache NIF expirado periodicamente
-    clear_expired_nif_cache()
+    await clear_expired_nif_cache()
     
     # Extrair nome do cliente (pasta) do path
     parts = filename.replace("\\", "/").split("/")
