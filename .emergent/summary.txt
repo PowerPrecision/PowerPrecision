@@ -1,410 +1,160 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build and refine a process management CRM. The initial focus was on a large list of bugs and UI/UX changes.
+The user's primary goal is to build and refine a process management CRM. The initial focus was on fixing a series of critical bugs preventing core features from working. The most recent request from the user is to improve the mass AI document import feature.
 
 **Recent User Requests:**
-1.  **AI Import Logging:** Create a logging system for massive AI data imports. This system must log both successes and failures. (Implemented in the previous session).
-2.  **Unify Log Pages:** The user requested that the System Logs page and the new AI Import Logs page be merged into a single, tabbed interface. (Implemented in the previous session).
-3.  **Bug Reports (from previous session):**
-    *   A  error with the OpenAI API during mass imports.
-    *   The sidebar menu disappears on the Mapeamento NIF page.
-    *   An unwanted Configurações tab is appearing.
-    *   Documents are not appearing on the client's process page.
-4.  **Feature Request:** select errors in the logs to mark them as resolved.
-5.  **New Bug Reports (from this session):**
-    *    error during mass import, even after installation.
+1.  **Fix Critical Bugs (Now Resolved):**
+    *   
+    *   OpenAI  error.
+    *   Imported files not appearing on the background processes page.
+    *   CI/CD pipeline failures due to Python dependency conflicts.
+2.  **Improve AI Mass Import Logic (Current Task):**
+    *   After fixing the data extraction, the user found that financial and credit data was not being updated on the client's profile.
+    *   The user has requested a new import flow: process documents client by client.
+    *   The system should read all documents for a given client, hold the extracted information in memory, deduplicate the data (using the most recent value), and then save the consolidated information to the client's profile in a single operation.
+    *   The user specified that if there are multiple salary documents, they should be aggregated as the client might have more than one job.
 
-**PRODUCT REQUIREMENTS (from user messages and handoff):**
--   **P0 Bugs:**
-    1.  **:** Critical backend dependency failure blocking AI features.
-    2.  **OpenAI  Error:** This error is currently masked by the  but will likely reappear if the dependency is fixed without the correct code changes.
--   **P1 UI/UX & Feature Changes:**
-    1.  **Background Process Page:** An imported file did not appear on the background processes page. (Pending investigation).
--   **P2 Feature Requests:**
-    1.  **Select Errors in Logs:** Allow users to select log entries for bulk actions like marking as resolved. (IMPLEMENTED)
+**PRODUCT REQUIREMENTS:**
+-   **P0 Feature: Implement Client-by-Client AI Import Logic**
+    1.  Refactor the document upload process to handle all files for a single client as one batch.
+    2.  In the backend, accumulate extracted data from all documents in the batch.
+    3.  Before saving, implement a deduplication and consolidation logic, prioritizing the most recent data.
+    4.  Handle special cases, like aggregating multiple salaries.
+    5.  Perform a single, comprehensive update to the client's record in the database.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-The application is a full-stack CRM. In this session, the agent fixed several UI bugs: the unwanted Configurações tab was removed, and the disappearing sidebar on the Mapeamento NIF page was corrected. A bug preventing client documents from appearing was also fixed by adding a compatibility endpoint in the backend.
+The application is a full-stack CRM. In this session, several critical bugs have been resolved:
+-   The  for  was fixed by correctly configuring  with an .
+-   The background job system was refactored to use MongoDB for persistence, making it reliable across server restarts. The frontend was updated to create and track these jobs.
+-   Multiple Python dependency conflicts and security vulnerabilities were resolved, fixing the CI/CD pipeline.
+-   The core issue preventing AI-extracted data from being saved has been fixed. The agent improved the data mapping logic, added specific prompts for document types (e.g., credit reports), and corrected an  by using the . Agent-led tests confirm that financial and credit data is now successfully extracted from PDFs and saved to the client's database record.
 
-A new feature was implemented allowing users to select multiple system log errors and mark them as resolved in bulk.
-
-However, the Mass AI Import feature is critically broken. The session ended while trying to fix a recurring  error, which prevents the backend from using the necessary OpenAI integration library.
+The foundation for the AI import is now stable, but the process logic needs to be updated to match the user's latest requirements.
 
 **Last working item**:
--   **Last item agent was working**: The agent was trying to resolve a recurring  reported by the user. The agent attempted to install the package via 
-Usage:   
-  pip <command> [options]
-
-Commands:
-  install                     Install packages.
-  lock                        Generate a lock file.
-  download                    Download packages.
-  uninstall                   Uninstall packages.
-  freeze                      Output installed packages in requirements format.
-  inspect                     Inspect the python environment.
-  list                        List installed packages.
-  show                        Show information about installed packages.
-  check                       Verify installed packages have compatible dependencies.
-  config                      Manage local and global configuration.
-  search                      Search PyPI for packages.
-  cache                       Inspect and manage pip's wheel cache.
-  index                       Inspect information available from package indexes.
-  wheel                       Build wheels from your requirements.
-  hash                        Compute hashes of package archives.
-  completion                  A helper command used for command completion.
-  debug                       Show information useful for debugging.
-  help                        Show help for commands.
-
-General Options:
-  -h, --help                  Show help.
-  --debug                     Let unhandled exceptions propagate outside the
-                              main subroutine, instead of logging them to
-                              stderr.
-  --isolated                  Run pip in an isolated mode, ignoring
-                              environment variables and user configuration.
-  --require-virtualenv        Allow pip to only run in a virtual environment;
-                              exit with an error otherwise.
-  --python <python>           Run pip with the specified Python interpreter.
-  -v, --verbose               Give more output. Option is additive, and can be
-                              used up to 3 times.
-  -V, --version               Show version and exit.
-  -q, --quiet                 Give less output. Option is additive, and can be
-                              used up to 3 times (corresponding to WARNING,
-                              ERROR, and CRITICAL logging levels).
-  --log <path>                Path to a verbose appending log.
-  --no-input                  Disable prompting for input.
-  --keyring-provider <keyring_provider>
-                              Enable the credential lookup via the keyring
-                              library if user input is allowed. Specify which
-                              mechanism to use [auto, disabled, import,
-                              subprocess]. (default: auto)
-  --proxy <proxy>             Specify a proxy in the form
-                              scheme://[user:passwd@]proxy.server:port.
-  --retries <retries>         Maximum attempts to establish a new HTTP
-                              connection. (default: 5)
-  --timeout <sec>             Set the socket timeout (default 15 seconds).
-  --exists-action <action>    Default action when a path already exists:
-                              (s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort.
-  --trusted-host <hostname>   Mark this host or host:port pair as trusted,
-                              even though it does not have valid or any HTTPS.
-  --cert <path>               Path to PEM-encoded CA certificate bundle. If
-                              provided, overrides the default. See 'SSL
-                              Certificate Verification' in pip documentation
-                              for more information.
-  --client-cert <path>        Path to SSL client certificate, a single file
-                              containing the private key and the certificate
-                              in PEM format.
-  --cache-dir <dir>           Store the cache data in <dir>.
-  --no-cache-dir              Disable the cache.
-  --disable-pip-version-check
-                              Don't periodically check PyPI to determine
-                              whether a new version of pip is available for
-                              download. Implied with --no-index.
-  --no-color                  Suppress colored output.
-  --use-feature <feature>     Enable new functionality, that may be backward
-                              incompatible.
-  --use-deprecated <feature>  Enable deprecated functionality, that will be
-                              removed in the future.
-  --resume-retries <resume_retries>
-                              Maximum attempts to resume or restart an
-                              incomplete download. (default: 5) multiple times, but the error persisted, indicating a deeper issue with the environment or dependency management.
--   **Status**: BLOCKED
--   **Agent Testing Done**: N (The fix was not successful)
--   **Which testing method agent to use?**: backend testing agent. The agent needs to verify the dependency is correctly installed and accessible by the runtime. This can be done by executing a small script that tries to import the module.
--   **User Testing Done**: N (User reported the issue is still present)
+-   **Last item agent was working**: The agent had just finished verifying that the fixes to the data extraction and mapping logic were working correctly. It successfully processed a salary slip and a credit report, and confirmed via database lookups that the client's financial and credit information was updated. The agent was about to start implementing the user's new client-by-client import flow.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y (for the data saving part, not the new process)
+-   **Which testing method agent to use?**: both. The backend logic for aggregation needs to be tested, and the full end-to-end flow should be verified using the frontend testing agent to simulate a user uploading multiple documents for one client.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1:  (P0, HIGHEST PRIORITY)**
--   **Issue 2: Client error '401 Unauthorized' for OpenAI API (P0, BLOCKED)**
-
-**Issues Detail**:
--   **Issue 1: **
-    -   **Attempted fixes**: The agent ran Looking in indexes: https://pypi.org/simple, https://d33sy5i8bnduwe.cloudfront.net/simple/, https://d33sy5i8bnduwe.cloudfront.net/simple/
-Requirement already satisfied: emergentintegrations in /root/.venv/lib/python3.11/site-packages (0.1.0)
-Requirement already satisfied: openai==1.99.9 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (1.99.9)
-Requirement already satisfied: litellm>=1.0.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (1.80.0)
-Requirement already satisfied: fastapi>=0.100.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (0.129.0)
-Requirement already satisfied: uvicorn>=0.22.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (0.25.0)
-Requirement already satisfied: aiohttp>=3.8.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (3.13.3)
-Requirement already satisfied: google-generativeai>=0.3.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (0.8.6)
-Requirement already satisfied: Pillow>=10.0.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (12.1.0)
-Requirement already satisfied: google-genai in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (1.57.0)
-Requirement already satisfied: stripe>=13.0.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (14.1.0)
-Requirement already satisfied: requests>=2.25.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (2.32.5)
-Requirement already satisfied: anyio<5,>=3.5.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (4.12.0)
-Requirement already satisfied: distro<2,>=1.7.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (1.9.0)
-Requirement already satisfied: httpx<1,>=0.23.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (0.28.1)
-Requirement already satisfied: jiter<1,>=0.4.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (0.12.0)
-Requirement already satisfied: pydantic<3,>=1.9.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (2.12.5)
-Requirement already satisfied: sniffio in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (1.3.1)
-Requirement already satisfied: tqdm>4 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (4.67.1)
-Requirement already satisfied: typing-extensions<5,>=4.11 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (4.15.0)
-Requirement already satisfied: idna>=2.8 in /root/.venv/lib/python3.11/site-packages (from anyio<5,>=3.5.0->openai==1.99.9->emergentintegrations) (3.11)
-Requirement already satisfied: certifi in /root/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->openai==1.99.9->emergentintegrations) (2026.1.4)
-Requirement already satisfied: httpcore==1.* in /root/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->openai==1.99.9->emergentintegrations) (1.0.9)
-Requirement already satisfied: h11>=0.16 in /root/.venv/lib/python3.11/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->openai==1.99.9->emergentintegrations) (0.16.0)
-Requirement already satisfied: annotated-types>=0.6.0 in /root/.venv/lib/python3.11/site-packages (from pydantic<3,>=1.9.0->openai==1.99.9->emergentintegrations) (0.7.0)
-Requirement already satisfied: pydantic-core==2.41.5 in /root/.venv/lib/python3.11/site-packages (from pydantic<3,>=1.9.0->openai==1.99.9->emergentintegrations) (2.41.5)
-Requirement already satisfied: typing-inspection>=0.4.2 in /root/.venv/lib/python3.11/site-packages (from pydantic<3,>=1.9.0->openai==1.99.9->emergentintegrations) (0.4.2)
-Requirement already satisfied: aiohappyeyeballs>=2.5.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (2.6.1)
-Requirement already satisfied: aiosignal>=1.4.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (1.4.0)
-Requirement already satisfied: attrs>=17.3.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (25.4.0)
-Requirement already satisfied: frozenlist>=1.1.1 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (1.8.0)
-Requirement already satisfied: multidict<7.0,>=4.5 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (6.7.0)
-Requirement already satisfied: propcache>=0.2.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (0.4.1)
-Requirement already satisfied: yarl<2.0,>=1.17.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (1.22.0)
-Requirement already satisfied: starlette<1.0.0,>=0.40.0 in /root/.venv/lib/python3.11/site-packages (from fastapi>=0.100.0->emergentintegrations) (0.52.1)
-Requirement already satisfied: annotated-doc>=0.0.2 in /root/.venv/lib/python3.11/site-packages (from fastapi>=0.100.0->emergentintegrations) (0.0.4)
-Requirement already satisfied: google-ai-generativelanguage==0.6.15 in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (0.6.15)
-Requirement already satisfied: google-api-core in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (2.29.0)
-Requirement already satisfied: google-api-python-client in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (2.187.0)
-Requirement already satisfied: google-auth>=2.15.0 in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (2.47.0)
-Requirement already satisfied: protobuf in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (5.29.5)
-Requirement already satisfied: proto-plus<2.0.0dev,>=1.22.3 in /root/.venv/lib/python3.11/site-packages (from google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->emergentintegrations) (1.27.0)
-Requirement already satisfied: googleapis-common-protos<2.0.0,>=1.56.2 in /root/.venv/lib/python3.11/site-packages (from google-api-core->google-generativeai>=0.3.0->emergentintegrations) (1.72.0)
-Requirement already satisfied: grpcio<2.0.0,>=1.33.2 in /root/.venv/lib/python3.11/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->emergentintegrations) (1.76.0)
-Requirement already satisfied: grpcio-status<2.0.0,>=1.33.2 in /root/.venv/lib/python3.11/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->emergentintegrations) (1.71.2)
-Requirement already satisfied: pyasn1-modules>=0.2.1 in /root/.venv/lib/python3.11/site-packages (from google-auth>=2.15.0->google-generativeai>=0.3.0->emergentintegrations) (0.4.2)
-Requirement already satisfied: rsa<5,>=3.1.4 in /root/.venv/lib/python3.11/site-packages (from google-auth>=2.15.0->google-generativeai>=0.3.0->emergentintegrations) (4.9.1)
-Requirement already satisfied: charset_normalizer<4,>=2 in /root/.venv/lib/python3.11/site-packages (from requests>=2.25.0->emergentintegrations) (3.4.4)
-Requirement already satisfied: urllib3<3,>=1.21.1 in /root/.venv/lib/python3.11/site-packages (from requests>=2.25.0->emergentintegrations) (2.6.3)
-Requirement already satisfied: pyasn1>=0.1.3 in /root/.venv/lib/python3.11/site-packages (from rsa<5,>=3.1.4->google-auth>=2.15.0->google-generativeai>=0.3.0->emergentintegrations) (0.6.1)
-Requirement already satisfied: click in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (8.3.1)
-Requirement already satisfied: fastuuid>=0.13.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (0.14.0)
-Requirement already satisfied: importlib-metadata>=6.8.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (8.7.1)
-Requirement already satisfied: jinja2<4.0.0,>=3.1.2 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (3.1.6)
-Requirement already satisfied: jsonschema<5.0.0,>=4.22.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (4.26.0)
-Requirement already satisfied: python-dotenv>=0.2.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (1.2.1)
-Requirement already satisfied: tiktoken>=0.7.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (0.12.0)
-Requirement already satisfied: tokenizers in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (0.22.2)
-Requirement already satisfied: MarkupSafe>=2.0 in /root/.venv/lib/python3.11/site-packages (from jinja2<4.0.0,>=3.1.2->litellm>=1.0.0->emergentintegrations) (3.0.3)
-Requirement already satisfied: jsonschema-specifications>=2023.03.6 in /root/.venv/lib/python3.11/site-packages (from jsonschema<5.0.0,>=4.22.0->litellm>=1.0.0->emergentintegrations) (2025.9.1)
-Requirement already satisfied: referencing>=0.28.4 in /root/.venv/lib/python3.11/site-packages (from jsonschema<5.0.0,>=4.22.0->litellm>=1.0.0->emergentintegrations) (0.37.0)
-Requirement already satisfied: rpds-py>=0.25.0 in /root/.venv/lib/python3.11/site-packages (from jsonschema<5.0.0,>=4.22.0->litellm>=1.0.0->emergentintegrations) (0.30.0)
-Requirement already satisfied: zipp>=3.20 in /root/.venv/lib/python3.11/site-packages (from importlib-metadata>=6.8.0->litellm>=1.0.0->emergentintegrations) (3.23.0)
-Requirement already satisfied: regex>=2022.1.18 in /root/.venv/lib/python3.11/site-packages (from tiktoken>=0.7.0->litellm>=1.0.0->emergentintegrations) (2025.11.3)
-Requirement already satisfied: httplib2<1.0.0,>=0.19.0 in /root/.venv/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (0.31.0)
-Requirement already satisfied: google-auth-httplib2<1.0.0,>=0.2.0 in /root/.venv/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (0.3.0)
-Requirement already satisfied: uritemplate<5,>=3.0.1 in /root/.venv/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (4.2.0)
-Requirement already satisfied: pyparsing<4,>=3.0.4 in /root/.venv/lib/python3.11/site-packages (from httplib2<1.0.0,>=0.19.0->google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (3.3.1)
-Requirement already satisfied: tenacity<9.2.0,>=8.2.3 in /root/.venv/lib/python3.11/site-packages (from google-genai->emergentintegrations) (9.1.2)
-Requirement already satisfied: websockets<15.1.0,>=13.0.0 in /root/.venv/lib/python3.11/site-packages (from google-genai->emergentintegrations) (15.0.1)
-Requirement already satisfied: huggingface-hub<2.0,>=0.16.4 in /root/.venv/lib/python3.11/site-packages (from tokenizers->litellm>=1.0.0->emergentintegrations) (1.2.4)
-Requirement already satisfied: filelock in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (3.21.0)
-Requirement already satisfied: fsspec>=2023.5.0 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (2025.12.0)
-Requirement already satisfied: hf-xet<2.0.0,>=1.2.0 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (1.2.0)
-Requirement already satisfied: packaging>=20.9 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (25.0)
-Requirement already satisfied: pyyaml>=5.1 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (6.0.3)
-Requirement already satisfied: shellingham in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (1.5.4)
-Requirement already satisfied: typer-slim in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (0.21.1) multiple times. This was not sufficient, as the error recurred. This suggests the package is not being persisted in the environment correctly upon service restart.
-    -   **Next debug checklist**:
-        1.  After a successful installation, immediately update : Looking in indexes: https://pypi.org/simple, https://d33sy5i8bnduwe.cloudfront.net/simple/, ...
-Requirement already satisfied: emergentintegrations in /root/.venv/lib/python3.11/site-packages (0.1.0)
-Requirement already satisfied: openai==1.99.9 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (1.99.9)
-Requirement already satisfied: litellm>=1.0.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (1.80.0)
-Requirement already satisfied: fastapi>=0.100.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (0.129.0)
-Requirement already satisfied: uvicorn>=0.22.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (0.25.0)
-Requirement already satisfied: aiohttp>=3.8.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (3.13.3)
-Requirement already satisfied: google-generativeai>=0.3.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (0.8.6)
-Requirement already satisfied: Pillow>=10.0.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (12.1.0)
-Requirement already satisfied: google-genai in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (1.57.0)
-Requirement already satisfied: stripe>=13.0.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (14.1.0)
-Requirement already satisfied: requests>=2.25.0 in /root/.venv/lib/python3.11/site-packages (from emergentintegrations) (2.32.5)
-Requirement already satisfied: anyio<5,>=3.5.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (4.12.0)
-Requirement already satisfied: distro<2,>=1.7.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (1.9.0)
-Requirement already satisfied: httpx<1,>=0.23.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (0.28.1)
-Requirement already satisfied: jiter<1,>=0.4.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (0.12.0)
-Requirement already satisfied: pydantic<3,>=1.9.0 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (2.12.5)
-Requirement already satisfied: sniffio in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (1.3.1)
-Requirement already satisfied: tqdm>4 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (4.67.1)
-Requirement already satisfied: typing-extensions<5,>=4.11 in /root/.venv/lib/python3.11/site-packages (from openai==1.99.9->emergentintegrations) (4.15.0)
-Requirement already satisfied: idna>=2.8 in /root/.venv/lib/python3.11/site-packages (from anyio<5,>=3.5.0->openai==1.99.9->emergentintegrations) (3.11)
-Requirement already satisfied: certifi in /root/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->openai==1.99.9->emergentintegrations) (2026.1.4)
-Requirement already satisfied: httpcore==1.* in /root/.venv/lib/python3.11/site-packages (from httpx<1,>=0.23.0->openai==1.99.9->emergentintegrations) (1.0.9)
-Requirement already satisfied: h11>=0.16 in /root/.venv/lib/python3.11/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->openai==1.99.9->emergentintegrations) (0.16.0)
-Requirement already satisfied: annotated-types>=0.6.0 in /root/.venv/lib/python3.11/site-packages (from pydantic<3,>=1.9.0->openai==1.99.9->emergentintegrations) (0.7.0)
-Requirement already satisfied: pydantic-core==2.41.5 in /root/.venv/lib/python3.11/site-packages (from pydantic<3,>=1.9.0->openai==1.99.9->emergentintegrations) (2.41.5)
-Requirement already satisfied: typing-inspection>=0.4.2 in /root/.venv/lib/python3.11/site-packages (from pydantic<3,>=1.9.0->openai==1.99.9->emergentintegrations) (0.4.2)
-Requirement already satisfied: aiohappyeyeballs>=2.5.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (2.6.1)
-Requirement already satisfied: aiosignal>=1.4.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (1.4.0)
-Requirement already satisfied: attrs>=17.3.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (25.4.0)
-Requirement already satisfied: frozenlist>=1.1.1 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (1.8.0)
-Requirement already satisfied: multidict<7.0,>=4.5 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (6.7.0)
-Requirement already satisfied: propcache>=0.2.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (0.4.1)
-Requirement already satisfied: yarl<2.0,>=1.17.0 in /root/.venv/lib/python3.11/site-packages (from aiohttp>=3.8.0->emergentintegrations) (1.22.0)
-Requirement already satisfied: starlette<1.0.0,>=0.40.0 in /root/.venv/lib/python3.11/site-packages (from fastapi>=0.100.0->emergentintegrations) (0.52.1)
-Requirement already satisfied: annotated-doc>=0.0.2 in /root/.venv/lib/python3.11/site-packages (from fastapi>=0.100.0->emergentintegrations) (0.0.4)
-Requirement already satisfied: google-ai-generativelanguage==0.6.15 in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (0.6.15)
-Requirement already satisfied: google-api-core in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (2.29.0)
-Requirement already satisfied: google-api-python-client in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (2.187.0)
-Requirement already satisfied: google-auth>=2.15.0 in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (2.47.0)
-Requirement already satisfied: protobuf in /root/.venv/lib/python3.11/site-packages (from google-generativeai>=0.3.0->emergentintegrations) (5.29.5)
-Requirement already satisfied: proto-plus<2.0.0dev,>=1.22.3 in /root/.venv/lib/python3.11/site-packages (from google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->emergentintegrations) (1.27.0)
-Requirement already satisfied: googleapis-common-protos<2.0.0,>=1.56.2 in /root/.venv/lib/python3.11/site-packages (from google-api-core->google-generativeai>=0.3.0->emergentintegrations) (1.72.0)
-Requirement already satisfied: grpcio<2.0.0,>=1.33.2 in /root/.venv/lib/python3.11/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->emergentintegrations) (1.76.0)
-Requirement already satisfied: grpcio-status<2.0.0,>=1.33.2 in /root/.venv/lib/python3.11/site-packages (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.3.0->emergentintegrations) (1.71.2)
-Requirement already satisfied: pyasn1-modules>=0.2.1 in /root/.venv/lib/python3.11/site-packages (from google-auth>=2.15.0->google-generativeai>=0.3.0->emergentintegrations) (0.4.2)
-Requirement already satisfied: rsa<5,>=3.1.4 in /root/.venv/lib/python3.11/site-packages (from google-auth>=2.15.0->google-generativeai>=0.3.0->emergentintegrations) (4.9.1)
-Requirement already satisfied: charset_normalizer<4,>=2 in /root/.venv/lib/python3.11/site-packages (from requests>=2.25.0->emergentintegrations) (3.4.4)
-Requirement already satisfied: urllib3<3,>=1.21.1 in /root/.venv/lib/python3.11/site-packages (from requests>=2.25.0->emergentintegrations) (2.6.3)
-Requirement already satisfied: pyasn1>=0.1.3 in /root/.venv/lib/python3.11/site-packages (from rsa<5,>=3.1.4->google-auth>=2.15.0->google-generativeai>=0.3.0->emergentintegrations) (0.6.1)
-Requirement already satisfied: click in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (8.3.1)
-Requirement already satisfied: fastuuid>=0.13.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (0.14.0)
-Requirement already satisfied: importlib-metadata>=6.8.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (8.7.1)
-Requirement already satisfied: jinja2<4.0.0,>=3.1.2 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (3.1.6)
-Requirement already satisfied: jsonschema<5.0.0,>=4.22.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (4.26.0)
-Requirement already satisfied: python-dotenv>=0.2.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (1.2.1)
-Requirement already satisfied: tiktoken>=0.7.0 in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (0.12.0)
-Requirement already satisfied: tokenizers in /root/.venv/lib/python3.11/site-packages (from litellm>=1.0.0->emergentintegrations) (0.22.2)
-Requirement already satisfied: MarkupSafe>=2.0 in /root/.venv/lib/python3.11/site-packages (from jinja2<4.0.0,>=3.1.2->litellm>=1.0.0->emergentintegrations) (3.0.3)
-Requirement already satisfied: jsonschema-specifications>=2023.03.6 in /root/.venv/lib/python3.11/site-packages (from jsonschema<5.0.0,>=4.22.0->litellm>=1.0.0->emergentintegrations) (2025.9.1)
-Requirement already satisfied: referencing>=0.28.4 in /root/.venv/lib/python3.11/site-packages (from jsonschema<5.0.0,>=4.22.0->litellm>=1.0.0->emergentintegrations) (0.37.0)
-Requirement already satisfied: rpds-py>=0.25.0 in /root/.venv/lib/python3.11/site-packages (from jsonschema<5.0.0,>=4.22.0->litellm>=1.0.0->emergentintegrations) (0.30.0)
-Requirement already satisfied: zipp>=3.20 in /root/.venv/lib/python3.11/site-packages (from importlib-metadata>=6.8.0->litellm>=1.0.0->emergentintegrations) (3.23.0)
-Requirement already satisfied: regex>=2022.1.18 in /root/.venv/lib/python3.11/site-packages (from tiktoken>=0.7.0->litellm>=1.0.0->emergentintegrations) (2025.11.3)
-Requirement already satisfied: httplib2<1.0.0,>=0.19.0 in /root/.venv/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (0.31.0)
-Requirement already satisfied: google-auth-httplib2<1.0.0,>=0.2.0 in /root/.venv/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (0.3.0)
-Requirement already satisfied: uritemplate<5,>=3.0.1 in /root/.venv/lib/python3.11/site-packages (from google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (4.2.0)
-Requirement already satisfied: pyparsing<4,>=3.0.4 in /root/.venv/lib/python3.11/site-packages (from httplib2<1.0.0,>=0.19.0->google-api-python-client->google-generativeai>=0.3.0->emergentintegrations) (3.3.1)
-Requirement already satisfied: tenacity<9.2.0,>=8.2.3 in /root/.venv/lib/python3.11/site-packages (from google-genai->emergentintegrations) (9.1.2)
-Requirement already satisfied: websockets<15.1.0,>=13.0.0 in /root/.venv/lib/python3.11/site-packages (from google-genai->emergentintegrations) (15.0.1)
-Requirement already satisfied: huggingface-hub<2.0,>=0.16.4 in /root/.venv/lib/python3.11/site-packages (from tokenizers->litellm>=1.0.0->emergentintegrations) (1.2.4)
-Requirement already satisfied: filelock in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (3.21.0)
-Requirement already satisfied: fsspec>=2023.5.0 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (2025.12.0)
-Requirement already satisfied: hf-xet<2.0.0,>=1.2.0 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (1.2.0)
-Requirement already satisfied: packaging>=20.9 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (25.0)
-Requirement already satisfied: pyyaml>=5.1 in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (6.0.3)
-Requirement already satisfied: shellingham in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (1.5.4)
-Requirement already satisfied: typer-slim in /root/.venv/lib/python3.11/site-packages (from huggingface-hub<2.0,>=0.16.4->tokenizers->litellm>=1.0.0->emergentintegrations) (0.21.1). The supervisor might be reinstalling dependencies from an outdated file on restart.
-        2.  Restart the backend service backend: stopped
-backend: started and check the logs (==> /var/log/supervisor/backend.err.log <==
-WARNING:  WatchFiles detected changes in 'tests/integration/test_iteration24_new_features.py', 'tests/integration/test_iteration6.py', 'tests/integration/test_iteration19_leads_stats.py', 'tests/integration/test_iteration18_nif_myclients.py', 'tests/integration/test_iteration15_none_data_fix.py', 'tests/integration/test_iteration29_skeleton_storage.py', 'tests/integration/test_iteration23_bugs_h_i_j_k.py'. Reloading...
-WARNING:root:libmagic não encontrado, a instalar... (failed to find libmagic.  Check your installation)
-ERROR:root:Erro ao instalar libmagic: Command '['apt-get', 'install', '-y', 'libmagic1']' returned non-zero exit status 100.
-INFO:     Stopping reloader process [47]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [721] using WatchFiles
-WARNING:root:libmagic não encontrado, a instalar... (failed to find libmagic.  Check your installation)
-
-==> /var/log/supervisor/backend.out.log <==) for any installation or import errors during startup.
-        3.  If the error persists, add a debug statement  at the top of  to inspect the Python path when the request is handled.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker. The entire AI-powered document import feature is unusable without this dependency.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Backend.
-    -   **Blocked on other issue**: None.
-
--   **Issue 2: Client error '401 Unauthorized' for OpenAI API**
-    -   **Attempted fixes**: The code in  was refactored to use the  library ( with ) instead of making direct calls to  or . This is the correct approach for using the .
-    -   **Next debug checklist**: This issue cannot be tested until Issue 1 is resolved. Once  can be imported successfully, the user should be asked to retry the mass import. The refactored code should now handle authentication correctly.
-    -   **Why fix this issue and what will be achieved with the fix?**: Enables the core AI import functionality.
-    -   **Status**: BLOCKED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Backend.
-    -   **Blocked on other issue**: Issue 1: 
+-   None. Previous issues are resolved. The current focus is on a new feature implementation.
 
 **In progress Task List**:
--   None.
+-   **Task 1: Implement Client-by-Client AI Import Logic (P0, HIGHEST PRIORITY)**
+
+**Task Detail**:
+-   **Task 1: Implement Client-by-Client AI Import Logic**
+    -   **Where to resume**: The data extraction and saving for a *single* document is now working. The next step is to build the aggregation and deduplication logic for a *batch* of documents for a single client.
+        1.  **Backend ():** Modify or create a new function that takes a list of extracted data dictionaries (from multiple documents). This function will iterate through them, consolidate the data into a single update object, handle duplicates by taking the latest value, and aggregate fields like salaries.
+        2.  **Backend ():** The  endpoint logic needs to be adapted. It might need to store extracted data temporarily (e.g., in a Redis cache or a temporary DB collection keyed by ) instead of immediately updating the client.
+        3.  **Backend ():** A new function or modification to  will be needed to trigger the final aggregation and database update once all files in a session are processed.
+        4.  **Frontend ():** Ensure the frontend correctly groups files by client and manages the upload session.
+    -   **What will be achieved with this?**: The AI import feature will become more robust, prevent data overwrites with older information, handle complex scenarios like multiple jobs, and ensure data integrity on the client's profile.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
-**Upcoming Tasks:**
--   **P1**: Investigate why an imported file did not appear on the background processes page.
-
 **Future Tasks (Backlog):**
 -   **P3**: Replace offset-based pagination with cursor-based pagination.
 -   **P3**: Refactor the large  file into smaller modules.
 -   **P3**: Implement a Redis caching layer for frequently accessed data.
 
 **Completed work in this session**
--   **Unwanted Configurações Tab (FIXED)**: Removed the extra tab from .
--   **Disappearing Sidebar on NIF Page (FIXED)**: Wrapped  with the  component to ensure the sidebar is always visible.
--   **Documents Not Appearing (FIXED)**: Created a new compatibility endpoint  in  that internally fetches documents from the existing S3 service, resolving the frontend's broken API call.
--   **Select/Bulk Resolve Errors Feature (DONE)**: Implemented checkboxes on the system logs page () and a backend endpoint () to allow users to mark multiple errors as resolved.
+-   ** (FIXED)**: Resolved the recurring  dependency issue by updating  with the correct private index URL.
+-   **Background Jobs System (FIXED)**: Migrated job tracking from an in-memory dictionary to a persistent MongoDB collection.
+-   **CI/CD Dependency Failures (FIXED)**: Resolved multiple version conflicts and security vulnerabilities in .
+-   **AI Data Not Saving (FIXED)**:
+    -   Corrected the  usage, resolving a 401 error.
+    -   Greatly improved the data mapping logic in .
+    -   Fixed a  in the mapping logic.
+    -   Verified that financial data (salary, etc.) and credit data (loans, total debt) are now correctly extracted and saved to the client profile.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** An imported file did not appear on the background processes page. This was mentioned in the initial handoff but was not addressed.
-    -   **Debug checklist**:
-        1.  Check the logic that adds entries to the background processes page.
-        2.  Verify if the AI import process is supposed to create an entry there.
-        3.  Inspect the database and backend logs after an import to see what happens.
-    -   **Why to solve this issue and what will be achieved with this?**: Provides users with visibility into ongoing and completed background tasks.
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Is recurring issue?**: N
+-   None.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**:  dependency failure.
--   **Recurrence count**: 2+ in this session.
--   **Status**: IN PROGRESS
+-   **Recurrence count**: 2+
+-   **Status**: RESOLVED. The fix of adding  to  should be permanent.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Dependency Management**: The main blocker is a recurring , highlighting the importance of correctly persisting dependencies in .
--   **Compatibility Layer**: A new backend endpoint was created to support an old frontend API call without modifying the frontend, ensuring backward compatibility while using a newer service (S3 instead of OneDrive).
--   **Bulk Actions**: Implemented a full-stack feature for bulk operations (select all, select individual, perform action) on a list of items.
--   **Integration Abstraction**: The code was correctly refactored to use the  library, which is the proper way to interact with LLMs using the platform's .
+-   **Dependency Management**: Using  with  for private package repositories and resolving complex version conflicts.
+-   **Stateful Background Jobs**: Migrating a process from a stateless in-memory implementation to a stateful, persistent one using MongoDB.
+-   **AI-Powered Data Extraction**: Using targeted LLM prompts to extract structured data from unstructured PDF documents.
+-   **Data Mapping & Transformation**: The critical logic in  that translates raw LLM JSON output into the application's database schema. This was the key to fixing the data saving issue.
 
 **key DB schema**
--   ****: Modified to support bulk updates. No schema change.
+-   ****: (NEW) Stores information about background processes, including AI import sessions.
+-   ****: The , , and  fields are now being correctly populated by the AI import process.
+-   ****: Used to prevent re-analysis of the same document.
 
 **All files of reference**
--   **Significantly Modified**:
-    -    (Refactored for )
-    -    (Added bulk selection UI)
-    -    (Added bulk resolve endpoint)
-    -    (Added bulk resolve logic)
-    -    (Added document compatibility endpoint)
-    -    (Fixed layout)
-    -    (Fixed tabs)
+-   **Core Logic**:
+    -   : Contains the main logic for mapping extracted data to client fields. This is where the new aggregation logic will go.
+    -   : Handles the API endpoints for document analysis and import sessions.
+    -   : Manages the background job state.
+    -   : The UI component for uploading files.
+-   **Configuration**:
+    -   : The definitive list of backend dependencies.
+    -   : Stores the .
 
 **Areas that need refactoring**:
-- The agent should add newly installed dependencies to  to prevent recurrence of module not found errors.
+-   The  function in  is becoming very large and complex. It should be broken down into smaller, more manageable functions, possibly one for each document type or data category (financial, credit, etc.).
 
 **key api endpoints**
--   : (NEW) Marks multiple system error logs as resolved.
--   : (NEW) Compatibility endpoint to fetch client documents from S3.
--   : (MODIFIED) Now relies on  library.
+-   : (NEW) Creates a new background job for an import session.
+-   : (NEW) Updates the progress of an import session.
+-   : (NEW) Finalizes an import session.
+-   : The core endpoint that processes a single document.
+-   : Lists all current and past background jobs.
 
 **Critical Info for New Agent**
--   **Your immediate and only priority is to fix the .** The application is critically blocked.
--   **The root cause is likely an outdated  file.** The supervisor probably re-installs dependencies from this file on every restart, overwriting your manual .
--   **The correct fix is to run  and immediately follow it with  in the same command.** This will persist the dependency.
--   Do not try to fix the OpenAI  error again. The code in  is likely correct now. That error was a symptom of not using the  library, and it will be resolved once the  is fixed.
+-   Your primary task is to implement the user's new requirement for the AI mass import process: client by client aggregation.
+-   All critical blockers are **resolved**. The AI can now correctly read PDFs and save the data. You are building the final process layer on top of this working foundation.
+-   The core of the work will be in the backend, specifically creating a new aggregation logic that works with the data extracted by .
+-   Do not touch the  or dependency setup in  unless absolutely necessary. It is stable now.
+-   The user's request is clear: read all of a client's documents, combine the data in memory (deduplicating and taking the most recent), then save once.
 
 **documents and test reports created in this job**
--    (Updated with completed tasks)
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User #212:** No module named emergentintegrations. The error continues. - **Status: PENDING FIX**
--   **User #191:** Client error 401 Unauthorized... No module named emergentintegrations. Got these two errors on mass import. - **Status: PENDING FIX**
--   **User #122:** I accept the suggestion. Implement P0 and P2 - allow selecting some or all errors to mark as completed for example - **Status: ADDRESSED** (feature implemented, but underlying bugs resurfaced).
--   **User #5:** confirmo - **Status: ADDRESSED** (user approved the initial plan).
+-   **User #256**: acaba o q tens pendente (finish what you have pending) - **Status: IN PROGRESS**. The agent is now working on the final part of the user's request.
+-   **User #254**: User confirms all data is now being saved correctly. - **Status: ADDRESSED**.
+-   **User #228**: User asks to test again after backend restart. - **Status: ADDRESSED**.
+-   **User #214**: User asks to test analysis again. - **Status: ADDRESSED**.
+-   **User #130**: User provides sample documents and clarifies the new import logic requirements. - **Status: IN PROGRESS**. This is the core pending task.
+-   **User #126**: User reports that although the import runs without errors, the client's financial, real estate, and credit fields are not being updated. Requests a new client-by-client import flow. - **Status: IN PROGRESS**.
 
 **Project Health Check:**
--   **Broken**: Yes. The core AI feature is non-functional due to a recurring dependency error.
+-   **Broken**: No. The application is stable and core features are working.
+-   **Mocked**: No.
 
 **3rd Party Integrations**
 -   AWS S3
--   OpenAI GPT-4o — uses Emergent LLM Key (Currently broken due to )
+-   OpenAI GPT-4o — uses Emergent LLM Key (Connection is now stable and working)
 -    library
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The testing agent was used to verify UI fixes and the bulk-resolve feature, and all tests passed. However, the user later reported a critical runtime error () related to a different feature that was not covered in those tests.
+-   **Testing agent used after significant changes**: YES (for the background jobs feature).
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: None.
--   **Known regressions**: The fix for the OpenAI API failed due to a persistent dependency issue.
+-   **Test files created**: No.
+-   **Known regressions**: No.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
 -   **Admin Password**: 
 -   **Consultant Email**: 
 -   **Consultant Password**: 
+-   **Test Client**: A client named Bruna Gonçalves Caetano with NIF  exists in the system and can be used for testing.
 
 **What agent forgot to execute**
--   The agent repeatedly failed to update  after installing a new package, leading to a recurring .
--   The pending task from the previous handoff to investigate why an imported file did not appear on the background processes page was not addressed.</analysis>
+-   The agent fixed the underlying data extraction and saving issues but has not yet implemented the new, user-requested client-by-client aggregation and deduplication logic for mass imports. This is the main task to be completed.</analysis>

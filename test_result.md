@@ -375,7 +375,7 @@ agent_communication:
     - agent: "testing"
       message: "Comprehensive backend testing completed for CreditoIMO system. All core functionality working correctly. Fixed 2 issues: user account activation and deadline model compatibility. System ready for production use."
     - agent: "testing"
-      message: "Starting comprehensive frontend testing for CreditoIMO application. Testing 7 main components: public registration form, login system, admin dashboard, staff dashboard, user management, processes page, and statistics. Using viewport 1920x800 on https://ai-document-flow.preview.emergentagent.com"
+      message: "Starting comprehensive frontend testing for CreditoIMO application. Testing 7 main components: public registration form, login system, admin dashboard, staff dashboard, user management, processes page, and statistics. Using viewport 1920x800 on https://dedup-finance-data.preview.emergentagent.com"
     - agent: "testing"
       message: "✅ FRONTEND TESTING COMPLETED SUCCESSFULLY: All 7 major components working correctly. Public registration form (6-step wizard) ✅, Login system with role-based redirection ✅, Admin dashboard with Kanban board ✅, Staff dashboard with process cards ✅, User management ✅, All processes page ✅, Statistics page ✅. No critical console errors found. System ready for production use."
     - agent: "testing"
