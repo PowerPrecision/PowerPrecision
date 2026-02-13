@@ -1624,7 +1624,14 @@ def build_update_data_from_extraction(
         personal_update = {}
         
         colaboradora = extracted_data.get('colaboradora', extracted_data.get('funcionario', {}))
-        empresa = extracted_data.get('empresa', {})
+        empresa_raw = extracted_data.get('empresa', {})
+        
+        # Normalizar empresa (pode vir como string ou dict)
+        empresa = {}
+        if isinstance(empresa_raw, str):
+            empresa = {'nome': empresa_raw}
+        elif isinstance(empresa_raw, dict):
+            empresa = empresa_raw
         
         if colaboradora.get('tipo_contrato'):
             financial_update['tipo_contrato'] = colaboradora['tipo_contrato']
