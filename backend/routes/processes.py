@@ -328,13 +328,22 @@ async def get_kanban_board(
     if role in [UserRole.ADMIN, UserRole.CEO, UserRole.ADMINISTRATIVO]:
         if consultor_id:
             if consultor_id == "none":
-                query["$or"] = query.get("$or", [])
-                query["assigned_consultor_id"] = {"$in": [None, ""]}
+                # Sem consultor atribuído = null, undefined, ou string vazia
+                query["$or"] = [
+                    {"assigned_consultor_id": None},
+                    {"assigned_consultor_id": ""},
+                    {"assigned_consultor_id": {"$exists": False}}
+                ]
             else:
                 query["assigned_consultor_id"] = consultor_id
         if mediador_id:
             if mediador_id == "none":
-                query["assigned_mediador_id"] = {"$in": [None, ""]}
+                # Sem mediador atribuído
+                query["$or"] = [
+                    {"assigned_mediador_id": None},
+                    {"assigned_mediador_id": ""},
+                    {"assigned_mediador_id": {"$exists": False}}
+                ]
             else:
                 query["assigned_mediador_id"] = mediador_id
     
