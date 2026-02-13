@@ -807,6 +807,23 @@ const ProcessDetails = () => {
      process?.status === "autorizacao_bancaria" || process?.status === "aprovado");
   const canChangeStatus = ["consultor", "mediador", "admin"].includes(user?.role);
   const canManageDeadlines = ["consultor", "mediador", "admin"].includes(user?.role);
+  const canDeleteClient = ["admin", "ceo", "diretor"].includes(user?.role);
+
+  // Função para eliminar o cliente/processo
+  const handleDeleteClient = async () => {
+    if (!window.confirm(`Tem a certeza que deseja eliminar o cliente "${process?.client_name}"?\n\nEsta ação é irreversível.`)) {
+      return;
+    }
+    
+    try {
+      await deleteClient(id);
+      toast.success("Cliente eliminado com sucesso");
+      navigate("/clientes");
+    } catch (error) {
+      const message = error.response?.data?.detail || "Erro ao eliminar cliente";
+      toast.error(message);
+    }
+  };
 
   if (loading) {
     return (
