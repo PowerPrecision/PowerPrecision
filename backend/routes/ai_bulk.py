@@ -1151,7 +1151,7 @@ async def analyze_single_file(
                             extracted_data = analysis_result.get("extracted_data", {})
                             extracted_nif = extracted_data.get("nif")
                             if extracted_nif:
-                                cache_nif_mapping(
+                                await cache_nif_mapping(
                                     folder_name=folder_name,
                                     nif=extracted_nif,
                                     process_id=process_id,
