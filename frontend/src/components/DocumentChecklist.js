@@ -1,5 +1,5 @@
 /**
- * DocumentChecklist - Checklist de documentos do OneDrive
+ * DocumentChecklist - Checklist de documentos do sistema de armazenamento
  * Verifica se os documentos esperados estão na pasta do cliente
  */
 import React, { useState, useEffect, useCallback } from "react";
