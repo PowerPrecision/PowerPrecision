@@ -1564,6 +1564,114 @@ async def get_database_indexes(
     return {"success": True, "indexes": stats}
 
 
+# ============== AI IMPORT LOGS (Item 3 - Outros erros/melhorias) ==============
+
+@router.get("/ai-import-logs")
+async def get_ai_import_logs(
+    page: int = 1,
+    limit: int = 50,
+    status: str = None,
+    days: int = 7,
+    client_name: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém logs de importação massiva IA para integração no menu de Logs do sistema.
+    
+    Query params:
+    - page: Página (default 1)
+    - limit: Items por página (default 50)
+    - status: Filtrar por estado (success, error, warning)
+    - days: Últimos N dias (default 7)
+    - client_name: Filtrar por nome de cliente
+    """
+    skip = (page - 1) * limit
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    # Query base
+    query = {"timestamp": {"$gte": cutoff_date}}
+    
+    if status == "error":
+        query["resolved"] = False
+    elif status == "success":
+        query["resolved"] = True
+    
+    if client_name:
+        query["client_name"] = {"$regex": client_name, "$options": "i"}
+    
+    # Buscar erros de importação
+    errors = await db.import_errors.find(
+        query,
+        {"_id": 0}
+    ).sort("timestamp", -1).skip(skip).limit(limit).to_list(None)
+    
+    # Contagem total
+    total = await db.import_errors.count_documents(query)
+    
+    # Estatísticas rápidas
+    stats = {
+        "total_errors": await db.import_errors.count_documents({"timestamp": {"$gte": cutoff_date}}),
+        "unresolved": await db.import_errors.count_documents({"timestamp": {"$gte": cutoff_date}, "resolved": False}),
+        "resolved": await db.import_errors.count_documents({"timestamp": {"$gte": cutoff_date}, "resolved": True}),
+    }
+    
+    # Formatar logs para UI
+    formatted_logs = []
+    for error in errors:
+        formatted_logs.append({
+            "id": error.get("id"),
+            "timestamp": error.get("timestamp"),
+            "severity": "error" if not error.get("resolved") else "info",
+            "component": "ai_bulk_import",
+            "error_type": error.get("document_type", "import_error"),
+            "message": error.get("error", ""),
+            "details": {
+                "client_name": error.get("client_name"),
+                "filename": error.get("filename"),
+                "folder_name": error.get("folder_name"),
+                "matching_details": error.get("matching_details")
+            },
+            "resolved": error.get("resolved", False),
+            "user_email": error.get("user_email")
+        })
+    
+    return {
+        "logs": formatted_logs,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": (total + limit - 1) // limit
+        },
+        "stats": stats
+    }
+
+
+@router.post("/ai-import-logs/{log_id}/resolve")
+async def resolve_ai_import_log(
+    log_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Marca um log de importação como resolvido.
+    """
+    result = await db.import_errors.update_one(
+        {"id": log_id},
+        {
+            "$set": {
+                "resolved": True,
+                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_by": user.get("email", "admin")
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Log não encontrado")
+    
+    return {"success": True, "message": "Log marcado como resolvido"}
+
+
 @router.post("/db/indexes/repair")
 async def repair_database_indexes(
     user: dict = Depends(require_roles([UserRole.ADMIN]))
