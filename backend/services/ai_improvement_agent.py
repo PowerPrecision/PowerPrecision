@@ -248,7 +248,7 @@ class AIImprovementAgent:
     async def _get_ai_insight(self, stats: Dict, alerts: List[Dict]) -> Optional[Dict]:
         """Usa LLM para gerar insights personalizados."""
         
-        if not self.llm_client:
+        if not self.api_key:
             return None
         
         # Preparar contexto para a IA
@@ -268,11 +268,18 @@ class AIImprovementAgent:
         """
         
         try:
-            response = await self.llm_client.chat(
-                user_message=context,
-                system_prompt="És um consultor especializado em optimização de processos de crédito habitação. Dá sugestões práticas e accionáveis.",
-                model="gpt-4o-mini"
-            )
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            import uuid
+            
+            session_id = f"ai-insight-{uuid.uuid4().hex[:8]}"
+            chat = LlmChat(
+                api_key=self.api_key,
+                session_id=session_id,
+                system_message="És um consultor especializado em optimização de processos de crédito habitação. Dá sugestões práticas e accionáveis."
+            ).with_model("openai", "gpt-4o-mini")
+            
+            user_message = UserMessage(text=context)
+            response = await chat.send_message(user_message)
             
             if response:
                 return {
