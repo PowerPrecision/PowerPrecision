@@ -179,7 +179,28 @@ const KanbanBoard = ({ token, user, consultorFilter = "all", mediadorFilter = "a
 
   const fetchKanbanData = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/processes/kanban`, {
+      // Construir URL com filtros
+      const params = new URLSearchParams();
+      if (consultorFilter && consultorFilter !== "all") {
+        if (consultorFilter === "none") {
+          params.append("consultor_id", "none");
+        } else {
+          params.append("consultor_id", consultorFilter);
+        }
+      }
+      if (mediadorFilter && mediadorFilter !== "all") {
+        if (mediadorFilter === "none") {
+          params.append("mediador_id", "none");
+        } else {
+          params.append("mediador_id", mediadorFilter);
+        }
+      }
+      
+      const url = params.toString() 
+        ? `${API_URL}/api/processes/kanban?${params.toString()}`
+        : `${API_URL}/api/processes/kanban`;
+      
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch kanban data");
@@ -191,7 +212,7 @@ const KanbanBoard = ({ token, user, consultorFilter = "all", mediadorFilter = "a
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, consultorFilter, mediadorFilter]);
 
   useEffect(() => {
     fetchKanbanData();
