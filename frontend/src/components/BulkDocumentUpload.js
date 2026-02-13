@@ -245,6 +245,80 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
     }
   };
 
+  // Processar um único ficheiro (modo agregado - não salva imediatamente)
+  const processOneFileAggregated = async (file, sessionId) => {
+    const path = file.webkitRelativePath || file.name;
+    
+    // Extrair nome do cliente do path
+    const parts = path.replace("\\", "/").split("/");
+    let clientName, docFilename;
+    
+    if (parts.length >= 2) {
+      clientName = parts[1];
+      docFilename = parts[parts.length - 1];
+    } else {
+      docFilename = parts[0];
+      clientName = docFilename.includes("_") 
+        ? docFilename.split("_")[0] 
+        : "Desconhecido";
+    }
+
+    const displayClientName = forceClientId ? (forceClientName || "Cliente") : clientName;
+    setCurrentFile({ name: docFilename, client: displayClientName });
+    updateFileStatus(path, FILE_STATUS.PROCESSING, "A enviar...");
+
+    try {
+      const fileBlob = new Blob([await file.arrayBuffer()], { type: file.type });
+      const formData = new FormData();
+      formData.append("file", fileBlob, path);
+      
+      if (forceClientId) {
+        formData.append("force_client_id", forceClientId);
+      }
+
+      // Usar endpoint AGREGADO
+      const response = await fetch(`${API_URL}/api/ai/bulk/aggregated-session/${sessionId}/analyze`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Erro ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        updateFileStatus(
+          path,
+          FILE_STATUS.SUCCESS,
+          result.aggregated ? "Dados agregados" : "Analisado",
+          result.fields_extracted || []
+        );
+        return { success: true, aggregated: result.aggregated };
+      } else {
+        updateFileStatus(path, FILE_STATUS.ERROR, result.error || "Erro na análise");
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        updateFileStatus(path, FILE_STATUS.ERROR, "Cancelado");
+        return { success: false, error: "Cancelado" };
+      }
+      if (error.message && error.message.includes("postMessage")) {
+        console.warn("Aviso postMessage ignorado:", error);
+        return { success: true, aggregated: true };
+      }
+      updateFileStatus(path, FILE_STATUS.ERROR, error.message);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Processar ficheiros um a um (fila de espera)
   // Cenário A (forceClientId = null): Verifica primeiro se o cliente existe antes de processar os seus ficheiros
   // Cenário B (forceClientId definido): Processa todos os ficheiros associando ao cliente forçado
