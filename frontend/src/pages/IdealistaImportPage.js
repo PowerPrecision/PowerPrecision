@@ -278,28 +278,61 @@ const IdealistaImportPage = () => {
               ) : (
                 <div className="space-y-4">
                   <h3 className="font-medium">Método Rápido - Bookmarklet</h3>
-                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                    <li>Arraste o botão abaixo para a sua barra de favoritos</li>
-                    <li>Quando estiver no Idealista, clique no favorito</li>
-                    <li>Os dados são copiados automaticamente</li>
-                    <li>Cole no campo ao lado</li>
-                  </ol>
+                  <p className="text-sm text-muted-foreground">
+                    Arraste um dos botões abaixo para a sua barra de favoritos:
+                  </p>
                   
-                  <div className="flex justify-center py-4">
-                    <a
-                      href={bookmarkletCode}
-                      onClick={(e) => e.preventDefault()}
-                      draggable="true"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg font-medium shadow-lg hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Importar Idealista
-                    </a>
+                  {/* Bookmarklet Avançado */}
+                  <div className="p-4 border rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-green-700 dark:text-green-400">Recomendado - Um Clique</span>
+                      <Badge variant="secondary" className="text-xs">Novo</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Abre o CRM automaticamente e extrai os dados. Não precisa colar nada!
+                    </p>
+                    <div className="flex justify-center">
+                      <a
+                        href={bookmarkletAdvanced}
+                        onClick={(e) => e.preventDefault()}
+                        draggable="true"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing"
+                      >
+                        <Zap className="h-4 w-4" />
+                        Idealista → CRM
+                      </a>
+                    </div>
                   </div>
                   
-                  <p className="text-xs text-center text-muted-foreground">
-                    Arraste este botão para os seus favoritos
-                  </p>
+                  {/* Bookmarklet Simples */}
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Copy className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Alternativo - Copiar</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Copia os dados para o clipboard. Depois cole no campo ao lado.
+                    </p>
+                    <div className="flex justify-center">
+                      <a
+                        href={bookmarkletSimple}
+                        onClick={(e) => e.preventDefault()}
+                        draggable="true"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg font-medium shadow-lg hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Copiar Idealista
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg text-sm">
+                    <p className="text-blue-700 dark:text-blue-300">
+                      <strong>Como usar:</strong> Arraste o botão verde para os favoritos. 
+                      No Idealista, clique nele e o CRM abrirá com os dados prontos!
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
