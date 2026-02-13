@@ -11,7 +11,27 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 20)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 21)
+
+### ✅ Tarefas Completadas (Sessão 21)
+
+#### P1: Remoção da Aba "Configurações" do StaffDashboard - COMPLETO
+- **Problema**: Utilizador reportou aba "Configurações" indesejada no dashboard
+- **Solução**: Removido TabsTrigger e TabsContent para a aba "Configurações" do StaffDashboard.js
+- **Ficheiro**: `/app/frontend/src/pages/StaffDashboard.js`
+- **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_31)
+
+#### P1: Correcção da Sidebar na Página "Mapeamento NIF" - COMPLETO
+- **Problema**: Sidebar desaparecia na página /admin/mapeamentos-nif
+- **Solução**: Envolvido o conteúdo da página com DashboardLayout
+- **Ficheiro**: `/app/frontend/src/pages/NIFMappingsPage.js`
+- **Status**: ✅ CORRIGIDO E VERIFICADO (Testes iteration_31)
+
+#### P0: Correcção do Erro 401 OpenAI - EM ANÁLISE
+- **Problema**: Erro 401 Unauthorized ao chamar API OpenAI durante importações massivas
+- **Solução Aplicada**: Modificado ai_document.py para usar emergentintegrations/litellm em vez de chamadas directas à API OpenAI
+- **Ficheiros**: `/app/backend/services/ai_document.py`
+- **Status**: ⏳ CÓDIGO ACTUALIZADO, AGUARDA TESTE COM DOCUMENTOS REAIS
 
 ### ✅ Tarefas Completadas (Sessão 20)
 
