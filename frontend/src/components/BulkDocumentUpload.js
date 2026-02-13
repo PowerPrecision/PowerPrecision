@@ -406,6 +406,7 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
             errors++;
           }
           updateProgress(jobId, { errors });
+          await updateBackendSession();
           console.warn(`Cliente não encontrado: ${clientName} - ${clientFiles.length} ficheiros ignorados`);
           continue;
         }
@@ -431,8 +432,11 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
             errors++;
           }
 
-          // Actualizar progresso global
+          // Actualizar progresso global e backend
           updateProgress(jobId, { processed, errors });
+          if (processed % 5 === 0 || errors > 0) {
+            await updateBackendSession();
+          }
 
           // Pequena pausa entre ficheiros
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -453,6 +457,24 @@ const BulkDocumentUpload = ({ forceClientId = null, forceClientName = null, vari
       skipped_clients: skippedClients,
     };
     setSummary(finalSummary);
+
+    // ======================================
+    // FINALIZAR SESSÃO NO BACKEND
+    // ======================================
+    if (backendSessionId) {
+      try {
+        await fetch(`${API_URL}/api/ai/bulk/import-session/${backendSessionId}/finish?success=${processed > 0}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        console.log("Sessão de importação finalizada:", backendSessionId);
+      } catch (e) {
+        console.warn("Erro ao finalizar sessão:", e);
+      }
+    }
 
     // Finalizar tracking global de progresso
     const successMessage = processed > 0 
