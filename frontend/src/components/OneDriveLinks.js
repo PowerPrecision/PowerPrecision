@@ -237,7 +237,7 @@ const OneDriveLinks = ({ processId, clientName }) => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Adicionar Link OneDrive</DialogTitle>
+                <DialogTitle>Adicionar Link</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddLink} className="space-y-4">
                 <div className="space-y-2">
@@ -250,15 +250,15 @@ const OneDriveLinks = ({ processId, clientName }) => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Link de Partilha OneDrive *</Label>
+                  <Label>Link de Partilha *</Label>
                   <Input
-                    placeholder="https://1drv.ms/..."
+                    placeholder="https://... ou s3://bucket/path/..."
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Cole o link de partilha do OneDrive aqui
+                    Cole o link de partilha do Drive, OneDrive, S3, Google Drive, etc.
                   </p>
                 </div>
                 <div className="space-y-2">
