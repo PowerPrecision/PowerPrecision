@@ -11,9 +11,46 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
-## Última Actualização - 13 Fevereiro 2026 (Sessão 19)
+## Última Actualização - 13 Fevereiro 2026 (Sessão 20)
 
-### ✅ Tarefas Completadas (Sessão 19)
+### ✅ Tarefas Completadas (Sessão 20)
+
+#### P1: Configuração SMTP - VERIFICADO
+- **Problema**: Utilizador pediu para finalizar configuração SMTP
+- **Solução**: Verificado que a configuração SMTP já existia e está funcional
+- **Localização**: Página `/configuracoes` → Tab "Configuração"
+- **Campos disponíveis**:
+  - Tipo de Servidor (SMTP/IMAP Tradicional)
+  - Servidor SMTP (mail.precisioncredito.pt configurado)
+  - Porta SMTP (465)
+  - Utilizador SMTP
+  - Password SMTP
+  - Servidor IMAP e Porta IMAP
+- **Teste de Ligação**: Botão "Testar Ligação" disponível
+- **Status**: ✅ JÁ IMPLEMENTADO E FUNCIONAL
+
+#### P1: Sistema de Logs para Importação IA Massiva - COMPLETO
+- **Problema**: Utilizador pediu sistema de logs para ver sucessos E erros das importações massivas, com dados organizados por categorias
+- **Solução**: Criado sistema completo de logs de importação com:
+  - **Nova colecção MongoDB**: `ai_import_logs`
+  - **Registo de Sucessos E Erros**: Ambos são agora registados
+  - **Categorização de dados por tabs**: 
+    - Dados Pessoais
+    - Imóvel
+    - Financiamento
+    - Outros
+  - **Nova página frontend**: `/admin/logs-importacao`
+  - **Estatísticas**: Total, Sucesso, Erros, Campos Actualizados
+  - **Filtros**: Estado, Tipo Documento, Cliente, Período
+- **Ficheiros criados/modificados**:
+  - `/app/backend/routes/ai_bulk.py` - Novas funções `categorize_extracted_fields()` e `log_import_result()`
+  - `/app/backend/routes/admin.py` - Novos endpoints `GET /api/admin/ai-import-logs-v2` e `GET /api/admin/ai-import-logs-v2/{log_id}`
+  - `/app/frontend/src/pages/AIImportLogsPage.js` - Nova página completa
+  - `/app/frontend/src/App.js` - Adicionada rota
+  - `/app/frontend/src/layouts/DashboardLayout.js` - Adicionado link no menu
+- **Status**: ✅ COMPLETO E TESTADO
+
+### Sessão 19 - Anteriormente Completado
 
 #### P0: Correcção dos Filtros do Kanban - COMPLETO
 - **Problema**: Quando consultor_id=none E mediador_id=none eram passados, a segunda atribuição de `query["$or"]` sobrescrevia a primeira
