@@ -4,8 +4,11 @@
  * 
  * IMPORTANTE: Envia um ficheiro de cada vez (fila de espera) para evitar
  * que o browser feche os ficheiros antes de serem processados.
+ * 
+ * O progresso é gerido globalmente pelo UploadProgressContext, permitindo
+ * que o utilizador navegue para outras páginas enquanto o upload continua.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -33,6 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
+import { useUploadProgress } from "../contexts/UploadProgressContext";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || "";
 
