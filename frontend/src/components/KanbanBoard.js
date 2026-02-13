@@ -596,7 +596,7 @@ const KanbanBoard = ({ token, user }) => {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1.5">
                                     <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0 cursor-grab" />
-                                    <span className="text-[10px] font-medium text-muted-foreground bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                    <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                                       #{process.process_number || '—'}
                                     </span>
                                     {process.prioridade && (
