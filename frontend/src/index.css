@@ -331,3 +331,116 @@ code {
         display: contents !important;
     }
 }
+
+/**
+ * ====================================================================
+ * ACESSIBILIDADE
+ * ====================================================================
+ */
+
+/* Focus outlines visíveis para navegação por teclado */
+:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+}
+
+/* Skip link para navegação por teclado */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    padding: 8px 16px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    z-index: 1000;
+    transition: top 0.2s;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* Melhorar contraste de texto em modo escuro */
+.dark .text-muted-foreground {
+    color: hsl(var(--muted-foreground) / 0.9);
+}
+
+/* Cursor pointer para elementos interactivos */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+input[type="checkbox"],
+input[type="radio"],
+select {
+    cursor: pointer;
+}
+
+/* Touch targets mínimos de 44x44px para mobile */
+@media (pointer: coarse) {
+    button,
+    [role="button"],
+    input[type="checkbox"],
+    input[type="radio"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Indicador de estado de foco para inputs */
+input:focus,
+textarea:focus,
+select:focus {
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+
+/* Reduzir animações para utilizadores que preferem */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Safe area padding para dispositivos com notch */
+.safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Scrollbar estilizada */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+}
