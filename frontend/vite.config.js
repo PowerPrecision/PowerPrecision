@@ -23,13 +23,6 @@ export default defineConfig(({ mode }) => {
       include: /src\/.*\.jsx?$/,
       exclude: [],
     },
-    optimizeDeps: {
-      esbuildOptions: {
-        loader: {
-          '.js': 'jsx',
-        },
-      },
-    },
     
     // Servidor de desenvolvimento
     server: {
