@@ -1000,7 +1000,7 @@ async def update_client_data(process_id: str, extracted_data: dict, document_typ
 @router.post("/analyze-single", response_model=SingleAnalysisResult)
 async def analyze_single_file(
     file: UploadFile = File(...),
-    force_client_id: Optional[str] = None,
+    force_client_id: Optional[str] = Form(None),
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
     """
