@@ -147,6 +147,15 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ### 📋 Tarefas Pendentes
 
+#### P1 (Alta Prioridade - Próximos)
+- [ ] **"Gestor de Visitas"** - Implementar funcionalidade de scraping de URLs de imóveis
+- [ ] **Configuração SMTP completa** - Preencher smtp_user na página de configurações
+- [ ] **Mobile menu overlap** - Verificar e corrigir se existe problema visual
+
+#### P1 (Bugs Menores)
+- [ ] **ImportErrorsPage** - Campo `error_type` não existe na API, usa `error` (ajustar filtros)
+- [ ] **Toast de erro** - Algumas páginas mostram toast "Erro ao carregar" mesmo quando dados carregam
+
 #### P2 (Média Prioridade)
 - [ ] Implementar rate limiting no backend
 - [ ] Paginação cursor-based para listas grandes
