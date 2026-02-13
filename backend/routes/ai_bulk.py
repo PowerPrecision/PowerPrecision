@@ -2300,7 +2300,7 @@ async def clear_finished_jobs(
     }
 
 
-@router.delete("/background-jobs/clear-all")
+@router.post("/background-jobs/clear-all")
 async def clear_all_jobs(
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
