@@ -44,6 +44,21 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Solução**: Instalado libmagic1 e libmagic-dev via apt-get
 - **Status**: ✅ RESOLVIDO (temporariamente - precisa de solução permanente no Dockerfile)
 
+### Sessão 19 - Continuação
+
+#### Correcções de Ambiente
+- **libmagic permanente**: Adicionada verificação automática no `server.py` que instala `libmagic1` se não estiver presente ao iniciar o backend
+
+#### Simplificação de UI
+- **Removida página "Erros de Importação"**: Erros agora são registados nos "Logs do Sistema" para visualização unificada
+- **Integração com System Logs**: A função `log_import_error` agora também grava na colecção `system_error_logs`
+
+#### Verificações de Funcionalidades Existentes
+- **"Gestor de Visitas"** (antigo Leads): Verificado como 100% funcional
+  - Scraping de URLs implementado
+  - Formulário completo para criar leads
+  - Kanban drag-and-drop funcional
+
 ### Sessão 18 - Anteriormente Completado
 
 ### ✅ Tarefas Completadas (Sessão 18)
