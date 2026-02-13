@@ -26,13 +26,11 @@ class AIImprovementAgent:
     
     def __init__(self):
         self.llm_client = None
+        self.api_key = EMERGENT_LLM_KEY
         if EMERGENT_LLM_KEY:
-            try:
-                from emergentintegrations.llm.openai import LlmChat
-                self.llm_client = LlmChat(api_key=EMERGENT_LLM_KEY)
-                logger.info("AI Agent inicializado com sucesso")
-            except Exception as e:
-                logger.error(f"Erro ao inicializar AI Agent: {e}")
+            logger.info("AI Agent inicializado com sucesso (usando emergentintegrations)")
+        else:
+            logger.warning("EMERGENT_LLM_KEY não configurada - AI Agent desativado")
     
     async def analyze_all_processes(self) -> Dict[str, Any]:
         """
