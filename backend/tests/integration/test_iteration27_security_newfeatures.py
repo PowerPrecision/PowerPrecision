@@ -53,9 +53,15 @@ def get_auth_session():
 class TestSecurityHeaders:
     """Test security headers presence in HTTP responses"""
     
-    def test_health_check_security_headers(self):
-        """Test security headers are present in health check response"""
-        response = requests.get(f"{BASE_URL}/health")
+    def test_api_health_check_security_headers(self):
+        """Test security headers are present in /api endpoints (not /health which goes to frontend)"""
+        # The /health endpoint goes to frontend Express, not FastAPI
+        # We need to test /api/ endpoints for security headers
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
+        
+        time.sleep(0.3)
+        response = session.get(f"{BASE_URL}/api/properties/stats")
         assert response.status_code == 200
         
         # Verify X-Frame-Options header
@@ -99,18 +105,12 @@ class TestSecurityHeaders:
     
     def test_api_endpoint_security_headers(self):
         """Test security headers are present in API responses (authenticated)"""
-        # Login first
-        login_response = requests.post(
-            f"{BASE_URL}/api/auth/login",
-            json={"email": "admin@admin.com", "password": "admin"}
-        )
-        assert login_response.status_code == 200
-        token = login_response.json().get("access_token")
+        session, token = get_auth_session()
+        assert token is not None, "Failed to authenticate"
         
-        headers = {"Authorization": f"Bearer {token}"}
-        
+        time.sleep(0.3)
         # Test GET /api/properties
-        response = requests.get(f"{BASE_URL}/api/properties", headers=headers)
+        response = session.get(f"{BASE_URL}/api/properties")
         assert response.status_code == 200
         
         # Verify security headers on authenticated endpoint
