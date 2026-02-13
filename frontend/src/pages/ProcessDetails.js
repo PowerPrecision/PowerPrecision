@@ -49,6 +49,7 @@ import {
   getWorkflowStatuses,
   getClientOneDriveFiles,
   getOneDriveDownloadUrl,
+  deleteClient,
 } from "../services/api";
 import ProcessAlerts from "../components/ProcessAlerts";
 import TasksPanel from "../components/TasksPanel";
