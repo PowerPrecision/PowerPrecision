@@ -1266,6 +1266,20 @@ async def analyze_single_file(
             if conflicts:
                 result.conflicts = conflicts
             
+            # Registar sucesso no log de importação
+            await log_import_result(
+                client_name=actual_client_name,
+                process_id=process_id,
+                filename=doc_filename,
+                document_type=document_type,
+                success=True,
+                extracted_data=extracted_data,
+                updated_fields=fields,
+                user_email=user.get("email"),
+                folder_name=folder_name,
+                full_path=filename
+            )
+            
             logger.info(f"✅ {doc_filename} -> {normalized_name} para '{actual_client_name}': {len(result.fields_extracted)} campos extraídos, {len(fields)} actualizados")
         else:
             result.error = analysis_result.get("error", "Erro na análise")
