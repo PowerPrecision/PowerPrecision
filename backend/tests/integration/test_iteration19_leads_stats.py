@@ -16,7 +16,7 @@ import pytest
 import requests
 
 # Use public URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-realstate-v2.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://doc-processor-34.preview.emergentagent.com')
 
 # Test credentials
 ADMIN_EMAIL = "admin@sistema.pt"
