@@ -383,16 +383,16 @@ const EmailHistoryPanel = ({
                     key={email.id}
                     className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
                       email.direction === "sent" 
-                        ? "bg-blue-50/30 dark:bg-blue-950/10 border-blue-200/50" 
-                        : "bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200/50"
+                        ? "bg-blue-50/30 dark:bg-blue-950/10 border-blue-200/50 dark:border-blue-800/50" 
+                        : "bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200/50 dark:border-emerald-800/50"
                     }`}
                     onClick={() => openEmailViewer(email.id)}
                   >
                     {/* Ícone de direção */}
                     <div className={`p-1.5 rounded shrink-0 ${
                       email.direction === "sent" 
-                        ? "bg-blue-100 text-blue-600" 
-                        : "bg-emerald-100 text-emerald-600"
+                        ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300" 
+                        : "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300"
                     }`}>
                       {email.direction === "sent" ? (
                         <Send className="h-3 w-3" />
@@ -414,6 +414,12 @@ const EmailHistoryPanel = ({
                           ? email.to_emails?.join(", ")
                           : email.from_email
                         }
+                        {/* Mostrar CC se existir */}
+                        {email.cc_emails?.length > 0 && (
+                          <span className="ml-1 text-muted-foreground/70">
+                            (CC: {email.cc_emails.join(", ")})
+                          </span>
+                        )}
                       </p>
                     </div>
 
