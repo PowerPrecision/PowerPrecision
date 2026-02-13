@@ -1306,6 +1306,204 @@ DEFAULT_NOTIFICATION_PREFS = {
 }
 
 
+# ============== AI TRAINING DATA (Item 4 - Outros erros/melhorias) ==============
+
+@router.get("/ai-training")
+async def get_ai_training_data(
+    category: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém os dados de treino personalizados do agente IA.
+    
+    Categorias:
+    - document_types: Tipos de documentos e como classificá-los
+    - field_mappings: Mapeamento de campos para extração
+    - client_patterns: Padrões de nomes de clientes
+    - custom_rules: Regras personalizadas
+    """
+    query = {"type": "ai_training"}
+    if category:
+        query["category"] = category
+    
+    entries = await db.ai_training.find(query, {"_id": 0}).to_list(100)
+    
+    # Agrupar por categoria
+    by_category = {}
+    for entry in entries:
+        cat = entry.get("category", "other")
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(entry)
+    
+    return {
+        "total": len(entries),
+        "categories": list(by_category.keys()),
+        "data": by_category
+    }
+
+
+@router.post("/ai-training")
+async def add_ai_training_entry(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Adiciona uma nova entrada de treino para o agente IA.
+    
+    Body:
+    {
+        "category": "document_types",  // ou field_mappings, client_patterns, custom_rules
+        "title": "Título descritivo",
+        "content": "Conteúdo de treino / instruções para a IA",
+        "examples": ["exemplo1", "exemplo2"],  // Opcional
+        "is_active": true  // Se deve ser usado pelo agente
+    }
+    """
+    required_fields = ["category", "title", "content"]
+    for field in required_fields:
+        if field not in data:
+            raise HTTPException(status_code=400, detail=f"Campo '{field}' é obrigatório")
+    
+    valid_categories = ["document_types", "field_mappings", "client_patterns", "custom_rules", "extraction_tips"]
+    if data["category"] not in valid_categories:
+        raise HTTPException(status_code=400, detail=f"Categoria inválida. Use: {valid_categories}")
+    
+    entry = {
+        "id": str(uuid.uuid4()),
+        "type": "ai_training",
+        "category": data["category"],
+        "title": data["title"],
+        "content": data["content"],
+        "examples": data.get("examples", []),
+        "is_active": data.get("is_active", True),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user.get("email", "admin"),
+        "updated_at": None
+    }
+    
+    await db.ai_training.insert_one(entry)
+    
+    return {
+        "success": True,
+        "entry": {k: v for k, v in entry.items() if k != "_id"}
+    }
+
+
+@router.put("/ai-training/{entry_id}")
+async def update_ai_training_entry(
+    entry_id: str,
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Actualiza uma entrada de treino existente.
+    """
+    existing = await db.ai_training.find_one({"id": entry_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Entrada não encontrada")
+    
+    update_data = {}
+    if "title" in data:
+        update_data["title"] = data["title"]
+    if "content" in data:
+        update_data["content"] = data["content"]
+    if "examples" in data:
+        update_data["examples"] = data["examples"]
+    if "is_active" in data:
+        update_data["is_active"] = data["is_active"]
+    if "category" in data:
+        valid_categories = ["document_types", "field_mappings", "client_patterns", "custom_rules", "extraction_tips"]
+        if data["category"] not in valid_categories:
+            raise HTTPException(status_code=400, detail=f"Categoria inválida. Use: {valid_categories}")
+        update_data["category"] = data["category"]
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_by"] = user.get("email", "admin")
+    
+    await db.ai_training.update_one(
+        {"id": entry_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.ai_training.find_one({"id": entry_id}, {"_id": 0})
+    return {"success": True, "entry": updated}
+
+
+@router.delete("/ai-training/{entry_id}")
+async def delete_ai_training_entry(
+    entry_id: str,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Remove uma entrada de treino.
+    """
+    result = await db.ai_training.delete_one({"id": entry_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Entrada não encontrada")
+    
+    return {"success": True, "message": "Entrada removida"}
+
+
+@router.get("/ai-training/prompt")
+async def get_ai_training_prompt(
+    category: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Gera o prompt de treino consolidado a partir das entradas activas.
+    Este prompt é usado pelo agente IA durante a análise de documentos.
+    """
+    query = {"type": "ai_training", "is_active": True}
+    if category:
+        query["category"] = category
+    
+    entries = await db.ai_training.find(query, {"_id": 0}).sort("category", 1).to_list(100)
+    
+    # Construir prompt por categoria
+    prompt_sections = []
+    
+    # Agrupar por categoria
+    by_category = {}
+    for entry in entries:
+        cat = entry.get("category", "other")
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(entry)
+    
+    category_titles = {
+        "document_types": "## Tipos de Documentos",
+        "field_mappings": "## Mapeamento de Campos",
+        "client_patterns": "## Padrões de Nomes de Clientes",
+        "custom_rules": "## Regras Personalizadas",
+        "extraction_tips": "## Dicas de Extracção"
+    }
+    
+    for cat, cat_entries in by_category.items():
+        section = category_titles.get(cat, f"## {cat.title()}")
+        section += "\n"
+        
+        for entry in cat_entries:
+            section += f"\n### {entry['title']}\n"
+            section += entry["content"] + "\n"
+            
+            if entry.get("examples"):
+                section += "\nExemplos:\n"
+                for ex in entry["examples"]:
+                    section += f"- {ex}\n"
+        
+        prompt_sections.append(section)
+    
+    full_prompt = "\n\n".join(prompt_sections)
+    
+    return {
+        "prompt": full_prompt,
+        "entries_count": len(entries),
+        "categories": list(by_category.keys())
+    }
+
+
 @router.get("/notification-preferences/{user_id}")
 async def get_notification_preferences(
     user_id: str,
