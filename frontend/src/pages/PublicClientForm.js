@@ -251,7 +251,52 @@ const PublicClientForm = () => {
     // Consentimento
     consent_data: false,
     consent_contact: false,
+  };
   });
+
+  // Calcular campos preenchidos para progresso
+  const calculateProgress = useCallback(() => {
+    let filled = 0;
+    REQUIRED_FIELDS.forEach(field => {
+      if (formData[field] && formData[field] !== "") {
+        filled++;
+      }
+    });
+    return { completed: filled, total: REQUIRED_FIELDS.length };
+  }, [formData]);
+
+  const progress = calculateProgress();
+
+  // Auto-save com debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Só guardar se houver dados preenchidos
+      if (formData.name || formData.email || formData.nif) {
+        saveDraft(formData);
+      }
+    }, 2000); // 2 segundos de debounce
+
+    return () => clearTimeout(timer);
+  }, [formData, saveDraft]);
+
+  // Mostrar toast se existe rascunho ao carregar
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft?.data && draft.timestamp) {
+      const timeAgo = new Date() - draft.timestamp;
+      const hoursAgo = Math.floor(timeAgo / (1000 * 60 * 60));
+      
+      if (hoursAgo < 48) { // Só mostrar se foi há menos de 48 horas
+        toast.info(
+          <div className="flex flex-col gap-1">
+            <span className="font-medium">Rascunho encontrado</span>
+            <span className="text-xs">Guardado há {hoursAgo > 0 ? `${hoursAgo}h` : "poucos minutos"}</span>
+          </div>,
+          { duration: 5000 }
+        );
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     if (!formData.consent_data || !formData.consent_contact) {
