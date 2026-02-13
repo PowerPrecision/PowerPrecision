@@ -276,6 +276,16 @@ function App() {
             }
           />
           
+          {/* AI Import Logs - Admin only */}
+          <Route
+            path="/admin/logs-importacao"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AIImportLogsPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Backups Management - Admin only */}
           <Route
             path="/admin/backups"
