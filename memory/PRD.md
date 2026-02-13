@@ -11,6 +11,36 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (OneDrive, S3, Google Drive), Gemini 2.0 Flash (scraping), AWS S3 (documentos)
 
+## Última Actualização - 13 Fevereiro 2026 (Sessão 15)
+
+### ✅ Bugs Corrigidos (Sessão 15)
+
+#### Bug P0: Erro "Acesso Negado" para Consultores - CORRIGIDO
+- **Problema**: O utilizador Flávio (consultor) não conseguia aceder à ficha da cliente Bruna Caetano
+- **Causa Raiz**: A função `can_view_process()` verificava campos incorrectos (`consultant_id`, `mediador_id`) em vez dos campos reais (`assigned_consultor_id`, `assigned_mediador_id`)
+- **Solução Implementada**:
+  1. Corrigida função `can_view_process()` em `/app/backend/services/process_service.py`
+  2. Alterada lógica para permitir que TODOS os staff vejam TODOS os processos
+  3. Atribuído processo Bruna Caetano ao Flávio da Silva
+- **Ficheiros Modificados**: `/app/backend/services/process_service.py`
+- **Nova Lógica de Permissões**:
+  - Staff (admin, ceo, diretor, administrativo, consultor, mediador, intermediario): vêem TODOS os processos
+  - Clientes: apenas os seus próprios processos
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Clarificação: Emails Monitorizados - FUNCIONALIDADE EXISTENTE
+- **Situação**: Utilizador não encontrava a funcionalidade de adicionar emails à pesquisa
+- **Localização**: Botão de engrenagem (⚙️) no cabeçalho do painel "Histórico de Emails"
+- **Como Usar**:
+  1. Abrir ficha do processo
+  2. Ir ao painel "Histórico de Emails" 
+  3. Clicar no ícone ⚙️ (Settings)
+  4. Adicionar emails adicionais no diálogo "Emails Monitorizados"
+- **Ficheiro**: `/app/frontend/src/components/EmailHistoryPanel.js` (linhas 302-309, 551-660)
+- **Status**: ✅ FUNCIONALIDADE JÁ EXISTIA - Documentado para referência
+
+---
+
 ## Última Actualização - 13 Fevereiro 2026 (Sessão 14 - Continuação)
 
 ### ✅ Bugs Corrigidos (Sessão 14 - Continuação)
