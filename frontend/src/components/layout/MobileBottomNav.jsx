@@ -3,18 +3,29 @@
  * Mostra apenas em ecrãs pequenos (< md breakpoint)
  */
 import { Link, useLocation } from "react-router-dom";
-import { LayoutGrid, CheckSquare, Calendar, User, Menu } from "lucide-react";
+import { LayoutGrid, CheckSquare, Calendar, User } from "lucide-react";
 import { cn } from "../../lib/utils";
-
-const navItems = [
-  { path: "/quadro-geral", icon: LayoutGrid, label: "Kanban" },
-  { path: "/tarefas", icon: CheckSquare, label: "Tarefas" },
-  { path: "/calendario", icon: Calendar, label: "Agenda" },
-  { path: "/perfil", icon: User, label: "Perfil" },
-];
+import { useAuth } from "../../contexts/AuthContext";
 
 const MobileBottomNav = () => {
   const location = useLocation();
+  const { user } = useAuth();
+  
+  // Determinar o dashboard correcto baseado no role
+  const getDashboardPath = () => {
+    if (!user) return "/dashboard";
+    if (user.role === "admin" || user.role === "ceo" || user.role === "administrativo") {
+      return "/admin";
+    }
+    return "/staff";
+  };
+
+  const navItems = [
+    { path: getDashboardPath(), icon: LayoutGrid, label: "Kanban" },
+    { path: "/clientes", icon: CheckSquare, label: "Clientes" },
+    { path: "/leads", icon: Calendar, label: "Visitas" },
+    { path: "/definicoes", icon: User, label: "Perfil" },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background border-t safe-area-pb">
