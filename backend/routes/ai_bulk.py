@@ -1964,8 +1964,8 @@ async def add_nif_mapping_manual(
                 "error": f"Nenhum cliente encontrado com NIF {nif} ou nome '{folder_name}'"
             }
     
-    # Guardar mapeamento em cache
-    cache_nif_mapping(
+    # Guardar mapeamento em cache (e na DB)
+    await cache_nif_mapping(
         folder_name=folder_name,
         nif=nif,
         process_id=process["id"],
