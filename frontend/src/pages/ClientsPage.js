@@ -70,7 +70,6 @@ export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [filterStatus, setFilterStatus] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
