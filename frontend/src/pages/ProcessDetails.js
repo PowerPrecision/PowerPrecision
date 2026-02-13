@@ -2090,11 +2090,6 @@ const ProcessDetails = () => {
                       )}
                     </ScrollArea>
                   </TabsContent>
-
-                  {/* Files Tab (OneDrive Links) */}
-                  <TabsContent value="files" className="p-4 pt-2">
-                    <OneDriveLinks processId={id} clientName={process?.client_name} />
-                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
