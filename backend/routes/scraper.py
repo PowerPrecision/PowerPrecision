@@ -259,6 +259,79 @@ async def analyze_page_with_ai_endpoint(
 
 
 # ============================================================
+# EXTRAÇÃO DE HTML (COLAR DO IDEALISTA)
+# ============================================================
+
+class ExtractHtmlRequest(BaseModel):
+    """Request para extrair dados de HTML colado."""
+    html: str
+    url: Optional[str] = None
+
+
+@router.post("/extract-html")
+async def extract_from_html(
+    request: ExtractHtmlRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Extrai dados de imóvel a partir de HTML colado.
+    
+    Útil quando o scraping directo é bloqueado (ex: Idealista).
+    O utilizador copia a página e cola aqui, a IA extrai os dados.
+    
+    Passos:
+    1. Utilizador abre página do Idealista no browser
+    2. Faz Ctrl+A, Ctrl+C
+    3. Cola no frontend
+    4. Este endpoint processa com IA
+    """
+    try:
+        from services.scraper import analyze_page_with_ai
+        
+        html_content = request.html
+        
+        # Validar que tem conteúdo mínimo
+        if len(html_content) < 500:
+            raise HTTPException(
+                status_code=400, 
+                detail="Conteúdo muito curto. Certifique-se que copiou a página inteira (Ctrl+A, Ctrl+C)."
+            )
+        
+        # Detectar source pelo conteúdo
+        source = "desconhecido"
+        if "idealista.pt" in html_content.lower() or "idealista" in html_content.lower():
+            source = "idealista"
+        elif "imovirtual" in html_content.lower():
+            source = "imovirtual"
+        elif "casasapo" in html_content.lower() or "casa.sapo" in html_content.lower():
+            source = "casasapo"
+        elif "supercasa" in html_content.lower():
+            source = "supercasa"
+        
+        logger.info(f"Extracção HTML: source detectado = {source}, tamanho = {len(html_content)}")
+        
+        # Analisar com IA
+        url = request.url or f"html-import-{source}"
+        result = await analyze_page_with_ai(url, html_content)
+        
+        if result:
+            result["_source"] = source
+            result["_extracted_from"] = "html_paste"
+            return result
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail="Não foi possível extrair dados do conteúdo fornecido. Tente copiar a página novamente."
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao extrair HTML: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao processar: {str(e)}")
+
+
+# ============================================================
 # CACHE MANAGEMENT ENDPOINTS
 # ============================================================
 
