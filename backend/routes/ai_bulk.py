@@ -1070,22 +1070,38 @@ async def analyze_single_file(
         mime_type = get_mime_type(doc_filename)
         
         # ================================================================
-        # CACHE DE SESSÃO NIF (Item 17)
-        # Verificar se já temos mapeamento pasta → cliente em cache
+        # FORCE CLIENT ID - Se fornecido, usar directamente
         # ================================================================
         process = None
-        cached_mapping = await get_cached_nif_mapping(folder_name)
+        process_id = None
         
-        if cached_mapping:
-            # Usar mapeamento em cache (muito mais rápido)
-            process_id = cached_mapping["process_id"]
-            process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+        if force_client_id:
+            # Usar o ID do cliente fornecido directamente
+            process = await db.processes.find_one({"id": force_client_id}, {"_id": 0})
             if process:
-                logger.info(f"[NIF CACHE] Usando mapeamento em cache para '{folder_name}' -> '{cached_mapping['client_name']}'")
-        
-        # Se não encontrou em cache, procurar por nome
-        if not process:
-            process = await find_client_by_name(client_name)
+                process_id = force_client_id
+                logger.info(f"[FORCE_CLIENT_ID] Usando cliente forçado: {force_client_id}")
+            else:
+                result.error = f"Cliente com ID '{force_client_id}' não encontrado."
+                logger.warning(f"force_client_id inválido: {force_client_id}")
+                return result
+        else:
+            # ================================================================
+            # CACHE DE SESSÃO NIF (Item 17)
+            # Verificar se já temos mapeamento pasta → cliente em cache
+            # ================================================================
+            cached_mapping = await get_cached_nif_mapping(folder_name)
+            
+            if cached_mapping:
+                # Usar mapeamento em cache (muito mais rápido)
+                process_id = cached_mapping["process_id"]
+                process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+                if process:
+                    logger.info(f"[NIF CACHE] Usando mapeamento em cache para '{folder_name}' -> '{cached_mapping['client_name']}'")
+            
+            # Se não encontrou em cache, procurar por nome
+            if not process:
+                process = await find_client_by_name(client_name)
         
         if not process:
             result.error = f"Cliente não encontrado: {client_name}. Verifique se o nome está correcto (acentos, parênteses)."
