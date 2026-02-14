@@ -11,7 +11,68 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 14 Fevereiro 2026 (Sessão 28 - Parte 2)
+## Última Actualização - 14 Fevereiro 2026 (Sessão 29)
+
+### ✅ Bug Fixes P0 Completos (Sessão 29) - 100% VERIFIED (iteration_42)
+
+#### Bug Fix 1: Erro ao salvar perfil - CORRIGIDO
+- **Problema**: Utilizadores não-admin não conseguiam atualizar o próprio perfil (API exigia role admin)
+- **Solução**: Nova rota `PUT /api/auth/profile` que permite qualquer utilizador autenticado atualizar o seu próprio nome e telefone
+- **Ficheiros modificados**: 
+  - `/app/backend/routes/auth.py` - adicionada rota `/api/auth/profile`
+  - `/app/frontend/src/pages/SettingsPage.js` - atualizado para usar nova rota
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Bug Fix 2: Rota de alteração de password - IMPLEMENTADO
+- **Problema**: Não existia endpoint funcional para alterar password
+- **Solução**: Nova rota `POST /api/auth/change-password` com validação (6+ caracteres, password atual correcta)
+- **Ficheiros modificados**: `/app/backend/routes/auth.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### Bug Fix 3: Botão "Clientes" no mobile para consultores - CORRIGIDO
+- **Problema**: No mobile, consultores iam para `/clientes` (todos os clientes) em vez de `/meus-clientes`
+- **Solução**: `getClientsPath()` no MobileBottomNav retorna `/meus-clientes` para roles consultor, intermediario, mediador
+- **Ficheiros modificados**: `/app/frontend/src/components/layout/MobileBottomNav.jsx`
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Bug Fix 4: Erro ao criar "Novo Processo" - CORRIGIDO
+- **Problema**: A rota `POST /api/clients/{client_id}/create-process` falhava porque procurava na colecção `clients` vazia
+- **Solução**: A rota agora aceita tanto client_id real como process_id (clientes virtuais agregados de processos)
+- **Ficheiros modificados**: `/app/backend/routes/clients.py`
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Bug Fix 5: Página Leads/Visitas no mobile - IMPLEMENTADO
+- **Problema**: Kanban era inutilizável em dispositivos mobile (colunas muito pequenas)
+- **Solução**: Nova visualização em lista para mobile com:
+  - Filtro de status dropdown
+  - Cards expandidos com todas as informações
+  - Dropdown para mudar status directamente
+  - Classes responsivas: `md:hidden` para lista, `hidden md:flex` para Kanban
+- **Ficheiros modificados**: `/app/frontend/src/components/LeadsKanban.js` (novo componente `LeadListItem`)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### Bug Fix 6: Tabs do menu sobrepostas - CORRIGIDO
+- **Problema**: No AdminDashboard, as tabs apareciam truncadas e sobrepostas no mobile
+- **Solução**: 
+  - TabsList com `inline-flex w-max min-w-full`
+  - Container wrapper com `overflow-x-auto scrollbar-hide`
+  - CSS `.scrollbar-hide` adicionado ao index.css
+- **Ficheiros modificados**: 
+  - `/app/frontend/src/pages/AdminDashboard.js`
+  - `/app/frontend/src/index.css`
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Bug Fix 7: Botão "Ver Ficha" redireccionava ao login - CORRIGIDO
+- **Problema**: Na lista de clientes, o botão "Ver Ficha" usava rota incorrecta `/processos/` em vez de `/process/`
+- **Solução**: Corrigida navegação para usar `/process/{process_id}`
+- **Ficheiros modificados**: `/app/frontend/src/pages/ClientsPage.js`
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+#### Bug Fix 8: Clicar no nome do cliente - IMPLEMENTADO
+- **Problema**: O nome do cliente na lista não era clicável
+- **Solução**: Nome do cliente agora é um botão que navega para `/process/{process_id}`
+- **Ficheiros modificados**: `/app/frontend/src/pages/ClientsPage.js`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
 
 ### ✅ Bug Fixes P0 Completos (Sessão 28 Parte 2) - 100% VERIFIED
 
