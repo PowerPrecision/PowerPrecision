@@ -11,93 +11,73 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 14 Fevereiro 2026 (Sessão 26)
+## Última Actualização - 14 Fevereiro 2026 (Sessão 27)
 
-### ✅ Correcções P1/P2 (Sessão 26)
+### ✅ Correcções P0 Completas (Sessão 27) - 100% VERIFIED
 
-#### P1: Correcção Dark Mode no Kanban do Gestor de Visitas - CORRIGIDO
+#### P0 #1: Dark Mode no Kanban do Gestor de Visitas - CORRIGIDO
 - **Problema**: As colunas do Kanban não eram visíveis em dark mode (usavam `bg-gray-50` fixo)
 - **Solução**: Trocado para classes dark-mode-aware `bg-muted/50 dark:bg-muted/30`
-- **Ficheiros modificados**:
-  - `/app/frontend/src/components/LeadsKanban.js` - KanbanColumn e filtros
-- **Status**: ✅ CORRIGIDO E TESTADO (iteration_38)
+- **Ficheiros modificados**: `/app/frontend/src/components/LeadsKanban.js`
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_39)
 
-#### P1: Botão "Criar Lead com estes dados" - CORRIGIDO
-- **Problema**: O botão na página de Importar Idealista não funcionava porque os campos do scraper estavam em português (titulo, preco) mas o modelo espera inglês (title, price)
-- **Solução**: Mapeamento correcto de campos na função `handleCreateLead`:
-  - `titulo` → `title`
-  - `preco` → `price`
-  - `localizacao` → `location`
-  - `tipologia` → `typology`
-  - `area_util` → `area`
-  - `foto_principal` → `photo_url`
-  - `agente_nome/telefone/email` → `consultant` object
-- **Ficheiros modificados**:
-  - `/app/frontend/src/pages/IdealistaImportPage.js` - handleCreateLead
-- **Status**: ✅ CORRIGIDO E TESTADO (iteration_38)
+#### P0 #2: Botão "Criar Lead" da Importação HTML - CORRIGIDO
+- **Problema**: O botão não funcionava porque os campos do scraper eram em português mas o modelo espera inglês
+- **Solução**: Mapeamento de campos correcto + validação de URL (http/https)
+- **Ficheiros modificados**: `/app/frontend/src/pages/IdealistaImportPage.js`
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_39)
+
+#### P0 #3: Extracção HTML mostra mais dados - MELHORADO
+- **Problema**: A extracção de HTML mostrava poucos dados
+- **Solução**: 
+  - Prompt de extracção melhorado com 30+ campos
+  - Novos campos: preco_m2, codigo_postal, area_bruta, area_terreno, suites, garagem, piso, elevador, varanda, vista, orientacao_solar, condominio, agencia_telefone, referencia, foto_principal, url_planta, url_video
+  - UI actualizada para mostrar todos os campos em grid de 4 colunas
+- **Ficheiros modificados**: 
+  - `/app/backend/services/scraper.py` - prompts Gemini e OpenAI
+  - `/app/frontend/src/pages/IdealistaImportPage.js` - display expandido
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_39)
+
+#### P0 #4: Link "Ver" levava para Login - CORRIGIDO
+- **Problema**: Ao clicar "Ver" numa lead, ia para a página de login em vez do URL externo
+- **Causa Raiz**: Leads criados sem URL válida tinham valores como `idealista-import-123456789`
+- **Solução**: 
+  - Validação de URL: só mostra link se começar com `http://` ou `https://`
+  - Se URL inválida, mostra `—` em vez de link
+  - Função `handleCreateLead` agora valida URLs antes de guardar
+- **Ficheiros modificados**: `/app/frontend/src/components/LeadsKanban.js`
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_39)
+
+#### P0 #5: Fallback Gemini → OpenAI - IMPLEMENTADO
+- **Problema**: Quando quota Gemini excedida, extracção falhava
+- **Solução**: 
+  - `analyze_with_ai()` agora tenta Gemini primeiro
+  - Se `quota_exceeded`, automaticamente usa OpenAI gpt-4o-mini
+  - Normalização de respostas aninhadas do OpenAI
+- **Ficheiros modificados**: `/app/backend/services/scraper.py`
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_39)
+
+#### P0 #6: Erro 'list' object has no attribute 'get' - CORRIGIDO
+- **Problema**: ai_document.py falhava quando IA retornava lista em vez de dict
+- **Solução**: `parse_ai_response()` agora detecta e trata listas
+- **Ficheiros modificados**: `/app/backend/services/ai_document.py`
+- **Status**: ✅ CORRIGIDO
+
+### ✅ Tarefas P1 Completas (Sessão 27)
 
 #### P1: Botão "Importar HTML" no Gestor de Visitas - IMPLEMENTADO
-- **Problema**: Utilizador queria acesso fácil à página de importação a partir do gestor de visitas
-- **Solução**: Adicionado botão "Importar HTML" no header do Kanban que navega para `/admin/importar-idealista`
-- **Ficheiros modificados**:
-  - `/app/frontend/src/components/LeadsKanban.js` - header com novo botão
-- **Status**: ✅ IMPLEMENTADO E TESTADO (iteration_38)
+- Botão no header do Kanban navega para `/admin/importar-idealista`
+- **Status**: ✅ IMPLEMENTADO E TESTADO (iteration_39)
 
 #### P1: Feedback Visual no Bookmarklet Avançado - MELHORADO
-- **Problema**: Bookmarklet não dava feedback visual ao utilizador
-- **Solução**: Adicionado overlay visual que mostra:
-  1. "A processar..." com spinner
-  2. "Dados enviados!" com check quando sucesso
-  3. Abre o CRM após breve delay para o utilizador ver o feedback
-- **Ficheiros modificados**:
-  - `/app/frontend/src/pages/IdealistaImportPage.js` - bookmarkletAdvanced
+- Overlay visual mostra progresso
 - **Status**: ✅ IMPLEMENTADO
 
-#### P2: Logs de Erros do Sistema - EXPLICAÇÃO
-- **Pergunta do utilizador**: "Os logs dos erros para onde vão?"
-- **Resposta**: Os erros são registados na base de dados MongoDB na colecção `system_error_logs`
-- **Acesso**: Menu Sistema → "Logs do Sistema" no frontend
-- **Estatísticas actuais** (30 dias):
-  - Total: 70 logs
-  - Por severidade: 45 warning, 22 info, 3 critical
-  - Por tipo: http_404 (24), excel_import_error (13), excel_import_success (12), http_400 (10), scraper_error (7), unhandled_exception (3)
-- **Nota**: Os logs do supervisor (`/var/log/supervisor/backend.err.log`) contêm apenas erros de infra-estrutura (ex: conexão Redis). Erros de aplicação são registados na DB.
+#### P1: Mais sources detectados na importação HTML
+- Adicionados: powerealestate, remax, era, century21, kellerwilliams, olx, bpi
+- **Status**: ✅ IMPLEMENTADO
 
-### ✅ Bug Fix: Sessão de Agregação Não Encontrada - CORRIGIDO (Sessão 25)
-- **Problema**: A importação massiva falhava com "Sessão de agregação não encontrada" após reinício do servidor
-- **Causa Raiz**: As sessões eram armazenadas apenas em memória e perdidas quando o servidor reiniciava
-- **Solução**: 
-  - Criada colecção `aggregated_sessions` na DB para persistir sessões
-  - Nova função `persist_session_to_db()` salva sessão após cada ficheiro processado
-  - Nova função `get_session_async()` tenta recuperar sessão primeiro da memória, depois da DB
-  - Sessões são marcadas como `is_active: false` quando terminam
-- **Ficheiros modificados**:
-  - `/app/backend/services/documents/data_aggregator.py` - Funções de persistência e recuperação
-  - `/app/backend/routes/ai_bulk.py` - Endpoints actualizados para usar versão async
-- **Status**: ✅ CORRIGIDO E TESTADO
-
-### ✅ Tarefas P1 Completadas (Sessão 25)
-
-#### P1: Bookmarklet Avançado Idealista - IMPLEMENTADO
-- **Problema**: Utilizador queria método de "um clique" para importar dados do Idealista
-- **Solução**: Criados dois bookmarklets com funcionalidades diferentes
-- **Funcionalidades implementadas**:
-  - **Bookmarklet "Um Clique"** (Recomendado): Abre o CRM automaticamente com dados pré-preenchidos
-    - Codifica HTML em Base64 e passa via URL params
-    - Auto-processa os dados ao carregar a página
-  - **Bookmarklet "Copiar"** (Alternativo): Copia dados para clipboard
-    - Utilizador cola manualmente no CRM
-- **Ficheiros modificados**:
-  - `/app/frontend/src/pages/IdealistaImportPage.js` - Dois bookmarklets, useEffect para auto-processamento
-- **Status**: ✅ VERIFICADO (100% testes passed - iteration_37)
-
-#### P1: Pausar/Retomar Jobs em Background - IMPLEMENTADO
-- **Problema**: Utilizador queria pausar importações longas e retomar mais tarde
-- **Solução**: Adicionados endpoints e UI para pausar/retomar jobs
-- **Funcionalidades implementadas**:
-  - Botão "Pausar" aparece para jobs com status "running"
-  - Botão "Retomar" aparece para jobs com status "paused"
-  - Novo card de estatísticas "Pausados" na página de Background Jobs
+### ✅ Bug Fixes Anteriores (Sessão 25-26)
   - Status "paused" guardado na DB com timestamp
 - **Ficheiros modificados**:
   - `/app/backend/routes/ai_bulk.py` - Endpoints POST /pause e POST /resume
