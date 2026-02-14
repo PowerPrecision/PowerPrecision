@@ -1770,9 +1770,24 @@ Conteúdo:
     
     async def analyze_with_ai(self, url: str, html_content: str) -> Dict[str, Any]:
         """
-        Usa Gemini directamente para analisar uma página.
+        Usa IA para analisar uma página.
+        Tenta Gemini primeiro, depois OpenAI como fallback.
         """
-        return await self._extract_with_gemini(html_content, url)
+        # Tentar Gemini primeiro
+        result = await self._extract_with_gemini(html_content, url)
+        
+        # Se Gemini falhou (quota ou outro erro), tentar OpenAI
+        if result and (result.get("_error") == "quota_exceeded" or result.get("_fallback")):
+            logger.info("Gemini com quota excedida, tentando OpenAI como fallback...")
+            openai_result = await self._extract_with_openai(html_content, url, "gpt-4o-mini")
+            
+            if openai_result and not openai_result.get("_error"):
+                return openai_result
+            
+            # Se OpenAI também falhou, retornar erro original
+            logger.warning("OpenAI também falhou, retornando erro original")
+        
+        return result
 
 
 
