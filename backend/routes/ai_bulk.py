@@ -1561,7 +1561,7 @@ async def get_aggregated_session_status(
     user: dict = Depends(require_roles([UserRole.ADMIN]))
 ):
     """Obter estado da sessão de importação agregada."""
-    session = get_session(session_id)
+    session = await get_session_async(session_id)
     if not session:
         # Tentar buscar da DB
         job = await db.background_jobs.find_one({"id": session_id}, {"_id": 0})
