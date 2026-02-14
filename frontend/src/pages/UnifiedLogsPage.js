@@ -880,29 +880,52 @@ const ImportLogsTab = ({ token }) => {
     <div className="space-y-4">
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {viewMode === "grouped" ? "Documentos" : "Total"}
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {viewMode === "grouped" ? (stats.total_docs || 0) : stats.total}
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+          {viewMode === "grouped" && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                    <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Clientes</p>
+                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {stats.total_clients || 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Sucesso</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.success}</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {viewMode === "grouped" ? (stats.total_success || 0) : stats.success}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -910,12 +933,14 @@ const ImportLogsTab = ({ token }) => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <XCircle className="h-5 w-5 text-red-600" />
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Erros</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.error}</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {viewMode === "grouped" ? (stats.total_errors || 0) : stats.error}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -923,12 +948,14 @@ const ImportLogsTab = ({ token }) => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Campos Actualizados</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.fields_updated}</p>
+                  <p className="text-sm text-muted-foreground">Campos</p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {viewMode === "grouped" ? (stats.total_fields || 0) : stats.fields_updated}
+                  </p>
                 </div>
               </div>
             </CardContent>
