@@ -71,7 +71,7 @@ class TestAuthProfileUpdate:
         
         # Restore original name
         restore_response = self.session.put(f"{BASE_URL}/api/auth/profile", json={
-            "name": "Admin"
+            "name": original_name or "Admin"
         })
         assert restore_response.status_code == 200
         print("Name restored to original")
