@@ -33,7 +33,7 @@ class TestAuthProfileUpdate:
         # Login as admin
         response = self.session.post(f"{BASE_URL}/api/auth/login", json={
             "email": "admin@admin.com",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         assert response.status_code == 200, f"Admin login failed: {response.text}"
         data = response.json()
@@ -259,7 +259,7 @@ class TestCreateProcessForClient:
         # Login as admin
         response = self.session.post(f"{BASE_URL}/api/auth/login", json={
             "email": "admin@admin.com",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         })
         assert response.status_code == 200, f"Admin login failed: {response.text}"
         data = response.json()
