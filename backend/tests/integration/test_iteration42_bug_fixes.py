@@ -244,8 +244,8 @@ class TestChangePassword:
         no_auth_session.headers.update({"Content-Type": "application/json"})
         
         response = no_auth_session.post(f"{BASE_URL}/api/auth/change-password", json={
-            "current_password": "admin",
-            "new_password": "hacked123"
+            "current_password": ADMIN_PASSWORD,
+            "new_password": "hacked123456"
         })
         
         assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
