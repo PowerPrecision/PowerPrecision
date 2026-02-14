@@ -1251,7 +1251,11 @@ async def start_aggregated_session(
     )
     
     # Criar sessão de agregação em memória
-    get_or_create_session(session_id, user.get("email"))
+    session = get_or_create_session(session_id, user.get("email"))
+    session.total_files = request.total_files
+    
+    # Persistir na DB para recuperação após reinício
+    await persist_session_to_db(session)
     
     logger.info(f"[AGGREGATED] Sessão iniciada: {session_id} com {request.total_files} ficheiros")
     
