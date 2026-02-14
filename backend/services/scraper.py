@@ -1002,8 +1002,18 @@ Conteúdo:
             
             logger.info(f"✓ OpenAI ({model}) extraiu dados de {url}")
             
+            # Normalizar resposta - aplanar categorias aninhadas se existirem
+            normalized = {}
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    # Aplanar categorias como DADOS_DO_IMOVEL, CARACTERISTICAS, etc.
+                    for sub_key, sub_value in value.items():
+                        normalized[sub_key] = sub_value
+                else:
+                    normalized[key] = value
+            
             return {
-                **data,
+                **normalized,
                 "_extracted_by": f"openai-{model}"
             }
             
