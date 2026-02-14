@@ -1549,7 +1549,7 @@ async def finish_aggregated_session(
                 {"session_id": session_id},
                 {"$set": {"is_active": False, "finished_at": datetime.now(timezone.utc).isoformat()}}
             )
-        except:
+        except Exception:
             pass
         
         # Fechar e remover sessão de memória
@@ -1572,7 +1572,7 @@ async def finish_aggregated_session(
                 {"session_id": session_id},
                 {"$set": {"is_active": False, "error": str(e)}}
             )
-        except:
+        except Exception:
             pass
         close_session(session_id)
         raise HTTPException(status_code=500, detail=f"Erro ao finalizar importação: {str(e)}")
