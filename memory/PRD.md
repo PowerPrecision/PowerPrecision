@@ -11,9 +11,59 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 14 Fevereiro 2026 (Sessão 25)
+## Última Actualização - 14 Fevereiro 2026 (Sessão 26)
 
-### ✅ Bug Fix: Sessão de Agregação Não Encontrada - CORRIGIDO
+### ✅ Correcções P1/P2 (Sessão 26)
+
+#### P1: Correcção Dark Mode no Kanban do Gestor de Visitas - CORRIGIDO
+- **Problema**: As colunas do Kanban não eram visíveis em dark mode (usavam `bg-gray-50` fixo)
+- **Solução**: Trocado para classes dark-mode-aware `bg-muted/50 dark:bg-muted/30`
+- **Ficheiros modificados**:
+  - `/app/frontend/src/components/LeadsKanban.js` - KanbanColumn e filtros
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_38)
+
+#### P1: Botão "Criar Lead com estes dados" - CORRIGIDO
+- **Problema**: O botão na página de Importar Idealista não funcionava porque os campos do scraper estavam em português (titulo, preco) mas o modelo espera inglês (title, price)
+- **Solução**: Mapeamento correcto de campos na função `handleCreateLead`:
+  - `titulo` → `title`
+  - `preco` → `price`
+  - `localizacao` → `location`
+  - `tipologia` → `typology`
+  - `area_util` → `area`
+  - `foto_principal` → `photo_url`
+  - `agente_nome/telefone/email` → `consultant` object
+- **Ficheiros modificados**:
+  - `/app/frontend/src/pages/IdealistaImportPage.js` - handleCreateLead
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_38)
+
+#### P1: Botão "Importar HTML" no Gestor de Visitas - IMPLEMENTADO
+- **Problema**: Utilizador queria acesso fácil à página de importação a partir do gestor de visitas
+- **Solução**: Adicionado botão "Importar HTML" no header do Kanban que navega para `/admin/importar-idealista`
+- **Ficheiros modificados**:
+  - `/app/frontend/src/components/LeadsKanban.js` - header com novo botão
+- **Status**: ✅ IMPLEMENTADO E TESTADO (iteration_38)
+
+#### P1: Feedback Visual no Bookmarklet Avançado - MELHORADO
+- **Problema**: Bookmarklet não dava feedback visual ao utilizador
+- **Solução**: Adicionado overlay visual que mostra:
+  1. "A processar..." com spinner
+  2. "Dados enviados!" com check quando sucesso
+  3. Abre o CRM após breve delay para o utilizador ver o feedback
+- **Ficheiros modificados**:
+  - `/app/frontend/src/pages/IdealistaImportPage.js` - bookmarkletAdvanced
+- **Status**: ✅ IMPLEMENTADO
+
+#### P2: Logs de Erros do Sistema - EXPLICAÇÃO
+- **Pergunta do utilizador**: "Os logs dos erros para onde vão?"
+- **Resposta**: Os erros são registados na base de dados MongoDB na colecção `system_error_logs`
+- **Acesso**: Menu Sistema → "Logs do Sistema" no frontend
+- **Estatísticas actuais** (30 dias):
+  - Total: 70 logs
+  - Por severidade: 45 warning, 22 info, 3 critical
+  - Por tipo: http_404 (24), excel_import_error (13), excel_import_success (12), http_400 (10), scraper_error (7), unhandled_exception (3)
+- **Nota**: Os logs do supervisor (`/var/log/supervisor/backend.err.log`) contêm apenas erros de infra-estrutura (ex: conexão Redis). Erros de aplicação são registados na DB.
+
+### ✅ Bug Fix: Sessão de Agregação Não Encontrada - CORRIGIDO (Sessão 25)
 - **Problema**: A importação massiva falhava com "Sessão de agregação não encontrada" após reinício do servidor
 - **Causa Raiz**: As sessões eram armazenadas apenas em memória e perdidas quando o servidor reiniciava
 - **Solução**: 
