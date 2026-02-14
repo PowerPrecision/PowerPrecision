@@ -1910,6 +1910,130 @@ async def resolve_ai_import_log(
     return {"success": True, "message": "Log marcado como resolvido"}
 
 
+@router.post("/ai-import-logs/bulk-resolve")
+async def bulk_resolve_ai_import_logs(
+    data: dict,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Marca múltiplos logs de importação como resolvidos em massa.
+    
+    Body:
+    - log_ids: Lista de IDs a resolver
+    """
+    log_ids = data.get("log_ids", [])
+    if not log_ids:
+        raise HTTPException(status_code=400, detail="Nenhum ID fornecido")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    resolved_by = user.get("email", "admin")
+    
+    # Actualizar na colecção ai_import_logs
+    result = await db.ai_import_logs.update_many(
+        {"id": {"$in": log_ids}, "resolved": {"$ne": True}},
+        {
+            "$set": {
+                "resolved": True,
+                "resolved_at": now,
+                "resolved_by": resolved_by
+            }
+        }
+    )
+    
+    # Também actualizar na colecção import_errors (legacy)
+    await db.import_errors.update_many(
+        {"id": {"$in": log_ids}},
+        {
+            "$set": {
+                "resolved": True,
+                "resolved_at": now,
+                "resolved_by": resolved_by
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "resolved_count": result.modified_count,
+        "message": f"{result.modified_count} logs marcados como resolvidos"
+    }
+
+
+@router.get("/ai-import-logs-v2/grouped")
+async def get_ai_import_logs_grouped(
+    days: int = 7,
+    status: str = None,
+    user: dict = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Obtém logs de importação IA agrupados por cliente.
+    Mostra resumo de sucesso/erro por cliente.
+    
+    Query params:
+    - days: Últimos N dias (default 7)
+    - status: Filtrar por estado (success, error, all)
+    """
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    # Query base
+    match_stage = {"timestamp": {"$gte": cutoff_date}}
+    if status == "error":
+        match_stage["status"] = "error"
+    elif status == "success":
+        match_stage["status"] = "success"
+    
+    # Agregar por cliente
+    pipeline = [
+        {"$match": match_stage},
+        {"$sort": {"timestamp": -1}},
+        {"$group": {
+            "_id": "$client_name",
+            "total_docs": {"$sum": 1},
+            "success_count": {"$sum": {"$cond": [{"$eq": ["$status", "success"]}, 1, 0]}},
+            "error_count": {"$sum": {"$cond": [{"$eq": ["$status", "error"]}, 1, 0]}},
+            "fields_updated": {"$sum": "$fields_count"},
+            "last_import": {"$first": "$timestamp"},
+            "logs": {"$push": {
+                "id": "$id",
+                "status": "$status",
+                "filename": "$filename",
+                "document_type": "$document_type",
+                "timestamp": "$timestamp",
+                "fields_count": "$fields_count",
+                "error": "$error",
+                "resolved": "$resolved"
+            }}
+        }},
+        {"$sort": {"last_import": -1}},
+        {"$project": {
+            "client_name": "$_id",
+            "total_docs": 1,
+            "success_count": 1,
+            "error_count": 1,
+            "fields_updated": 1,
+            "last_import": 1,
+            "logs": {"$slice": ["$logs", 50]},  # Limitar a 50 logs por cliente
+            "_id": 0
+        }}
+    ]
+    
+    groups = await db.ai_import_logs.aggregate(pipeline).to_list(100)
+    
+    # Estatísticas gerais
+    stats = {
+        "total_clients": len(groups),
+        "total_docs": sum(g["total_docs"] for g in groups),
+        "total_success": sum(g["success_count"] for g in groups),
+        "total_errors": sum(g["error_count"] for g in groups),
+        "total_fields": sum(g["fields_updated"] for g in groups)
+    }
+    
+    return {
+        "groups": groups,
+        "stats": stats
+    }
+
+
 # ============== AI IMPORT LOGS V2 - Com categorização de dados ==============
 
 @router.get("/ai-import-logs-v2")
