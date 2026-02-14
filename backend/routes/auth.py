@@ -140,3 +140,100 @@ async def update_preferences(
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
     
     return {"success": True, "message": "Preferências atualizadas"}
+
+
+@router.get("/preferences")
+async def get_preferences(user: dict = Depends(get_current_user)):
+    """
+    Retorna as preferências de notificação do utilizador atual.
+    """
+    user_data = await db.users.find_one({"id": user["id"]}, {"_id": 0, "notification_preferences": 1})
+    
+    notifications = user_data.get("notification_preferences", {}) if user_data else {}
+    
+    return {"notifications": notifications}
+
+
+@router.put("/profile")
+async def update_profile(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Permite ao utilizador atualizar o seu próprio perfil (nome e telefone).
+    """
+    from fastapi import HTTPException
+    
+    user_id = user["id"]
+    
+    # Campos permitidos para atualização pelo próprio utilizador
+    allowed_fields = ["name", "phone"]
+    update_data = {}
+    
+    for field in allowed_fields:
+        if field in data and data[field] is not None:
+            update_data[field] = data[field]
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Nenhum campo válido para atualizar")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0 and result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # Retornar o utilizador atualizado
+    updated_user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    
+    return {
+        "success": True,
+        "message": "Perfil atualizado com sucesso",
+        "user": updated_user
+    }
+
+
+@router.post("/change-password")
+async def change_password(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Permite ao utilizador alterar a sua própria password.
+    """
+    from fastapi import HTTPException
+    
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+    
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Password atual e nova password são obrigatórias")
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="A nova password deve ter pelo menos 6 caracteres")
+    
+    # Buscar utilizador com password
+    user_data = await db.users.find_one({"id": user["id"]})
+    if not user_data:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # Verificar password atual
+    password_field = user_data.get("password") or user_data.get("hashed_password", "")
+    if not verify_password(current_password, password_field):
+        raise HTTPException(status_code=400, detail="Password atual incorreta")
+    
+    # Atualizar password
+    new_hashed = hash_password(new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password": new_hashed,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"success": True, "message": "Password alterada com sucesso"}
