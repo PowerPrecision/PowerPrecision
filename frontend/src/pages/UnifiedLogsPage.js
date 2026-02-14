@@ -1132,22 +1132,22 @@ const ImportLogsTab = ({ token }) => {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                      <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                         {group.total_docs} docs
                       </Badge>
                       {group.success_count > 0 && (
-                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                        <Badge variant="outline" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           {group.success_count}
                         </Badge>
                       )}
                       {group.error_count > 0 && (
-                        <Badge variant="outline" className="bg-red-100 text-red-800">
+                        <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
                           <XCircle className="h-3 w-3 mr-1" />
                           {group.error_count}
                         </Badge>
                       )}
-                      <Badge variant="outline" className="bg-purple-100 text-purple-800">
+                      <Badge variant="outline" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
                         {group.fields_updated} campos
                       </Badge>
                     </div>
