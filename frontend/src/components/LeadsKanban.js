@@ -251,6 +251,7 @@ const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete,
 
 // Componente principal
 const LeadsKanban = () => {
+  const navigate = useNavigate();
   const { token, user } = useAuth();
   const [leads, setLeads] = useState({});
   const [clients, setClients] = useState([]);
