@@ -427,7 +427,14 @@ export default function ClientsPage() {
                             </span>
                           </div>
                           <div>
-                            <p className="font-medium">{client.nome}</p>
+                            <button
+                              className="font-medium text-left hover:text-primary hover:underline transition-colors cursor-pointer"
+                              onClick={() => client.process_ids?.[0] && navigate(`/process/${client.process_ids[0]}`)}
+                              disabled={!client.process_ids?.length}
+                              data-testid={`client-name-${client.id}`}
+                            >
+                              {client.nome}
+                            </button>
                             {client.fonte && (
                               <Badge variant="outline" className="text-xs mt-1">
                                 {client.fonte}
