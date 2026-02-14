@@ -46,7 +46,9 @@ from services.ai_document import (
 from services.documents.data_aggregator import (
     get_or_create_session,
     get_session,
+    get_session_async,
     close_session,
+    persist_session_to_db,
     SessionAggregator,
     ClientDataAggregator
 )
