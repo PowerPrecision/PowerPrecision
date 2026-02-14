@@ -640,16 +640,26 @@ const LeadsKanban = () => {
               Arraste os cartões entre colunas para alterar o estado
             </p>
           </div>
-          <Button
-            onClick={() => {
-              resetForm();
-              setIsDialogOpen(true);
-            }}
-            data-testid="add-lead-btn"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Lead
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/importar-idealista")}
+              data-testid="import-html-btn"
+            >
+              <FileInput className="h-4 w-4 mr-2" />
+              Importar HTML
+            </Button>
+            <Button
+              onClick={() => {
+                resetForm();
+                setIsDialogOpen(true);
+              }}
+              data-testid="add-lead-btn"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Lead
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
