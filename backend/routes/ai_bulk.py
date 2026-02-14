@@ -1415,6 +1415,12 @@ async def analyze_file_aggregated(
         session.increment_error()
         logger.error(f"[AGGREGATED] Erro ao processar {filename}: {e}", exc_info=True)
     
+    # Persistir estado da sessão após cada ficheiro
+    try:
+        await persist_session_to_db(session)
+    except Exception as persist_error:
+        logger.warning(f"[AGGREGATED] Erro ao persistir sessão: {persist_error}")
+    
     return result
 
 
