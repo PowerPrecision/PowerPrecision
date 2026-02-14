@@ -392,11 +392,40 @@ async def create_process_for_client(
     Criar um novo processo para um cliente existente.
     
     Isto permite que o mesmo cliente tenha múltiplos processos de compra.
+    O client_id pode ser:
+    - Um ID real de cliente na colecção clients
+    - Um ID de processo (quando o cliente é virtual/agregado de processos)
     """
-    # Verificar se cliente existe
+    client = None
+    source_process = None
+    
+    # Primeiro, tentar encontrar na colecção clients
     client = await db.clients.find_one({"id": client_id})
+    
+    # Se não encontrou, pode ser um process_id (cliente virtual)
     if not client:
-        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+        # Tentar encontrar um processo com este ID ou client_id
+        source_process = await db.processes.find_one(
+            {"$or": [{"id": client_id}, {"client_id": client_id}]},
+            {"_id": 0}
+        )
+        
+        if not source_process:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado")
+        
+        # Usar dados do processo como fonte
+        client = {
+            "id": client_id,
+            "nome": source_process.get("client_name"),
+            "contacto": {
+                "email": source_process.get("client_email", ""),
+                "telefone": source_process.get("client_phone", "")
+            },
+            "dados_pessoais": source_process.get("personal_data", {}),
+            "dados_financeiros": source_process.get("financial_data", {}),
+            "co_buyers": source_process.get("co_buyers", []),
+            "co_applicants": source_process.get("co_applicants", [])
+        }
     
     # Obter próximo número de processo
     last_process = await db.processes.find_one(
@@ -437,14 +466,15 @@ async def create_process_for_client(
     
     await db.processes.insert_one(new_process)
     
-    # Adicionar processo ao cliente
-    await db.clients.update_one(
-        {"id": client_id},
-        {
-            "$addToSet": {"process_ids": process_id},
-            "$set": {"updated_at": now}
-        }
-    )
+    # Se temos um cliente real, atualizar a lista de processos
+    if not source_process:
+        await db.clients.update_one(
+            {"id": client_id},
+            {
+                "$addToSet": {"process_ids": process_id},
+                "$set": {"updated_at": now}
+            }
+        )
     
     logger.info(f"Novo processo {process_id} criado para cliente {client_id} por {user.get('email')}")
     
