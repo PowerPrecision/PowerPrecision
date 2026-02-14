@@ -1,7 +1,8 @@
 /**
- * IdealistaImportPage - Importação de dados do Idealista
+ * IdealistaImportPage - Importação de dados de imóveis
  * 
- * Como o Idealista bloqueia scrapers, oferecemos duas opções:
+ * Funciona com qualquer site imobiliário, não apenas Idealista.
+ * Oferece três opções:
  * 1. Bookmarklet Simples - Copia dados para clipboard
  * 2. Bookmarklet Avançado - Abre o CRM automaticamente com dados
  * 3. Colar HTML - Copiar página e colar aqui
@@ -15,6 +16,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Badge } from "../components/ui/badge";
+import { ScrollArea } from "../components/ui/scroll-area";
 import { toast } from "sonner";
 import {
   Home,
@@ -33,6 +35,14 @@ import {
   User,
   Phone,
   Zap,
+  Car,
+  Thermometer,
+  Calendar,
+  Hash,
+  Mail,
+  FileText,
+  Image,
+  Video,
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
