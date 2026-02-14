@@ -1362,9 +1362,9 @@ const ImportLogsTab = ({ token }) => {
                   <Label className="text-xs text-muted-foreground">Estado</Label>
                   <div className="mt-1">
                     {selectedLog.status === "success" ? (
-                      <Badge className="bg-green-100 text-green-800">Sucesso</Badge>
+                      <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Sucesso</Badge>
                     ) : (
-                      <Badge className="bg-red-100 text-red-800">Erro</Badge>
+                      <Badge className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">Erro</Badge>
                     )}
                   </div>
                 </div>
@@ -1380,7 +1380,7 @@ const ImportLogsTab = ({ token }) => {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Campos</Label>
-                  <p className="mt-1 text-sm font-bold text-purple-600">
+                  <p className="mt-1 text-sm font-bold text-purple-600 dark:text-purple-400">
                     {selectedLog.fields_count || 0}
                   </p>
                 </div>
