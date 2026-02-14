@@ -187,16 +187,33 @@ const IdealistaImportPage = () => {
 
     try {
       const token = localStorage.getItem("token");
+      
+      // Mapear campos do extractedData para o formato esperado pelo PropertyLeadCreate
+      // Os campos do scraper usam nomes em português, mas o modelo usa inglês
+      const leadData = {
+        url: extractedData.url || extractedData._source_url || `idealista-import-${Date.now()}`,
+        title: extractedData.titulo || extractedData.title,
+        price: extractedData.preco || extractedData.price,
+        location: extractedData.localizacao || extractedData.location,
+        typology: extractedData.tipologia || extractedData.typology,
+        area: extractedData.area_util || extractedData.area,
+        photo_url: extractedData.foto_principal || extractedData.photo_url,
+        notes: `Importado do Idealista via HTML paste. Source: ${extractedData._source || 'idealista'}`,
+        consultant: extractedData.agente_nome ? {
+          name: extractedData.agente_nome,
+          phone: extractedData.agente_telefone,
+          email: extractedData.agente_email,
+          agency_name: extractedData.agencia_nome,
+        } : extractedData.consultant,
+      };
+      
       const response = await fetch(`${API_URL}/api/leads`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...extractedData,
-          source: "idealista_import",
-        }),
+        body: JSON.stringify(leadData),
       });
 
       if (response.ok) {
@@ -204,9 +221,11 @@ const IdealistaImportPage = () => {
         setExtractedData(null);
         setHtmlContent("");
       } else {
-        toast.error("Erro ao criar lead");
+        const errorData = await response.json();
+        toast.error(errorData.detail || "Erro ao criar lead");
       }
     } catch (error) {
+      console.error("Erro ao criar lead:", error);
       toast.error("Erro ao criar lead");
     }
   };
