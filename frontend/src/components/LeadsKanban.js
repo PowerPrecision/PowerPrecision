@@ -187,6 +187,136 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
   );
 };
 
+// Componente de lista para Mobile
+const LeadListItem = ({ lead, status, onEdit, onDelete, onRefreshPrice, onShowSuggestions, onStatusChange }) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const formatPrice = (price) => {
+    if (!price) return "N/D";
+    return new Intl.NumberFormat("pt-PT", {
+      style: "currency",
+      currency: "EUR",
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const handleRefreshPrice = async (e) => {
+    e.stopPropagation();
+    setIsRefreshing(true);
+    try {
+      await onRefreshPrice(lead.id);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const statusObj = LEAD_STATUSES.find(s => s.id === lead.status) || LEAD_STATUSES[0];
+
+  return (
+    <Card 
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onEdit(lead)}
+      data-testid={`lead-list-item-${lead.id}`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          {/* Info principal */}
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className={`${statusObj.color} text-white text-xs`}>
+                {statusObj.label}
+              </Badge>
+              {lead.typology && (
+                <Badge variant="outline" className="text-xs">{lead.typology}</Badge>
+              )}
+            </div>
+            
+            <h4 className="font-medium text-sm line-clamp-2">{lead.title || "Sem título"}</h4>
+            
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-green-600 font-semibold">{formatPrice(lead.price)}</span>
+              {lead.area && <span className="text-muted-foreground">{lead.area}m²</span>}
+            </div>
+            
+            {lead.location && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate">{lead.location}</span>
+              </div>
+            )}
+            
+            {lead.client_name && (
+              <div className="flex items-center gap-1 text-xs text-blue-600">
+                <User className="h-3 w-3" />
+                <span>{lead.client_name}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Ações */}
+          <div className="flex flex-col gap-1 flex-shrink-0">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={(e) => { e.stopPropagation(); onEdit(lead); }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-purple-500"
+              onClick={(e) => { e.stopPropagation(); onShowSuggestions(lead); }}
+            >
+              <Sparkles className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={handleRefreshPrice}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>🔄</span>}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-red-500"
+              onClick={(e) => { e.stopPropagation(); onDelete(lead.id); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Dropdown para mudar status no mobile */}
+        <div className="mt-3 pt-3 border-t">
+          <Select 
+            value={lead.status} 
+            onValueChange={(newStatus) => onStatusChange(lead.id, newStatus)}
+          >
+            <SelectTrigger className="h-8 text-xs" onClick={(e) => e.stopPropagation()}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LEAD_STATUSES.map(s => (
+                <SelectItem key={s.id} value={s.id}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                    {s.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 // Componente de coluna do Kanban
 const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete, onRefreshPrice, onShowSuggestions, clients }) => {
   const [isDragOver, setIsDragOver] = useState(false);
