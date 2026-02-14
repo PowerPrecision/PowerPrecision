@@ -592,6 +592,57 @@ class SessionAggregator:
 active_sessions: Dict[str, SessionAggregator] = {}
 
 
+async def persist_session_to_db(session: SessionAggregator):
+    """Persistir sessão na base de dados para recuperação após reinício."""
+    from database import db
+    
+    session_data = {
+        "session_id": session.session_id,
+        "user_email": session.user_email,
+        "created_at": session.created_at.isoformat(),
+        "total_files": session.total_files,
+        "processed_files": session.processed_files,
+        "errors": session.errors,
+        "clients_count": len(session.aggregators),
+        "is_active": True,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.aggregated_sessions.update_one(
+        {"session_id": session.session_id},
+        {"$set": session_data},
+        upsert=True
+    )
+
+
+async def load_session_from_db(session_id: str) -> Optional[SessionAggregator]:
+    """Tentar carregar sessão da DB."""
+    from database import db
+    
+    session_doc = await db.aggregated_sessions.find_one(
+        {"session_id": session_id, "is_active": True},
+        {"_id": 0}
+    )
+    
+    if session_doc:
+        session = SessionAggregator(session_id, session_doc.get("user_email", "unknown"))
+        session.total_files = session_doc.get("total_files", 0)
+        session.processed_files = session_doc.get("processed_files", 0)
+        session.errors = session_doc.get("errors", 0)
+        
+        # Restaurar created_at
+        if session_doc.get("created_at"):
+            try:
+                session.created_at = datetime.fromisoformat(session_doc["created_at"].replace("Z", "+00:00"))
+            except:
+                pass
+        
+        logger.info(f"[AGGREGATOR] Sessão recuperada da DB: {session_id}")
+        return session
+    
+    return None
+
+
 def get_or_create_session(session_id: str, user_email: str) -> SessionAggregator:
     """Obter ou criar sessão de agregação."""
     if session_id not in active_sessions:
