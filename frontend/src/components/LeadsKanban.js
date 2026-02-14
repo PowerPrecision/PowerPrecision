@@ -162,7 +162,7 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
               {isStale && "⚠️"}{daysOldText}
             </span>
           )}
-          <Button variant="ghost" size="icon" className="h-4 w-4 ml-auto" onClick={handleRefreshPrice} disabled={isRefreshing} title="Verificar preço">
+          <Button variant="ghost" size="icon" className="h-4 w-4 ml-auto" onClick={(e) => { e.stopPropagation(); handleRefreshPrice(e); }} disabled={isRefreshing} title="Verificar preço">
             {isRefreshing ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <span className="text-[10px]">🔄</span>}
           </Button>
         </div>
@@ -170,10 +170,10 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
         {/* Cliente + Link */}
         <div className="flex items-center justify-between text-[10px]">
           {lead.client_name ? (
-            <span className="text-blue-600 truncate max-w-[100px]">{lead.client_name}</span>
+            <span className="text-blue-600 dark:text-blue-400 truncate max-w-[100px]">{lead.client_name}</span>
           ) : <span />}
           {lead.url && (lead.url.startsWith('http://') || lead.url.startsWith('https://')) ? (
-            <a href={lead.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-0.5">
+            <a href={lead.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-blue-500 hover:underline flex items-center gap-0.5">
               <ExternalLink className="h-2.5 w-2.5" />Ver
             </a>
           ) : (
