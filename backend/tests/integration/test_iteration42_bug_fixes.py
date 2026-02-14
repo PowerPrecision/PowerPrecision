@@ -162,7 +162,7 @@ class TestChangePassword:
     def test_change_password_short_new_password(self):
         """Test that short new password fails"""
         response = self.session.post(f"{BASE_URL}/api/auth/change-password", json={
-            "current_password": "admin",
+            "current_password": ADMIN_PASSWORD,
             "new_password": "123"
         })
         
