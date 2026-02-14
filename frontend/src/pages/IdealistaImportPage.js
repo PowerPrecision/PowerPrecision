@@ -211,17 +211,31 @@ const IdealistaImportPage = () => {
     try {
       const token = localStorage.getItem("token");
       
+      // Obter URL - priorizar URL válida, senão usar a URL da página de origem
+      let leadUrl = extractedData.url || extractedData._source_url || "";
+      
+      // Garantir que a URL é absoluta
+      if (leadUrl && !leadUrl.startsWith('http://') && !leadUrl.startsWith('https://')) {
+        // Se não é URL válida, não guardar como URL
+        leadUrl = "";
+      }
+      
+      // Se ainda não temos URL, mostrar aviso mas continuar
+      if (!leadUrl) {
+        console.warn("Lead será criado sem URL de origem");
+      }
+      
       // Mapear campos do extractedData para o formato esperado pelo PropertyLeadCreate
       // Os campos do scraper usam nomes em português, mas o modelo usa inglês
       const leadData = {
-        url: extractedData.url || extractedData._source_url || `idealista-import-${Date.now()}`,
-        title: extractedData.titulo || extractedData.title,
+        url: leadUrl || `https://imported.local/${Date.now()}`, // URL placeholder se não houver
+        title: extractedData.titulo || extractedData.title || "Imóvel Importado",
         price: extractedData.preco || extractedData.price,
         location: extractedData.localizacao || extractedData.location,
         typology: extractedData.tipologia || extractedData.typology,
         area: extractedData.area_util || extractedData.area,
         photo_url: extractedData.foto_principal || extractedData.photo_url,
-        notes: `Importado do Idealista via HTML paste. Source: ${extractedData._source || 'idealista'}`,
+        notes: `Importado via HTML paste. ${leadUrl ? `Origem: ${leadUrl}` : 'Sem URL de origem'}`,
         consultant: extractedData.agente_nome ? {
           name: extractedData.agente_nome,
           phone: extractedData.agente_telefone,
