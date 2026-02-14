@@ -171,9 +171,15 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
           {lead.client_name ? (
             <span className="text-blue-600 truncate max-w-[100px]">{lead.client_name}</span>
           ) : <span />}
-          <a href={lead.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-0.5">
-            <ExternalLink className="h-2.5 w-2.5" />Ver
-          </a>
+          {lead.url && (lead.url.startsWith('http://') || lead.url.startsWith('https://')) ? (
+            <a href={lead.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-0.5">
+              <ExternalLink className="h-2.5 w-2.5" />Ver
+            </a>
+          ) : (
+            <span className="text-muted-foreground flex items-center gap-0.5">
+              <ExternalLink className="h-2.5 w-2.5" />—
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
