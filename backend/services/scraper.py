@@ -753,28 +753,58 @@ class PropertyScraper:
             clean_html = self._clean_text(html_content)[:15000]
             input_tokens = len(clean_html) // 4  # Estimativa: ~4 chars por token
             
-            prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai os dados em formato JSON estrito.
+            prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai TODOS os dados disponíveis em formato JSON estrito.
 
 URL: {url}
 
-Extrai APENAS os seguintes campos (usa null se não encontrares):
-- titulo: título/nome do imóvel
+Extrai os seguintes campos (usa null se não encontrares):
+
+DADOS DO IMÓVEL:
+- titulo: título/nome completo do imóvel
 - preco: preço em número (sem €, sem pontos de milhar)
-- localizacao: localização completa (freguesia, concelho, distrito)
-- tipologia: tipo (T0, T1, T2, T3, etc. ou moradia, terreno, loja)
+- preco_m2: preço por m² se disponível
+- localizacao: localização completa (rua, freguesia, concelho, distrito)
+- codigo_postal: código postal se visível
+- tipologia: tipo (T0, T1, T2, T3, T4, T5+, moradia V1-V5+, terreno, loja, armazém)
 - area: área útil em m² (apenas número)
+- area_bruta: área bruta em m² se disponível
+- area_terreno: área do terreno em m²
 - quartos: número de quartos
+- suites: número de suites
 - casas_banho: número de casas de banho
-- descricao: descrição breve (max 200 chars)
-- certificacao_energetica: certificado energético (A, B, C, D, E, F, G)
+- garagem: número de lugares de garagem
+- piso: andar/piso do imóvel
+- elevador: true/false se tem elevador
+- varanda: true/false se tem varanda/terraço
+- vista: tipo de vista (mar, rio, cidade, jardim)
+
+CARACTERÍSTICAS:
+- descricao: descrição do imóvel (texto completo)
+- caracteristicas: lista de características (piscina, ar condicionado, lareira, etc)
+- certificacao_energetica: certificado energético (A+, A, B, B-, C, D, E, F, G)
 - ano_construcao: ano de construção
-- estado: estado do imóvel (novo, usado, para renovar)
+- estado: estado do imóvel (novo, usado, remodelado, para renovar, em construção)
+- orientacao_solar: orientação (norte, sul, este, oeste)
+- condominio: valor do condomínio mensal se aplicável
+
+CONTACTO:
 - agente_nome: nome do agente/consultor imobiliário
 - agente_telefone: telefone do agente (formato +351 XXX XXX XXX)
 - agente_email: email do agente
-- agencia_nome: nome da agência imobiliária
+- agencia_nome: nome da agência/imobiliária
+- agencia_telefone: telefone da agência
+- referencia: código de referência do anúncio
 
-IMPORTANTE: Responde APENAS com o JSON, sem explicações ou markdown.
+LINKS:
+- foto_principal: URL da foto principal
+- url_planta: URL da planta do imóvel se disponível
+- url_video: URL do vídeo se disponível
+
+IMPORTANTE: 
+1. Responde APENAS com o JSON, sem explicações ou markdown
+2. Extrai o máximo de informação possível
+3. Para preços, remove símbolos e converte para número
+4. Para áreas, extrai apenas o número
 
 Conteúdo:
 {clean_html}"""
