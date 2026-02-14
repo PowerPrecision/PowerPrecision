@@ -299,14 +299,29 @@ async def extract_from_html(
         
         # Detectar source pelo conteúdo
         source = "desconhecido"
-        if "idealista.pt" in html_content.lower() or "idealista" in html_content.lower():
+        html_lower = html_content.lower()
+        if "idealista.pt" in html_lower or "idealista" in html_lower:
             source = "idealista"
-        elif "imovirtual" in html_content.lower():
+        elif "imovirtual" in html_lower:
             source = "imovirtual"
-        elif "casasapo" in html_content.lower() or "casa.sapo" in html_content.lower():
+        elif "casasapo" in html_lower or "casa.sapo" in html_lower:
             source = "casasapo"
-        elif "supercasa" in html_content.lower():
+        elif "supercasa" in html_lower:
             source = "supercasa"
+        elif "powerealestate" in html_lower or "power real estate" in html_lower:
+            source = "powerealestate"
+        elif "remax" in html_lower or "re/max" in html_lower:
+            source = "remax"
+        elif "era.pt" in html_lower or "eraimobiliaria" in html_lower:
+            source = "era"
+        elif "century21" in html_lower:
+            source = "century21"
+        elif "kw.com" in html_lower or "kellerwilliams" in html_lower:
+            source = "kellerwilliams"
+        elif "olx" in html_lower:
+            source = "olx"
+        elif "bpiexpressoimobiliario" in html_lower:
+            source = "bpi"
         
         logger.info(f"Extracção HTML: source detectado = {source}, tamanho = {len(html_content)}")
         
