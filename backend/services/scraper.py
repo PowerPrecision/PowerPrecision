@@ -848,22 +848,45 @@ Conteúdo:
             
             logger.info(f"✓ Gemini extraiu dados de {url}: {data.get('titulo', 'N/A')}")
             
+            # Retornar todos os campos extraídos
             return {
+                # Dados principais
                 "titulo": data.get("titulo"),
                 "preco": data.get("preco"),
+                "preco_m2": data.get("preco_m2"),
                 "localizacao": data.get("localizacao"),
+                "codigo_postal": data.get("codigo_postal"),
                 "tipologia": data.get("tipologia"),
                 "area": data.get("area"),
+                "area_bruta": data.get("area_bruta"),
+                "area_terreno": data.get("area_terreno"),
                 "quartos": data.get("quartos"),
+                "suites": data.get("suites"),
                 "casas_banho": data.get("casas_banho"),
+                "garagem": data.get("garagem"),
+                "piso": data.get("piso"),
+                "elevador": data.get("elevador"),
+                "varanda": data.get("varanda"),
+                "vista": data.get("vista"),
+                # Características
                 "descricao": data.get("descricao"),
+                "caracteristicas": data.get("caracteristicas"),
                 "certificado_energetico": data.get("certificacao_energetica"),
                 "ano_construcao": data.get("ano_construcao"),
                 "estado": data.get("estado"),
+                "orientacao_solar": data.get("orientacao_solar"),
+                "condominio": data.get("condominio"),
+                # Contacto
                 "agente_nome": data.get("agente_nome"),
                 "agente_telefone": data.get("agente_telefone"),
                 "agente_email": data.get("agente_email"),
                 "agencia_nome": data.get("agencia_nome"),
+                "agencia_telefone": data.get("agencia_telefone"),
+                "referencia": data.get("referencia"),
+                # Links
+                "foto_principal": data.get("foto_principal"),
+                "url_planta": data.get("url_planta"),
+                "url_video": data.get("url_video"),
                 "_extracted_by": "gemini-2.0-flash"
             }
             
