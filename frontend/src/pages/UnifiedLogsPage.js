@@ -77,10 +77,10 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || "";
 
 // ============== CONFIGURAÇÕES ==============
 const severityConfig = {
-  info: { icon: Info, color: "bg-blue-100 text-blue-800 border-blue-200", label: "Info" },
-  warning: { icon: AlertTriangle, color: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Aviso" },
-  error: { icon: AlertCircle, color: "bg-red-100 text-red-800 border-red-200", label: "Erro" },
-  critical: { icon: XCircle, color: "bg-red-200 text-red-900 border-red-300", label: "Crítico" },
+  info: { icon: Info, color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800", label: "Info" },
+  warning: { icon: AlertTriangle, color: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800", label: "Aviso" },
+  error: { icon: AlertCircle, color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800", label: "Erro" },
+  critical: { icon: XCircle, color: "bg-red-200 dark:bg-red-900/50 text-red-900 dark:text-red-200 border-red-300 dark:border-red-700", label: "Crítico" },
 };
 
 const documentTypeConfig = {
