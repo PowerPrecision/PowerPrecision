@@ -92,6 +92,10 @@ class TestAuthProfileUpdate:
     
     def test_update_profile_name_and_phone(self):
         """Test updating both name and phone"""
+        # Get original name first
+        me_response = self.session.get(f"{BASE_URL}/api/auth/me")
+        original_name = me_response.json().get("name") if me_response.status_code == 200 else "Admin"
+        
         update_response = self.session.put(f"{BASE_URL}/api/auth/profile", json={
             "name": "Admin Test",
             "phone": "+351912000002"
