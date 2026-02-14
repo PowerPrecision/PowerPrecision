@@ -1051,6 +1051,17 @@ def parse_ai_response(response: str, document_type: str) -> Dict[str, Any]:
         # Parse JSON
         data = json.loads(response)
         
+        # Se a resposta for uma lista, usar o primeiro elemento
+        if isinstance(data, list):
+            if len(data) > 0:
+                data = data[0] if isinstance(data[0], dict) else {"items": data}
+            else:
+                data = {}
+        
+        # Garantir que é um dicionário
+        if not isinstance(data, dict):
+            return {"raw_value": data, "parse_note": "Resposta não era um dicionário"}
+        
         # === LOG DETALHADO PARA DEBUG DO NIF ===
         if document_type == 'cc':
             nif_extraido = data.get('nif')
