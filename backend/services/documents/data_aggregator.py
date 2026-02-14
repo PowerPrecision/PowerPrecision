@@ -634,7 +634,7 @@ async def load_session_from_db(session_id: str) -> Optional[SessionAggregator]:
         if session_doc.get("created_at"):
             try:
                 session.created_at = datetime.fromisoformat(session_doc["created_at"].replace("Z", "+00:00"))
-            except:
+            except (ValueError, AttributeError):
                 pass
         
         logger.info(f"[AGGREGATOR] Sessão recuperada da DB: {session_id}")
