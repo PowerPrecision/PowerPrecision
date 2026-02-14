@@ -118,8 +118,9 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onClick={() => onEdit(lead)}
       className={`cursor-grab active:cursor-grabbing transition-all ${
-        isDragging ? "opacity-50 rotate-2 scale-105" : "hover:shadow-md"
+        isDragging ? "opacity-50 rotate-2 scale-105" : "hover:shadow-md hover:border-primary/50"
       } ${isStale ? "border-red-400 border-2" : ""}`}
       data-testid={`lead-card-${lead.id}`}
     >
@@ -130,13 +131,13 @@ const LeadCard = ({ lead, onEdit, onStatusChange, onDelete, onRefreshPrice, onSh
             {lead.title || "Sem título"}
           </h4>
           <div className="flex gap-0.5 flex-shrink-0">
-            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onEdit(lead)} title="Editar">
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); onEdit(lead); }} title="Editar">
               <Edit className="h-2.5 w-2.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-purple-500" onClick={() => onShowSuggestions(lead)} title="Clientes Sugeridos">
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-purple-500" onClick={(e) => { e.stopPropagation(); onShowSuggestions(lead); }} title="Clientes Sugeridos">
               <Sparkles className="h-2.5 w-2.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={() => onDelete(lead.id)} title="Eliminar">
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-red-500" onClick={(e) => { e.stopPropagation(); onDelete(lead.id); }} title="Eliminar">
               <Trash2 className="h-2.5 w-2.5" />
             </Button>
           </div>
