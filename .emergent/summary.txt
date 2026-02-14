@@ -1,138 +1,155 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build and refine a process management CRM. The initial focus was on fixing three critical bugs that emerged after a new client-by-client mass AI document import feature was implemented:
-1.  The mass import process was not appearing on the background processes page.
-2.  Importing property data from an  URL was failing.
-3.  The system failed to correctly extract information from a Portuguese ID card for a client working abroad.
-
-During the course of the session, the user added several new feature requests:
--   Train the AI to extract data from a web page as a workaround for the Idealista issue.
--   Add the ability to stop or pause background processes.
--   Implement a simple, one-click method (like a browser button or bookmarklet) for the Idealista import.
+The user is building a process management CRM. The current set of tasks revolves around fixing a new set of bugs and implementing several improvements requested by the user.
 
 **PRODUCT REQUIREMENTS:**
--   **P0 Bug Fixes (Now Completed):**
-    -   Fix the missing background job tracking for mass imports.
-    -   Address the Idealista URL import failure.
-    -   Improve data extraction accuracy for Portuguese ID cards and foreign documents.
--   **P0 Feature: Cancel Background Jobs (In Progress):** Add a button to cancel a running background job.
--   **P0 Feature: Idealista HTML Import (In Progress):** Create a page where users can paste HTML from an Idealista property page to extract data.
--   **P1 Feature: Idealista Bookmarklet (Upcoming):** Create a simple one-click bookmarklet to automate the HTML import process.
--   **P2 Feature: Pause/Resume Background Jobs (Upcoming):** Add functionality to pause and resume jobs.
+-   **P0: Fix Mass Import Error ():** A bug was reported where mass import sessions were lost on server restarts, causing a  error. This has since been fixed by persisting sessions to the database.
+-   **P0: Enhanced AI Import Logging:**
+    -   Logs for AI imports must be more detailed, showing success/failure for each item.
+    -   Logs should be grouped by client.
+    -   Add a select all logs feature for quick processing.
+-   **P0: Fix Create Lead from HTML Extract:** The button to create a lead from data extracted via the HTML import feature is broken and needs to be fixed.
+-   **P0: Improve HTML Data Extraction:** The AI-powered HTML extraction needs to be significantly improved to pull more details from property pages. It must be generic enough to work with any real estate website, not just Idealista.
+-   **P0: Fix Kanban Dark Mode Bug:** The Kanban board within the gestor de visita (visit manager) is not rendering correctly in dark mode.
+-   **P1: Relocate Importar Idealista Feature:** Move the HTML import page so it's accessible from within the visit manager.
+-   **P1: Add Bookmarklet Feedback:** The import bookmarklets must provide clear visual feedback to the user upon being clicked.
+-   **P2: Clarify Error Logging:** Explain to the user where application error logs are stored.
+-   **P2: Implement Pause/Resume for Background Jobs:** (Now Completed) Add functionality to pause and resume jobs.
+-   **P1: Implement Idealista Bookmarklet:** (Now Completed) Create a simple one-click bookmarklet to automate the HTML import process.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-A full-stack CRM application (React + FastAPI + MongoDB). The previous session successfully resolved the three critical bugs reported by the user.
-1.  **Background Jobs:** The agent fixed the issue by adding a new progress-update endpoint for aggregated sessions and updating the frontend to use it.
-2.  **Idealista Scraper:** The agent identified that Idealista actively blocks scrapers (even ScraperAPI) and communicated this limitation. An alternative feature (import via HTML paste) is now being built.
-3.  **Data Extraction:** The agent improved the AI prompts in the backend to correctly process documents for Portuguese nationals living abroad, specifically handling French payslips and tax documents.
+A full-stack CRM application (React + FastAPI + MongoDB). The agent has recently completed a significant bug fix and implemented two P1-level features.
 
-The agent is now in the middle of implementing two new features requested by the user: a Cancel button for background jobs and the Idealista HTML Import page.
+1.  **Mass Import Stability (FIXED):** The critical bug causing mass import sessions to be lost on server restart has been resolved. The agent re-architected the feature to persist  from in-memory dictionaries to a dedicated MongoDB collection. This ensures that long-running imports can survive backend restarts.
+2.  **Pause/Resume Jobs (DONE):** The agent implemented the backend endpoints (, ) and updated the frontend (, ) to allow users to pause and resume background jobs. This includes a new Pausados (Paused) stat on the dashboard.
+3.  **Advanced Bookmarklet (DONE):** The Importar Idealista page now includes an advanced, one-click bookmarklet that automatically opens the CRM in a new tab with the source page's HTML pre-filled for extraction.
+
+The application is stable, and the previous tasks have been completed and tested. The agent was about to start working on a new list of user-reported issues and improvements before the session ended.
 
 **Last working item**:
--   **Last item agent was working**: The agent was implementing the Idealista HTML Import feature. It had just created the frontend page, the backend endpoint, and added the new route to the main  router. The last action was acknowledging the user's continue message, with the immediate next step being to add a link to this new page in the admin navigation sidebar.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (For the bug fixes, which passed via the testing agent).
--   **Which testing method agent to use?**: frontend testing agent. The agent should be used to verify the new Cancel button functionality on the background jobs page and the full user flow for the new Idealista HTML import page.
+-   **Last item agent was working**: The agent was formulating a plan to address a new batch of user requests received in message #224. It had analyzed the existing codebase to understand the scope of the new tasks (improving logs, fixing dark mode, enhancing AI extraction, etc.) and was ready to seek user approval to begin implementation. The user approved the plan in message #241.
+-   **Status**: NOT STARTED (on the new list of tasks)
+-   **Agent Testing Done**: Y (for the session persistence and pause/resume features)
+-   **Which testing method agent to use?**: both. The next set of tasks involves significant changes to the backend (logging, AI prompts), frontend (UI fixes, component relocation), and end-to-end flows. A full run with the testing agent will be necessary.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None. The previously reported critical bugs have been resolved or have a defined workaround in progress.
+This list is based on the user's last comprehensive feedback message (#224).
+
+-   **Issue 1: Insufficient AI Import Logging (P0)**
+    -   **Description**: The current logs for mass AI imports are too generic. The user wants detailed, item-level logs (success/error), grouped by client, and a select all function for easier management.
+    -   **Status**: NOT STARTED
+-   **Issue 2: Kanban Dark Mode Rendering Bug (P0)**
+    -   **Description**: In the visit manager, the Kanban board is not visible or styled correctly when dark mode is enabled.
+    -   **Status**: NOT STARTED
+-   **Issue 3: Create Lead from HTML Import Fails (P0)**
+    -   **Description**: After extracting data from pasted HTML, the Criar Lead com estes dados button throws an error. The root cause needs investigation and fixing.
+    -   **Status**: NOT STARTED
+-   **Issue 4: Poor Data Extraction from HTML (P0)**
+    -   **Description**: The current AI prompt for HTML extraction is not pulling enough information. It needs to be improved to be more comprehensive and work on HTML from any real estate site, not just Idealista.
+    -   **Status**: NOT STARTED
+-   **Issue 5: Importar Idealista Feature Location (P1)**
+    -   **Description**: The user wants the HTML import feature to be moved from the main system menu into the gestor de visitas (visit manager).
+    -   **Status**: NOT STARTED
+-   **Issue 6: Missing Bookmarklet Feedback (P1)**
+    -   **Description**: The bookmarklets for importing HTML do not provide any feedback when clicked, confusing the user. A toast notification or similar feedback mechanism should be added.
+    -   **Status**: NOT STARTED
+-   **Issue 7: User Query on Error Logs (P2)**
+    -   **Description**: The user asked, Os logs dos erros para onde vão? (Where do the error logs go?). This requires a clear explanation of where backend errors are logged.
+    -   **Status**: NOT STARTED
 
 **In progress Task List**:
--   **Task 1: Complete Idealista HTML Import Feature (P0)**
-    -   **Where to resume**: The route  exists but is not yet accessible from the UI. The next step is to add a link to this page in the admin navigation menu (likely in a sidebar component). After that, the bookmarklet needs to be created.
-    -   **What will be achieved with this?**: A workaround for the blocked Idealista web scraper, allowing users to import property data by pasting the page's HTML source.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Both
-    -   **Blocked on something**: No.
--   **Task 2: Complete Cancel Background Job Feature (P0)**
-    -   **Where to resume**: The backend endpoint () and frontend UI button () have been created. The logic needs to be fully connected and tested to ensure that clicking the button successfully updates the job status to cancelled in the database and reflects it on the UI.
-    -   **What will be achieved with this?**: Users will be able to stop background jobs that are running, stuck, or no longer needed.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Both
-    -   **Blocked on something**: No.
+-   None. All previously in-progress tasks were completed. The pending issues above constitute the new task list.
 
 **Upcoming and Future Tasks**
-**Upcoming Tasks:**
--   **P1: Implement Idealista Bookmarklet**: Create the Javascript code for a browser bookmarklet. When clicked on an Idealista page, it should grab the page's HTML and open the CRM's  page with the HTML content pre-filled in the text area.
--   **P2: Implement Pause/Resume for Background Jobs**: Add backend and frontend logic to allow users to pause and later resume background import processes.
+**Upcoming Tasks (From user's latest request):**
+-   P0: Implement comprehensive logging for AI imports.
+-   P0: Fix Kanban dark mode UI bug.
+-   P0: Fix Create Lead functionality from HTML import.
+-   P0: Enhance the generic HTML extraction AI prompt.
+-   P1: Move the Importar Idealista page into the Visit Manager.
+-   P1: Add user feedback to the bookmarklet.
 
 **Future Tasks (Backlog):**
--   **P3**: Replace offset-based pagination with cursor-based pagination.
--   **P3**: Refactor the large  file into smaller modules.
--   **P3**: Implement a Redis caching layer for frequently accessed data.
+-   P2: Replace offset-based pagination with cursor-based pagination.
+-   P2: Refactor the large  file.
+-   P2: Implement a Redis caching layer for frequently accessed data.
 
 **Completed work in this session**
--   **Bug Fix: Mass import background job visibility (DONE)**:
-    -   Fixed by creating a new progress update endpoint () and modifying  to use it.
-    -   Added a  debug endpoint for jobs.
--   **Bug Analysis: Idealista.pt URL import failure (LIMITATION IDENTIFIED)**:
-    -   Confirmed that Idealista returns a 403 Forbidden error, blocking all scraping attempts. Communicated this to the user and pivoted to an alternative solution.
--   **Bug Fix: Data extraction for foreign resident (DONE)**:
-    -   Enhanced AI prompts in  and  to correctly parse documents like French payslips and tax returns for Portuguese clients.
--   **User Query: Missing NIF Mappings (RESOLVED)**:
-    -   Investigated and confirmed the development database was empty, explaining to the user this is expected.
--   **Validation**: All bug fixes were successfully validated with a 100% pass rate by the testing agent ().
+-   **Bug Fix: Mass Import Session Persistence (DONE)**:
+    -   Fixed a critical bug where server restarts would lose import session state. Implemented a MongoDB collection  to persist this data.
+    -   Refactored  and  to use the new persistence layer asynchronously.
+-   **Feature: Pause/Resume Background Jobs (DONE)**:
+    -   Added backend endpoints:  and .
+    -   Updated the frontend UI in  and  with new buttons, handlers, and a Paused statistics card.
+-   **Feature: Advanced Idealista Bookmarklet (DONE)**:
+    -   Updated  with a new one-click bookmarklet that opens the CRM with the HTML pre-filled.
+-   **Validation**: All completed work was successfully validated with a 100% pass rate by the testing agent.
 
 **Earlier issues found/mentioned but not fixed**
--   None.
+-   All new issues reported by the user in message #224 have been captured in the **All Pending/In progress Issue list** and are pending implementation.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**:  dependency failure.
 -   **Recurrence count**: 2+
--   **Status**: RESOLVED. This issue did not occur in the current session.
+-   **Status**: RESOLVED.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Background Job Management**: The system now supports state changes for jobs (e.g., to cancelled), managed via REST endpoints.
--   **AI Prompt Engineering**: Prompts were enhanced to handle multi-lingual documents (Portuguese, French) within a single client context, improving data extraction for expatriates.
--   **Scraping Workaround**: When direct web scraping is blocked, an alternative user-assisted method (HTML paste) is being implemented. A bookmarklet will be used to simplify this process for the user.
+-   **State Persistence**: Solved a major stability issue by moving transient, in-memory session data () into a persistent MongoDB collection. This prevents data loss on server restarts, which is common in a hot-reload development environment.
+-   **Asynchronous Database Operations**: The session persistence logic uses  functions to interact with the database without blocking the main application thread.
+-   **Background Job State Management**: The job lifecycle now includes , , , , and  states, all managed via REST API endpoints.
+-   **Generic AI Data Extraction**: The next task involves making the AI prompt in  more robust to handle varied HTML structures from different websites, moving beyond a single-site solution.
 
 **key DB schema**
--   ****: The  field can now have the value .
+-   ****: The  field can now have the values  and .
+-   ** (New Collection)**:
+    -   : (String, indexed)
+    -   : (Object) The complete session data, including file lists, client info, etc.
+    -   : (DateTime) Timestamp of the last modification.
+    -   : (Boolean) Flag indicating if the session is currently being processed.
 
 **All files of reference**
--   **New Files**:
-    -   : A new page for the user to paste HTML from Idealista for data extraction.
--   **Modified Files**:
-    -   , : Fixed the background job progress tracking.
-    -   , : Improved AI data extraction for foreign documents.
-    -   , , : Implemented the Cancel Job feature.
-    -   , : Created the backend and frontend routing for the new Idealista import feature.
+-   : Core logic for session persistence.
+-   : Endpoints for mass import, now updated to use persistence.
+-   : Endpoints for job management (cancel, pause, resume).
+-   : UI for displaying and managing background jobs.
+-   : UI for the HTML import feature.
+-    & : Files to be modified to improve AI data extraction.
 
 **Areas that need refactoring**:
 -   The backlog item to refactor  still stands but is low priority.
 
 **key api endpoints**
--   **New Endpoints Created**:
-    -   : Updates the progress of a running aggregated import job.
-    -   : Cancels a specific background job.
-    -   : Receives HTML content and uses AI to extract structured data from it.
--   **Debugging Endpoint**:
-    -   : Clears all jobs from the database (used for debugging stuck jobs).
+-   **Job Management Endpoints**:
+    -   : Cancels a job.
+    -   : Pauses a job.
+    -   : Resumes a paused job.
+-   **HTML Extraction Endpoint**:
+    -   : Receives HTML content for AI processing.
 
 **Critical Info for New Agent**
--   Your immediate priority is to complete the two in-progress features: the Idealista HTML Import and the Cancel Background Job functionality.
--   For the Idealista feature, the next step is to make the new page accessible by adding a link to it in the UI's navigation menu.
--   For the Cancel feature, the UI and backend are mostly in place but require end-to-end testing to ensure they work together correctly.
--   After completing these, the next task is to implement the Javascript bookmarklet for the Idealista import.
--   Remember to communicate with the user in Portuguese.
+-   Your immediate task is to address the full list of issues and improvements from the **All Pending/In progress Issue list**. The user has approved this plan.
+-   Prioritize the P0 tasks: Fix the Kanban dark mode bug, improve AI logging, fix the Create Lead error, and enhance the HTML data extraction.
+-   The session persistence logic is a recent, critical addition. Be aware of how  now interacts with MongoDB to manage import sessions.
+-   When improving the HTML extraction, focus on making the AI prompt in  more robust and generic.
+-   Remember to respond to all user communication in **Portuguese**.
 
 **documents and test reports created in this job**
--    (Confirms bug fixes passed).
+-    (Validates Pause/Resume & Bookmarklet features).
+-    (Validates original bug fixes).
 -    (Updated with progress).
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User #262**: (PENDING) . The user is signaling the agent to proceed with its plan.
--   **User #219**: Approves the plan. Asks for a simple one-click solution for the Idealista import and asks the agent to verify the NIF mapping issue.
--   **User #216**: Asks for help training the AI to extract data from HTML, how a browser extension works, requests a pause/stop feature for background jobs, and questions why no NIF mappings have appeared yet.
--   **User #5**: Agrees with the agent's initial plan and adds that errors during mass import are not appearing in the system logs.
+-   **User #241**: . (Yes. Finish all the bugs/improvements). This is an explicit approval for the agent to proceed with the plan it formulated.
+-   **User #224**: (PENDING) A detailed list of new issues and feature requests, including: poor AI logging, a Kanban dark mode bug, the need to relocate the Idealista import feature, poor data extraction quality, lack of bookmarklet feedback, an error when creating a lead, and a question about where error logs are stored.
+-   **User #139**: Reported a  error during mass import (), which was the trigger for the session persistence fix.
 
 **Project Health Check:**
--   **Broken**: No. The critical bugs that were blocking the user have been fixed and validated. The application is stable.
+-   **Broken**: No. The application is stable. The critical session loss bug has been fixed. The remaining items are a mix of smaller bugs and feature improvements.
 -   **Mocked**: No.
 
 **3rd Party Integrations**
@@ -141,10 +158,10 @@ The agent is now in the middle of implementing two new features requested by the
 -    library
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The testing agent was used to validate all three major bug fixes, with a 100% success rate reported in .
+-   **Testing agent used after significant changes**: YES. The agent was used to validate the Pause/Resume and session persistence features.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: No.
--   **Known regressions**: NO. The previous regression was fixed.
+-   **Known regressions**: NO.
 
 **Credentials to test flow:**
 -   **Admin Email**: 
@@ -153,5 +170,4 @@ The agent is now in the middle of implementing two new features requested by the
 -   **Consultant Password**: 
 
 **What agent forgot to execute**
--   The agent is currently mid-task. It needs to complete the implementation of the Idealista HTML Import feature by adding the navigation link and then creating the bookmarklet.
--   The user's request for a pause button has been acknowledged but not yet started; it is correctly listed in Upcoming Tasks.</analysis>
+-   The agent did not forget anything. It was in the process of planning the next steps based on new user requirements when the session forked. The next agent's job is to execute that plan.</analysis>
