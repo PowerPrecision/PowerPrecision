@@ -13,7 +13,20 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização - 14 Fevereiro 2026 (Sessão 25)
 
-### ✅ Tarefas Completadas (Sessão 25)
+### ✅ Bug Fix: Sessão de Agregação Não Encontrada - CORRIGIDO
+- **Problema**: A importação massiva falhava com "Sessão de agregação não encontrada" após reinício do servidor
+- **Causa Raiz**: As sessões eram armazenadas apenas em memória e perdidas quando o servidor reiniciava
+- **Solução**: 
+  - Criada colecção `aggregated_sessions` na DB para persistir sessões
+  - Nova função `persist_session_to_db()` salva sessão após cada ficheiro processado
+  - Nova função `get_session_async()` tenta recuperar sessão primeiro da memória, depois da DB
+  - Sessões são marcadas como `is_active: false` quando terminam
+- **Ficheiros modificados**:
+  - `/app/backend/services/documents/data_aggregator.py` - Funções de persistência e recuperação
+  - `/app/backend/routes/ai_bulk.py` - Endpoints actualizados para usar versão async
+- **Status**: ✅ CORRIGIDO E TESTADO
+
+### ✅ Tarefas P1 Completadas (Sessão 25)
 
 #### P1: Bookmarklet Avançado Idealista - IMPLEMENTADO
 - **Problema**: Utilizador queria método de "um clique" para importar dados do Idealista
