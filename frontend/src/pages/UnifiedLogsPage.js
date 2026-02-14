@@ -939,7 +939,30 @@ const ImportLogsTab = ({ token }) => {
       {/* Filtros */}
       <Card>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div>
+              <Label className="text-xs">Vista</Label>
+              <div className="flex gap-1 mt-1">
+                <Button
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="flex-1"
+                >
+                  <List className="h-4 w-4 mr-1" />
+                  Lista
+                </Button>
+                <Button
+                  variant={viewMode === "grouped" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("grouped")}
+                  className="flex-1"
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Clientes
+                </Button>
+              </div>
+            </div>
             <div>
               <Label className="text-xs">Estado</Label>
               <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
@@ -955,7 +978,7 @@ const ImportLogsTab = ({ token }) => {
             </div>
             <div>
               <Label className="text-xs">Tipo Doc.</Label>
-              <Select value={docTypeFilter || "all"} onValueChange={(v) => { setDocTypeFilter(v === "all" ? "" : v); setPage(1); }}>
+              <Select value={docTypeFilter || "all"} onValueChange={(v) => { setDocTypeFilter(v === "all" ? "" : v); setPage(1); }} disabled={viewMode === "grouped"}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -975,6 +998,7 @@ const ImportLogsTab = ({ token }) => {
                 placeholder="Nome do cliente"
                 value={clientFilter}
                 onChange={(e) => setClientFilter(e.target.value)}
+                disabled={viewMode === "grouped"}
               />
             </div>
             <div>
@@ -1001,6 +1025,7 @@ const ImportLogsTab = ({ token }) => {
                   setDocTypeFilter("");
                   setDaysFilter("7");
                   setPage(1);
+                  setSelectedIds([]);
                 }}
               >
                 Limpar
@@ -1009,6 +1034,158 @@ const ImportLogsTab = ({ token }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Barra de Acções em Massa */}
+      {selectedIds.length > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="h-5 w-5 text-primary" />
+                <span className="font-medium">
+                  {selectedIds.length} {selectedIds.length === 1 ? 'log seleccionado' : 'logs seleccionados'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Limpar Selecção
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkResolve}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Marcar como Resolvidos
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vista Agrupada por Cliente */}
+      {viewMode === "grouped" && groupedData && (
+        <div className="space-y-3">
+          {groupedData.groups?.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Nenhum log de importação encontrado no período seleccionado
+              </CardContent>
+            </Card>
+          ) : (
+            groupedData.groups?.map((group) => (
+              <Card key={group.client_name} className="overflow-hidden">
+                <div 
+                  className="p-4 cursor-pointer hover:bg-muted/50 flex items-center justify-between"
+                  onClick={() => toggleClientExpand(group.client_name)}
+                >
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-semibold">{group.client_name || "Sem cliente"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Última importação: {formatDate(group.last_import)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                        {group.total_docs} docs
+                      </Badge>
+                      {group.success_count > 0 && (
+                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {group.success_count}
+                        </Badge>
+                      )}
+                      {group.error_count > 0 && (
+                        <Badge variant="outline" className="bg-red-100 text-red-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          {group.error_count}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="bg-purple-100 text-purple-800">
+                        {group.fields_updated} campos
+                      </Badge>
+                    </div>
+                    {expandedClients.has(group.client_name) ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+                
+                {expandedClients.has(group.client_name) && (
+                  <div className="border-t">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-24">Estado</TableHead>
+                          <TableHead className="w-28">Tipo Doc.</TableHead>
+                          <TableHead>Ficheiro</TableHead>
+                          <TableHead className="w-20">Campos</TableHead>
+                          <TableHead className="w-40">Data</TableHead>
+                          <TableHead className="w-20">Acções</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {group.logs.map((log) => {
+                          const docConfig = getDocTypeConfig(log.document_type);
+                          return (
+                            <TableRow key={log.id} className="cursor-pointer hover:bg-muted/50">
+                              <TableCell>
+                                {log.status === "success" ? (
+                                  <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    OK
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-red-100 text-red-800 gap-1">
+                                    <XCircle className="h-3 w-3" />
+                                    Erro
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-sm">{docConfig.icon} {docConfig.label.split(" ")[0]}</span>
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                                {log.filename}
+                              </TableCell>
+                              <TableCell>
+                                {log.fields_count > 0 ? (
+                                  <Badge variant="secondary">{log.fields_count}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {formatDate(log.timestamp)}
+                              </TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openDetails({...log, client_name: group.client_name}); }}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </Card>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Tabela */}
       <Card>
