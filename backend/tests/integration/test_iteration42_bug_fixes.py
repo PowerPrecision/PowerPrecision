@@ -150,7 +150,7 @@ class TestChangePassword:
     def test_change_password_wrong_current_password(self):
         """Test that wrong current password fails"""
         response = self.session.post(f"{BASE_URL}/api/auth/change-password", json={
-            "current_password": "wrongpassword",
+            "current_password": "wrongpassword123",
             "new_password": "newpassword123"
         })
         
