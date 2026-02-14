@@ -296,6 +296,16 @@ code {
     background: hsl(var(--muted-foreground) / 0.4);
 }
 
+/* Scrollbar escondida para tabs e elementos de scroll horizontal */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+}
+
 /**
  * TRANSIÇÕES E EFEITOS
  */
