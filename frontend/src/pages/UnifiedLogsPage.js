@@ -731,6 +731,88 @@ const ImportLogsTab = ({ token }) => {
     fetchLogs();
   }, [fetchLogs]);
 
+  const fetchGroupedLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append("days", daysFilter);
+      if (statusFilter) params.append("status", statusFilter);
+
+      const response = await fetch(`${API_URL}/api/admin/ai-import-logs-v2/grouped?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGroupedData(data);
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar logs agrupados:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, statusFilter, daysFilter]);
+
+  useEffect(() => {
+    if (viewMode === "grouped") {
+      fetchGroupedLogs();
+    } else {
+      fetchLogs();
+    }
+  }, [viewMode, fetchGroupedLogs, fetchLogs]);
+
+  const toggleSelectAll = () => {
+    const unresolvedIds = logs.filter(log => log.status === "error" && !log.resolved).map(log => log.id);
+    if (selectedIds.length === unresolvedIds.length && unresolvedIds.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(unresolvedIds);
+    }
+  };
+
+  const toggleSelectLog = (logId) => {
+    setSelectedIds(prev => 
+      prev.includes(logId) 
+        ? prev.filter(id => id !== logId) 
+        : [...prev, logId]
+    );
+  };
+
+  const handleBulkResolve = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const response = await fetch(`${API_URL}/api/admin/ai-import-logs/bulk-resolve`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ log_ids: selectedIds }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(`${data.resolved_count || selectedIds.length} logs marcados como resolvidos`);
+        setSelectedIds([]);
+        fetchLogs();
+      }
+    } catch (error) {
+      toast.error("Erro ao resolver em massa");
+    }
+  };
+
+  const toggleClientExpand = (clientName) => {
+    setExpandedClients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(clientName)) {
+        newSet.delete(clientName);
+      } else {
+        newSet.add(clientName);
+      }
+      return newSet;
+    });
+  };
+
   const handleMarkResolved = async (logId) => {
     try {
       const response = await fetch(`${API_URL}/api/admin/ai-import-logs/${logId}/resolve`, {
