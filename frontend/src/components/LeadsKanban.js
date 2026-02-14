@@ -773,8 +773,11 @@ const LeadsKanban = () => {
               <Building className="h-5 w-5" />
               Gestão de Leads / Visitas
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground hidden md:block">
               Arraste os cartões entre colunas para alterar o estado
+            </p>
+            <p className="text-sm text-muted-foreground md:hidden">
+              Toque num lead para ver detalhes ou alterar o estado
             </p>
           </div>
           <div className="flex gap-2">
