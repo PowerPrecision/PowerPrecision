@@ -652,8 +652,25 @@ def get_or_create_session(session_id: str, user_email: str) -> SessionAggregator
 
 
 def get_session(session_id: str) -> Optional[SessionAggregator]:
-    """Obter sessão existente."""
+    """Obter sessão existente (apenas da memória - use get_session_async para DB)."""
     return active_sessions.get(session_id)
+
+
+async def get_session_async(session_id: str) -> Optional[SessionAggregator]:
+    """Obter sessão existente, verificando primeiro na memória e depois na DB."""
+    # Verificar na memória
+    session = active_sessions.get(session_id)
+    if session:
+        return session
+    
+    # Tentar recuperar da DB
+    session = await load_session_from_db(session_id)
+    if session:
+        # Guardar em memória para próximos acessos
+        active_sessions[session_id] = session
+        return session
+    
+    return None
 
 
 def close_session(session_id: str) -> Optional[SessionAggregator]:
