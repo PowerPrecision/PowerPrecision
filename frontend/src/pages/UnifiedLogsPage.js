@@ -580,12 +580,12 @@ const SystemLogsTab = ({ token }) => {
                     </TableCell>
                     <TableCell onClick={() => openDetails(log)}>
                       {log.resolved ? (
-                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                        <Badge variant="outline" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
                           <Check className="h-3 w-3 mr-1" />
                           Resolvido
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-orange-100 text-orange-800">
+                        <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300">
                           Pendente
                         </Badge>
                       )}
