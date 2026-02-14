@@ -175,7 +175,7 @@ class TestChangePassword:
         """Test that missing fields fail"""
         # Missing new password
         response = self.session.post(f"{BASE_URL}/api/auth/change-password", json={
-            "current_password": "admin"
+            "current_password": ADMIN_PASSWORD
         })
         
         assert response.status_code == 400, f"Expected 400, got {response.status_code}"
