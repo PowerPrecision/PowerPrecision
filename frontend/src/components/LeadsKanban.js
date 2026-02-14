@@ -3,6 +3,7 @@
  * Quadro Kanban para gerir leads/visitas de imóveis
  */
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { parseBackendError } from "../utils/errorFormatter";
 import {
@@ -46,6 +47,7 @@ import {
   Maximize2,
   Users,
   Sparkles,
+  FileInput,
 } from "lucide-react";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
