@@ -7,15 +7,19 @@ Tests for the following bug fixes:
 3. POST /api/clients/{client_id}/create-process - Create process for existing client (using process_id)
 
 Test credentials:
-- Admin: admin@admin.com / admin
+- Admin: admin@admin.com / adminadmin (note: password was changed during testing)
 - Consultor: flaviosilva@powerealestate.pt / flavio123
 """
 
 import pytest
 import requests
 import os
+import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+
+# Admin password (was changed during testing from 'admin' to 'adminadmin' since validation requires 6+ chars)
+ADMIN_PASSWORD = "adminadmin"
 
 class TestAuthProfileUpdate:
     """Test PUT /api/auth/profile - Update user's own profile"""
