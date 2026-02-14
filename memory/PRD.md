@@ -11,7 +11,24 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 14 Fevereiro 2026 (Sessão 27)
+## Última Actualização - 14 Fevereiro 2026 (Sessão 28)
+
+### ✅ Funcionalidades P0 Completas (Sessão 28) - 100% VERIFIED
+
+#### P0 #1: Sistema de Logs Unificado Melhorado - IMPLEMENTADO
+- **Problema**: O utilizador pediu melhorias nos logs de importação IA com: logs item-a-item, agrupamento por cliente, função "selecionar todos"
+- **Solução Implementada**:
+  - **Vista Lista**: Tabela com checkboxes para selecção múltipla de logs
+  - **Vista Clientes**: Logs agrupados por cliente com cards expandíveis
+  - **Selecção em Massa**: Checkbox "Selecionar Todos" + barra de acções em massa
+  - **Resolução em Massa**: Botão "Marcar como Resolvidos" para múltiplos logs
+- **Novos Endpoints**:
+  - `GET /api/admin/ai-import-logs-v2/grouped` - Logs agrupados por cliente
+  - `POST /api/admin/ai-import-logs/bulk-resolve` - Resolução em massa
+- **Ficheiros modificados**: 
+  - `/app/frontend/src/pages/UnifiedLogsPage.js` - Nova UI com vista toggle
+  - `/app/backend/routes/admin.py` - Novos endpoints
+- **Status**: ✅ IMPLEMENTADO E TESTADO (iteration_40)
 
 ### ✅ Correcções P0 Completas (Sessão 27) - 100% VERIFIED
 
