@@ -733,8 +733,10 @@ const ImportLogsTab = ({ token }) => {
   }, [token, page, statusFilter, clientFilter, docTypeFilter, daysFilter]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    if (viewMode === "list") {
+      fetchLogs();
+    }
+  }, [fetchLogs, viewMode]);
 
   const fetchGroupedLogs = useCallback(async () => {
     setLoading(true);
@@ -762,10 +764,8 @@ const ImportLogsTab = ({ token }) => {
   useEffect(() => {
     if (viewMode === "grouped") {
       fetchGroupedLogs();
-    } else {
-      fetchLogs();
     }
-  }, [viewMode, fetchGroupedLogs, fetchLogs]);
+  }, [viewMode, fetchGroupedLogs]);
 
   const toggleSelectAll = () => {
     const unresolvedIds = logs.filter(log => log.status === "error" && !log.resolved).map(log => log.id);
