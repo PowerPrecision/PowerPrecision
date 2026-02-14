@@ -693,6 +693,10 @@ const ImportLogsTab = ({ token }) => {
   const [selectedLog, setSelectedLog] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [viewMode, setViewMode] = useState("list"); // "list" or "grouped"
+  const [groupedData, setGroupedData] = useState(null);
+  const [expandedClients, setExpandedClients] = useState(new Set());
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
