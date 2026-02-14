@@ -204,32 +204,34 @@ const AdminDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start h-auto p-1 gap-1">
-            <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-overview">
-              <Eye className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Visão Geral</span><span className="sm:hidden">Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-calendar">
-              <CalendarIcon className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Calendário</span><span className="sm:hidden">Cal</span>
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-documents">
-              <FileText className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Documentos</span><span className="sm:hidden">Docs</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-users">
-              <Users className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Utilizadores</span><span className="sm:hidden">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-ai">
-              <Sparkles className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Análise IA</span><span className="sm:hidden">IA</span>
-            </TabsTrigger>
-            <TabsTrigger value="clients" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-search">
-              <Search className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Pesquisar</span><span className="sm:hidden">Busca</span>
-            </TabsTrigger>
-            <TabsTrigger value="tasks" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-tasks">
-              <ClipboardList className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Tarefas</span><span className="sm:hidden">Tasks</span>
-            </TabsTrigger>
-            <TabsTrigger value="leads" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap" data-testid="tab-leads">
-              <Building className="h-4 w-4 shrink-0" />Leads
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-1">
+              <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-overview">
+                <Eye className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Visão Geral</span><span className="sm:hidden">Geral</span>
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-calendar">
+                <CalendarIcon className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Calendário</span><span className="sm:hidden">Cal</span>
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-documents">
+                <FileText className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Documentos</span><span className="sm:hidden">Doc</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-users">
+                <Users className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Utilizadores</span><span className="sm:hidden">Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-ai">
+                <Sparkles className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Análise IA</span><span className="sm:hidden">IA</span>
+              </TabsTrigger>
+              <TabsTrigger value="clients" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-search">
+                <Search className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Pesquisar</span><span className="sm:hidden">Busca</span>
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-tasks">
+                <ClipboardList className="h-4 w-4 shrink-0" /><span className="hidden sm:inline">Tarefas</span><span className="sm:hidden">Tasks</span>
+              </TabsTrigger>
+              <TabsTrigger value="leads" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3" data-testid="tab-leads">
+                <Building className="h-4 w-4 shrink-0" />Leads
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="mt-4 space-y-4">

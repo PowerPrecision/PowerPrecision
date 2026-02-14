@@ -3,7 +3,7 @@
  * Mostra apenas em ecrãs pequenos (< md breakpoint)
  */
 import { Link, useLocation } from "react-router-dom";
-import { LayoutGrid, CheckSquare, Calendar, User } from "lucide-react";
+import { LayoutGrid, Users, Calendar, User } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -20,9 +20,20 @@ const MobileBottomNav = () => {
     return "/staff";
   };
 
+  // Determinar o caminho correcto para clientes baseado no role
+  // Consultores e intermediários vão para "Os Meus Clientes"
+  // Admin e outros vão para a lista geral de clientes
+  const getClientsPath = () => {
+    if (!user) return "/clientes";
+    if (["consultor", "intermediario", "mediador"].includes(user.role)) {
+      return "/meus-clientes";
+    }
+    return "/clientes";
+  };
+
   const navItems = [
     { path: getDashboardPath(), icon: LayoutGrid, label: "Kanban" },
-    { path: "/clientes", icon: CheckSquare, label: "Clientes" },
+    { path: getClientsPath(), icon: Users, label: "Clientes" },
     { path: "/leads", icon: Calendar, label: "Visitas" },
     { path: "/definicoes", icon: User, label: "Perfil" },
   ];
