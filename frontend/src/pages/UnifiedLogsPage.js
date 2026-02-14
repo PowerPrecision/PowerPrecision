@@ -1273,12 +1273,12 @@ const ImportLogsTab = ({ token }) => {
                         </TableCell>
                         <TableCell onClick={() => openDetails(log)}>
                           {log.status === "success" ? (
-                            <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
+                            <Badge variant="outline" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 gap-1">
                               <CheckCircle className="h-3 w-3" />
                               OK
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className={`gap-1 ${log.resolved ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-800"}`}>
+                            <Badge variant="outline" className={`gap-1 ${log.resolved ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300" : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"}`}>
                               <XCircle className="h-3 w-3" />
                               {log.resolved ? "Resolvido" : "Erro"}
                             </Badge>
