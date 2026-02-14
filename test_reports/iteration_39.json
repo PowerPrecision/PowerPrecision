@@ -1,0 +1,143 @@
+{
+  "summary": "Iteration 39: All P0 Bug Fixes VERIFIED as WORKING. Tested: (1) Kanban dark mode rendering - columns visible with proper contrast using bg-muted/50 dark:bg-muted/30, (2) 'Criar Lead' button from HTML import - works and shows success toast, (3) HTML extraction returns multiple fields (titulo, preco, localizacao, tipologia, area, quartos, casas_banho, agente_nome, etc), (4) 'Ver' link only shows for valid http/https URLs, (5) Gemini→OpenAI fallback working (extraction shows 'via openai-gpt-4o-mini')",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: test_admin_login - PASSED",
+    "Backend: test_extract_html_endpoint_exists - PASSED",
+    "Backend: test_extract_html_with_idealista_content - PASSED",
+    "Backend: test_create_lead_accepts_all_fields - PASSED",
+    "Backend: test_lead_with_valid_http_url - PASSED",
+    "Backend: test_lead_with_valid_https_url - PASSED",
+    "Backend: test_leads_by_status_returns_all_columns - PASSED",
+    "Backend: test_consultores_endpoint - PASSED",
+    "Backend: test_supported_sites_endpoint - PASSED",
+    "UI: Login with admin@admin.com - PASSED",
+    "UI: Navigation to /leads Kanban page - PASSED",
+    "UI: Kanban component loaded (data-testid='leads-kanban') - PASSED",
+    "UI: 6 Kanban columns visible (Novo, Contactado, Visita Agendada, Proposta, Reservado, Descartado) - PASSED",
+    "UI: Dark mode toggle works - HTML class changes to 'dark' - PASSED",
+    "UI: Kanban columns visible in dark mode with proper contrast - PASSED",
+    "UI: 'Importar HTML' button (data-testid='import-html-btn') found - PASSED",
+    "UI: 'Importar HTML' navigates to /admin/importar-idealista - PASSED",
+    "UI: Import page shows 'Colar Página' and 'Bookmarklet' tabs - PASSED",
+    "UI: Advanced bookmarklet 'Idealista → CRM' present - PASSED",
+    "UI: Simple bookmarklet 'Copiar Idealista' present - PASSED",
+    "UI: HTML extraction with AI returns multiple fields - PASSED",
+    "UI: 'Criar Lead com estes dados' button appears after extraction - PASSED",
+    "UI: Clicking 'Criar Lead' creates lead with success toast - PASSED",
+    "UI: 'Ver' link shows for leads with http/https URLs - PASSED",
+    "UI: Dash '—' shows for leads without valid URLs - PASSED",
+    "UI: OpenAI fallback working (shows 'via openai-gpt-4o-mini') - PASSED"
+  ],
+
+  "failed_tests": [],
+
+  "features_verified": [
+    {
+      "feature": "P0 Bug #1: Kanban Dark Mode Fix",
+      "status": "WORKING",
+      "location": "LeadsKanban.js - KanbanColumn component line 207",
+      "fix_applied": "bg-muted/50 dark:bg-muted/30 classes for columns and filter section",
+      "evidence": "Screenshots show columns clearly visible in both light and dark mode"
+    },
+    {
+      "feature": "P0 Bug #2: 'Criar Lead' Button from HTML Import",
+      "status": "WORKING",
+      "location": "IdealistaImportPage.js - handleCreateLead function",
+      "evidence": "Button visible after extraction, clicking it shows 'Lead criado com sucesso!' toast"
+    },
+    {
+      "feature": "P0 Bug #3: HTML Extraction Shows More Data",
+      "status": "WORKING",
+      "location": "backend/services/scraper.py - improved prompt with 30+ fields",
+      "evidence": "Extraction returns: titulo, preco, localizacao, tipologia, area, quartos, casas_banho, agente_nome, agente_telefone, agente_email, agencia_nome, referencia, descricao, etc.",
+      "ai_model": "OpenAI gpt-4o-mini (Gemini fallback working)"
+    },
+    {
+      "feature": "P0 Bug #4: 'Ver' Link Only for Valid URLs",
+      "status": "WORKING",
+      "location": "LeadsKanban.js - LeadCard component lines 174-183",
+      "fix_applied": "Conditional check: lead.url && (lead.url.startsWith('http://') || lead.url.startsWith('https://'))",
+      "evidence": "Cards with valid URLs show 'Ver' link, cards without show '—'"
+    },
+    {
+      "feature": "P0 Bug #5: Gemini to OpenAI Fallback",
+      "status": "WORKING",
+      "location": "backend/services/scraper.py - _extract_with_openai method",
+      "evidence": "Extraction shows 'via openai-gpt-4o-mini' in UI, indicating Gemini quota exceeded and OpenAI used as fallback"
+    }
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/integration/test_iteration39_p0_bugs.py",
+    "/app/test_reports/pytest/pytest_results_iteration39.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "LeadsKanban.js: Dark mode correctly uses Tailwind's dark: variant with bg-muted/50 dark:bg-muted/30",
+    "IdealistaImportPage.js: handleCreateLead correctly maps Portuguese fields (titulo, preco, etc.) to English API fields (title, price, etc.)",
+    "scraper.py: Gemini fallback to OpenAI working when quota exceeded (line 914-933)",
+    "scraper.py: OpenAI response normalization handles nested categories (lines 1005-1017)",
+    "LeadCard: URL validation using startsWith check for http:// and https:// (lines 174-183)"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/integration/test_iteration39_p0_bugs.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (All UI elements and flows verified)"
+  },
+
+  "test_credentials": {
+    "admin": {
+      "email": "admin@admin.com",
+      "password": "admin",
+      "role": "admin"
+    }
+  },
+
+  "seed_data_creation": "None - used existing leads for testing",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All P0 bugs verified as FIXED: (1) Kanban dark mode works with bg-muted/50 dark:bg-muted/30 classes, (2) 'Criar Lead' button from HTML import creates leads successfully with toast confirmation, (3) HTML extraction returns 10+ fields including agent contact info, (4) 'Ver' link only shows for valid http/https URLs, (5) Gemini→OpenAI fallback is active and working. OpenAI gpt-4o-mini is being used as the extraction model when Gemini quota is exceeded.",
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "All real integrations tested - OpenAI fallback is active and working"
+  },
+
+  "api_endpoints_verified": {
+    "POST /api/auth/login": "Admin login working",
+    "POST /api/scraper/extract-html": "HTML extraction with AI returns multiple fields",
+    "POST /api/leads": "Lead creation with all mapped fields working",
+    "GET /api/leads/by-status": "Returns leads grouped by 6 status columns",
+    "GET /api/leads/consultores": "Returns consultores list for filters",
+    "GET /api/scraper/supported-sites": "Returns supported sites with AI analysis info"
+  },
+
+  "screenshots_captured": [
+    ".screenshots/kanban_light_mode.png - Kanban in light mode",
+    ".screenshots/kanban_after_toggle.png - Kanban after dark mode toggle",
+    ".screenshots/import_page.png - Idealista Import page with bookmarklets",
+    ".screenshots/extraction_success.png - HTML extraction showing multiple fields",
+    ".screenshots/criar_lead_button.png - 'Criar Lead' button visible after extraction",
+    ".screenshots/after_criar_lead.png - Success toast 'Lead criado com sucesso!'"
+  ]
+}
