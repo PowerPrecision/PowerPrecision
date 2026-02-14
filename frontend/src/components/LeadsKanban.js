@@ -202,8 +202,8 @@ const KanbanColumn = ({ status, leads, onDrop, onEdit, onStatusChange, onDelete,
 
   return (
     <div
-      className={`flex-shrink-0 w-56 bg-gray-50 rounded-lg p-2 transition-colors ${
-        isDragOver ? "bg-blue-50 ring-2 ring-blue-300" : ""
+      className={`flex-shrink-0 w-56 bg-muted/50 dark:bg-muted/30 rounded-lg p-2 transition-colors ${
+        isDragOver ? "bg-blue-50 dark:bg-blue-950/50 ring-2 ring-blue-300 dark:ring-blue-700" : ""
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -650,7 +650,7 @@ const LeadsKanban = () => {
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-wrap gap-4 items-center p-3 bg-gray-50 rounded-lg">
+        <div className="flex flex-wrap gap-4 items-center p-3 bg-muted/50 dark:bg-muted/30 rounded-lg">
           <div className="flex items-center gap-2">
             <Label className="text-sm whitespace-nowrap">Filtrar por Consultor:</Label>
             <Select value={filterConsultor} onValueChange={setFilterConsultor}>
