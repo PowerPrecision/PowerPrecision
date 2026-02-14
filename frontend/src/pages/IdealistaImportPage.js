@@ -68,12 +68,25 @@ const IdealistaImportPage = () => {
   })();`;
 
   // Bookmarklet AVANÇADO - abre o CRM automaticamente com dados codificados
+  // Com feedback visual para o utilizador
   const bookmarkletAdvanced = `javascript:(function(){
-    var html=document.documentElement.outerHTML;
-    var url=window.location.href;
-    var encoded=btoa(unescape(encodeURIComponent(html.substring(0,50000))));
-    var crmUrl='${CRM_URL}/admin/importar-idealista?auto=1&url='+encodeURIComponent(url)+'&data='+encoded;
-    window.open(crmUrl,'_blank');
+    var d=document;
+    var b=d.body;
+    var overlay=d.createElement('div');
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML='<div style="background:white;padding:30px;border-radius:12px;text-align:center;"><div style="font-size:40px;margin-bottom:15px;">🔄</div><div style="font-size:18px;font-weight:600;color:#059669;">A processar...</div><div style="font-size:14px;color:#666;margin-top:8px;">A abrir o CRM com os dados</div></div>';
+    b.appendChild(overlay);
+    setTimeout(function(){
+      var html=d.documentElement.outerHTML;
+      var url=window.location.href;
+      var encoded=btoa(unescape(encodeURIComponent(html.substring(0,50000))));
+      var crmUrl='${CRM_URL}/admin/importar-idealista?auto=1&url='+encodeURIComponent(url)+'&data='+encoded;
+      overlay.innerHTML='<div style="background:white;padding:30px;border-radius:12px;text-align:center;"><div style="font-size:40px;margin-bottom:15px;">✅</div><div style="font-size:18px;font-weight:600;color:#059669;">Dados enviados!</div><div style="font-size:14px;color:#666;margin-top:8px;">O CRM abrirá numa nova aba</div></div>';
+      setTimeout(function(){
+        window.open(crmUrl,'_blank');
+        b.removeChild(overlay);
+      },800);
+    },300);
   })();`;
 
   // Auto-processar dados se vieram do bookmarklet avançado
