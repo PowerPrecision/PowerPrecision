@@ -15,7 +15,7 @@ import uuid
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://crm-import-fixes.preview.emergentagent.com"
+    BASE_URL = "https://lead-system-logs.preview.emergentagent.com"
 
 
 class TestAuth:
