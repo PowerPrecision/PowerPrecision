@@ -350,8 +350,10 @@ const SystemLogsTab = ({ token }) => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
@@ -361,8 +363,10 @@ const SystemLogsTab = ({ token }) => {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-yellow-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Não Lidos</p>
                   <p className="text-2xl font-bold">{stats.unread}</p>
@@ -372,8 +376,10 @@ const SystemLogsTab = ({ token }) => {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-orange-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                  <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Por Resolver</p>
                   <p className="text-2xl font-bold">{stats.unresolved}</p>
@@ -381,13 +387,15 @@ const SystemLogsTab = ({ token }) => {
               </div>
             </CardContent>
           </Card>
-          <Card className={stats.critical > 0 ? "border-red-500" : ""}>
+          <Card className={stats.critical > 0 ? "border-red-500 dark:border-red-400" : ""}>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <XCircle className={`h-5 w-5 ${stats.critical > 0 ? "text-red-500" : "text-gray-400"}`} />
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${stats.critical > 0 ? "bg-red-100 dark:bg-red-900/30" : "bg-gray-100 dark:bg-gray-800"}`}>
+                  <XCircle className={`h-5 w-5 ${stats.critical > 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}`} />
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Críticos</p>
-                  <p className={`text-2xl font-bold ${stats.critical > 0 ? "text-red-600" : ""}`}>
+                  <p className={`text-2xl font-bold ${stats.critical > 0 ? "text-red-600 dark:text-red-400" : ""}`}>
                     {stats.critical}
                   </p>
                 </div>
@@ -396,8 +404,10 @@ const SystemLogsTab = ({ token }) => {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Server className="h-5 w-5 text-purple-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Server className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Componentes</p>
                   <p className="text-2xl font-bold">{Object.keys(stats.by_component || {}).length}</p>
