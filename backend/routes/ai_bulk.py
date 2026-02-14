@@ -1446,9 +1446,9 @@ async def finish_aggregated_session(
     Returns:
         Resumo da importação com dados de cada cliente actualizado
     """
-    session = get_session(session_id)
+    session = await get_session_async(session_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Sessão de agregação não encontrada")
+        raise HTTPException(status_code=404, detail="Sessão de agregação não encontrada. A sessão pode ter expirado ou o servidor foi reiniciado.")
     
     clients_updated = 0
     errors_count = session.errors
