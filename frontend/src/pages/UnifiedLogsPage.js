@@ -49,12 +49,15 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Server,
   Activity,
   FileText,
   Upload,
   User,
+  Users,
   Home,
   Banknote,
   MoreHorizontal,
@@ -62,6 +65,8 @@ import {
   Loader2,
   CheckSquare,
   Square,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import { toast } from "sonner";
