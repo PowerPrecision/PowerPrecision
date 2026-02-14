@@ -850,8 +850,55 @@ const LeadsKanban = () => {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      {/* Mobile: Lista de Leads */}
+      <div className="md:hidden space-y-3">
+        {/* Filtro de status para mobile */}
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Filtrar por estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Estados</SelectItem>
+            {LEAD_STATUSES.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                  {s.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {/* Lista de leads */}
+        <div className="space-y-3">
+          {Object.entries(leads).flatMap(([status, statusLeads]) => 
+            (filterStatus === "all" || filterStatus === status) 
+              ? statusLeads.map(lead => (
+                  <LeadListItem
+                    key={lead.id}
+                    lead={lead}
+                    status={status}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onRefreshPrice={handleRefreshPrice}
+                    onShowSuggestions={handleShowSuggestedClients}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))
+              : []
+          )}
+          {Object.values(leads).flat().length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum lead encontrado</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop: Kanban Board */}
+      <div className="hidden md:flex gap-4 overflow-x-auto pb-4">
         {LEAD_STATUSES.map((status) => (
           <KanbanColumn
             key={status.id}
