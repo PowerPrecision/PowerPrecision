@@ -431,91 +431,228 @@ const IdealistaImportPage = () => {
               <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
                 <CheckCircle className="h-5 w-5" />
                 Dados Extraídos
+                {extractedData._extracted_by && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    via {extractedData._extracted_by}
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Título */}
-                {extractedData.titulo && (
-                  <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground">Título</Label>
-                    <p className="font-medium">{extractedData.titulo}</p>
-                  </div>
-                )}
-
-                {/* Preço */}
-                {extractedData.preco && (
-                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Euro className="h-3 w-3" /> Preço
-                    </Label>
-                    <p className="font-bold text-lg text-green-600">
-                      {typeof extractedData.preco === 'number' 
-                        ? `€${extractedData.preco.toLocaleString()}`
-                        : extractedData.preco}
-                    </p>
-                  </div>
-                )}
-
-                {/* Localização */}
-                {extractedData.localizacao && (
-                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" /> Localização
-                    </Label>
-                    <p className="font-medium">{extractedData.localizacao}</p>
-                  </div>
-                )}
-
-                {/* Tipologia */}
-                {extractedData.tipologia && (
-                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Bed className="h-3 w-3" /> Tipologia
-                    </Label>
-                    <p className="font-medium">{extractedData.tipologia}</p>
-                  </div>
-                )}
-
-                {/* Área */}
-                {extractedData.area_util && (
-                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Maximize className="h-3 w-3" /> Área
-                    </Label>
-                    <p className="font-medium">{extractedData.area_util} m²</p>
-                  </div>
-                )}
-
-                {/* Agente */}
-                {extractedData.agente_nome && (
-                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <User className="h-3 w-3" /> Agente
-                    </Label>
-                    <p className="font-medium">{extractedData.agente_nome}</p>
-                    {extractedData.agente_telefone && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3 w-3" /> {extractedData.agente_telefone}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Características */}
-                {extractedData.caracteristicas && extractedData.caracteristicas.length > 0 && (
-                  <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
-                    <Label className="text-xs text-muted-foreground">Características</Label>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {extractedData.caracteristicas.map((c, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
-                          {c}
-                        </Badge>
-                      ))}
+              <ScrollArea className="max-h-[500px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Título */}
+                  {extractedData.titulo && (
+                    <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground">Título</Label>
+                      <p className="font-medium">{extractedData.titulo}</p>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {/* Preço */}
+                  {(extractedData.preco || extractedData.preco_m2) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Euro className="h-3 w-3" /> Preço
+                      </Label>
+                      <p className="font-bold text-lg text-green-600">
+                        {typeof extractedData.preco === 'number' 
+                          ? `€${extractedData.preco.toLocaleString()}`
+                          : extractedData.preco || "N/D"}
+                      </p>
+                      {extractedData.preco_m2 && (
+                        <p className="text-xs text-muted-foreground">€{extractedData.preco_m2}/m²</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Localização */}
+                  {(extractedData.localizacao || extractedData.codigo_postal) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> Localização
+                      </Label>
+                      <p className="font-medium">{extractedData.localizacao}</p>
+                      {extractedData.codigo_postal && (
+                        <p className="text-xs text-muted-foreground">{extractedData.codigo_postal}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tipologia */}
+                  {extractedData.tipologia && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Home className="h-3 w-3" /> Tipologia
+                      </Label>
+                      <p className="font-medium">{extractedData.tipologia}</p>
+                    </div>
+                  )}
+
+                  {/* Áreas */}
+                  {(extractedData.area || extractedData.area_util || extractedData.area_bruta || extractedData.area_terreno) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Maximize className="h-3 w-3" /> Áreas
+                      </Label>
+                      {(extractedData.area || extractedData.area_util) && (
+                        <p className="font-medium">{extractedData.area || extractedData.area_util} m² útil</p>
+                      )}
+                      {extractedData.area_bruta && (
+                        <p className="text-sm text-muted-foreground">{extractedData.area_bruta} m² bruto</p>
+                      )}
+                      {extractedData.area_terreno && (
+                        <p className="text-sm text-muted-foreground">{extractedData.area_terreno} m² terreno</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quartos/Casas de banho */}
+                  {(extractedData.quartos || extractedData.casas_banho || extractedData.suites) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Bed className="h-3 w-3" /> Divisões
+                      </Label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {extractedData.quartos && (
+                          <Badge variant="secondary">{extractedData.quartos} quartos</Badge>
+                        )}
+                        {extractedData.suites && (
+                          <Badge variant="secondary">{extractedData.suites} suites</Badge>
+                        )}
+                        {extractedData.casas_banho && (
+                          <Badge variant="outline">{extractedData.casas_banho} WC</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Garagem/Piso/Elevador */}
+                  {(extractedData.garagem || extractedData.piso || extractedData.elevador !== undefined) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Car className="h-3 w-3" /> Extras
+                      </Label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {extractedData.garagem && (
+                          <Badge variant="secondary">{extractedData.garagem} garagem</Badge>
+                        )}
+                        {extractedData.piso && (
+                          <Badge variant="outline">{extractedData.piso}º andar</Badge>
+                        )}
+                        {extractedData.elevador && (
+                          <Badge variant="outline">Elevador</Badge>
+                        )}
+                        {extractedData.varanda && (
+                          <Badge variant="outline">Varanda</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Estado/Certificado */}
+                  {(extractedData.estado || extractedData.certificado_energetico || extractedData.ano_construcao) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Thermometer className="h-3 w-3" /> Estado
+                      </Label>
+                      <div className="space-y-1 mt-1">
+                        {extractedData.estado && (
+                          <p className="text-sm">{extractedData.estado}</p>
+                        )}
+                        {extractedData.certificado_energetico && (
+                          <Badge variant="outline" className="text-xs">CE: {extractedData.certificado_energetico}</Badge>
+                        )}
+                        {extractedData.ano_construcao && (
+                          <p className="text-xs text-muted-foreground">Ano: {extractedData.ano_construcao}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agente */}
+                  {(extractedData.agente_nome || extractedData.agencia_nome) && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <User className="h-3 w-3" /> Contacto
+                      </Label>
+                      {extractedData.agente_nome && (
+                        <p className="font-medium">{extractedData.agente_nome}</p>
+                      )}
+                      {extractedData.agencia_nome && (
+                        <p className="text-sm text-muted-foreground">{extractedData.agencia_nome}</p>
+                      )}
+                      {extractedData.agente_telefone && (
+                        <p className="text-sm flex items-center gap-1 mt-1">
+                          <Phone className="h-3 w-3" /> {extractedData.agente_telefone}
+                        </p>
+                      )}
+                      {extractedData.agente_email && (
+                        <p className="text-xs flex items-center gap-1 text-muted-foreground">
+                          <Mail className="h-3 w-3" /> {extractedData.agente_email}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Referência */}
+                  {extractedData.referencia && (
+                    <div className="p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Hash className="h-3 w-3" /> Referência
+                      </Label>
+                      <p className="font-mono text-sm">{extractedData.referencia}</p>
+                    </div>
+                  )}
+
+                  {/* Descrição */}
+                  {extractedData.descricao && (
+                    <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <FileText className="h-3 w-3" /> Descrição
+                      </Label>
+                      <p className="text-sm mt-1 text-muted-foreground line-clamp-4">
+                        {extractedData.descricao}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Características */}
+                  {extractedData.caracteristicas && extractedData.caracteristicas.length > 0 && (
+                    <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground">Características</Label>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {extractedData.caracteristicas.map((c, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Links */}
+                  {(extractedData.foto_principal || extractedData.url_video) && (
+                    <div className="col-span-full p-3 bg-white dark:bg-gray-900 rounded-lg">
+                      <Label className="text-xs text-muted-foreground">Links</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {extractedData.foto_principal && (
+                          <a href={extractedData.foto_principal} target="_blank" rel="noopener noreferrer" 
+                             className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
+                            <Image className="h-3 w-3" /> Ver foto
+                          </a>
+                        )}
+                        {extractedData.url_video && (
+                          <a href={extractedData.url_video} target="_blank" rel="noopener noreferrer"
+                             className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
+                            <Video className="h-3 w-3" /> Ver vídeo
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
 
               {/* Acções */}
               <div className="flex gap-3 mt-6">
