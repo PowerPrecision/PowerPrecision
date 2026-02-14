@@ -191,10 +191,13 @@ class TestChangePassword:
     
     def test_change_password_success_and_restore(self):
         """Test successful password change and restore (cycle test)"""
+        global ADMIN_PASSWORD
+        
         # Change to new password
+        new_password = "testchange123"
         response = self.session.post(f"{BASE_URL}/api/auth/change-password", json={
-            "current_password": "admin",
-            "new_password": "newpassword123"
+            "current_password": ADMIN_PASSWORD,
+            "new_password": new_password
         })
         
         assert response.status_code == 200, f"Password change failed: {response.text}"
@@ -203,11 +206,12 @@ class TestChangePassword:
         print("Password changed successfully")
         
         # Login with new password
+        time.sleep(1)  # Small delay to avoid rate limits
         new_session = requests.Session()
         new_session.headers.update({"Content-Type": "application/json"})
         login_response = new_session.post(f"{BASE_URL}/api/auth/login", json={
             "email": "admin@admin.com",
-            "password": "newpassword123"
+            "password": new_password
         })
         
         assert login_response.status_code == 200, f"Login with new password failed: {login_response.text}"
@@ -217,17 +221,18 @@ class TestChangePassword:
         
         # Restore original password
         restore_response = new_session.post(f"{BASE_URL}/api/auth/change-password", json={
-            "current_password": "newpassword123",
-            "new_password": "admin"
+            "current_password": new_password,
+            "new_password": ADMIN_PASSWORD
         })
         
         assert restore_response.status_code == 200, f"Password restore failed: {restore_response.text}"
         print("Password restored to original")
         
         # Verify login with original password
+        time.sleep(1)  # Small delay to avoid rate limits
         verify_response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": "admin@admin.com",
-            "password": "admin"
+            "password": ADMIN_PASSWORD
         }, headers={"Content-Type": "application/json"})
         
         assert verify_response.status_code == 200, "Login with restored password failed"
