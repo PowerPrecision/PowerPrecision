@@ -1,0 +1,127 @@
+{
+  "summary": "Iteration 38: CRM Kanban Dark Mode and Idealista Import Features - All tests PASSED. Verified: (1) Kanban columns render correctly in dark mode with bg-muted/50 dark:bg-muted/30 classes, (2) 'Importar HTML' button in Kanban header navigates to /admin/importar-idealista, (3) Idealista Import page loads with instructions, textarea, and both bookmarklets, (4) POST /api/leads creates leads with correct field mapping (title, price, location, typology, area)",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "test_admin_login: Admin login with admin@admin.com - PASSED",
+    "test_create_lead_with_field_mapping: POST /api/leads with title/price/location/typology/area - PASSED",
+    "test_leads_by_status_endpoint: GET /api/leads/by-status returns all 6 columns - PASSED",
+    "test_leads_list_endpoint: GET /api/leads returns lead array - PASSED",
+    "test_consultores_endpoint: GET /api/leads/consultores for filters - PASSED",
+    "test_extract_html_endpoint_exists: POST /api/scraper/extract-html endpoint exists - PASSED",
+    "test_extract_html_with_sample_content: Extract HTML accepts content - PASSED",
+    "test_duplicate_lead_rejected: Duplicate URL leads rejected with 400 - PASSED",
+    "UI: Kanban component loaded with data-testid='leads-kanban' - PASSED",
+    "UI: 6 Kanban columns visible (Novo, Contactado, Visita Agendada, Proposta, Reservado, Descartado) - PASSED",
+    "UI: Import HTML button found with data-testid='import-html-btn' - PASSED",
+    "UI: Dark mode toggle works - HTML class changes to 'dark' - PASSED",
+    "UI: Columns visible in dark mode with bg-muted/50 dark:bg-muted/30 classes - PASSED",
+    "UI: Navigation to /admin/importar-idealista works - PASSED",
+    "UI: Idealista Import page shows 'Importar do Idealista' title - PASSED",
+    "UI: HTML content textarea present for paste method - PASSED",
+    "UI: 'Extrair Dados com IA' button visible - PASSED",
+    "UI: Bookmarklet tab accessible - PASSED",
+    "UI: Advanced bookmarklet 'Idealista → CRM' found - PASSED",
+    "UI: Simple bookmarklet 'Copiar Idealista' found - PASSED"
+  ],
+
+  "failed_tests": [],
+
+  "features_verified": [
+    {
+      "feature": "Kanban Dark Mode Fix",
+      "status": "WORKING",
+      "location": "LeadsKanban.js - KanbanColumn component",
+      "fix_applied": "Changed bg-gray-50 to bg-muted/50 dark:bg-muted/30",
+      "evidence": "Screenshot shows columns clearly visible in dark mode with proper contrast"
+    },
+    {
+      "feature": "Import HTML Button in Kanban Header",
+      "status": "WORKING",
+      "location": "LeadsKanban.js line 644-651",
+      "data_testid": "import-html-btn",
+      "navigation_target": "/admin/importar-idealista"
+    },
+    {
+      "feature": "Idealista Import Page",
+      "status": "WORKING",
+      "location": "IdealistaImportPage.js",
+      "components": ["Instructions", "Textarea for paste", "Extract button", "Bookmarklet tab", "Advanced bookmarklet", "Simple bookmarklet"]
+    },
+    {
+      "feature": "Lead Creation Field Mapping",
+      "status": "WORKING",
+      "location": "IdealistaImportPage.js handleCreateLead function",
+      "mapping": {
+        "titulo": "title",
+        "preco": "price",
+        "localizacao": "location",
+        "tipologia": "typology",
+        "area_util": "area",
+        "foto_principal": "photo_url"
+      },
+      "verified_via": "Backend test POST /api/leads with all fields"
+    }
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/integration/test_iteration38_kanban_import.py",
+    "/app/test_reports/pytest/pytest_results_iteration38.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "LeadsKanban.js: Dark mode correctly uses Tailwind's dark: variant with bg-muted/50 dark:bg-muted/30 for columns (line 207)",
+    "LeadsKanban.js: Filter section also uses same pattern for consistency (line 666)",
+    "IdealistaImportPage.js: handleCreateLead correctly maps Portuguese fields from scraper to English model fields (lines 206-221)",
+    "IdealistaImportPage.js: Both bookmarklets implemented - advanced opens CRM automatically, simple copies to clipboard"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/integration/test_iteration38_kanban_import.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (All UI elements verified)"
+  },
+
+  "test_credentials": {
+    "admin": {
+      "email": "admin@admin.com",
+      "password": "admin",
+      "role": "admin"
+    }
+  },
+
+  "seed_data_creation": "None - used existing leads for visual testing",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All requested features verified working: (1) Kanban dark mode fix applied - columns use bg-muted/50 dark:bg-muted/30 and are clearly visible, (2) 'Importar HTML' button in Kanban header navigates to /admin/importar-idealista, (3) Import page is accessible under Sistema menu as 'Importar Idealista', (4) Field mapping in handleCreateLead correctly converts Portuguese scraper fields to English API fields. All 8 backend tests passed, all UI elements verified.",
+
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "note": "All real integrations tested - NO MOCKED APIs"
+  },
+
+  "api_endpoints_verified": {
+    "POST /api/leads": "Creates lead with correct field mapping (title, price, location, typology, area, consultant)",
+    "GET /api/leads/by-status": "Returns leads grouped by 6 status columns for Kanban",
+    "GET /api/leads": "Returns list of all leads",
+    "GET /api/leads/consultores": "Returns consultores list for filter dropdown",
+    "POST /api/scraper/extract-html": "Accepts HTML content for extraction"
+  }
+}
