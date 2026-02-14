@@ -952,15 +952,32 @@ Conteúdo:
         try:
             from emergentintegrations.llm.chat import LlmChat, UserMessage
             
-            clean_html = self._clean_text(html_content)[:15000]
+            clean_html = self._clean_text(html_content)[:20000]
             
-            prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai os dados em formato JSON.
+            prompt = f"""Analisa este conteúdo de uma página imobiliária portuguesa e extrai TODOS os dados disponíveis em formato JSON.
 
 URL: {url}
 
-Extrai: titulo, preco (número), localizacao, tipologia, area, quartos, casas_banho, descricao, certificacao_energetica, ano_construcao, estado, agente_nome, agente_telefone, agente_email, agencia_nome
+Extrai os seguintes campos (usa null se não encontrares):
 
-Responde APENAS com JSON. Usa null para campos não encontrados.
+DADOS DO IMÓVEL:
+- titulo, preco (número), preco_m2, localizacao, codigo_postal
+- tipologia (T0-T5+, V1-V5+, moradia, terreno, loja)
+- area (m²), area_bruta, area_terreno, quartos, suites, casas_banho
+- garagem, piso, elevador, varanda, vista
+
+CARACTERÍSTICAS:
+- descricao (texto completo), caracteristicas (lista)
+- certificacao_energetica, ano_construcao, estado, orientacao_solar, condominio
+
+CONTACTO:
+- agente_nome, agente_telefone (+351 XXX XXX XXX), agente_email
+- agencia_nome, agencia_telefone, referencia
+
+LINKS:
+- foto_principal, url_planta, url_video
+
+Responde APENAS com JSON válido. Extrai o máximo de informação.
 
 Conteúdo:
 {clean_html}"""
