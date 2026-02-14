@@ -11,23 +11,32 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 14 Fevereiro 2026 (Sessão 28)
+## Última Actualização - 14 Fevereiro 2026 (Sessão 28 - Parte 2)
 
-### ✅ Funcionalidades P0 Completas (Sessão 28) - 100% VERIFIED
+### ✅ Bug Fixes P0 Completos (Sessão 28 Parte 2) - 100% VERIFIED
 
-#### P0 #1: Sistema de Logs Unificado Melhorado - IMPLEMENTADO
-- **Problema**: O utilizador pediu melhorias nos logs de importação IA com: logs item-a-item, agrupamento por cliente, função "selecionar todos"
-- **Solução Implementada**:
-  - **Vista Lista**: Tabela com checkboxes para selecção múltipla de logs
-  - **Vista Clientes**: Logs agrupados por cliente com cards expandíveis
-  - **Selecção em Massa**: Checkbox "Selecionar Todos" + barra de acções em massa
-  - **Resolução em Massa**: Botão "Marcar como Resolvidos" para múltiplos logs
-- **Novos Endpoints**:
-  - `GET /api/admin/ai-import-logs-v2/grouped` - Logs agrupados por cliente
-  - `POST /api/admin/ai-import-logs/bulk-resolve` - Resolução em massa
-- **Ficheiros modificados**: 
-  - `/app/frontend/src/pages/UnifiedLogsPage.js` - Nova UI com vista toggle
-  - `/app/backend/routes/admin.py` - Novos endpoints
+#### P0: Clicar na Lead não abria modal - CORRIGIDO
+- **Problema**: Utilizador reportou que clicar no cartão de lead não mostrava nada
+- **Solução**: Adicionado `onClick={() => onEdit(lead)}` no componente Card + `e.stopPropagation()` em todos os botões de acção
+- **Ficheiros modificados**: `/app/frontend/src/components/LeadsKanban.js`
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_41)
+
+#### P0: Dark Mode - Fundos brancos nos stats - CORRIGIDO
+- **Problema**: Cards de estatísticas tinham fundos brancos que não se adaptavam ao dark mode
+- **Solução**: Adicionadas classes `dark:bg-*-900/30` a todos os icon containers e badges
+- **Ficheiros modificados**: `/app/frontend/src/pages/UnifiedLogsPage.js`
+- **Escopo**: Tab Erros do Sistema + Tab Importações IA + severityConfig
+- **Status**: ✅ CORRIGIDO E TESTADO (iteration_41)
+
+### ✅ Funcionalidades P0 Completas (Sessão 28 - Parte 1) - 100% VERIFIED
+
+#### P0: Sistema de Logs de Importação IA Melhorado - IMPLEMENTADO
+- **Vista Lista com Selecção Múltipla**: Checkboxes individuais + "Selecionar Todos"
+- **Vista Agrupada por Cliente**: Toggle "Lista/Clientes" com cards expandíveis
+- **Resolução em Massa**: Barra de acções com "Marcar como Resolvidos"
+- **Novos Endpoints**: 
+  - `GET /api/admin/ai-import-logs-v2/grouped`
+  - `POST /api/admin/ai-import-logs/bulk-resolve`
 - **Status**: ✅ IMPLEMENTADO E TESTADO (iteration_40)
 
 ### ✅ Correcções P0 Completas (Sessão 27) - 100% VERIFIED
