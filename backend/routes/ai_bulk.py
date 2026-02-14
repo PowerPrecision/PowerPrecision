@@ -1295,10 +1295,10 @@ async def analyze_file_aggregated(
         file: Ficheiro a analisar
         force_client_id: ID do cliente para forçar associação (Cenário B)
     """
-    # Verificar se sessão existe
-    session = get_session(session_id)
+    # Verificar se sessão existe (primeiro memória, depois DB)
+    session = await get_session_async(session_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Sessão de agregação não encontrada")
+        raise HTTPException(status_code=404, detail="Sessão de agregação não encontrada. A sessão pode ter expirado ou o servidor foi reiniciado. Por favor, inicie uma nova importação.")
     
     filename = file.filename or "documento.pdf"
     
