@@ -217,7 +217,7 @@ export default function ClientsPage() {
         setSelectedClient(null);
         fetchClients();
         // Navegar para o novo processo
-        navigate(`/processes/${data.process_id}`);
+        navigate(`/process/${data.process_id}`);
       } else {
         const error = await response.json();
         toast.error(error.detail || "Erro ao criar processo");
