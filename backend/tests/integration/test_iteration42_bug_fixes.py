@@ -105,7 +105,7 @@ class TestAuthProfileUpdate:
         print("Both name and phone updated successfully")
         
         # Restore
-        self.session.put(f"{BASE_URL}/api/auth/profile", json={"name": "Admin"})
+        self.session.put(f"{BASE_URL}/api/auth/profile", json={"name": original_name or "Admin"})
     
     def test_update_profile_empty_body_fails(self):
         """Test that empty update body returns error"""
