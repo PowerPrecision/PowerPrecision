@@ -122,7 +122,7 @@ const SettingsPage = () => {
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/users/${user.id}`, {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -137,10 +137,11 @@ const SettingsPage = () => {
       if (response.ok) {
         toast.success("Perfil atualizado com sucesso");
       } else {
-        throw new Error("Erro ao atualizar perfil");
+        const data = await response.json();
+        throw new Error(data.detail || "Erro ao atualizar perfil");
       }
     } catch (error) {
-      toast.error("Não foi possível atualizar o perfil");
+      toast.error(error.message || "Não foi possível atualizar o perfil");
     } finally {
       setLoading(false);
     }
