@@ -1543,6 +1543,15 @@ async def finish_aggregated_session(
             message=f"{clients_updated} clientes actualizados, {session.processed_files} documentos processados"
         )
         
+        # Marcar sessão como inactiva na DB
+        try:
+            await db.aggregated_sessions.update_one(
+                {"session_id": session_id},
+                {"$set": {"is_active": False, "finished_at": datetime.now(timezone.utc).isoformat()}}
+            )
+        except:
+            pass
+        
         # Fechar e remover sessão de memória
         close_session(session_id)
         
@@ -1557,6 +1566,14 @@ async def finish_aggregated_session(
         
     except Exception as e:
         logger.error(f"[AGGREGATED] Erro ao finalizar sessão {session_id}: {e}", exc_info=True)
+        # Marcar como inactiva mesmo em erro
+        try:
+            await db.aggregated_sessions.update_one(
+                {"session_id": session_id},
+                {"$set": {"is_active": False, "error": str(e)}}
+            )
+        except:
+            pass
         close_session(session_id)
         raise HTTPException(status_code=500, detail=f"Erro ao finalizar importação: {str(e)}")
 
