@@ -1187,83 +1187,100 @@ const ImportLogsTab = ({ token }) => {
         </div>
       )}
 
-      {/* Tabela */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-24">Estado</TableHead>
-                <TableHead className="w-28">Tipo Doc.</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Ficheiro</TableHead>
-                <TableHead className="w-20">Campos</TableHead>
-                <TableHead className="w-40">Data</TableHead>
-                <TableHead className="w-20">Acções</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.length === 0 ? (
+      {/* Tabela (apenas em modo lista) */}
+      {viewMode === "list" && (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Nenhum log de importação encontrado
-                  </TableCell>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.length > 0 && selectedIds.length === logs.filter(l => l.status === "error" && !l.resolved).length}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Seleccionar todos"
+                    />
+                  </TableHead>
+                  <TableHead className="w-24">Estado</TableHead>
+                  <TableHead className="w-28">Tipo Doc.</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Ficheiro</TableHead>
+                  <TableHead className="w-20">Campos</TableHead>
+                  <TableHead className="w-40">Data</TableHead>
+                  <TableHead className="w-20">Acções</TableHead>
                 </TableRow>
-              ) : (
-                logs.map((log) => {
-                  const docConfig = getDocTypeConfig(log.document_type);
-                  return (
-                    <TableRow
-                      key={log.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => openDetails(log)}
-                    >
-                      <TableCell>
-                        {log.status === "success" ? (
-                          <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            OK
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-100 text-red-800 gap-1">
-                            <XCircle className="h-3 w-3" />
-                            Erro
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{docConfig.icon} {docConfig.label.split(" ")[0]}</span>
-                      </TableCell>
-                      <TableCell className="font-medium">{log.client_name}</TableCell>
-                      <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                        {log.filename}
-                      </TableCell>
-                      <TableCell>
-                        {log.fields_count > 0 ? (
-                          <Badge variant="secondary">{log.fields_count}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(log.timestamp)}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openDetails(log); }}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      Nenhum log de importação encontrado
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => {
+                    const docConfig = getDocTypeConfig(log.document_type);
+                    const canSelect = log.status === "error" && !log.resolved;
+                    return (
+                      <TableRow
+                        key={log.id}
+                        className={`cursor-pointer hover:bg-muted/50 ${selectedIds.includes(log.id) ? "bg-primary/10" : ""}`}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.includes(log.id)}
+                            onCheckedChange={() => toggleSelectLog(log.id)}
+                            disabled={!canSelect}
+                            aria-label={`Seleccionar log ${log.id}`}
+                          />
+                        </TableCell>
+                        <TableCell onClick={() => openDetails(log)}>
+                          {log.status === "success" ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              OK
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className={`gap-1 ${log.resolved ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-800"}`}>
+                              <XCircle className="h-3 w-3" />
+                              {log.resolved ? "Resolvido" : "Erro"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell onClick={() => openDetails(log)}>
+                          <span className="text-sm">{docConfig.icon} {docConfig.label.split(" ")[0]}</span>
+                        </TableCell>
+                        <TableCell className="font-medium" onClick={() => openDetails(log)}>{log.client_name}</TableCell>
+                        <TableCell className="max-w-xs truncate text-sm text-muted-foreground" onClick={() => openDetails(log)}>
+                          {log.filename}
+                        </TableCell>
+                        <TableCell onClick={() => openDetails(log)}>
+                          {log.fields_count > 0 ? (
+                            <Badge variant="secondary">{log.fields_count}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground" onClick={() => openDetails(log)}>
+                          {formatDate(log.timestamp)}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openDetails(log); }}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Paginação */}
-      {totalPages > 1 && (
+      {/* Paginação (apenas em modo lista) */}
+      {viewMode === "list" && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             Página {page} de {totalPages} ({total} registos)
