@@ -497,7 +497,7 @@ export default function ClientsPage() {
                             <DropdownMenuItem
                               onClick={() =>
                                 client.process_ids?.[0] &&
-                                navigate(`/processos/${client.process_ids[0]}`)
+                                navigate(`/process/${client.process_ids[0]}`)
                               }
                               disabled={!client.process_ids?.length}
                             >
