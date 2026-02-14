@@ -1191,7 +1191,7 @@ Conteúdo:
         elif parser_used == "generic":
             # Para sites genéricos, sempre tentar Gemini para melhor extração
             needs_gemini = True
-            logger.info(f"Site genérico detectado - usando Gemini para melhor extração")
+            logger.info("Site genérico detectado - usando Gemini para melhor extração")
         
         if needs_gemini:
             gemini_result = await self._extract_with_gemini(html_content, url)
@@ -1681,7 +1681,7 @@ Conteúdo:
                                         html_content = await self._fetch_with_scraperapi(current_url)
                                         if html_content:
                                             break
-                                    errors.append({"url": current_url, "error": f"HTTP 403 - Bloqueado"})
+                                    errors.append({"url": current_url, "error": "HTTP 403 - Bloqueado"})
                                     break
                                 else:
                                     errors.append({"url": current_url, "error": f"HTTP {response.status_code}"})
@@ -1775,7 +1775,6 @@ Conteúdo:
         return await self._extract_with_gemini(html_content, url)
 
 
-from datetime import datetime, timezone
 
 # Instância global
 property_scraper = PropertyScraper()
