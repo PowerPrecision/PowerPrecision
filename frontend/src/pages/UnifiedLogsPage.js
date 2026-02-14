@@ -1179,12 +1179,12 @@ const ImportLogsTab = ({ token }) => {
                             <TableRow key={log.id} className="cursor-pointer hover:bg-muted/50">
                               <TableCell>
                                 {log.status === "success" ? (
-                                  <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
+                                  <Badge variant="outline" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 gap-1">
                                     <CheckCircle className="h-3 w-3" />
                                     OK
                                   </Badge>
                                 ) : (
-                                  <Badge variant="outline" className="bg-red-100 text-red-800 gap-1">
+                                  <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 gap-1">
                                     <XCircle className="h-3 w-3" />
                                     Erro
                                   </Badge>
