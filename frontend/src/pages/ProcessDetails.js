@@ -1967,6 +1967,7 @@ const ProcessDetails = () => {
                     clientName={process?.client_name}
                     compact={true}
                     maxHeight="200px"
+                    token={token}
                   />
                 </AccordionContent>
               </AccordionItem>
