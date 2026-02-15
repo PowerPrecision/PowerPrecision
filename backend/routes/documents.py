@@ -707,6 +707,8 @@ async def categorize_all_documents(
                         "ai_confidence": result.get("confidence"),
                         "ai_tags": result.get("tags", []),
                         "ai_summary": result.get("summary"),
+                        "expiry_date": result.get("expiry_date"),  # Nova: data de validade
+                        "expiry_alert_sent": False,  # Nova: flag de alerta
                         "extracted_text": extracted_text[:5000] if extracted_text else None,
                         "file_size": len(file_content),
                         "is_categorized": True,
@@ -726,7 +728,8 @@ async def categorize_all_documents(
                         "filename": filename,
                         "status": "categorized",
                         "category": result.get("category"),
-                        "subcategory": result.get("subcategory")
+                        "subcategory": result.get("subcategory"),
+                        "expiry_date": result.get("expiry_date")
                     })
                 else:
                     results["errors"] += 1
