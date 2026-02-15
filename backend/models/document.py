@@ -49,3 +49,101 @@ class DocumentValidityCheck(BaseModel):
     error: Optional[str] = None
     days_remaining: Optional[int] = None
     expiry_date: Optional[str] = None
+
+
+# ====================================================================
+# NOVOS MODELOS PARA CATEGORIZAÇÃO IA
+# ====================================================================
+from pydantic import Field
+from typing import List
+
+
+class DocumentMetadata(BaseModel):
+    """
+    Metadados de documento com categorização IA.
+    Guardado na colecção `document_metadata`.
+    """
+    id: str
+    process_id: str
+    client_name: str
+    
+    # Localização do ficheiro
+    s3_path: str
+    filename: str
+    original_filename: Optional[str] = None
+    
+    # Categorização IA
+    ai_category: Optional[str] = None  # Categoria atribuída pela IA
+    ai_subcategory: Optional[str] = None  # Subcategoria mais específica
+    ai_confidence: Optional[float] = None  # Confiança da categorização (0-1)
+    ai_tags: Optional[List[str]] = None  # Tags adicionais extraídas
+    ai_summary: Optional[str] = None  # Resumo do conteúdo do documento
+    
+    # Conteúdo extraído para pesquisa
+    extracted_text: Optional[str] = None  # Texto extraído do documento
+    
+    # Metadados do ficheiro
+    file_size: Optional[int] = None
+    mime_type: Optional[str] = None
+    
+    # Timestamps
+    created_at: str
+    updated_at: Optional[str] = None
+    categorized_at: Optional[str] = None
+    
+    # Flags
+    is_categorized: bool = False
+    categorization_failed: bool = False
+    categorization_error: Optional[str] = None
+
+
+class DocumentMetadataCreate(BaseModel):
+    """Dados para criar metadados de documento."""
+    process_id: str
+    client_name: str
+    s3_path: str
+    filename: str
+    original_filename: Optional[str] = None
+    file_size: Optional[int] = None
+    mime_type: Optional[str] = None
+
+
+class DocumentMetadataResponse(BaseModel):
+    """Resposta com metadados de documento."""
+    id: str
+    process_id: str
+    client_name: str
+    s3_path: str
+    filename: str
+    original_filename: Optional[str] = None
+    ai_category: Optional[str] = None
+    ai_subcategory: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    ai_tags: Optional[List[str]] = None
+    ai_summary: Optional[str] = None
+    file_size: Optional[int] = None
+    mime_type: Optional[str] = None
+    created_at: str
+    updated_at: Optional[str] = None
+    is_categorized: bool = False
+
+
+class DocumentSearchRequest(BaseModel):
+    """Request para pesquisa de documentos."""
+    query: str = Field(..., min_length=2, max_length=500)
+    process_id: Optional[str] = None  # Filtrar por processo/cliente específico
+    categories: Optional[List[str]] = None  # Filtrar por categorias
+    limit: int = Field(default=20, ge=1, le=100)
+
+
+class DocumentSearchResult(BaseModel):
+    """Resultado de pesquisa de documento."""
+    id: str
+    process_id: str
+    client_name: str
+    s3_path: str
+    filename: str
+    ai_category: Optional[str] = None
+    ai_summary: Optional[str] = None
+    relevance_score: float = 0.0
+    matched_text: Optional[str] = None  # Trecho do texto que corresponde à pesquisa
