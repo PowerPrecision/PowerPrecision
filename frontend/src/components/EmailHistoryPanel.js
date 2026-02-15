@@ -29,7 +29,7 @@ import {
 import { 
   Mail, Send, Inbox, Plus, Loader2, Clock, User, 
   Paperclip, MoreVertical, Trash2, Eye, ChevronDown, ChevronUp, RefreshCw,
-  Settings, X, AtSign, Maximize2, ExternalLink
+  Settings, X, AtSign, Maximize2, ExternalLink, Link, Search
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -37,12 +37,15 @@ import { pt } from "date-fns/locale";
 import { getProcessEmails, getEmailStats, createEmail, deleteEmail, syncProcessEmails, getMonitoredEmails, addMonitoredEmail, removeMonitoredEmail } from "../services/api";
 import EmailViewerModal from "./EmailViewerModal";
 
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
 const EmailHistoryPanel = ({ 
   processId, 
   clientEmail,
   clientName,
   compact = false,
-  maxHeight = "400px"
+  maxHeight = "400px",
+  token
 }) => {
   const [emails, setEmails] = useState([]);
   const [stats, setStats] = useState({ total: 0, sent: 0, received: 0 });
@@ -62,6 +65,13 @@ const EmailHistoryPanel = ({
   const [monitoredEmails, setMonitoredEmails] = useState([]);
   const [newMonitoredEmail, setNewMonitoredEmail] = useState("");
   const [addingEmail, setAddingEmail] = useState(false);
+  
+  // TAREFA 1: Associação manual de emails
+  const [isAssociateDialogOpen, setIsAssociateDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [associating, setAssociating] = useState(null);
   
   // URLs dos webmails
   const WEBMAIL_URLS = {
