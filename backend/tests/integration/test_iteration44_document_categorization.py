@@ -262,6 +262,7 @@ class TestDocumentCategorization:
     def setup(self):
         """Setup test fixtures"""
         self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
         
         # Login
         response = self.session.post(
