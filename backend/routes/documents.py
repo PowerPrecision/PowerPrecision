@@ -385,3 +385,373 @@ DOCUMENT_TYPES = [
 @router.get("/types")
 async def get_document_types(user: dict = Depends(get_current_user)):
     return DOCUMENT_TYPES
+
+
+# ====================================================================
+# PARTE 3: CATEGORIZAÇÃO E PESQUISA COM IA (NOVO)
+# ====================================================================
+
+from services.document_categorization import (
+    extract_text_from_pdf,
+    categorize_document_with_ai,
+    search_documents_by_content,
+    get_unique_categories
+)
+from models.document import (
+    DocumentMetadata, 
+    DocumentMetadataCreate,
+    DocumentMetadataResponse,
+    DocumentSearchRequest,
+    DocumentSearchResult
+)
+
+
+@router.post("/categorize/{process_id}")
+async def categorize_document(
+    process_id: str,
+    s3_path: str = Form(...),
+    filename: str = Form(...),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Categorizar um documento específico usando IA.
+    
+    A IA analisa o conteúdo do documento e atribui:
+    - Categoria principal
+    - Subcategoria (tipo específico)
+    - Tags relevantes
+    - Resumo do conteúdo
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    client_name = process.get("client_name", "Cliente")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Verificar se já existe metadados para este ficheiro
+    existing = await db.document_metadata.find_one({"s3_path": s3_path}, {"_id": 0})
+    
+    # Obter o ficheiro do S3
+    try:
+        file_content = s3_service.get_file_content(s3_path)
+        if not file_content:
+            raise HTTPException(status_code=404, detail="Ficheiro não encontrado no S3")
+    except Exception as e:
+        logger.error(f"Erro ao obter ficheiro do S3: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao aceder ao ficheiro")
+    
+    # Extrair texto do documento
+    extracted_text = ""
+    if filename.lower().endswith('.pdf'):
+        extracted_text = extract_text_from_pdf(file_content)
+    
+    # Se não conseguir extrair texto, usar apenas o nome do ficheiro
+    text_for_analysis = extracted_text if extracted_text else f"Ficheiro: {filename}"
+    
+    # Obter categorias existentes para consistência
+    existing_categories = await db.document_metadata.distinct("ai_category")
+    
+    # Categorizar com IA
+    result = await categorize_document_with_ai(
+        text_content=text_for_analysis,
+        filename=filename,
+        existing_categories=existing_categories
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=500, 
+            detail=result.get("error", "Erro ao categorizar documento")
+        )
+    
+    # Criar ou actualizar metadados
+    doc_id = existing.get("id") if existing else str(uuid.uuid4())
+    
+    metadata = {
+        "id": doc_id,
+        "process_id": process_id,
+        "client_name": client_name,
+        "s3_path": s3_path,
+        "filename": filename,
+        "ai_category": result.get("category"),
+        "ai_subcategory": result.get("subcategory"),
+        "ai_confidence": result.get("confidence"),
+        "ai_tags": result.get("tags", []),
+        "ai_summary": result.get("summary"),
+        "extracted_text": extracted_text[:5000] if extracted_text else None,  # Limitar tamanho
+        "file_size": len(file_content),
+        "mime_type": "application/pdf" if filename.lower().endswith('.pdf') else None,
+        "is_categorized": True,
+        "categorized_at": now,
+        "updated_at": now
+    }
+    
+    if existing:
+        await db.document_metadata.update_one(
+            {"id": doc_id},
+            {"$set": metadata}
+        )
+    else:
+        metadata["created_at"] = now
+        await db.document_metadata.insert_one(metadata)
+    
+    return {
+        "success": True,
+        "id": doc_id,
+        "category": result.get("category"),
+        "subcategory": result.get("subcategory"),
+        "confidence": result.get("confidence"),
+        "tags": result.get("tags", []),
+        "summary": result.get("summary")
+    }
+
+
+@router.post("/categorize-all/{process_id}")
+async def categorize_all_documents(
+    process_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Categorizar TODOS os documentos de um cliente/processo.
+    Processa documentos que ainda não foram categorizados.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    client_name = process.get("client_name", "Cliente")
+    second_client_name = process.get("second_client_name") or \
+                         process.get("titular2_data", {}).get("nome")
+    
+    # Listar ficheiros do S3
+    files_data = s3_service.list_files(process_id, client_name, second_client_name)
+    files = files_data.get("files", {})
+    
+    results = {
+        "total": 0,
+        "categorized": 0,
+        "skipped": 0,
+        "errors": 0,
+        "documents": []
+    }
+    
+    # Obter categorias existentes
+    existing_categories = await db.document_metadata.distinct("ai_category")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Processar cada categoria de ficheiros
+    for category, file_list in files.items():
+        for file_info in file_list:
+            results["total"] += 1
+            
+            s3_path = file_info.get("path")
+            filename = file_info.get("name")
+            
+            if not s3_path or not filename:
+                continue
+            
+            # Verificar se já foi categorizado
+            existing = await db.document_metadata.find_one(
+                {"s3_path": s3_path, "is_categorized": True},
+                {"_id": 0}
+            )
+            
+            if existing:
+                results["skipped"] += 1
+                results["documents"].append({
+                    "filename": filename,
+                    "status": "skipped",
+                    "category": existing.get("ai_category")
+                })
+                continue
+            
+            try:
+                # Obter ficheiro do S3
+                file_content = s3_service.get_file_content(s3_path)
+                if not file_content:
+                    results["errors"] += 1
+                    continue
+                
+                # Extrair texto
+                extracted_text = ""
+                if filename.lower().endswith('.pdf'):
+                    extracted_text = extract_text_from_pdf(file_content)
+                
+                text_for_analysis = extracted_text if extracted_text else f"Ficheiro: {filename}"
+                
+                # Categorizar
+                result = await categorize_document_with_ai(
+                    text_content=text_for_analysis,
+                    filename=filename,
+                    existing_categories=existing_categories
+                )
+                
+                if result.get("success"):
+                    # Guardar metadados
+                    doc_id = str(uuid.uuid4())
+                    metadata = {
+                        "id": doc_id,
+                        "process_id": process_id,
+                        "client_name": client_name,
+                        "s3_path": s3_path,
+                        "filename": filename,
+                        "ai_category": result.get("category"),
+                        "ai_subcategory": result.get("subcategory"),
+                        "ai_confidence": result.get("confidence"),
+                        "ai_tags": result.get("tags", []),
+                        "ai_summary": result.get("summary"),
+                        "extracted_text": extracted_text[:5000] if extracted_text else None,
+                        "file_size": len(file_content),
+                        "is_categorized": True,
+                        "categorized_at": now,
+                        "created_at": now,
+                        "updated_at": now
+                    }
+                    
+                    await db.document_metadata.insert_one(metadata)
+                    
+                    # Actualizar lista de categorias
+                    if result.get("category") and result["category"] not in existing_categories:
+                        existing_categories.append(result["category"])
+                    
+                    results["categorized"] += 1
+                    results["documents"].append({
+                        "filename": filename,
+                        "status": "categorized",
+                        "category": result.get("category"),
+                        "subcategory": result.get("subcategory")
+                    })
+                else:
+                    results["errors"] += 1
+                    results["documents"].append({
+                        "filename": filename,
+                        "status": "error",
+                        "error": result.get("error")
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Erro ao categorizar {filename}: {e}")
+                results["errors"] += 1
+                results["documents"].append({
+                    "filename": filename,
+                    "status": "error",
+                    "error": str(e)
+                })
+    
+    return results
+
+
+@router.get("/metadata/{process_id}")
+async def get_document_metadata(
+    process_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Obter metadados de todos os documentos de um processo.
+    Inclui categorização IA se disponível.
+    """
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Obter metadados existentes
+    metadata_list = await db.document_metadata.find(
+        {"process_id": process_id},
+        {"_id": 0, "extracted_text": 0}  # Não retornar texto completo
+    ).to_list(1000)
+    
+    # Obter categorias únicas
+    categories = await db.document_metadata.distinct(
+        "ai_category",
+        {"process_id": process_id, "ai_category": {"$ne": None}}
+    )
+    
+    return {
+        "process_id": process_id,
+        "client_name": process.get("client_name"),
+        "documents": metadata_list,
+        "total": len(metadata_list),
+        "categorized": sum(1 for d in metadata_list if d.get("is_categorized")),
+        "categories": sorted(categories)
+    }
+
+
+@router.post("/search")
+async def search_documents(
+    request: DocumentSearchRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Pesquisar documentos por conteúdo.
+    
+    Pesquisa em:
+    - Nome do ficheiro
+    - Categoria e subcategoria IA
+    - Tags
+    - Resumo
+    - Texto extraído
+    """
+    query = {"is_categorized": True}
+    
+    # Filtrar por processo se especificado
+    if request.process_id:
+        query["process_id"] = request.process_id
+    
+    # Filtrar por categorias se especificado
+    if request.categories:
+        query["ai_category"] = {"$in": request.categories}
+    
+    # Obter documentos
+    documents = await db.document_metadata.find(query, {"_id": 0}).to_list(1000)
+    
+    # Pesquisar
+    results = await search_documents_by_content(
+        query=request.query,
+        process_id=request.process_id,
+        documents=documents,
+        limit=request.limit
+    )
+    
+    return {
+        "query": request.query,
+        "total_results": len(results),
+        "results": results
+    }
+
+
+@router.get("/categories")
+async def get_all_categories(
+    process_id: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Obter todas as categorias de documentos.
+    Opcionalmente filtrar por processo.
+    """
+    query = {"ai_category": {"$ne": None}}
+    
+    if process_id:
+        query["process_id"] = process_id
+    
+    categories = await db.document_metadata.distinct("ai_category", query)
+    
+    # Contar documentos por categoria
+    pipeline = [
+        {"$match": query},
+        {"$group": {"_id": "$ai_category", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    
+    category_counts = await db.document_metadata.aggregate(pipeline).to_list(100)
+    
+    return {
+        "categories": [
+            {
+                "name": cat["_id"],
+                "count": cat["count"]
+            }
+            for cat in category_counts if cat["_id"]
+        ],
+        "total_categories": len(category_counts)
+    }
