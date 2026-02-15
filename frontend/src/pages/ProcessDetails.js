@@ -155,6 +155,10 @@ const ProcessDetails = () => {
   // Estado de erro de validação do NIF
   const [nifError, setNifError] = useState(null);
 
+  // TAREFA 2: Estado para conflitos de dados IA
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [isDataConfirmed, setIsDataConfirmed] = useState(false);
+
   // Form states
   const [personalData, setPersonalData] = useState({});
   const [financialData, setFinancialData] = useState({});
