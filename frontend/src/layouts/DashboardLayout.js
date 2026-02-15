@@ -236,6 +236,11 @@ const DashboardLayout = ({ children, title }) => {
             icon: Wrench,
             items: [
               {
+                label: "Validades Docs",
+                icon: AlertCircle,
+                href: "/validades",
+              },
+              {
                 label: "Mapeamentos NIF",
                 icon: Database,
                 href: "/admin/mapeamentos-nif",
