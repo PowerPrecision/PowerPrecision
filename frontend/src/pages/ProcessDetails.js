@@ -62,6 +62,7 @@ import ProcessTimeline from "../components/ProcessTimeline";
 import ClientPropertyMatch from "../components/ClientPropertyMatch";
 import TemplatesPanel from "../components/TemplatesPanel";
 import DataConflictResolver from "../components/DataConflictResolver";
+import DocumentSearchPanel from "../components/DocumentSearchPanel";
 import {
   ArrowLeft,
   User,
