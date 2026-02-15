@@ -207,6 +207,16 @@ function App() {
             }
           />
           
+          {/* Expiring Documents Dashboard - All Staff (filtered by role) */}
+          <Route
+            path="/validades"
+            element={
+              <ProtectedRoute allowedRoles={STAFF_ROLES}>
+                <ExpiringDocumentsDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* System Configuration - Admin only */}
           <Route
             path="/configuracoes"
