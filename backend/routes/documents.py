@@ -1055,7 +1055,7 @@ async def get_expiring_documents_dashboard(
             else:
                 urgency_level = "medium"
                 clients_data[process_id]["medium_count"] += 1
-        except:
+        except (ValueError, KeyError):
             urgency_level = "unknown"
             days_until = None
         
