@@ -1687,33 +1687,8 @@ def merge_data_with_conflicts(
         "skipped": skipped
     }
 
-                        logger.warning(f"CC: NIF {value} inválido - ignorado")
-                        continue
-                # Validação especial para documento_id
-                if dest_key == 'documento_id' and value in ['123456789', '12345678']:
-                    logger.warning(f"CC: documento_id {value} é placeholder - ignorado")
-                    continue
-                personal_update[dest_key] = value
-                track_mapped(src_key)
-        
-        if personal_update:
-            existing_personal = existing_data.get("personal_data") or {}
-            existing_personal.update(personal_update)
-            update_data["personal_data"] = existing_personal
-        
-        if extracted_data.get('email'):
-            update_data["client_email"] = sanitize_email(extracted_data['email'])
-            
-    elif document_type in ['recibo_vencimento', 'irs']:
-        # Dados financeiros (PT e UK)
-        # SUPORTA DADOS DE CÔNJUGE NO IRS
-        financial_update = {}
-        personal_update = {}
-        
-        logger.info(f"[RECIBO/IRS] Dados extraídos: {json.dumps(extracted_data, ensure_ascii=False, default=str)[:2000]}")
-        
-        # Função para converter valor monetário
-        def parse_money(value):
+
+def build_update_from_extraction(
             if not value:
                 return None
             try:
