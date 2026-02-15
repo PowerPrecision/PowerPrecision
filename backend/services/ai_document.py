@@ -1497,27 +1497,12 @@ def build_update_data_from_extraction(
                     nif_valid = is_valid_nif(value)
                     logger.info(f"[DEBUG NIF] Validação: valor='{value}', válido={nif_valid}")
                     if not nif_valid:
-
-
-# ====================================================================
-# TAREFA 2: GESTÃO DE CONFLITOS DE DADOS IA
-# ====================================================================
-
-import uuid as uuid_module
-
-def check_data_conflicts(
-    existing_data: Dict[str, Any],
-    new_data: Dict[str, Any],
-    section: str,
-    document_filename: str = None
-) -> List[Dict[str, Any]]:
-    """
-    TAREFA 2: Verificar conflitos entre dados existentes e dados extraídos pela IA.
+                        logger.warning(f"[DEBUG NIF] NIF inválido ignorado: {value}")
+                        continue
+                
+                update_data[f"personal_data.{dest_key}"] = value
     
-    Args:
-        existing_data: Dados actuais do processo (ex: personal_data)
-        new_data: Dados extraídos pela IA
-        section: Nome da secção (personal_data, financial_data, etc.)
+    return update_data
         document_filename: Nome do documento de onde os dados foram extraídos
     
     Returns:
