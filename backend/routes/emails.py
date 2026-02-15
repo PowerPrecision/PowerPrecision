@@ -3,6 +3,10 @@
 ROTAS DE EMAILS - CREDITOIMO
 ====================================================================
 Endpoints para gestão de histórico de emails.
+
+TAREFA 1 (Iteração 42):
+- Filtrar emails por participação do utilizador (privacidade)
+- Permitir associação manual de emails a clientes
 ====================================================================
 """
 
@@ -11,7 +15,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from database import db
 from models.email import EmailCreate, EmailUpdate, EmailResponse, EmailDirection, EmailStatus
