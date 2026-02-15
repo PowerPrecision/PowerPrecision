@@ -11,7 +11,58 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 15 Fevereiro 2026 (Sessão 30)
+## Última Actualização - 15 Fevereiro 2026 (Sessão 31)
+
+### ✅ TAREFA P0 Completa (Sessão 31) - 100% VERIFIED (iteration_44)
+
+#### Categorização e Pesquisa de Documentos com IA
+**Objetivo:** Permitir categorizar documentos automaticamente com IA e pesquisar por conteúdo.
+**Requisitos do utilizador:**
+1. Deixar a IA criar categorias automaticamente
+2. Pesquisa por cliente/processo específico
+3. Interface na página de detalhes do processo
+
+##### Backend - Novos Endpoints - IMPLEMENTADO
+- **`GET /api/documents/metadata/{process_id}`**: Obtém metadados de todos os documentos de um processo
+- **`POST /api/documents/search`**: Pesquisa documentos por query (2-500 chars), filtro por process_id e categorias, limit 1-100
+- **`GET /api/documents/categories`**: Lista categorias com contagem de documentos, filtro opcional por process_id
+- **`POST /api/documents/categorize/{process_id}`**: Categoriza um documento específico (s3_path, filename)
+- **`POST /api/documents/categorize-all/{process_id}`**: Categoriza todos os documentos não categorizados
+- **Ficheiros**: `/app/backend/routes/documents.py` (linhas 388-755)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### Backend - Serviço de Categorização IA - IMPLEMENTADO
+- **Extração de texto**: pypdf para PDFs
+- **Categorização IA**: GPT-4o-mini via Emergent LLM Key
+- **Categorias dinâmicas**: IA cria categorias baseadas no conteúdo (Identificação, Rendimentos, Emprego, Bancários, Imóvel, Contratos, Fiscais, Simulações, Outros)
+- **Retorna**: category, subcategory, confidence (0-1), tags (3-5 palavras), summary
+- **Pesquisa por conteúdo**: scoring ponderado em filename, categoria, tags, resumo e texto extraído
+- **Ficheiros**: `/app/backend/services/document_categorization.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### Backend - Modelos - IMPLEMENTADO
+- **DocumentMetadata**: id, process_id, client_name, s3_path, filename, ai_category, ai_subcategory, ai_confidence, ai_tags, ai_summary, extracted_text, is_categorized
+- **DocumentSearchRequest**: query, process_id (opcional), categories (opcional), limit
+- **DocumentSearchResult**: id, process_id, client_name, s3_path, filename, ai_category, ai_summary, relevance_score, matched_text
+- **Ficheiros**: `/app/backend/models/document.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### Frontend - Componente DocumentSearchPanel - IMPLEMENTADO
+- **Localização**: Página de detalhes do processo, após accordion de "Documentos"
+- **Funcionalidades**:
+  - Campo de pesquisa com mínimo 2 caracteres
+  - Botão "Categorizar com IA" que abre dialog com contagens (total, já categorizados, por categorizar)
+  - Dialog de progresso durante categorização
+  - Filtro dropdown por categoria
+  - Lista de documentos com badges de categoria coloridos
+  - Exibição de tags por documento
+  - Resultados de pesquisa com relevância e texto correspondente
+  - Mensagem "Nenhum documento encontrado" quando vazio
+- **data-testid**: document-search-panel, document-search-input, search-btn, categorize-all-btn
+- **Ficheiros**: 
+  - `/app/frontend/src/components/DocumentSearchPanel.jsx` (NOVO)
+  - `/app/frontend/src/pages/ProcessDetails.js` (linha 66 import, linhas 1991-1995 integração)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
 
 ### ✅ TAREFA 1 & 2 Completas (Sessão 30) - 100% VERIFIED (iteration_43)
 
