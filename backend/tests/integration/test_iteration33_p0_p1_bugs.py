@@ -14,7 +14,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://smart-docs-47.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://categorize-notify.preview.emergentagent.com')
 
 
 class TestP0EmergentIntegrations:

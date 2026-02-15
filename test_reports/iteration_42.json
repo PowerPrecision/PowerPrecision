@@ -69,7 +69,7 @@
     {
       "feature": "Bug Fix 6: Ver Ficha navigates to /process/{id}",
       "status": "WORKING",
-      "evidence": "Clicking Ver Ficha navigates to https://smart-docs-47.preview.emergentagent.com/process/{process_id}"
+      "evidence": "Clicking Ver Ficha navigates to https://categorize-notify.preview.emergentagent.com/process/{process_id}"
     },
     {
       "feature": "Bug Fix 7: Client name click navigates to /process/{id}",
