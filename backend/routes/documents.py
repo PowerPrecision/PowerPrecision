@@ -6,18 +6,20 @@ Inclui:
 - Upload com normalização automática de nomes
 - Conversão automática de imagens para PDF
 - Gestão de validades de documentos
+- Categorização automática com IA
 ====================================================================
 """
 import uuid
 import logging
 import re
 import unicodedata
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict
 from io import BytesIO
 
 # Adicionados UploadFile, File, Form para o S3
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form 
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 
 from database import db
 from models.auth import UserRole
@@ -32,6 +34,94 @@ from services.document_processor import convert_image_to_pdf, IMG2PDF_AVAILABLE
 
 router = APIRouter(prefix="/documents", tags=["Document Management"])
 logger = logging.getLogger(__name__)
+
+
+# ====================================================================
+# FUNÇÃO DE CATEGORIZAÇÃO AUTOMÁTICA EM BACKGROUND
+# ====================================================================
+
+async def auto_categorize_document_background(
+    process_id: str,
+    client_name: str,
+    s3_path: str,
+    filename: str,
+    file_content: bytes
+):
+    """
+    Categoriza um documento automaticamente em background após upload.
+    Esta função é chamada de forma assíncrona para não bloquear o upload.
+    """
+    from services.document_categorization import extract_text_from_pdf, categorize_document_with_ai
+    
+    try:
+        logger.info(f"[AUTO-CAT] Iniciando categorização automática para: {filename}")
+        
+        # Verificar se já existe metadados para este ficheiro
+        existing = await db.document_metadata.find_one({"s3_path": s3_path}, {"_id": 0})
+        
+        # Extrair texto do documento
+        extracted_text = ""
+        if filename.lower().endswith('.pdf'):
+            extracted_text = extract_text_from_pdf(file_content)
+        
+        # Se não conseguir extrair texto, usar apenas o nome do ficheiro
+        text_for_analysis = extracted_text if extracted_text else f"Ficheiro: {filename}"
+        
+        # Obter categorias existentes para consistência
+        existing_categories = await db.document_metadata.distinct("ai_category")
+        
+        # Categorizar com IA
+        result = await categorize_document_with_ai(
+            text_content=text_for_analysis,
+            filename=filename,
+            existing_categories=existing_categories
+        )
+        
+        if not result.get("success"):
+            logger.warning(f"[AUTO-CAT] Falha ao categorizar {filename}: {result.get('error')}")
+            return
+        
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Criar ou actualizar metadados
+        doc_id = existing.get("id") if existing else str(uuid.uuid4())
+        
+        metadata = {
+            "id": doc_id,
+            "process_id": process_id,
+            "client_name": client_name,
+            "s3_path": s3_path,
+            "filename": filename,
+            "ai_category": result.get("category"),
+            "ai_subcategory": result.get("subcategory"),
+            "ai_confidence": result.get("confidence"),
+            "ai_tags": result.get("tags", []),
+            "ai_summary": result.get("summary"),
+            "expiry_date": result.get("expiry_date"),  # Nova: data de validade
+            "expiry_alert_sent": False,  # Nova: flag de alerta
+            "extracted_text": extracted_text[:5000] if extracted_text else None,
+            "file_size": len(file_content),
+            "mime_type": "application/pdf" if filename.lower().endswith('.pdf') else None,
+            "is_categorized": True,
+            "categorized_at": now,
+            "updated_at": now
+        }
+        
+        if existing:
+            await db.document_metadata.update_one(
+                {"id": doc_id},
+                {"$set": metadata}
+            )
+            logger.info(f"[AUTO-CAT] Metadados actualizados para: {filename}")
+        else:
+            metadata["created_at"] = now
+            await db.document_metadata.insert_one(metadata)
+            logger.info(f"[AUTO-CAT] Metadados criados para: {filename}")
+        
+        logger.info(f"[AUTO-CAT] Categorização concluída: {filename} -> {result.get('category')}/{result.get('subcategory')}, expiry: {result.get('expiry_date')}")
+        
+    except Exception as e:
+        logger.error(f"[AUTO-CAT] Erro ao categorizar {filename}: {e}")
 
 
 # ====================================================================
