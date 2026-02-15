@@ -201,7 +201,7 @@ class TestNotificationTypeSupport:
         )
         if response.status_code != 200:
             pytest.skip("Could not authenticate consultant")
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     def test_notifications_endpoint_returns_notifications(self, auth_token):
         """Test GET /api/alerts/notifications returns proper structure"""
