@@ -974,3 +974,155 @@ async def unassign_me_from_process(
         "removed_from": removed_from
     }
 
+
+@router.post("/{process_id}/resolve-conflict")
+async def resolve_data_conflict(
+    process_id: str,
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """
+    TAREFA 2: Resolver conflito de dados extraídos pela IA.
+    
+    Quando a IA extrai dados de um documento e o campo já tem valor,
+    é criada uma sugestão em ai_suggestions. Este endpoint permite
+    ao utilizador escolher qual valor manter.
+    
+    Body:
+    {
+        "field": "nif",  # Campo em conflito
+        "choice": "ai" | "current",  # Qual valor manter
+        "suggestion_id": "uuid da sugestão"  # Opcional, para identificar sugestão específica
+    }
+    """
+    field = data.get("field")
+    choice = data.get("choice")
+    suggestion_id = data.get("suggestion_id")
+    
+    if not field or choice not in ["ai", "current"]:
+        raise HTTPException(status_code=400, detail="field e choice ('ai' ou 'current') são obrigatórios")
+    
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    ai_suggestions = process.get("ai_suggestions", [])
+    
+    # Encontrar a sugestão para este campo
+    suggestion = None
+    suggestion_index = -1
+    
+    for i, s in enumerate(ai_suggestions):
+        if s.get("field") == field:
+            if suggestion_id and s.get("id") != suggestion_id:
+                continue
+            suggestion = s
+            suggestion_index = i
+            break
+    
+    if not suggestion:
+        raise HTTPException(status_code=404, detail=f"Nenhuma sugestão encontrada para o campo '{field}'")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {"updated_at": now}
+    
+    if choice == "ai":
+        # Aceitar valor sugerido pela IA
+        suggested_value = suggestion.get("suggested")
+        field_path = suggestion.get("field_path", field)
+        
+        # Determinar onde actualizar (personal_data, financial_data, etc.)
+        if "." in field_path:
+            section, actual_field = field_path.split(".", 1)
+            update_data[f"{section}.{actual_field}"] = suggested_value
+        else:
+            # Tentar determinar a secção automaticamente
+            if field in ["nif", "documento_id", "naturalidade", "nacionalidade", "morada_fiscal", 
+                        "birth_date", "data_nascimento", "estado_civil", "data_validade_cc", 
+                        "sexo", "altura", "nome_pai", "nome_mae"]:
+                update_data[f"personal_data.{field}"] = suggested_value
+            elif field in ["salario_bruto", "salario_liquido", "rendimento_anual", 
+                          "acesso_portal_financas", "capital_proprio"]:
+                update_data[f"financial_data.{field}"] = suggested_value
+            else:
+                update_data[field] = suggested_value
+        
+        # Registar no histórico
+        await log_history(
+            process_id, user,
+            f"Aceitou sugestão IA para '{field}'",
+            field, suggestion.get("current"), suggested_value
+        )
+    else:
+        # Manter valor actual - apenas registar no histórico
+        await log_history(
+            process_id, user,
+            f"Manteve valor actual para '{field}'",
+            field, suggestion.get("suggested"), suggestion.get("current")
+        )
+    
+    # Remover a sugestão resolvida da lista
+    ai_suggestions.pop(suggestion_index)
+    update_data["ai_suggestions"] = ai_suggestions
+    
+    await db.processes.update_one({"id": process_id}, {"$set": update_data})
+    
+    return {
+        "success": True,
+        "message": f"Conflito resolvido: {'valor IA aceite' if choice == 'ai' else 'valor actual mantido'}",
+        "field": field,
+        "remaining_conflicts": len(ai_suggestions)
+    }
+
+
+@router.post("/{process_id}/confirm-data")
+async def confirm_client_data(
+    process_id: str,
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """
+    TAREFA 2: Confirmar dados do cliente e bloquear actualizações automáticas da IA.
+    
+    Quando is_data_confirmed=True, a IA continua a classificar documentos
+    mas não extrai dados de perfil automaticamente.
+    
+    Body:
+    {
+        "confirmed": true | false
+    }
+    """
+    confirmed = data.get("confirmed", True)
+    
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Verificar se há conflitos pendentes antes de confirmar
+    ai_suggestions = process.get("ai_suggestions", [])
+    if confirmed and len(ai_suggestions) > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Existem {len(ai_suggestions)} conflitos pendentes. Resolva-os antes de confirmar os dados."
+        )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    await db.processes.update_one(
+        {"id": process_id},
+        {"$set": {
+            "is_data_confirmed": confirmed,
+            "data_confirmed_at": now if confirmed else None,
+            "data_confirmed_by": user["id"] if confirmed else None,
+            "updated_at": now
+        }}
+    )
+    
+    action = "confirmou" if confirmed else "desbloqueou"
+    await log_history(process_id, user, f"{action} os dados do cliente", "is_data_confirmed", not confirmed, confirmed)
+    
+    return {
+        "success": True,
+        "message": f"Dados do cliente {'confirmados e bloqueados' if confirmed else 'desbloqueados'}",
+        "is_data_confirmed": confirmed
+    }
+
