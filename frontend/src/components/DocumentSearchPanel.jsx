@@ -447,63 +447,109 @@ const DocumentSearchPanel = ({ processId, clientName }) => {
                   <p className="text-sm">Nenhum documento encontrado</p>
                 </div>
               ) : (
-                filteredDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors border border-border"
-                    onClick={() => handleOpenDocument(doc.s3_path)}
-                    data-testid={`doc-${doc.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="h-4 w-4 flex-shrink-0 text-red-500" />
-                        <div className="min-w-0">
-                          <span className="text-sm font-medium truncate block">
-                            {doc.filename}
-                          </span>
-                          {doc.ai_summary && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {doc.ai_summary}
-                            </p>
+                filteredDocuments.map((doc) => {
+                  // Calcular urgência de expiração
+                  let expiryUrgency = null;
+                  let daysUntilExpiry = null;
+                  if (doc.expiry_date) {
+                    const today = new Date();
+                    const expiry = new Date(doc.expiry_date);
+                    daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysUntilExpiry < 0) {
+                      expiryUrgency = "expired";
+                    } else if (daysUntilExpiry < 7) {
+                      expiryUrgency = "critical";
+                    } else if (daysUntilExpiry < 30) {
+                      expiryUrgency = "warning";
+                    } else if (daysUntilExpiry <= 60) {
+                      expiryUrgency = "attention";
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={doc.id}
+                      className={`p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors border ${
+                        expiryUrgency === "expired" ? "border-red-500 bg-red-50/50 dark:bg-red-900/20" :
+                        expiryUrgency === "critical" ? "border-red-400 bg-red-50/30 dark:bg-red-900/10" :
+                        expiryUrgency === "warning" ? "border-orange-400 bg-orange-50/30 dark:bg-orange-900/10" :
+                        expiryUrgency === "attention" ? "border-yellow-400 bg-yellow-50/30 dark:bg-yellow-900/10" :
+                        "border-border"
+                      }`}
+                      onClick={() => handleOpenDocument(doc.s3_path)}
+                      data-testid={`doc-${doc.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-4 w-4 flex-shrink-0 text-red-500" />
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">
+                              {doc.filename}
+                            </span>
+                            {doc.ai_summary && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {doc.ai_summary}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Indicador de Expiração */}
+                          {expiryUrgency && (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${
+                                expiryUrgency === "expired" ? "bg-red-600 text-white border-red-600" :
+                                expiryUrgency === "critical" ? "bg-red-500 text-white border-red-500" :
+                                expiryUrgency === "warning" ? "bg-orange-500 text-white border-orange-500" :
+                                "bg-yellow-500 text-white border-yellow-500"
+                              }`}
+                              title={`Expira em ${doc.expiry_date}`}
+                            >
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              {expiryUrgency === "expired" ? "Expirado" :
+                               daysUntilExpiry === 0 ? "Expira hoje" :
+                               daysUntilExpiry === 1 ? "1 dia" :
+                               `${daysUntilExpiry} dias`}
+                            </Badge>
+                          )}
+                          {doc.is_categorized ? (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${getCategoryColor(doc.ai_category)}`}
+                            >
+                              {doc.ai_category}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-gray-100 text-gray-600"
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Por categorizar
+                            </Badge>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {doc.is_categorized ? (
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${getCategoryColor(doc.ai_category)}`}
-                          >
-                            {doc.ai_category}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-gray-100 text-gray-600"
-                          >
-                            <Clock className="h-3 w-3 mr-1" />
-                            Por categorizar
-                          </Badge>
-                        )}
-                      </div>
+                      
+                      {/* Tags */}
+                      {doc.ai_tags && doc.ai_tags.length > 0 && (
+                        <div className="flex items-center gap-1 mt-2 flex-wrap">
+                          <Tag className="h-3 w-3 text-muted-foreground" />
+                          {doc.ai_tags.slice(0, 4).map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs bg-muted px-1.5 py-0.5 rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Tags */}
-                    {doc.ai_tags && doc.ai_tags.length > 0 && (
-                      <div className="flex items-center gap-1 mt-2 flex-wrap">
-                        <Tag className="h-3 w-3 text-muted-foreground" />
-                        {doc.ai_tags.slice(0, 4).map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="text-xs bg-muted px-1.5 py-0.5 rounded"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </ScrollArea>
