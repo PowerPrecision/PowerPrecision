@@ -799,7 +799,6 @@ class ScheduledTasksService:
             True se o email foi enviado, False caso contrário
         """
         today = datetime.now(timezone.utc)
-        current_hour = today.hour
         current_weekday = today.weekday()
         current_day_of_month = today.day
         
@@ -815,7 +814,6 @@ class ScheduledTasksService:
         enabled = config.get("enabled", True)
         frequency = config.get("frequency", "weekly")
         send_day = config.get("send_day", 0)  # Segunda-feira
-        send_hour = config.get("send_hour", 9)
         recipients_type = config.get("recipients_type", "admins")
         custom_recipients = config.get("custom_recipients", [])
         include_insights = config.get("include_insights", True)
