@@ -142,6 +142,62 @@ const EmailHistoryPanel = ({
     }
   };
 
+  // TAREFA 1: Pesquisar emails para associação
+  const handleSearchEmails = async () => {
+    if (!searchQuery.trim() || searchQuery.length < 3) {
+      toast.error("Introduza pelo menos 3 caracteres para pesquisar");
+      return;
+    }
+    try {
+      setSearching(true);
+      const response = await fetch(
+        `${API_URL}/api/emails/search?q=${encodeURIComponent(searchQuery)}&limit=20`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      if (!response.ok) throw new Error("Erro na pesquisa");
+      const data = await response.json();
+      setSearchResults(data.emails || []);
+    } catch (error) {
+      toast.error("Erro ao pesquisar emails");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // TAREFA 1: Associar email ao cliente
+  const handleAssociateEmail = async (emailId) => {
+    try {
+      setAssociating(emailId);
+      const response = await fetch(`${API_URL}/api/emails/associate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email_id: emailId,
+          process_id: processId
+        })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Erro ao associar email");
+      }
+      const result = await response.json();
+      toast.success(result.message);
+      setIsAssociateDialogOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      fetchData();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setAssociating(null);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
