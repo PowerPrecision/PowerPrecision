@@ -1503,28 +1503,6 @@ def build_update_data_from_extraction(
                 update_data[f"personal_data.{dest_key}"] = value
     
     return update_data
-
-
-# ====================================================================
-# TAREFA 2: GESTÃO DE CONFLITOS DE DADOS IA
-# ====================================================================
-
-import uuid as uuid_module
-
-
-def check_data_conflicts(
-    existing_data: Dict[str, Any],
-    new_data: Dict[str, Any],
-    section: str,
-    document_filename: str = None
-) -> List[Dict[str, Any]]:
-    """
-    TAREFA 2: Verificar conflitos entre dados existentes e dados extraídos pela IA.
-    
-    Args:
-        existing_data: Dados actuais do processo (ex: personal_data)
-        new_data: Dados extraídos pela IA
-        section: Nome da secção (personal_data, financial_data, etc.)
         document_filename: Nome do documento de onde os dados foram extraídos
     
     Returns:
