@@ -1010,7 +1010,7 @@ async def get_expiring_documents_dashboard(
                 stats["high"] += 1
             else:
                 stats["medium"] += 1
-        except:
+        except (ValueError, KeyError):
             pass
     
     # Agrupar documentos por cliente
