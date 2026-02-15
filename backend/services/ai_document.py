@@ -1497,6 +1497,189 @@ def build_update_data_from_extraction(
                     nif_valid = is_valid_nif(value)
                     logger.info(f"[DEBUG NIF] Validação: valor='{value}', válido={nif_valid}")
                     if not nif_valid:
+
+
+# ====================================================================
+# TAREFA 2: GESTÃO DE CONFLITOS DE DADOS IA
+# ====================================================================
+
+import uuid as uuid_module
+
+def check_data_conflicts(
+    existing_data: Dict[str, Any],
+    new_data: Dict[str, Any],
+    section: str,
+    document_filename: str = None
+) -> List[Dict[str, Any]]:
+    """
+    TAREFA 2: Verificar conflitos entre dados existentes e dados extraídos pela IA.
+    
+    Args:
+        existing_data: Dados actuais do processo (ex: personal_data)
+        new_data: Dados extraídos pela IA
+        section: Nome da secção (personal_data, financial_data, etc.)
+        document_filename: Nome do documento de onde os dados foram extraídos
+    
+    Returns:
+        Lista de conflitos encontrados, cada um com:
+        {
+            "id": "uuid único",
+            "field": "nome do campo",
+            "field_path": "section.field",
+            "current": "valor actual",
+            "suggested": "valor sugerido pela IA",
+            "document": "nome do documento",
+            "detected_at": "timestamp"
+        }
+    """
+    conflicts = []
+    
+    if not new_data:
+        return conflicts
+    
+    existing = existing_data or {}
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Campos que podem gerar conflitos
+    conflict_fields = {
+        "personal_data": [
+            "nif", "documento_id", "naturalidade", "nacionalidade", 
+            "morada_fiscal", "birth_date", "data_nascimento", "estado_civil",
+            "data_validade_cc", "sexo", "altura", "nome_pai", "nome_mae"
+        ],
+        "financial_data": [
+            "salario_bruto", "salario_liquido", "rendimento_anual",
+            "renda_habitacao_atual", "capital_proprio", "acesso_portal_financas"
+        ],
+        "real_estate_data": [
+            "valor_imovel", "localidade", "tipologia", "area_util", 
+            "area_bruta", "artigo_matricial", "conservatoria", "numero_predial"
+        ]
+    }
+    
+    fields_to_check = conflict_fields.get(section, list(new_data.keys()))
+    
+    for field in fields_to_check:
+        if field not in new_data:
+            continue
+        
+        new_value = new_data[field]
+        current_value = existing.get(field)
+        
+        # Se não há valor actual, não é conflito
+        if current_value is None or current_value == "" or current_value == []:
+            continue
+        
+        # Se os valores são iguais, não é conflito
+        if str(current_value).strip().lower() == str(new_value).strip().lower():
+            continue
+        
+        # Conflito detectado!
+        conflicts.append({
+            "id": str(uuid_module.uuid4()),
+            "field": field,
+            "field_path": f"{section}.{field}",
+            "current": current_value,
+            "suggested": new_value,
+            "document": document_filename,
+            "detected_at": now
+        })
+    
+    return conflicts
+
+
+def merge_data_with_conflicts(
+    process: Dict[str, Any],
+    mapped_data: Dict[str, Any],
+    document_filename: str = None
+) -> Dict[str, Any]:
+    """
+    TAREFA 2: Fundir dados extraídos pela IA com dados existentes,
+    gerando sugestões para campos em conflito.
+    
+    Se is_data_confirmed=True, não extrai dados de perfil (apenas classifica documento).
+    
+    Args:
+        process: Documento do processo actual
+        mapped_data: Dados mapeados pela IA
+        document_filename: Nome do documento analisado
+    
+    Returns:
+        Dict com:
+        {
+            "update_data": {...},  # Dados a actualizar directamente
+            "ai_suggestions": [...],  # Novas sugestões de conflito
+            "skipped": bool  # True se dados de perfil foram ignorados
+        }
+    """
+    update_data = {}
+    new_suggestions = []
+    skipped = False
+    
+    # Se dados confirmados, não extrair dados de perfil
+    if process.get("is_data_confirmed", False):
+        skipped = True
+        # Apenas actualizar metadados do documento, não dados de perfil
+        logger.info(f"Processo {process.get('id')} tem dados confirmados - ignorando extracção de perfil")
+        return {
+            "update_data": update_data,
+            "ai_suggestions": new_suggestions,
+            "skipped": skipped
+        }
+    
+    # Secções a processar
+    sections = ["personal_data", "financial_data", "real_estate_data"]
+    
+    for section in sections:
+        if section not in mapped_data:
+            continue
+        
+        new_data = mapped_data[section]
+        existing_data = process.get(section, {})
+        
+        # Verificar conflitos
+        conflicts = check_data_conflicts(existing_data, new_data, section, document_filename)
+        
+        # Preparar dados para actualização (apenas campos sem conflito)
+        conflict_fields = {c["field"] for c in conflicts}
+        
+        section_update = {}
+        for field, value in new_data.items():
+            if field in conflict_fields:
+                continue  # Este campo tem conflito, não actualizar
+            
+            current = existing_data.get(field)
+            if current is None or current == "" or current == []:
+                # Campo vazio, actualizar directamente
+                section_update[field] = value
+        
+        if section_update:
+            update_data[section] = {**existing_data, **section_update}
+        
+        new_suggestions.extend(conflicts)
+    
+    # Campos de topo (client_name, etc.)
+    if "name" in mapped_data and mapped_data["name"]:
+        current_name = process.get("client_name")
+        if not current_name or current_name.strip() == "":
+            update_data["client_name"] = mapped_data["name"]
+        elif current_name.lower().strip() != mapped_data["name"].lower().strip():
+            new_suggestions.append({
+                "id": str(uuid_module.uuid4()),
+                "field": "client_name",
+                "field_path": "client_name",
+                "current": current_name,
+                "suggested": mapped_data["name"],
+                "document": document_filename,
+                "detected_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    return {
+        "update_data": update_data,
+        "ai_suggestions": new_suggestions,
+        "skipped": skipped
+    }
+
                         logger.warning(f"CC: NIF {value} inválido - ignorado")
                         continue
                 # Validação especial para documento_id
