@@ -376,6 +376,17 @@ const EmailHistoryPanel = ({
               <Button 
                 size="sm" 
                 variant="outline"
+                onClick={() => setIsAssociateDialogOpen(true)}
+                title="Associar email manualmente"
+                data-testid="email-associate-btn"
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200 dark:bg-blue-950 dark:border-blue-800"
+              >
+                <Link className="h-4 w-4 mr-1" />
+                <span className="text-xs">Associar</span>
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Configurar emails monitorizados"
                 data-testid="email-settings-btn"
