@@ -471,6 +471,10 @@ const ProcessDetails = () => {
       setFinancialData(processData.financial_data || {});
       setRealEstateData(processData.real_estate_data || {});
       setCreditData(processData.credit_data || {});
+      
+      // TAREFA 2: Carregar estado de conflitos e confirmação de dados
+      setAiSuggestions(processData.ai_suggestions || []);
+      setIsDataConfirmed(processData.is_data_confirmed || false);
 
       // Try to load OneDrive files
       if (processData.client_name) {
