@@ -330,6 +330,13 @@ const DashboardLayout = ({ children, title }) => {
         href: "/minutas",
       });
       
+      // Validades de documentos para todos os staff
+      negocioItems.push({
+        label: "Validades Docs",
+        icon: AlertCircle,
+        href: "/validades",
+      });
+      
       return {
         main: mainItems,
         groups: negocioItems.length > 0 ? [
