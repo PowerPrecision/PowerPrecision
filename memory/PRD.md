@@ -11,7 +11,72 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 14 Fevereiro 2026 (Sessão 29)
+## Última Actualização - 15 Fevereiro 2026 (Sessão 30)
+
+### ✅ TAREFA 1 & 2 Completas (Sessão 30) - 100% VERIFIED (iteration_43)
+
+#### TAREFA 1: Gestão de Emails (Privacidade e Associação Manual)
+**Objetivo:** Mostrar apenas emails relevantes e permitir associação manual.
+
+##### 1A: Filtro por Participação do Utilizador - IMPLEMENTADO
+- **Problema**: Utilizadores viam todos os emails do cliente, independentemente de terem participado
+- **Solução**: Parâmetro `filter_by_user=true` no endpoint `GET /api/emails/process/{id}` que filtra emails onde o utilizador é sender, to ou cc
+- **Ficheiros**: `/app/backend/routes/emails.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 1B: Pesquisa de Emails - IMPLEMENTADO
+- **Endpoint**: `GET /api/emails/search?q=termo&limit=20`
+- **Funcionalidade**: Pesquisa por assunto ou remetente (mínimo 3 caracteres)
+- **Ficheiros**: `/app/backend/routes/emails.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 1C: Associação Manual de Emails - IMPLEMENTADO
+- **Endpoint**: `POST /api/emails/associate` com body `{email_id, process_id}`
+- **Funcionalidade**: Associa email existente a um cliente/processo mesmo que email não esteja no header
+- **UI**: Botão "Associar" no EmailHistoryPanel, dialog de pesquisa
+- **Ficheiros**: 
+  - `/app/backend/routes/emails.py`
+  - `/app/frontend/src/components/EmailHistoryPanel.js`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+#### TAREFA 2: Documentos e Validação de Dados IA (Conflitos e Confirmação)
+**Objetivo:** IA lê documentos, mas se campo já tem dados, utilizador decide. Se cliente "Confirmado", IA para de analisar dados de perfil.
+
+##### 2A: Flag de Confirmação de Dados - IMPLEMENTADO
+- **Campos adicionados ao modelo Process**: `is_data_confirmed` (bool), `ai_suggestions` (list)
+- **Endpoint**: `POST /api/processes/{id}/confirm-data` com body `{confirmed: true/false}`
+- **Funcionalidade**: Quando confirmado, IA não sobrepõe dados de perfil
+- **Ficheiros**: 
+  - `/app/backend/models/process.py`
+  - `/app/backend/routes/processes.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 2B: Resolução de Conflitos - IMPLEMENTADO
+- **Endpoint**: `POST /api/processes/{id}/resolve-conflict` com body `{field, choice: 'ai'|'current'}`
+- **Funcionalidade**: Resolve conflito aceitando valor IA ou mantendo valor actual
+- **Ficheiros**: `/app/backend/routes/processes.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 2C: Funções de Gestão de Conflitos - IMPLEMENTADO
+- **Funções**: `check_data_conflicts()`, `merge_data_with_conflicts()`
+- **Lógica**:
+  - Campo vazio → IA preenche automaticamente
+  - Campo preenchido + não confirmado → Gera sugestão (ai_suggestions)
+  - Campo confirmado → Ignora extração de dados de perfil
+- **Ficheiros**: `/app/backend/services/ai_document.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 2D: Componente DataConflictResolver - IMPLEMENTADO
+- **Localização**: Topo da ficha do cliente, após Timeline
+- **Funcionalidades**:
+  - Mostra badge verde "Dados Verificados" quando confirmado
+  - Mostra lista de conflitos pendentes com "Valor Actual" vs "Valor Sugerido pela IA"
+  - Botões "Manter Actual" e "Aceitar IA" para cada conflito
+  - Botão "Confirmar Dados" quando todos conflitos resolvidos
+- **Ficheiros**: 
+  - `/app/frontend/src/components/DataConflictResolver.jsx` (NOVO)
+  - `/app/frontend/src/pages/ProcessDetails.js`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
 
 ### ✅ Bug Fixes P0 Completos (Sessão 29) - 100% VERIFIED (iteration_42)
 
