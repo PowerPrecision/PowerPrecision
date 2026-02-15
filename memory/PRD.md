@@ -11,7 +11,70 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - **Produção**: `powerprecision`
 - **Integrações**: Trello API & Webhooks, IMAP/SMTP (emails), Cloud Storage (S3, Google Drive, OneDrive, Dropbox - configurável pelo admin), Gemini 2.0 Flash (scraping), AWS S3 (documentos), OpenAI GPT-4o-mini (análise de documentos via emergentintegrations), ScraperAPI (web scraping)
 
-## Última Actualização - 15 Fevereiro 2026 (Sessão 31)
+## Última Actualização - 15 Fevereiro 2026 (Sessão 32)
+
+### ✅ TAREFA P0 Completa (Sessão 32) - 100% VERIFIED (iteration_45)
+
+#### Categorização Automática no Upload & Watchdog de Validade de Documentos
+**Objetivo:** Automatizar categorização de documentos no upload e alertar sobre documentos a expirar.
+
+##### 1. Categorização Automática no Upload - IMPLEMENTADO
+- **Funcionalidade**: Quando um documento é uploaded via `POST /api/documents/client/{client_id}/upload`, a categorização IA é executada automaticamente em background
+- **Resposta**: Endpoint retorna `auto_categorization: "iniciada"` para indicar que processo foi agendado
+- **BackgroundTasks**: Usa FastAPI BackgroundTasks para não bloquear o upload
+- **Ficheiros**: 
+  - `/app/backend/routes/documents.py` (função `auto_categorize_document_background`)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 2. Extracção de Data de Validade pela IA - IMPLEMENTADO
+- **Funcionalidade**: IA agora extrai `expiry_date` (formato YYYY-MM-DD) de documentos como CC, Passaporte, CNI, Certidão Predial, Licença de Habitação, Carta de Condução
+- **Prompt actualizado**: Instruções específicas para procurar "Válido até", "Date of expiry", etc.
+- **Ficheiros**: 
+  - `/app/backend/services/document_categorization.py` (função `categorize_document_with_ai`)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 3. Campos de Validade no Modelo DocumentMetadata - IMPLEMENTADO
+- **Campos adicionados**:
+  - `expiry_date: Optional[str]` - Data de expiração no formato YYYY-MM-DD
+  - `expiry_alert_sent: bool = False` - Flag para evitar alertas duplicados
+- **Ficheiros**: 
+  - `/app/backend/models/document.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 4. Watchdog de Expiração de Documentos - IMPLEMENTADO
+- **Função**: `check_document_expirations_watchdog()` em `scheduled_tasks.py`
+- **Execução**: Diariamente junto com outras tarefas agendadas
+- **Lógica**:
+  - Busca documentos com `expiry_date` nos próximos 60 dias
+  - Filtra documentos onde `expiry_alert_sent` não é True
+  - Cria notificações para consultores/mediadores responsáveis
+  - Marca documentos como alertados (`expiry_alert_sent = True`)
+- **Níveis de urgência**:
+  - 🔴 Vermelho: < 7 dias
+  - 🟠 Laranja: 7-29 dias
+  - 🟡 Amarelo: 30-60 dias
+- **Tipo de notificação**: `document_expiry_watchdog`
+- **Ficheiros**: 
+  - `/app/backend/services/scheduled_tasks.py`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 5. Indicadores Visuais de Expiração no Frontend - IMPLEMENTADO
+- **Localização**: Painel `DocumentSearchPanel` na página de detalhes do processo
+- **Funcionalidades**:
+  - Badge colorido com dias restantes até expiração
+  - Cores por urgência: vermelho (<7 dias), laranja (7-29 dias), amarelo (30-60 dias)
+  - Borda do card colorida para documentos a expirar
+  - Tooltip com data de expiração
+- **Ficheiros**: 
+  - `/app/frontend/src/components/DocumentSearchPanel.jsx`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### 6. Suporte para Notificações de Watchdog - IMPLEMENTADO
+- **Tipo**: `document_expiry_watchdog` adicionado ao NotificationsDropdown
+- **Ícone**: FileText (vermelho)
+- **Ficheiros**: 
+  - `/app/frontend/src/components/NotificationsDropdown.js`
+- **Status**: ✅ IMPLEMENTADO E TESTADO
 
 ### ✅ TAREFA P0 Completa (Sessão 31) - 100% VERIFIED (iteration_44)
 
@@ -35,13 +98,13 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 - **Extração de texto**: pypdf para PDFs
 - **Categorização IA**: GPT-4o-mini via Emergent LLM Key
 - **Categorias dinâmicas**: IA cria categorias baseadas no conteúdo (Identificação, Rendimentos, Emprego, Bancários, Imóvel, Contratos, Fiscais, Simulações, Outros)
-- **Retorna**: category, subcategory, confidence (0-1), tags (3-5 palavras), summary
+- **Retorna**: category, subcategory, confidence (0-1), tags (3-5 palavras), summary, expiry_date
 - **Pesquisa por conteúdo**: scoring ponderado em filename, categoria, tags, resumo e texto extraído
 - **Ficheiros**: `/app/backend/services/document_categorization.py`
 - **Status**: ✅ IMPLEMENTADO E TESTADO
 
 ##### Backend - Modelos - IMPLEMENTADO
-- **DocumentMetadata**: id, process_id, client_name, s3_path, filename, ai_category, ai_subcategory, ai_confidence, ai_tags, ai_summary, extracted_text, is_categorized
+- **DocumentMetadata**: id, process_id, client_name, s3_path, filename, ai_category, ai_subcategory, ai_confidence, ai_tags, ai_summary, extracted_text, is_categorized, expiry_date, expiry_alert_sent
 - **DocumentSearchRequest**: query, process_id (opcional), categories (opcional), limit
 - **DocumentSearchResult**: id, process_id, client_name, s3_path, filename, ai_category, ai_summary, relevance_score, matched_text
 - **Ficheiros**: `/app/backend/models/document.py`
@@ -55,6 +118,7 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
   - Dialog de progresso durante categorização
   - Filtro dropdown por categoria
   - Lista de documentos com badges de categoria coloridos
+  - Indicadores visuais de expiração (badge + borda colorida)
   - Exibição de tags por documento
   - Resultados de pesquisa com relevância e texto correspondente
   - Mensagem "Nenhum documento encontrado" quando vazio
