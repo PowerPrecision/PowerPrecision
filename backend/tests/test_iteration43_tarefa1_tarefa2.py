@@ -377,7 +377,8 @@ class TestProcessModelFields:
         data = response.json()
         # Field should exist in response (even if null/empty)
         assert "ai_suggestions" in data or data.get("ai_suggestions") is None
-        print(f"✓ Process has ai_suggestions field (count: {len(data.get('ai_suggestions', []))})")
+        suggestions = data.get("ai_suggestions") or []
+        print(f"✓ Process has ai_suggestions field (count: {len(suggestions)})")
 
 
 class TestEmailAccounts:
