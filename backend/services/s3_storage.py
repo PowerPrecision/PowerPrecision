@@ -333,5 +333,30 @@ class S3Service:
             return False
 
 
+    def get_file_content(self, object_name: str) -> Optional[bytes]:
+        """
+        Obtém o conteúdo de um ficheiro do S3.
+        
+        Args:
+            object_name: Caminho S3 do ficheiro
+            
+        Returns:
+            Bytes do ficheiro ou None se falhar
+        """
+        if not self.is_configured():
+            logger.error("S3 não configurado")
+            return None
+            
+        try:
+            response = self.s3_client.get_object(
+                Bucket=self.bucket_name, 
+                Key=object_name
+            )
+            return response['Body'].read()
+        except ClientError as e:
+            logger.error(f"Erro ao obter ficheiro S3: {e}")
+            return None
+
+
 # Instância global
 s3_service = S3Service()
