@@ -83,6 +83,7 @@ async def categorize_document_with_ai(
     """
     Categorizar documento usando IA.
     A IA analisa o conteúdo e cria/atribui categorias dinamicamente.
+    Também extrai data de validade para documentos relevantes.
     
     Args:
         text_content: Texto extraído do documento
@@ -90,7 +91,7 @@ async def categorize_document_with_ai(
         existing_categories: Categorias já existentes no sistema (para consistência)
     
     Returns:
-        Dict com categoria, subcategoria, tags, resumo e confiança
+        Dict com categoria, subcategoria, tags, resumo, confiança e expiry_date
     """
     if not EMERGENT_LLM_KEY:
         logger.error("EMERGENT_LLM_KEY não configurada")
@@ -118,17 +119,28 @@ Analisa o conteúdo do documento e determina:
 3. TAGS: 3-5 palavras-chave relevantes
 4. RESUMO: Uma frase curta (max 100 caracteres) descrevendo o documento
 5. CONFIANÇA: Nível de certeza da categorização (0.0 a 1.0)
+6. DATA DE VALIDADE: Se o documento tem data de validade/expiração, extrair no formato YYYY-MM-DD
 
 Categorias típicas em crédito habitação:
-- Identificação: CC, Passaporte, Carta de Condução
+- Identificação: CC, Passaporte, Carta de Condução, CNI
 - Rendimentos: Recibos de Vencimento, Declaração IRS, Notas de Liquidação
 - Emprego: Contratos de Trabalho, Declarações de Efetividade
 - Bancários: Extratos Bancários, Mapas CRC, Declarações de Encargos
-- Imóvel: Cadernetas Prediais, Certidões de Registo, Plantas
+- Imóvel: Cadernetas Prediais, Certidões de Registo, Plantas, Licença de Habitação
 - Contratos: CPCV, Escrituras, Minutas
 - Fiscais: Declarações de IRS, IMI, Certidões
 - Simulações: Propostas de Crédito, Simulações Bancárias
-- Outros: Documentos não categorizados"""
+- Outros: Documentos não categorizados
+
+IMPORTANTE - Documentos com data de validade:
+- Cartão de Cidadão (CC): Procura "Válido até" ou "Data de validade"
+- Passaporte: Procura "Date of expiry" ou "Válido até"
+- CNI (Cartão Nacional de Identidade): Procura data de validade
+- Certidão Predial: Procura data de emissão (válida por 6 meses)
+- Licença de Habitação: Pode ter data de validade
+- Carta de Condução: Procura "Válida até"
+
+Se não encontrares data de validade ou o documento não tiver validade, usar null."""
 
     user_prompt = f"""Analisa este documento e categoriza-o.
 
@@ -147,7 +159,8 @@ Responde APENAS em formato JSON válido:
     "subcategory": "Tipo Específico do Documento",
     "tags": ["tag1", "tag2", "tag3"],
     "summary": "Descrição curta do documento",
-    "confidence": 0.95
+    "confidence": 0.95,
+    "expiry_date": "YYYY-MM-DD ou null se não aplicável"
 }}"""
 
     try:
@@ -168,7 +181,7 @@ Responde APENAS em formato JSON válido:
         result = parse_categorization_response(response)
         result["success"] = True
         
-        logger.info(f"Documento categorizado: {filename} -> {result.get('category')}/{result.get('subcategory')}")
+        logger.info(f"Documento categorizado: {filename} -> {result.get('category')}/{result.get('subcategory')}, expiry: {result.get('expiry_date')}")
         
         return result
         
