@@ -734,8 +734,6 @@ async def get_all_categories(
     if process_id:
         query["process_id"] = process_id
     
-    categories = await db.document_metadata.distinct("ai_category", query)
-    
     # Contar documentos por categoria
     pipeline = [
         {"$match": query},
