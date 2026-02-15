@@ -79,6 +79,10 @@ class DocumentMetadata(BaseModel):
     ai_tags: Optional[List[str]] = None  # Tags adicionais extraídas
     ai_summary: Optional[str] = None  # Resumo do conteúdo do documento
     
+    # Data de validade extraída pela IA
+    expiry_date: Optional[str] = None  # Data de expiração no formato YYYY-MM-DD
+    expiry_alert_sent: bool = False  # Flag para evitar alertas duplicados
+    
     # Conteúdo extraído para pesquisa
     extracted_text: Optional[str] = None  # Texto extraído do documento
     
