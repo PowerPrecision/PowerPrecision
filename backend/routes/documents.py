@@ -215,6 +215,7 @@ async def list_client_files(
 @router.post("/client/{client_id}/upload")
 async def upload_file_s3(
     client_id: str,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     category: str = Form(...), # Ex: "Financeiros", "Imovel"
     user: dict = Depends(get_current_user)
@@ -225,6 +226,7 @@ async def upload_file_s3(
     Funcionalidades automáticas:
     - Normalização do nome do ficheiro
     - Conversão de imagens (JPG, PNG) para PDF
+    - Categorização automática com IA (em background)
     """
     process = await db.processes.find_one({"id": client_id})
     if not process:
@@ -277,13 +279,24 @@ async def upload_file_s3(
     if not s3_path:
         raise HTTPException(status_code=500, detail="Erro ao enviar ficheiro para o armazenamento S3")
     
+    # Agendar categorização automática em background (não bloqueia o response)
+    background_tasks.add_task(
+        auto_categorize_document_background,
+        process_id=client_id,
+        client_name=client_name,
+        s3_path=s3_path,
+        filename=normalized_filename,
+        file_content=file_content
+    )
+    
     return {
         "success": True, 
         "path": s3_path, 
         "message": "Ficheiro guardado com sucesso",
         "original_filename": file.filename,
         "normalized_filename": normalized_filename,
-        "converted_to_pdf": converted_to_pdf
+        "converted_to_pdf": converted_to_pdf,
+        "auto_categorization": "iniciada"  # Indica que categorização foi agendada
     }
 
 @router.post("/client/{client_id}/init-folders")
