@@ -172,6 +172,108 @@ async def sync_process_emails(
     return result
 
 
+@router.post("/associate")
+async def associate_email_to_client(
+    data: dict = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    TAREFA 1: Associar um email existente a um processo/cliente específico.
+    
+    Permite associar manualmente um email (pelo message_id ou id) a um client_id,
+    mesmo que o email do cliente não esteja no cabeçalho.
+    
+    Body:
+    {
+        "email_id": "uuid do email ou message_id",
+        "process_id": "id do processo a associar"
+    }
+    """
+    email_id = data.get("email_id")
+    process_id = data.get("process_id")
+    
+    if not email_id or not process_id:
+        raise HTTPException(status_code=400, detail="email_id e process_id são obrigatórios")
+    
+    # Verificar se o processo existe
+    process = await db.processes.find_one({"id": process_id}, {"_id": 0, "id": 1, "client_name": 1})
+    if not process:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Procurar email por id ou message_id
+    email = await db.emails.find_one(
+        {"$or": [{"id": email_id}, {"message_id": email_id}]},
+        {"_id": 0}
+    )
+    
+    if not email:
+        raise HTTPException(status_code=404, detail="Email não encontrado")
+    
+    # Verificar se já está associado ao mesmo processo
+    if email.get("process_id") == process_id:
+        return {"success": True, "message": "Email já está associado a este processo"}
+    
+    # Actualizar associação
+    now = datetime.now(timezone.utc).isoformat()
+    await db.emails.update_one(
+        {"id": email["id"]},
+        {"$set": {
+            "process_id": process_id,
+            "associated_by": current_user["id"],
+            "associated_at": now
+        }}
+    )
+    
+    logger.info(f"Email {email['id']} associado ao processo {process_id} por {current_user['email']}")
+    
+    return {
+        "success": True,
+        "message": f"Email associado ao cliente {process.get('client_name', process_id)}",
+        "email_id": email["id"],
+        "process_id": process_id
+    }
+
+
+@router.get("/search")
+async def search_emails(
+    q: str = Query(..., description="Termo de pesquisa (assunto ou remetente)"),
+    limit: int = Query(20, le=100),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    TAREFA 1: Pesquisar emails para associação manual.
+    
+    Permite pesquisar emails por assunto ou remetente para depois associar
+    a um cliente/processo específico.
+    """
+    if len(q) < 3:
+        raise HTTPException(status_code=400, detail="Termo de pesquisa deve ter pelo menos 3 caracteres")
+    
+    query = {
+        "$or": [
+            {"subject": {"$regex": q, "$options": "i"}},
+            {"from_email": {"$regex": q, "$options": "i"}}
+        ]
+    }
+    
+    emails = await db.emails.find(
+        query,
+        {"_id": 0, "id": 1, "subject": 1, "from_email": 1, "to_emails": 1, "sent_at": 1, "process_id": 1}
+    ).sort("sent_at", -1).limit(limit).to_list(limit)
+    
+    # Enriquecer com nome do cliente se associado
+    for email in emails:
+        if email.get("process_id"):
+            process = await db.processes.find_one(
+                {"id": email["process_id"]},
+                {"_id": 0, "client_name": 1}
+            )
+            if process:
+                email["client_name"] = process.get("client_name")
+    
+    return {"emails": emails, "total": len(emails)}
+
+
 @router.post("/send")
 async def send_email_endpoint(
     to_emails: List[str],
