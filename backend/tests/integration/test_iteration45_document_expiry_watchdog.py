@@ -203,9 +203,9 @@ class TestNotificationTypeSupport:
         return response.json().get("token")
     
     def test_notifications_endpoint_returns_notifications(self, auth_token):
-        """Test GET /api/notifications returns proper structure"""
+        """Test GET /api/alerts/notifications returns proper structure"""
         response = requests.get(
-            f"{BASE_URL}/api/notifications",
+            f"{BASE_URL}/api/alerts/notifications",
             headers={"Authorization": f"Bearer {auth_token}"}
         )
         
