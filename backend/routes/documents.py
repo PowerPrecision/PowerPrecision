@@ -582,6 +582,8 @@ async def categorize_document(
         "ai_confidence": result.get("confidence"),
         "ai_tags": result.get("tags", []),
         "ai_summary": result.get("summary"),
+        "expiry_date": result.get("expiry_date"),  # Nova: data de validade
+        "expiry_alert_sent": False,  # Nova: flag de alerta
         "extracted_text": extracted_text[:5000] if extracted_text else None,  # Limitar tamanho
         "file_size": len(file_content),
         "mime_type": "application/pdf" if filename.lower().endswith('.pdf') else None,
@@ -606,7 +608,8 @@ async def categorize_document(
         "subcategory": result.get("subcategory"),
         "confidence": result.get("confidence"),
         "tags": result.get("tags", []),
-        "summary": result.get("summary")
+        "summary": result.get("summary"),
+        "expiry_date": result.get("expiry_date")
     }
 
 
