@@ -1990,6 +1990,12 @@ const ProcessDetails = () => {
               </AccordionItem>
             </Accordion>
 
+            {/* Pesquisa e Categorização de Documentos com IA */}
+            <DocumentSearchPanel
+              processId={id}
+              clientName={process?.client_name}
+            />
+
             {/* Templates e Minutas */}
             <TemplatesPanel 
               processId={id}
