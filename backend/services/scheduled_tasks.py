@@ -408,6 +408,121 @@ class ScheduledTasksService:
         logger.info(f"Clientes em espera: {notifications_created} notificações criadas para {len(processes)} clientes")
         return notifications_created
     
+    async def check_document_expirations_watchdog(self, days_ahead: int = 60) -> int:
+        """
+        WATCHDOG DE VALIDADE DE DOCUMENTOS
+        
+        Verifica documentos (da colecção document_metadata) que expiram nos próximos X dias.
+        Cria notificações para os consultores/intermediários responsáveis.
+        
+        Níveis de urgência:
+        - Vermelho: < 7 dias
+        - Laranja: 7-29 dias
+        - Amarelo: 30-60 dias
+        
+        Args:
+            days_ahead: Dias a verificar à frente (default 60)
+        
+        Returns:
+            Número de notificações criadas
+        """
+        logger.info(f"[WATCHDOG] A verificar documentos a expirar nos próximos {days_ahead} dias...")
+        
+        today = datetime.now(timezone.utc)
+        future_date = today + timedelta(days=days_ahead)
+        
+        # Buscar documentos com data de expiração dentro do período
+        # Que ainda não tiveram alerta enviado
+        expiring_docs = await self.db.document_metadata.find({
+            "expiry_date": {
+                "$ne": None,
+                "$gte": today.strftime("%Y-%m-%d"),
+                "$lte": future_date.strftime("%Y-%m-%d")
+            },
+            "expiry_alert_sent": {"$ne": True}
+        }, {"_id": 0}).to_list(500)
+        
+        logger.info(f"[WATCHDOG] Encontrados {len(expiring_docs)} documentos a expirar")
+        
+        notifications_created = 0
+        
+        for doc in expiring_docs:
+            try:
+                expiry_date = datetime.strptime(doc["expiry_date"], "%Y-%m-%d")
+                days_until = (expiry_date - today).days
+                
+                # Determinar urgência
+                if days_until < 7:
+                    urgency = "critical"
+                    urgency_emoji = "🔴"
+                elif days_until < 30:
+                    urgency = "high"
+                    urgency_emoji = "🟠"
+                else:
+                    urgency = "medium"
+                    urgency_emoji = "🟡"
+                
+                # Obter o processo para identificar os responsáveis
+                process = await self.db.processes.find_one(
+                    {"id": doc["process_id"]},
+                    {"_id": 0, "client_name": 1, "assigned_consultor_id": 1, 
+                     "consultor_id": 1, "assigned_mediador_id": 1, "mediador_id": 1}
+                )
+                
+                if not process:
+                    continue
+                
+                client_name = doc.get("client_name") or process.get("client_name", "Cliente")
+                doc_name = doc.get("filename") or doc.get("ai_subcategory") or "Documento"
+                doc_category = doc.get("ai_category") or doc.get("ai_subcategory") or "Documento"
+                
+                # Identificar utilizadores a notificar
+                users_to_notify = set()
+                if process.get("assigned_consultor_id"):
+                    users_to_notify.add(process["assigned_consultor_id"])
+                if process.get("consultor_id"):
+                    users_to_notify.add(process["consultor_id"])
+                if process.get("assigned_mediador_id"):
+                    users_to_notify.add(process["assigned_mediador_id"])
+                if process.get("mediador_id"):
+                    users_to_notify.add(process["mediador_id"])
+                
+                # Notificar cada utilizador
+                for user_id in users_to_notify:
+                    # Verificar se já existe notificação recente para este documento
+                    existing = await self.db.notifications.find_one({
+                        "user_id": user_id,
+                        "type": "document_expiry_watchdog",
+                        "message": {"$regex": doc.get("id", "")},
+                        "created_at": {"$gte": (today - timedelta(days=1)).isoformat()}
+                    })
+                    
+                    if not existing:
+                        message = f"{urgency_emoji} {doc_category} de {client_name} expira em {days_until} dias ({expiry_date.strftime('%d/%m/%Y')})"
+                        
+                        await self.create_notification(
+                            user_id=user_id,
+                            message=message,
+                            notification_type="document_expiry_watchdog",
+                            process_id=doc["process_id"],
+                            client_name=client_name,
+                            link=f"/process/{doc['process_id']}"
+                        )
+                        notifications_created += 1
+                
+                # Marcar documento como alerta enviado
+                await self.db.document_metadata.update_one(
+                    {"id": doc["id"]},
+                    {"$set": {"expiry_alert_sent": True, "expiry_alert_sent_at": today.isoformat()}}
+                )
+                
+            except Exception as e:
+                logger.error(f"[WATCHDOG] Erro ao processar documento {doc.get('id')}: {e}")
+                continue
+        
+        logger.info(f"[WATCHDOG] Documentos a expirar: {notifications_created} notificações criadas")
+        return notifications_created
+    
     async def send_monthly_document_reminder(self) -> int:
         """
         No 1º dia de cada mês, enviar alerta para consultores e intermediários
