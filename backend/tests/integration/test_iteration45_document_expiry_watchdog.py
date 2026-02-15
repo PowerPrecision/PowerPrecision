@@ -102,7 +102,7 @@ class TestDocumentMetadataExpiryFields:
         )
         if response.status_code != 200:
             pytest.skip("Could not authenticate consultant")
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture
     def process_id(self, auth_token):
