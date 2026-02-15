@@ -451,9 +451,8 @@ class ScheduledTasksService:
                 expiry_date = datetime.strptime(doc["expiry_date"], "%Y-%m-%d")
                 days_until = (expiry_date - today).days
                 
-                # Determinar urgência
+                # Determinar urgência visual
                 if days_until < 7:
-                    urgency = "critical"
                     urgency_emoji = "🔴"
                 elif days_until < 30:
                     urgency_emoji = "🟠"
