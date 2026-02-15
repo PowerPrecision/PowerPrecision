@@ -456,10 +456,8 @@ class ScheduledTasksService:
                     urgency = "critical"
                     urgency_emoji = "🔴"
                 elif days_until < 30:
-                    urgency = "high"
                     urgency_emoji = "🟠"
                 else:
-                    urgency = "medium"
                     urgency_emoji = "🟡"
                 
                 # Obter o processo para identificar os responsáveis
@@ -473,7 +471,6 @@ class ScheduledTasksService:
                     continue
                 
                 client_name = doc.get("client_name") or process.get("client_name", "Cliente")
-                doc_name = doc.get("filename") or doc.get("ai_subcategory") or "Documento"
                 doc_category = doc.get("ai_category") or doc.get("ai_subcategory") or "Documento"
                 
                 # Identificar utilizadores a notificar
