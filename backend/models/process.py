@@ -425,3 +425,6 @@ class ProcessResponse(BaseModel):
     co_applicants: Optional[List[dict]] = None  # Co-proponentes
     vendedor: Optional[dict] = None  # Dados do vendedor
     mediador: Optional[dict] = None  # Dados do mediador imobiliário
+    # TAREFA 2: Conflitos de Dados IA
+    is_data_confirmed: Optional[bool] = None  # Se True, IA não sobrepõe dados de perfil
+    ai_suggestions: Optional[List[dict]] = None  # Sugestões de dados extraídos pela IA em conflito
