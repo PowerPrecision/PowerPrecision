@@ -764,6 +764,107 @@ const EmailHistoryPanel = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* TAREFA 1: Dialog para Associar Email Manualmente */}
+      <Dialog open={isAssociateDialogOpen} onOpenChange={setIsAssociateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link className="h-5 w-5" />
+              Associar Email ao Cliente
+            </DialogTitle>
+            <DialogDescription>
+              Pesquise um email existente pelo assunto ou remetente para associar a este cliente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Pesquisa */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Pesquisar por assunto ou remetente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearchEmails()}
+              />
+              <Button onClick={handleSearchEmails} disabled={searching}>
+                {searching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            {/* Resultados */}
+            <ScrollArea className="h-[300px] border rounded-md p-2">
+              {searchResults.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">
+                    {searchQuery.length > 0 ? "Nenhum resultado encontrado" : "Pesquise para ver resultados"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {searchResults.map((email) => (
+                    <div 
+                      key={email.id}
+                      className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{email.subject}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            De: {email.from_email}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              {email.sent_at && format(parseISO(email.sent_at), "dd/MM/yyyy", { locale: pt })}
+                            </span>
+                            {email.client_name && (
+                              <Badge variant="outline" className="text-xs">
+                                Já associado: {email.client_name}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAssociateEmail(email.id)}
+                          disabled={associating === email.id || email.process_id === processId}
+                          className="shrink-0"
+                        >
+                          {associating === email.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : email.process_id === processId ? (
+                            "Já associado"
+                          ) : (
+                            <>
+                              <Link className="h-4 w-4 mr-1" />
+                              Associar
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsAssociateDialogOpen(false);
+              setSearchQuery("");
+              setSearchResults([]);
+            }}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
