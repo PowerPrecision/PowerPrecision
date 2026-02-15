@@ -211,12 +211,26 @@ def parse_categorization_response(response: str) -> Dict[str, Any]:
         
         data = json.loads(response)
         
+        # Processar expiry_date
+        expiry_date = data.get("expiry_date")
+        if expiry_date and expiry_date.lower() in ["null", "none", ""]:
+            expiry_date = None
+        
+        # Validar formato da data se existir
+        if expiry_date:
+            try:
+                datetime.strptime(expiry_date, "%Y-%m-%d")
+            except ValueError:
+                logger.warning(f"Formato de data inválido: {expiry_date}")
+                expiry_date = None
+        
         return {
             "category": data.get("category"),
             "subcategory": data.get("subcategory"),
             "tags": data.get("tags", []),
             "summary": data.get("summary", ""),
-            "confidence": float(data.get("confidence", 0.5))
+            "confidence": float(data.get("confidence", 0.5)),
+            "expiry_date": expiry_date
         }
         
     except json.JSONDecodeError as e:
@@ -226,7 +240,8 @@ def parse_categorization_response(response: str) -> Dict[str, Any]:
             "subcategory": "Documento",
             "tags": [],
             "summary": "",
-            "confidence": 0.3
+            "confidence": 0.3,
+            "expiry_date": None
         }
 
 
