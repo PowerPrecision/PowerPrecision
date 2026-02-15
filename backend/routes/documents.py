@@ -862,3 +862,237 @@ async def get_all_categories(
         ],
         "total_categories": len(category_counts)
     }
+
+
+
+# ====================================================================
+# DASHBOARD DE VALIDADES DE DOCUMENTOS
+# ====================================================================
+
+@router.get("/expiring-dashboard")
+async def get_expiring_documents_dashboard(
+    days_ahead: int = 60,
+    urgency: Optional[str] = None,  # "critical", "high", "medium"
+    consultor_id: Optional[str] = None,
+    search: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Dashboard de documentos a expirar.
+    
+    Permissões:
+    - CEO/Diretor/Admin: Vêem todos os clientes
+    - Consultor/Intermediário: Vêem apenas os seus clientes
+    
+    Args:
+        days_ahead: Dias a verificar (default 60)
+        urgency: Filtro por urgência (critical=<7, high=7-29, medium=30-60)
+        consultor_id: Filtro por consultor (apenas para management)
+        search: Pesquisa por nome de cliente
+    
+    Returns:
+        Dashboard com estatísticas e lista de documentos agrupados por cliente
+    """
+    from datetime import timezone
+    
+    user_role = user.get("role", "")
+    user_id = user.get("id", "")
+    
+    # Verificar se é management (pode ver tudo)
+    is_management = user_role in UserRole.MANAGEMENT_ROLES
+    
+    today = datetime.now(timezone.utc)
+    future_date = today + timedelta(days=days_ahead)
+    
+    # Query base para documentos com data de expiração
+    doc_query = {
+        "expiry_date": {
+            "$ne": None,
+            "$gte": today.strftime("%Y-%m-%d"),
+            "$lte": future_date.strftime("%Y-%m-%d")
+        }
+    }
+    
+    # Aplicar filtro de urgência
+    if urgency:
+        if urgency == "critical":
+            critical_date = (today + timedelta(days=7)).strftime("%Y-%m-%d")
+            doc_query["expiry_date"]["$lt"] = critical_date
+        elif urgency == "high":
+            high_start = (today + timedelta(days=7)).strftime("%Y-%m-%d")
+            high_end = (today + timedelta(days=30)).strftime("%Y-%m-%d")
+            doc_query["expiry_date"]["$gte"] = high_start
+            doc_query["expiry_date"]["$lt"] = high_end
+        elif urgency == "medium":
+            medium_start = (today + timedelta(days=30)).strftime("%Y-%m-%d")
+            doc_query["expiry_date"]["$gte"] = medium_start
+    
+    # Buscar todos os documentos a expirar
+    expiring_docs = await db.document_metadata.find(
+        doc_query,
+        {"_id": 0, "extracted_text": 0}
+    ).to_list(1000)
+    
+    # Obter process_ids únicos
+    process_ids = list(set(doc.get("process_id") for doc in expiring_docs if doc.get("process_id")))
+    
+    # Buscar processos para obter informações dos clientes e consultores
+    processes_query = {"id": {"$in": process_ids}}
+    
+    # Se não é management, filtrar apenas processos do utilizador
+    if not is_management:
+        processes_query["$or"] = [
+            {"assigned_consultor_id": user_id},
+            {"consultor_id": user_id},
+            {"assigned_mediador_id": user_id},
+            {"mediador_id": user_id}
+        ]
+    
+    # Filtro por consultor específico (apenas para management)
+    if is_management and consultor_id:
+        processes_query["$or"] = [
+            {"assigned_consultor_id": consultor_id},
+            {"consultor_id": consultor_id},
+            {"assigned_mediador_id": consultor_id},
+            {"mediador_id": consultor_id}
+        ]
+    
+    processes = await db.processes.find(
+        processes_query,
+        {"_id": 0, "id": 1, "client_name": 1, "assigned_consultor_id": 1, 
+         "consultor_id": 1, "assigned_mediador_id": 1, "mediador_id": 1}
+    ).to_list(500)
+    
+    # Criar mapa de processos
+    process_map = {p["id"]: p for p in processes}
+    
+    # Filtrar documentos apenas dos processos autorizados
+    authorized_process_ids = set(process_map.keys())
+    filtered_docs = [d for d in expiring_docs if d.get("process_id") in authorized_process_ids]
+    
+    # Aplicar filtro de pesquisa
+    if search:
+        search_lower = search.lower()
+        search_process_ids = [
+            pid for pid, p in process_map.items() 
+            if search_lower in (p.get("client_name") or "").lower()
+        ]
+        filtered_docs = [d for d in filtered_docs if d.get("process_id") in search_process_ids]
+    
+    # Obter nomes dos consultores
+    consultor_ids = set()
+    for p in processes:
+        if p.get("assigned_consultor_id"):
+            consultor_ids.add(p["assigned_consultor_id"])
+        if p.get("consultor_id"):
+            consultor_ids.add(p["consultor_id"])
+        if p.get("assigned_mediador_id"):
+            consultor_ids.add(p["assigned_mediador_id"])
+        if p.get("mediador_id"):
+            consultor_ids.add(p["mediador_id"])
+    
+    consultors = await db.users.find(
+        {"id": {"$in": list(consultor_ids)}},
+        {"_id": 0, "id": 1, "name": 1}
+    ).to_list(100)
+    consultor_map = {c["id"]: c.get("name", "N/D") for c in consultors}
+    
+    # Calcular estatísticas
+    stats = {"critical": 0, "high": 0, "medium": 0, "total": len(filtered_docs)}
+    
+    for doc in filtered_docs:
+        try:
+            expiry = datetime.strptime(doc["expiry_date"], "%Y-%m-%d")
+            days_until = (expiry - today).days
+            if days_until < 7:
+                stats["critical"] += 1
+            elif days_until < 30:
+                stats["high"] += 1
+            else:
+                stats["medium"] += 1
+        except:
+            pass
+    
+    # Agrupar documentos por cliente
+    clients_data = {}
+    
+    for doc in filtered_docs:
+        process_id = doc.get("process_id")
+        if not process_id or process_id not in process_map:
+            continue
+        
+        process = process_map[process_id]
+        client_name = doc.get("client_name") or process.get("client_name", "Cliente")
+        
+        if process_id not in clients_data:
+            # Identificar consultor responsável
+            consultor_id = process.get("assigned_consultor_id") or process.get("consultor_id") or \
+                          process.get("assigned_mediador_id") or process.get("mediador_id")
+            consultor_name = consultor_map.get(consultor_id, "N/D")
+            
+            clients_data[process_id] = {
+                "process_id": process_id,
+                "client_name": client_name,
+                "consultor_id": consultor_id,
+                "consultor_name": consultor_name,
+                "documents": [],
+                "critical_count": 0,
+                "high_count": 0,
+                "medium_count": 0
+            }
+        
+        # Calcular urgência do documento
+        try:
+            expiry = datetime.strptime(doc["expiry_date"], "%Y-%m-%d")
+            days_until = (expiry - today).days
+            
+            if days_until < 7:
+                urgency_level = "critical"
+                clients_data[process_id]["critical_count"] += 1
+            elif days_until < 30:
+                urgency_level = "high"
+                clients_data[process_id]["high_count"] += 1
+            else:
+                urgency_level = "medium"
+                clients_data[process_id]["medium_count"] += 1
+        except:
+            urgency_level = "unknown"
+            days_until = None
+        
+        clients_data[process_id]["documents"].append({
+            "id": doc.get("id"),
+            "filename": doc.get("filename"),
+            "category": doc.get("ai_category"),
+            "subcategory": doc.get("ai_subcategory"),
+            "expiry_date": doc.get("expiry_date"),
+            "days_until": days_until,
+            "urgency": urgency_level,
+            "s3_path": doc.get("s3_path")
+        })
+    
+    # Converter para lista e ordenar por urgência (mais críticos primeiro)
+    clients_list = list(clients_data.values())
+    clients_list.sort(key=lambda x: (-x["critical_count"], -x["high_count"], -x["medium_count"]))
+    
+    # Obter lista de consultores para filtro (apenas para management)
+    consultors_filter = []
+    if is_management:
+        all_consultors = await db.users.find(
+            {"role": {"$in": ["consultor", "intermediario", "mediador"]}},
+            {"_id": 0, "id": 1, "name": 1}
+        ).to_list(100)
+        consultors_filter = [{"id": c["id"], "name": c.get("name", "N/D")} for c in all_consultors]
+    
+    return {
+        "stats": stats,
+        "clients": clients_list,
+        "total_clients": len(clients_list),
+        "is_management": is_management,
+        "consultors_filter": consultors_filter,
+        "filters_applied": {
+            "days_ahead": days_ahead,
+            "urgency": urgency,
+            "consultor_id": consultor_id,
+            "search": search
+        }
+    }
