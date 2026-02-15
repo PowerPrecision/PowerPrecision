@@ -1121,6 +1121,7 @@ class ScheduledTasksService:
             tasks_count = await self.check_tasks_due_soon()
             countdown_count = await self.check_pre_approval_countdown()
             waiting_count = await self.check_clients_waiting_too_long()
+            watchdog_count = await self.check_document_expirations_watchdog()  # NOVA TAREFA
             monthly_count = await self.send_monthly_document_reminder()
             cleanup_count = await self.cleanup_old_notifications()
             temp_files_count = await self.cleanup_temp_files()
@@ -1134,6 +1135,7 @@ class ScheduledTasksService:
             logger.info(f"- Alertas de tarefas: {tasks_count}")
             logger.info(f"- Alertas de countdown: {countdown_count}")
             logger.info(f"- Alertas clientes em espera: {waiting_count}")
+            logger.info(f"- Watchdog expiração docs: {watchdog_count}")  # NOVA LINHA
             logger.info(f"- Lembretes mensais: {monthly_count}")
             logger.info(f"- Notificações limpas: {cleanup_count}")
             logger.info(f"- Ficheiros temp. limpos: {temp_files_count}")
