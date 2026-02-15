@@ -91,15 +91,29 @@ async def get_configured_accounts(
 async def get_process_emails(
     process_id: str,
     direction: Optional[EmailDirection] = Query(None, description="Filtrar por direção"),
+    filter_by_user: bool = Query(False, description="Filtrar apenas emails onde o utilizador participou"),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Listar emails de um processo.
+    
+    TAREFA 1: Se filter_by_user=True, retorna apenas emails onde o utilizador
+    logado participou (como sender, to ou cc). Isto garante privacidade.
     """
     query = {"process_id": process_id}
     
     if direction:
         query["direction"] = direction.value
+    
+    # TAREFA 1: Filtrar por participação do utilizador
+    if filter_by_user:
+        user_email = current_user.get("email", "").lower()
+        if user_email:
+            query["$or"] = [
+                {"from_email": {"$regex": user_email, "$options": "i"}},
+                {"to_emails": {"$elemMatch": {"$regex": user_email, "$options": "i"}}},
+                {"cc_emails": {"$elemMatch": {"$regex": user_email, "$options": "i"}}}
+            ]
     
     emails = await db.emails.find(query, {"_id": 0}).sort("sent_at", -1).to_list(500)
     
