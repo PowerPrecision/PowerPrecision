@@ -13,6 +13,35 @@ Aplicação de gestão de processos de crédito habitação e transações imobi
 
 ## Última Actualização - 15 Fevereiro 2026 (Sessão 32)
 
+### ✅ TAREFA P0 Completa (Sessão 32) - 100% VERIFIED (iteration_46)
+
+#### Dashboard de Validades de Documentos
+**Objetivo:** Página centralizada para visualizar todos os documentos a expirar, com permissões diferenciadas por role.
+
+##### Backend - Endpoint - IMPLEMENTADO
+- **`GET /api/documents/expiring-dashboard`**: Retorna documentos a expirar agrupados por cliente
+- **Parâmetros**: days_ahead (default 60), urgency (critical/high/medium), consultor_id, search
+- **Permissões**:
+  - CEO/Diretor/Admin: Vêem todos os clientes + filtro por consultor
+  - Consultor/Intermediário: Vêem apenas os seus clientes
+- **Response**: stats (total, critical, high, medium), clients[], consultors_filter[], is_management
+- **Ficheiros**: `/app/backend/routes/documents.py` (linhas 868-1098)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
+##### Frontend - Página - IMPLEMENTADO
+- **Rota**: `/validades`
+- **Componentes**:
+  - Header com título e botão "Actualizar"
+  - 4 Cards de estatísticas: Total, Crítico (<7 dias), Alto (7-29 dias), Médio (30-60 dias)
+  - Filtros: Pesquisa por cliente, Urgência, Período (7/30/60/90 dias), Consultor (só para management)
+  - Lista de clientes com documentos a expirar, agrupados com badges de urgência
+  - Estado vazio: "Nenhum documento a expirar encontrado"
+- **Ficheiros**: 
+  - `/app/frontend/src/pages/ExpiringDocumentsDashboard.jsx` (NOVO)
+  - `/app/frontend/src/App.js` (rota adicionada)
+  - `/app/frontend/src/layouts/DashboardLayout.js` (menu item adicionado)
+- **Status**: ✅ IMPLEMENTADO E TESTADO
+
 ### ✅ TAREFA P0 Completa (Sessão 32) - 100% VERIFIED (iteration_45)
 
 #### Categorização Automática no Upload & Watchdog de Validade de Documentos
