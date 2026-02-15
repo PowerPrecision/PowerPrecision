@@ -975,6 +975,22 @@ const ProcessDetails = () => {
           history={process.status_history || activities.filter(a => a.type === 'status_change')}
         />
 
+        {/* TAREFA 2: Resolver conflitos de dados IA */}
+        <DataConflictResolver
+          processId={id}
+          suggestions={aiSuggestions}
+          isDataConfirmed={isDataConfirmed}
+          onResolve={(suggestionId) => {
+            setAiSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+            fetchData();
+          }}
+          onConfirmData={(confirmed) => {
+            setIsDataConfirmed(confirmed);
+            fetchData();
+          }}
+          token={token}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
